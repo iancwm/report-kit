@@ -6,6 +6,27 @@ tags on this repository, not a published package registry.
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-09-04
+### Added
+- `SKILL.md` — Claude Skill entry point (frontmatter, quick start,
+  capability pointers, non-negotiables) enabling this repo to be
+  git-cloned directly into a Claude session (including from the Claude
+  mobile app, via any claude.ai session with code execution) and used
+  with no manual file copying.
+- `references/{font-setup,known-fixes,troubleshooting}.md` — split from
+  the former `docs/CLAUDE_EXECUTION.md`, loaded on demand rather than up
+  front (progressive disclosure).
+- `scripts/acceptance_check.sh` + `.githooks/pre-commit` — local, no-CI
+  verification that compiles the primitive acceptance test and checks for
+  known failure signatures before a commit touching `latex_templates/**`
+  or `python_scripts/**`. See `CONTRIBUTING.md`.
+- This `CHANGELOG.md`.
+
+### Changed
+- Distribution model: this repo is cloned directly
+  (`https://github.com/iancwm/report-kit`) rather than uploaded as Project
+  files or a packaged zip.
+
 ## [1.2.1] - 2026-09-04
 ### Fixed
 - `reportkit.cls`: legacy `libertinust1math` package load is now guarded
