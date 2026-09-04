@@ -21,6 +21,20 @@ tags on this repository, not a published package registry.
   known failure signatures before a commit touching `latex_templates/**`
   or `python_scripts/**`. See `CONTRIBUTING.md`.
 - This `CHANGELOG.md`.
+- `latex_templates/examples/primitive_acceptance_test.tex`: matrix and
+  layered-architecture sections exercising `\RKMatrixCell` and `\RKLayer`
+  (including the `accent` cell variant). The acceptance test previously
+  only exercised the newer v1.2 primitives, so `scripts/acceptance_check.sh`
+  could not have caught a regression of the v1.2.0 arithmetic bug (see
+  `references/known-fixes.md`) even though guarding exactly that class of
+  defect is the acceptance hook's purpose.
+
+### Fixed
+- `shell_scripts/bootstrap.sh`: core-file and font-bundle lookup paths
+  corrected to match this repo's actual layout (`latex_templates/`,
+  `python_scripts/`, `font_data/`) instead of assuming everything sits
+  flat at the project directory's root. The script could not previously
+  succeed against a real checkout of this repo.
 
 ### Changed
 - Distribution model: this repo is cloned directly
