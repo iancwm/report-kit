@@ -1,7 +1,7 @@
 ---
 name: reportkit
 description: Compile polished, professionally-designed technical/analytical PDF reports using LaTeX — a matching diagram and callout system, and a synced matplotlib chart theme. Use when asked to write, create, or format a technical report, PDF report, analytical report, evaluation, or brief as a finished document deliverable.
-version: 1.2.1
+version: 1.4.0
 ---
 
 # ReportKit
@@ -9,7 +9,7 @@ version: 1.2.1
 > The `version` field in this file's frontmatter tracks the LaTeX
 > document class version (`reportkit.cls`'s `\ProvidesClass` version), not
 > the skill-packaging release — that's versioned separately via git tags
-> (see `CHANGELOG.md`). `version: 1.2.1` here alongside a `v1.3.0` git tag
+> (see `CHANGELOG.md`). `version: 1.4.0` here alongside a newer git tag
 > is expected, not a mismatch.
 
 ReportKit is a LaTeX document class (`reportkit.cls`) plus supporting style
@@ -37,9 +37,8 @@ python3 reportkit_doctor.py   # confirm MODE: FULL BUILD before trusting a compi
 ```
 
 `<session-workdir>` holds only the flat core files (`reportkit.cls`,
-`reportkit-boxes.sty`, `reportkit-code.sty`, `reportkit-diagrams.sty`,
-`reportkit_doctor.py`, `reportkit_viz.py`) plus `figures/` — enough to
-compile a report — while examples (`latex_templates/examples/`), the
+`reportkit-*.sty`, `reportkit_doctor.py`, `reportkit_viz.py`) plus
+`figures/` — enough to compile a report — while examples (`latex_templates/examples/`), the
 report template (`latex_templates/REPORT_TEMPLATE.tex`), and reference
 docs (`references/*.md`) remain only in `<workdir>`, the cloned repo.
 
@@ -57,15 +56,16 @@ choice when stability matters more than newest features. See
   hoc bold text for anything the reader should treat as a distinct claim.
 - **Code blocks** (`reportkit-code.sty`) — styled, syntax-aware code
   listings.
-- **Native diagrams** (`reportkit-diagrams.sty`) — matrices, swimlanes,
-  networks, layered architectures, evidence stacks (`RKStack`), cycles
-  (`RKCycle`), funnels (`RKFunnel`). See
-  `latex_templates/examples/primitive_acceptance_test.tex` for worked
-  syntax of every primitive.
-- **Analytical charts** (`python_scripts/reportkit_viz.py`) — a
-  matplotlib theme with a palette synced to the document class, for any
-  chart generated from real data rather than expressed as a native
-  diagram.
+- **Native diagrams** (`reportkit-diagrams.sty`) — a semantic DSL for
+  qualitative matrices and risk heatmaps, flows and swimlanes, layered
+  architectures, trees and networks, roadmaps, capability maps, pillars,
+  maturity models, continuums, stacks, cycles, and conceptual funnels. Pick
+  the primitive by reader question before writing its declarative commands;
+  see `VISUAL_GRAMMAR_SPEC.md` for interfaces and limits.
+- **Analytical charts** (`python_scripts/reportkit_viz.py`) — a matplotlib
+  theme with standard charts plus treemap, waterfall, tornado, bubble-matrix,
+  and timeline helpers. Use it whenever size, position, or length encodes
+  measured values rather than a conceptual relationship.
 - **Worked examples** — `latex_templates/examples/career_guide_en/`
   (7-page pdflatex) and `career_guide_vi/` (4-page lualatex, Vietnamese
   content — see the Unicode content section of `references/font-setup.md`).

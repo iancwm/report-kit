@@ -1,0 +1,573 @@
+% ReportKit v1.4.0 -- semantic structure and strategy diagrams
+%
+% This module deliberately contains only semantic environments.  It is loaded
+% by reportkit-diagrams.sty and its environments draw into that package's
+% existing `diagram` TikZ picture; authors never provide coordinates.
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{reportkit-structure}[2026/09/04 v1.4.0 ReportKit structure and strategy diagrams]
+
+\RequirePackage{tikz}
+\RequirePackage{xparse}
+\RequirePackage{pgfkeys}
+\RequirePackage{etoolbox}
+\usetikzlibrary{arrows.meta,calc}
+
+\makeatletter
+
+% PGF does not expose a stable public ``is number'' conditional across the
+% TeX Live versions supported by ReportKit.  Keep the input check here so a
+% malformed normalized value receives a package error instead of a cryptic
+% PGF arithmetic failure.
+\ExplSyntaxOn
+\cs_new_protected:Npn \rk_structure_if_number:nnn #1#2#3
+  {
+    \tl_set:Ne \l_tmpa_tl {#1}
+    \regex_match:nVTF
+      { \A \s* [-+]? (?: [0-9]+ | [0-9]* \. [0-9]+ ) \s* \Z }
+      \l_tmpa_tl
+      {#2} {#3}
+  }
+\cs_new_eq:NN \rk@structure@ifnumber \rk_structure_if_number:nnn
+\ExplSyntaxOff
+
+% Keep these styles local to this semantic layer.  The colours are owned by
+% reportkit.cls, which is the required integration point for this package.
+\tikzset{
+  rk structure card/.style={draw=Hairline,fill=Surface,rectangle,rounded corners=1.2pt,
+    line width=.5pt,align=center,inner xsep=4pt,inner ysep=3.5pt,
+    font=\sffamily\fontsize{7.4}{8.8}\selectfont,text=Ink},
+  rk structure title/.style={font=\sffamily\bfseries\fontsize{7.7}{9.2}\selectfont,text=Ink,align=center},
+  rk structure muted/.style={font=\sffamily\fontsize{6.8}{8.1}\selectfont,text=Muted,align=center},
+  rk structure arrow/.style={-{Stealth[length=3.6pt,width=3.6pt]},draw=Evidence,line width=.7pt}
+}
+
+\newcommand{\rk@structure@error}[2]{%
+  \PackageError{reportkit-structure}{#1}{#2}%
+}
+\newcommand{\rk@structure@warning}[2]{%
+  \PackageWarning{reportkit-structure}{#1. #2}%
+}
+\newcommand{\rk@structure@unknownkey}[1]{%
+  \rk@structure@error{Unknown #1 key '\pgfkeyscurrentname'}{Check the primitive's documented keys.}%
+}
+\newcommand{\rk@structure@nonempty}[3]{%
+  \ifstrempty{#1}{\rk@structure@error{#2 must not be empty}{#3}}{}%
+}
+\newcommand{\rk@structure@rangezeroone}[3]{%
+  \rk@structure@ifnumber{#1}{%
+    \pgfmathparse{(#1 < 0) || (#1 > 1)}%
+    \ifnum\pgfmathresult=1 \rk@structure@error{#2 '#1' is outside [0,1]}{#3}\fi
+  }{\rk@structure@error{#2 '#1' is not a number}{#3}}%
+}
+\newcommand{\rk@structure@widthwarning}[2]{%
+  \rk@structure@ifnumber{#1}{\pgfmathparse{#1 < #2}%
+    \ifnum\pgfmathresult=1
+      \rk@structure@warning{Requested width #1 cm is narrow for this layout}{Use at least #2 cm or reduce the number of cards}%
+    \fi
+  }{\rk@structure@error{Width '#1' is not numeric}{Supply a width in centimetres, for example width=15.2.}}%
+}
+
+% -----------------------------------------------------------------------------
+% Architecture: ordered responsibility layers, each with one or more cards.
+% -----------------------------------------------------------------------------
+\pgfkeys{
+  /reportkit/architecture/.is family,
+  /reportkit/architecture,
+  width/.store in=\rk@archwidth,
+  .unknown/.code={\rk@structure@unknownkey{reportarchitecture}}
+}
+\newcount\rk@archcount
+\newcount\rk@archcomponents
+\NewDocumentEnvironment{reportarchitecture}{O{}}{%
+  \def\rk@archwidth{15.2}%
+  \rk@archcount=0\relax
+  \pgfkeys{/reportkit/architecture,#1}%
+  \rk@structure@widthwarning{\rk@archwidth}{10}%
+  \let\layer\rk@architecture@layer
+}{%
+  \ifnum\rk@archcount<1
+    \rk@structure@error{reportarchitecture requires at least one \string\layer}{Provide a title and one or more comma-delimited components.}%
+  \else
+    \rk@architecture@render
+  \fi
+}
+\NewDocumentCommand{\rk@architecture@layer}{m m}{%
+  \rk@structure@nonempty{#1}{Architecture layer title}{Every \string\layer needs a non-empty title.}%
+  \rk@structure@nonempty{#2}{Architecture layer '#1' components}{Provide one or more comma-delimited components.}%
+  \advance\rk@archcount by 1\relax
+  \expandafter\def\csname rk@arch@title@\the\rk@archcount\endcsname{#1}%
+  \expandafter\def\csname rk@arch@components@\the\rk@archcount\endcsname{#2}%
+}
+\newcommand{\rk@architecture@render}{%
+  \foreach \rk@i in {1,...,\the\rk@archcount}{%
+    \rk@archcomponents=0\relax
+    \expandafter\let\expandafter\rk@componentlist\csname rk@arch@components@\rk@i\endcsname
+    \@for\rk@component:=\rk@componentlist\do{\advance\rk@archcomponents by 1\relax}%
+    \pgfmathsetmacro{\rk@archy}{-(\rk@i-1)*1.65}%
+    \draw[draw=Hairline,fill=white,line width=.5pt,rounded corners=1.2pt]
+      (0,{\rk@archy-.67}) rectangle (\rk@archwidth,{\rk@archy+.67});
+    \node[rk structure title,anchor=west,text width=2.65cm,align=left]
+      at (.25,\rk@archy) {\csname rk@arch@title@\rk@i\endcsname};
+    \pgfmathsetmacro{\rk@archcardw}{(\rk@archwidth-3.25)/\the\rk@archcomponents}
+    \rk@archcomponents=0\relax
+    \@for\rk@component:=\rk@componentlist\do{%
+      \advance\rk@archcomponents by 1\relax
+      \pgfmathsetmacro{\rk@archx}{3.0+(\the\rk@archcomponents-.5)*\rk@archcardw}
+      \node[rk structure card,text width={\rk@archcardw cm-8pt},minimum height=8.2mm]
+        at (\rk@archx,\rk@archy) {\strut\rk@component};%
+    }%
+  }%
+}
+
+% -----------------------------------------------------------------------------
+% Roadmap: a qualitative horizon view or an ordered, labelled dated view.
+% Dated DSL: \period{Q1 2027} then \milestone{Q1 2027}{Discovery}, or use
+% the one-based period number in \milestone's first argument.
+% -----------------------------------------------------------------------------
+\pgfkeys{
+  /reportkit/roadmap/.is family,
+  /reportkit/roadmap,
+  mode/.store in=\rk@roadmode,
+  width/.store in=\rk@roadwidth,
+  .unknown/.code={\rk@structure@unknownkey{reportroadmap}}
+}
+\newcount\rk@roadcount
+\newcount\rk@roadmilestonecount
+\newcount\rk@roaditemcount
+\newcount\rk@roadresolved
+\NewDocumentEnvironment{reportroadmap}{O{}}{%
+  \def\rk@roadmode{horizons}\def\rk@roadwidth{15.2}%
+  \rk@roadcount=0\relax\rk@roadmilestonecount=0\relax
+  \pgfkeys{/reportkit/roadmap,#1}%
+  \rk@structure@widthwarning{\rk@roadwidth}{10}%
+  \let\horizon\rk@roadmap@horizon
+  \let\period\rk@roadmap@period
+  \let\milestone\rk@roadmap@milestone
+}{%
+  \ifdefstring{\rk@roadmode}{horizons}{\rk@roadmap@renderhorizons}{%
+    \ifdefstring{\rk@roadmode}{dated}{\rk@roadmap@renderdated}{%
+      \rk@structure@error{Invalid reportroadmap mode '\rk@roadmode'}{Use mode=horizons or mode=dated.}%
+    }%
+  }%
+}
+\NewDocumentCommand{\rk@roadmap@horizon}{m m m}{%
+  \rk@structure@nonempty{#1}{Horizon label}{Use a period label such as Now, Next, or Later.}%
+  \rk@structure@nonempty{#2}{Horizon '#1' theme}{Each horizon needs a theme.}%
+  \rk@structure@nonempty{#3}{Horizon '#1' items}{Provide one or more comma-delimited initiatives.}%
+  \advance\rk@roadcount by 1\relax
+  \expandafter\def\csname rk@road@label@\the\rk@roadcount\endcsname{#1}%
+  \expandafter\def\csname rk@road@theme@\the\rk@roadcount\endcsname{#2}%
+  \expandafter\def\csname rk@road@items@\the\rk@roadcount\endcsname{#3}%
+}
+\NewDocumentCommand{\rk@roadmap@period}{m}{%
+  \rk@structure@nonempty{#1}{Period label}{Every \string\period needs a non-empty ordered label.}%
+  \advance\rk@roadcount by 1\relax
+  \expandafter\def\csname rk@road@label@\the\rk@roadcount\endcsname{#1}%
+  \expandafter\edef\csname rk@road@periodindex@#1\endcsname{\the\rk@roadcount}%
+  \expandafter\edef\csname rk@road@periodindex@\the\rk@roadcount\endcsname{\the\rk@roadcount}%
+}
+\NewDocumentCommand{\rk@roadmap@milestone}{m m}{%
+  \rk@structure@nonempty{#1}{Milestone period}{Reference a declared period label or its one-based position.}%
+  \rk@structure@nonempty{#2}{Milestone label}{Every \string\milestone needs a non-empty label.}%
+  \advance\rk@roadmilestonecount by 1\relax
+  \expandafter\def\csname rk@road@milestoneperiod@\the\rk@roadmilestonecount\endcsname{#1}%
+  \expandafter\def\csname rk@road@milestonelabel@\the\rk@roadmilestonecount\endcsname{#2}%
+}
+\newcommand{\rk@roadmap@itemlines}[1]{%
+  \def\rk@roaditemlines{}%
+  \expandafter\let\expandafter\rk@roaditemsource\expandafter#1%
+  \@for\rk@roaditem:=\rk@roaditemsource\do{%
+    \ifstrempty{\rk@roaditemlines}{\def\rk@roaditemlines{\rk@roaditem}}{\expandafter\def\expandafter\rk@roaditemlines\expandafter{\rk@roaditemlines\\[-1pt]\rk@roaditem}}%
+  }%
+}
+\newcommand{\rk@roadmap@renderhorizons}{%
+  \ifnum\rk@roadcount<2
+    \rk@structure@error{A horizon roadmap requires at least two \string\horizon commands}{Use an ordered set such as Now, Next, and Later.}%
+  \else
+    \ifnum\rk@roadmilestonecount>0
+      \rk@structure@error{\string\milestone is only valid in mode=dated}{Use \string\horizon commands for mode=horizons.}%
+    \fi
+    \pgfmathsetmacro{\rk@roadcardw}{\rk@roadwidth/\the\rk@roadcount}
+    \foreach \rk@i in {1,...,\the\rk@roadcount}{%
+      \pgfmathsetmacro{\rk@roadx}{(\rk@i-.5)*\rk@roadcardw}
+      \draw[draw=Hairline,fill=Surface,line width=.5pt,rounded corners=1.2pt]
+        ({\rk@roadx-.5*\rk@roadcardw},-3.1) rectangle ({\rk@roadx+.5*\rk@roadcardw},.15);
+      \node[rk structure title,text width={\rk@roadcardw cm-8pt}] at (\rk@roadx,-.32)
+        {\csname rk@road@label@\rk@i\endcsname};
+      \node[rk structure muted,text=LinkBlue,font=\sffamily\bfseries\fontsize{7.1}{8.5}\selectfont,text width={\rk@roadcardw cm-8pt}]
+        at (\rk@roadx,-.83) {\csname rk@road@theme@\rk@i\endcsname};
+      \node[rk structure muted,text width={\rk@roadcardw cm-10pt}] at (\rk@roadx,-1.95)
+        {\csname rk@road@items@\rk@i\endcsname};
+    }%
+  \fi
+}
+\newcommand{\rk@roadmap@resolveperiod}[1]{%
+  \rk@roadresolved=0\relax
+  \@ifundefined{rk@road@periodindex@#1}{}{%
+    \rk@roadresolved=\csname rk@road@periodindex@#1\endcsname\relax
+  }%
+}
+\newcommand{\rk@roadmap@renderdated}{%
+  \ifnum\rk@roadcount<2
+    \rk@structure@error{A dated roadmap requires at least two \string\period commands}{Declare the periods in reading order.}%
+  \else
+    \ifnum\rk@roadmilestonecount<1
+      \rk@structure@error{A dated roadmap requires at least one \string\milestone}{Attach milestones to declared periods.}%
+    \else
+      \pgfmathsetmacro{\rk@roadstep}{\rk@roadwidth/(\the\rk@roadcount-1)}
+      \draw[draw=Evidence,line width=.8pt] (0,0) -- (\rk@roadwidth,0);
+      \foreach \rk@i in {1,...,\the\rk@roadcount}{%
+        \pgfmathsetmacro{\rk@roadx}{(\rk@i-1)*\rk@roadstep}
+        \fill[LinkBlue] (\rk@roadx,0) circle (2.1pt);
+        \node[rk structure muted,anchor=north,text width=2.55cm] at (\rk@roadx,-.22) {\csname rk@road@label@\rk@i\endcsname};
+      }%
+      \foreach \rk@m in {1,...,\the\rk@roadmilestonecount}{%
+        \expandafter\rk@roadmap@resolveperiod\expandafter{\csname rk@road@milestoneperiod@\rk@m\endcsname}%
+        \ifnum\rk@roadresolved=0
+          \rk@structure@error{Unknown milestone period '\csname rk@road@milestoneperiod@\rk@m\endcsname'}{Declare it with \string\period before using it in \string\milestone.}%
+        \else
+          \pgfmathsetmacro{\rk@roadx}{(\the\rk@roadresolved-1)*\rk@roadstep}
+          \pgfmathtruncatemacro{\rk@roadside}{mod(\rk@m,2)}
+          \ifnum\rk@roadside=0
+            \draw[rk structure arrow] (\rk@roadx,.10) -- (\rk@roadx,.63);
+            \node[rk structure card,anchor=south,text width=2.65cm,minimum height=8.5mm] at (\rk@roadx,.68) {\csname rk@road@milestonelabel@\rk@m\endcsname};
+          \else
+            \draw[rk structure arrow] (\rk@roadx,-.10) -- (\rk@roadx,-.63);
+            \node[rk structure card,anchor=north,text width=2.65cm,minimum height=8.5mm] at (\rk@roadx,-.68) {\csname rk@road@milestonelabel@\rk@m\endcsname};
+          \fi
+        \fi
+      }%
+    \fi
+  \fi
+}
+
+% -----------------------------------------------------------------------------
+% Strategic pillars: one objective supported by exactly three to six levers.
+% -----------------------------------------------------------------------------
+\pgfkeys{
+  /reportkit/pillars/.is family,
+  /reportkit/pillars,
+  objective/.store in=\rk@pillarobjective,
+  width/.store in=\rk@pillarwidth,
+  .unknown/.code={\rk@structure@unknownkey{strategicpillars}}
+}
+\newcount\rk@pillarcount
+\NewDocumentEnvironment{strategicpillars}{O{}}{%
+  \def\rk@pillarobjective{}\def\rk@pillarwidth{15.2}\rk@pillarcount=0\relax
+  \pgfkeys{/reportkit/pillars,#1}%
+  \rk@structure@widthwarning{\rk@pillarwidth}{10}%
+  \let\pillar\rk@pillars@pillar
+}{%
+  \rk@structure@nonempty{\rk@pillarobjective}{Strategic objective}{Supply objective={...} on strategicpillars.}%
+  \ifnum\rk@pillarcount<3
+    \rk@structure@error{strategicpillars requires 3--6 \string\pillar commands; found \the\rk@pillarcount}{Add enough distinct supporting levers.}%
+  \else\ifnum\rk@pillarcount>6
+    \rk@structure@error{strategicpillars requires 3--6 \string\pillar commands; found \the\rk@pillarcount}{Split larger sets into separate diagrams.}%
+  \else
+    \rk@pillars@render
+  \fi\fi
+}
+\NewDocumentCommand{\rk@pillars@pillar}{m m}{%
+  \rk@structure@nonempty{#1}{Pillar title}{Every \string\pillar requires a non-empty title.}%
+  \rk@structure@nonempty{#2}{Pillar '#1' description}{Every pillar needs a concise description.}%
+  \advance\rk@pillarcount by 1\relax
+  \expandafter\def\csname rk@pillar@title@\the\rk@pillarcount\endcsname{#1}%
+  \expandafter\def\csname rk@pillar@description@\the\rk@pillarcount\endcsname{#2}%
+}
+\newcommand{\rk@pillars@render}{%
+  \pgfmathsetmacro{\rk@pillarcw}{\rk@pillarwidth/\the\rk@pillarcount}
+  \node[rk structure card,draw=LinkBlue,line width=.8pt,text width={.68*\rk@pillarwidth cm},minimum height=10mm]
+    (rk-pillars-objective) at (.5*\rk@pillarwidth,0) {\textbf{\rk@pillarobjective}};
+  \foreach \rk@i in {1,...,\the\rk@pillarcount}{%
+    \pgfmathsetmacro{\rk@pillarx}{(\rk@i-.5)*\rk@pillarcw}
+    \node[rk structure card,text width={\rk@pillarcw cm-9pt},minimum height=13mm]
+      (rk-pillar-\rk@i) at (\rk@pillarx,-2.35)
+      {\textbf{\csname rk@pillar@title@\rk@i\endcsname}\\[2pt]\csname rk@pillar@description@\rk@i\endcsname};
+    \draw[rk structure arrow] (rk-pillars-objective.south) -- (rk-pillar-\rk@i.north);
+  }%
+}
+
+% -----------------------------------------------------------------------------
+% Maturity model: four to six ordered stages and an optional current marker.
+% `current` accepts a one-based stage number or an exact stage label.
+% -----------------------------------------------------------------------------
+\pgfkeys{
+  /reportkit/maturity/.is family,
+  /reportkit/maturity,
+  current/.store in=\rk@maturitycurrent,
+  width/.store in=\rk@maturitywidth,
+  .unknown/.code={\rk@structure@unknownkey{maturitymodel}}
+}
+\newcount\rk@maturitycount
+\newcount\rk@maturityresolved
+\NewDocumentEnvironment{maturitymodel}{O{}}{%
+  \def\rk@maturitycurrent{}\def\rk@maturitywidth{15.2}\rk@maturitycount=0\relax
+  \pgfkeys{/reportkit/maturity,#1}%
+  \rk@structure@widthwarning{\rk@maturitywidth}{10}%
+  \let\stage\rk@maturity@stage
+}{%
+  \ifnum\rk@maturitycount<4
+    \rk@structure@error{maturitymodel requires 4--6 \string\stage commands; found \the\rk@maturitycount}{Add ordered stages from the initial to the target state.}%
+  \else\ifnum\rk@maturitycount>6
+    \rk@structure@error{maturitymodel requires 4--6 \string\stage commands; found \the\rk@maturitycount}{Split a longer progression or group stages.}%
+  \else
+    \rk@maturity@render
+  \fi\fi
+}
+\NewDocumentCommand{\rk@maturity@stage}{m m}{%
+  \rk@structure@nonempty{#1}{Maturity stage title}{Every \string\stage needs a non-empty title.}%
+  \rk@structure@nonempty{#2}{Maturity stage '#1' description}{Every stage needs a concise description.}%
+  \advance\rk@maturitycount by 1\relax
+  \expandafter\def\csname rk@maturity@title@\the\rk@maturitycount\endcsname{#1}%
+  \expandafter\def\csname rk@maturity@description@\the\rk@maturitycount\endcsname{#2}%
+  \expandafter\edef\csname rk@maturity@index@#1\endcsname{\the\rk@maturitycount}%
+  \expandafter\edef\csname rk@maturity@index@\the\rk@maturitycount\endcsname{\the\rk@maturitycount}%
+}
+\newcommand{\rk@maturity@resolvecurrent}{%
+  \rk@maturityresolved=0\relax
+  \ifstrempty{\rk@maturitycurrent}{}{%
+    \@ifundefined{rk@maturity@index@\rk@maturitycurrent}{}{\rk@maturityresolved=\csname rk@maturity@index@\rk@maturitycurrent\endcsname\relax}%
+    \ifnum\rk@maturityresolved=0
+      \rk@structure@error{Unknown current maturity stage '\rk@maturitycurrent'}{Use a declared stage label or its one-based position.}%
+    \fi
+  }%
+}
+\newcommand{\rk@maturity@render}{%
+  \rk@maturity@resolvecurrent
+  \pgfmathsetmacro{\rk@maturitycw}{\rk@maturitywidth/\the\rk@maturitycount}
+  \foreach \rk@i in {1,...,\the\rk@maturitycount}{%
+    \pgfmathsetmacro{\rk@maturityx}{(\rk@i-.5)*\rk@maturitycw}
+    \node[rk structure card,text width={\rk@maturitycw cm-9pt},minimum height=16mm]
+      (rk-maturity-\rk@i) at (\rk@maturityx,0)
+      {\textbf{\csname rk@maturity@title@\rk@i\endcsname}\\[2pt]\csname rk@maturity@description@\rk@i\endcsname};
+    \ifnum\rk@i>1 \draw[rk structure arrow] (rk-maturity-\number\numexpr\rk@i-1\relax.east) -- (rk-maturity-\rk@i.west);\fi
+  }%
+  \ifnum\rk@maturityresolved>0
+    \pgfmathsetmacro{\rk@maturityx}{(\the\rk@maturityresolved-.5)*\rk@maturitycw}
+    \node[rk structure muted,text=LinkBlue,font=\sffamily\bfseries\fontsize{7}{8.3}\selectfont,anchor=south]
+      at (\rk@maturityx,1.2) {CURRENT};
+    \draw[-{Stealth[length=3pt,width=3pt]},draw=LinkBlue,line width=.7pt] (\rk@maturityx,1.12) -- (\rk@maturityx,.62);
+  \fi
+}
+
+% -----------------------------------------------------------------------------
+% Continuum: two named endpoints and zero or more normalised markers.
+% `left` and `right` are intentionally required so endpoint meaning is never
+% carried by colour alone.  `endpoints={left,right}` is accepted as a compact
+% equivalent and is checked for exactly two values.
+% -----------------------------------------------------------------------------
+\pgfkeys{
+  /reportkit/continuum/.is family,
+  /reportkit/continuum,
+  left/.store in=\rk@continuumleft,
+  right/.store in=\rk@continuumright,
+  endpoints/.code={\rk@continuum@setendpoints#1\@nil},
+  width/.store in=\rk@continuumwidth,
+  .unknown/.code={\rk@structure@unknownkey{continuum}}
+}
+\def\rk@continuum@setendpoints#1,#2\@nil{%
+  \def\rk@continuumleft{#1}\def\rk@continuumright{#2}%
+  \ifstrempty{#2}{\rk@structure@error{continuum endpoints must contain exactly two labels}{Use endpoints={Left label,Right label}, or the left and right keys.}}{}%
+}
+\newcount\rk@continuummarkercount
+\NewDocumentEnvironment{continuum}{O{}}{%
+  \def\rk@continuumleft{}\def\rk@continuumright{}\def\rk@continuumwidth{15.2}\rk@continuummarkercount=0\relax
+  \pgfkeys{/reportkit/continuum,#1}%
+  \rk@structure@widthwarning{\rk@continuumwidth}{8}%
+  \let\marker\rk@continuum@marker
+}{%
+  \rk@structure@nonempty{\rk@continuumleft}{Continuum left endpoint}{Supply left={...} or endpoints={left,right}.}%
+  \rk@structure@nonempty{\rk@continuumright}{Continuum right endpoint}{Supply right={...} or endpoints={left,right}.}%
+  \rk@continuum@render
+}
+\NewDocumentCommand{\rk@continuum@marker}{m m}{%
+  \rk@structure@nonempty{#1}{Continuum marker label}{Every \string\marker needs a label.}%
+  \rk@structure@rangezeroone{#2}{Continuum marker '#1' value}{Use a normalized value from 0 to 1.}%
+  \advance\rk@continuummarkercount by 1\relax
+  \expandafter\def\csname rk@continuum@label@\the\rk@continuummarkercount\endcsname{#1}%
+  \expandafter\def\csname rk@continuum@value@\the\rk@continuummarkercount\endcsname{#2}%
+}
+\newcommand{\rk@continuum@render}{%
+  \draw[draw=Evidence,line width=1pt] (0,0) -- (\rk@continuumwidth,0);
+  \fill[Evidence] (0,0) circle (2pt);
+  \fill[Evidence] (\rk@continuumwidth,0) circle (2pt);
+  \node[rk structure title,anchor=east,text width=3cm,align=right] at (-.25,0) {\rk@continuumleft};
+  \node[rk structure title,anchor=west,text width=3cm,align=left] at (\rk@continuumwidth+.25,0) {\rk@continuumright};
+  \foreach \rk@i in {1,...,\the\rk@continuummarkercount}{%
+    \pgfmathsetmacro{\rk@continuumx}{\csname rk@continuum@value@\rk@i\endcsname*\rk@continuumwidth}
+    \draw[draw=LinkBlue,line width=.8pt] (\rk@continuumx,-.15) -- (\rk@continuumx,.65);
+    \fill[LinkBlue] (\rk@continuumx,0) circle (2.2pt);
+    \node[rk structure muted,text=Ink,anchor=south,text width=2.6cm] at (\rk@continuumx,.7) {\csname rk@continuum@label@\rk@i\endcsname};
+  }%
+}
+
+% -----------------------------------------------------------------------------
+% Capability map: named domains containing capability cards.  Domains remain
+% distinct from architecture layers: they group capabilities by business
+% domain, rather than portraying responsibility or technical separation.
+% -----------------------------------------------------------------------------
+\pgfkeys{
+  /reportkit/capability/.is family,
+  /reportkit/capability,
+  width/.store in=\rk@capabilitywidth,
+  .unknown/.code={\rk@structure@unknownkey{capabilitymap}}
+}
+\newcount\rk@capabilitydomaincount
+\newcount\rk@capabilityitemcount
+\NewDocumentEnvironment{capabilitymap}{O{}}{%
+  \def\rk@capabilitywidth{15.2}\rk@capabilitydomaincount=0\relax
+  \pgfkeys{/reportkit/capability,#1}%
+  \rk@structure@widthwarning{\rk@capabilitywidth}{10}%
+  \let\domain\rk@capability@domain
+}{%
+  \ifnum\rk@capabilitydomaincount<1
+    \rk@structure@error{capabilitymap requires at least one \string\domain}{Provide a domain name and one or more comma-delimited capabilities.}%
+  \else
+    \rk@capability@render
+  \fi
+}
+\NewDocumentCommand{\rk@capability@domain}{m m}{%
+  \rk@structure@nonempty{#1}{Capability domain name}{Every \string\domain needs a non-empty name.}%
+  \rk@structure@nonempty{#2}{Capability domain '#1' capabilities}{Provide one or more comma-delimited capabilities.}%
+  \advance\rk@capabilitydomaincount by 1\relax
+  \expandafter\def\csname rk@capability@domain@\the\rk@capabilitydomaincount\endcsname{#1}%
+  \expandafter\def\csname rk@capability@items@\the\rk@capabilitydomaincount\endcsname{#2}%
+}
+\newcommand{\rk@capability@render}{%
+  \foreach \rk@i in {1,...,\the\rk@capabilitydomaincount}{%
+    \rk@capabilityitemcount=0\relax
+    \expandafter\let\expandafter\rk@capabilityitemlist\csname rk@capability@items@\rk@i\endcsname
+    \@for\rk@capabilityitem:=\rk@capabilityitemlist\do{\advance\rk@capabilityitemcount by 1\relax}%
+    \pgfmathsetmacro{\rk@capabilityy}{-(\rk@i-1)*1.75}%
+    \draw[draw=Hairline,fill=Surface,line width=.5pt,rounded corners=1.2pt]
+      (0,{\rk@capabilityy-.69}) rectangle (\rk@capabilitywidth,{\rk@capabilityy+.69});
+    \node[rk structure title,anchor=west,text width=2.85cm,align=left]
+      at (.25,\rk@capabilityy) {\csname rk@capability@domain@\rk@i\endcsname};
+    \pgfmathsetmacro{\rk@capabilitycw}{(\rk@capabilitywidth-3.45)/\the\rk@capabilityitemcount}
+    \rk@capabilityitemcount=0\relax
+    \@for\rk@capabilityitem:=\rk@capabilityitemlist\do{%
+      \advance\rk@capabilityitemcount by 1\relax
+      \pgfmathsetmacro{\rk@capabilityx}{3.2+(\the\rk@capabilityitemcount-.5)*\rk@capabilitycw}
+      \node[rk structure card,text width={\rk@capabilitycw cm-8pt},minimum height=8mm]
+        at (\rk@capabilityx,\rk@capabilityy) {\strut\rk@capabilityitem};
+    }%
+  }%
+}
+
+% -----------------------------------------------------------------------------
+% Tree: a semantic, declaration-ordered fallback that needs no optional
+% `forest` dependency.  \root{label} establishes the root.  \branch{label}
+% {children} attaches a branch to the root; \branch[parent]{label}{children}
+% attaches it to any previously declared label, enabling arbitrary depth.
+% Labels act as references and must therefore be unique.  At depths above
+% three the same stable grid layout is retained and a readability warning is
+% emitted; authors should split dense trees rather than supply coordinates.
+% -----------------------------------------------------------------------------
+\pgfkeys{
+  /reportkit/tree/.is family,
+  /reportkit/tree,
+  kind/.store in=\rk@treekind,
+  width/.store in=\rk@treewidth,
+  .unknown/.code={\rk@structure@unknownkey{reporttree}}
+}
+\newcount\rk@treecount
+\newcount\rk@treeroot
+\newcount\rk@treeparent
+\newcount\rk@treelevel
+\newcount\rk@treeslot
+\newif\ifrk@treedeepwarning
+\NewDocumentEnvironment{reporttree}{O{}}{%
+  \def\rk@treekind{hierarchy}\def\rk@treewidth{15.2}%
+  \rk@treecount=0\relax\rk@treeroot=0\relax\rk@treedeepwarningfalse
+  \pgfkeys{/reportkit/tree,#1}%
+  \rk@structure@widthwarning{\rk@treewidth}{10}%
+  \let\root\rk@tree@root
+  \let\branch\rk@tree@branch
+}{%
+  \ifnum\rk@treeroot=0
+    \rk@structure@error{reporttree requires exactly one \string\root}{Declare a root before its \string\branch commands.}%
+  \else
+    \rk@tree@render
+  \fi
+}
+\newcommand{\rk@tree@knownlabel}[1]{%
+  \@ifundefined{rk@tree@id@#1}{\expandafter\@secondoftwo}{\expandafter\@firstoftwo}%
+}
+\newcommand{\rk@tree@addnode}[3]{%
+  % #1 label, #2 parent id (0 for root), #3 level
+  \rk@structure@nonempty{#1}{Tree node label}{Tree node labels must be non-empty and unique.}%
+  \rk@tree@knownlabel{#1}{%
+    \rk@structure@error{Duplicate reporttree node label '#1'}{Use unique labels because \string\branch references labels.}%
+  }{}%
+  \advance\rk@treecount by 1\relax
+  \expandafter\edef\csname rk@tree@id@#1\endcsname{\the\rk@treecount}%
+  % `#1` can be a loop variable while a comma-delimited child list is being
+  % read.  Freeze its current text now; retaining the loop macro would make
+  % every stored child turn into \string\@nil after the loop finishes.
+  \expandafter\protected@edef\csname rk@tree@label@\the\rk@treecount\endcsname{#1}%
+  \expandafter\edef\csname rk@tree@parent@\the\rk@treecount\endcsname{#2}%
+  \expandafter\edef\csname rk@tree@level@\the\rk@treecount\endcsname{#3}%
+  \@ifundefined{rk@tree@levelcount@#3}{\expandafter\def\csname rk@tree@levelcount@#3\endcsname{1}}{%
+    \expandafter\edef\csname rk@tree@levelcount@#3\endcsname{\number\numexpr\csname rk@tree@levelcount@#3\endcsname+1\relax}%
+  }%
+  \expandafter\edef\csname rk@tree@slot@\the\rk@treecount\endcsname{\csname rk@tree@levelcount@#3\endcsname}%
+  \ifnum#3>3
+    \ifrk@treedeepwarning\else
+      \rk@structure@warning{reporttree depth exceeds the compact simple-form layout}{Split a dense tree or use an external figure when readability suffers}%
+      \rk@treedeepwarningtrue
+    \fi
+  \fi
+}
+\NewDocumentCommand{\rk@tree@root}{m}{%
+  \ifnum\rk@treeroot>0
+    \rk@structure@error{reporttree permits exactly one \string\root}{Use \string\branch to add children to the existing root.}%
+  \else
+    \rk@tree@addnode{#1}{0}{0}%
+    \rk@treeroot=\rk@treecount\relax
+  \fi
+}
+\NewDocumentCommand{\rk@tree@branch}{O{} m m}{%
+  \ifstrempty{#1}{%
+    \ifnum\rk@treeroot=0
+      \rk@structure@error{\string\branch was declared before \string\root}{Declare \string\root first, or use \string\branch[parent]{label}{children}.}%
+    \else
+      \rk@treeparent=\rk@treeroot\relax
+    \fi
+  }{%
+    \@ifundefined{rk@tree@id@#1}{%
+      \rk@structure@error{Unknown reporttree parent '#1'}{Declare the parent label before using it in \string\branch[parent].}%
+      \rk@treeparent=0\relax
+    }{\rk@treeparent=\csname rk@tree@id@#1\endcsname\relax}%
+  }%
+  \rk@structure@nonempty{#2}{Tree branch label}{Every \string\branch needs a non-empty label.}%
+  \rk@structure@nonempty{#3}{Tree branch '#2' children}{Provide one or more comma-delimited children.}%
+  \ifnum\rk@treeparent>0
+    \rk@treelevel=\csname rk@tree@level@\the\rk@treeparent\endcsname\relax
+    \advance\rk@treelevel by 1\relax
+    \rk@tree@addnode{#2}{\the\rk@treeparent}{\the\rk@treelevel}%
+    \rk@treeparent=\rk@treecount\relax
+    \advance\rk@treelevel by 1\relax
+    \@for\rk@treechild:=#3\do{\rk@tree@addnode{\rk@treechild}{\the\rk@treeparent}{\the\rk@treelevel}}%
+  \fi
+}
+\newcommand{\rk@tree@render}{%
+  \foreach \rk@i in {1,...,\the\rk@treecount}{%
+    \edef\rk@treelevelvalue{\csname rk@tree@level@\rk@i\endcsname}%
+    \edef\rk@treeslotvalue{\csname rk@tree@slot@\rk@i\endcsname}%
+    \edef\rk@treeleveltotal{\csname rk@tree@levelcount@\rk@treelevelvalue\endcsname}%
+    \pgfmathsetmacro{\rk@treex}{(\rk@treeslotvalue-.5)*\rk@treewidth/\rk@treeleveltotal}
+    \pgfmathsetmacro{\rk@treey}{-1.7*\rk@treelevelvalue}
+    \pgfmathsetmacro{\rk@treecardwidth}{min(3.05,\rk@treewidth/\rk@treeleveltotal-.18)}
+    \node[rk structure card,text width={\rk@treecardwidth cm-8pt},minimum height=8.7mm]
+      (rk-tree-\rk@i) at (\rk@treex,\rk@treey) {\strut\csname rk@tree@label@\rk@i\endcsname};
+  }%
+  \foreach \rk@i in {1,...,\the\rk@treecount}{%
+    \edef\rk@treeparentvalue{\csname rk@tree@parent@\rk@i\endcsname}%
+    \ifnum\rk@treeparentvalue>0
+      \draw[rk structure arrow] (rk-tree-\rk@treeparentvalue.south) -- (rk-tree-\rk@i.north);
+    \fi
+  }%
+}
+
+\makeatother
+\endinput

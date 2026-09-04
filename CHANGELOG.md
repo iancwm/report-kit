@@ -6,6 +6,24 @@ tags on this repository, not a published package registry.
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-09-04
+### Added
+- Semantic visual grammar over the existing native TikZ primitives:
+  qualitative and point matrices, risk heatmaps, flows, swimlanes,
+  architectures, roadmaps, capability maps, pillars, maturity models,
+  continuums, trees, networks, causal loops, evidence stacks, cycles, and
+  conceptual funnels. The low-level v1.2 APIs remain supported.
+- `VISUAL_GRAMMAR_SPEC.md` — product contract for choosing, implementing,
+  validating, documenting, and visually QA'ing the reporting-system visual
+  grammar.
+- Analytical treemap, waterfall, tornado, bubble-matrix, and timeline helpers
+  in `reportkit_viz.py`, all using the existing ReportKit theme and vector
+  export conventions.
+
+### Changed
+- `bootstrap.sh` now copies all semantic diagram modules into a report work
+  directory, preserving the one-command setup path.
+
 ## [1.3.0] - 2026-09-04
 ### Added
 - `SKILL.md` — Claude Skill entry point (frontmatter, quick start,

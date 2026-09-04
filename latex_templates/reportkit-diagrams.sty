@@ -6,7 +6,7 @@
 %   * node labels are native LaTeX text with align=center and explicit \\ breaks;
 %   * dashed lines are reserved for typed handoff/optional semantics.
 \NeedsTeXFormat{LaTeX2e}
-\ProvidesPackage{reportkit-diagrams}[2026/09/04 v1.2.0 ReportKit diagrams]
+\ProvidesPackage{reportkit-diagrams}[2026/09/04 v1.4.0 ReportKit diagrams]
 \RequirePackage{tikz}
 \usetikzlibrary{arrows.meta,positioning,calc,fit,backgrounds}
 \RequirePackage{xparse}
@@ -261,5 +261,87 @@
   \node[font=\sffamily\fontsize{7.5}{9}\selectfont,text=Ink,align=center,
         text width={0.85*#3*\rk@funnelw cm}] at (\rk@fcx,{\rk@fy-0.5*\rk@funnelh}) {#5};%
 }
+
+% -----------------------------------------------------------------------------
+% Semantic wrappers for the v1.2 stack, cycle, and funnel primitives
+% -----------------------------------------------------------------------------
+% The low-level RK commands remain stable for custom diagrams. These wrappers
+% provide declaration-order placement for ordinary report authors.
+\newcommand{\rk@semanticstackw}{10}
+\newcommand{\rk@semanticstackh}{1.05}
+\newcommand{\rk@semanticstackn}{5}
+\newcount\rk@semanticstackindex
+\pgfkeys{
+  /reportkit/evidence stack/.is family,
+  /reportkit/evidence stack,
+  width/.store in=\rk@semanticstackw,
+  tier height/.store in=\rk@semanticstackh,
+  tiers/.store in=\rk@semanticstackn,
+}
+\NewDocumentEnvironment{evidencestack}{O{}}{%
+  \begingroup
+  \pgfkeys{/reportkit/evidence stack,width=10,tier height=1.05,tiers=5,#1}%
+  \ifnum\rk@semanticstackn<2
+    \PackageError{reportkit-diagrams}{evidencestack requires at least two tiers}{Set tiers to an integer of 2 or greater.}%
+  \fi
+  \RKStackSetup{\rk@semanticstackw}{\rk@semanticstackh}{\rk@semanticstackn}%
+  \rk@semanticstackindex=0\relax
+}{\endgroup}
+\NewDocumentCommand{\evidencetier}{O{} m}{%
+  \ifnum\rk@semanticstackindex>\numexpr\rk@semanticstackn-1\relax
+    \PackageError{reportkit-diagrams}{Too many evidencestack tiers}{Increase the tiers key or remove a \string\evidencetier command.}%
+  \fi
+  \RKStackTier[#1]{\the\rk@semanticstackindex}{#2}%
+  \advance\rk@semanticstackindex by 1\relax
+}
+
+\newcommand{\rk@semanticcycler}{4.4}
+\newcommand{\rk@semanticcyclen}{6}
+\newcount\rk@semanticcycleindex
+\pgfkeys{
+  /reportkit/cycle/.is family,
+  /reportkit/cycle,
+  radius/.store in=\rk@semanticcycler,
+  stages/.store in=\rk@semanticcyclen,
+}
+\NewDocumentEnvironment{reportcycle}{O{}}{%
+  \begingroup
+  \pgfkeys{/reportkit/cycle,radius=4.4,stages=6,#1}%
+  \ifnum\rk@semanticcyclen<3
+    \PackageError{reportkit-diagrams}{reportcycle requires at least three stages}{Set stages to an integer of 3 or greater.}%
+  \fi
+  \RKCycleSetup{\rk@semanticcycler}\rk@semanticcycleindex=0\relax
+}{\endgroup}
+\NewDocumentCommand{\cyclestage}{O{} m m}{%
+  \pgfmathsetmacro{\rk@semanticcycleangle}{90-\the\rk@semanticcycleindex*360/\rk@semanticcyclen}%
+  \RKCycleNode[#1]{#2}{\rk@semanticcycleangle}{#3}%
+  \advance\rk@semanticcycleindex by 1\relax
+}
+\NewDocumentCommand{\cycleedge}{O{} m m}{\RKCycleEdge[#1]{#2}{#3}}
+
+\newcommand{\rk@semanticfunnelw}{10}
+\newcommand{\rk@semanticfunnelh}{1.2}
+\newcount\rk@semanticfunnelindex
+\pgfkeys{
+  /reportkit/funnel/.is family,
+  /reportkit/funnel,
+  width/.store in=\rk@semanticfunnelw,
+  stage height/.store in=\rk@semanticfunnelh,
+}
+\NewDocumentEnvironment{reportfunnel}{O{}}{%
+  \begingroup
+  \pgfkeys{/reportkit/funnel,width=10,stage height=1.2,#1}%
+  \RKFunnelSetup{\rk@semanticfunnelw}{\rk@semanticfunnelh}\rk@semanticfunnelindex=0\relax
+}{\endgroup}
+\NewDocumentCommand{\funnelstage}{O{} m m m}{%
+  \RKFunnelStage[#1]{\the\rk@semanticfunnelindex}{#2}{#3}{#4}%
+  \advance\rk@semanticfunnelindex by 1\relax
+}
+
+% Semantic modules are separated by visual reasoning family but loaded from
+% this public entry point, so report authors continue to need one package.
+\RequirePackage{reportkit-spatial}
+\RequirePackage{reportkit-process}
+\RequirePackage{reportkit-structure}
 
 \endinput

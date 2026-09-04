@@ -2,7 +2,7 @@
 % Project-local technical report grammar.
 % v1.1 adds structural pagination guards for section openings and diagrams.
 \NeedsTeXFormat{LaTeX2e}
-\ProvidesClass{reportkit}[2026/09/04 v1.2.1 ReportKit technical report class]
+\ProvidesClass{reportkit}[2026/09/04 v1.4.0 ReportKit technical report class]
 
 \LoadClass[10pt,a4paper]{article}
 

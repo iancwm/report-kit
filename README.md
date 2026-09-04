@@ -8,20 +8,23 @@ clones this repo and follows it directly. This file is the human-facing
 overview.
 
 ## 1. latex_templates/
-- `reportkit.cls` (v1.2.1), `reportkit-boxes.sty`, `reportkit-code.sty`,
-  `reportkit-diagrams.sty` — the core document class and style files, including the
-  v1.2 diagram primitives (`RKStack`, `RKCycle`, `RKFunnel`), the `deliverablenote`
-  callout, and the v1.2.1 lualatex/pdflatex engine-guard fix.
+- `reportkit.cls` (v1.4.0), `reportkit-boxes.sty`, `reportkit-code.sty`,
+  `reportkit-diagrams.sty` plus its semantic visual-grammar modules — the core
+  document class and style files. The public diagram DSL covers positioning,
+  risk, process, architecture, hierarchy, planning, and strategy visuals;
+  existing low-level primitives remain available for custom composition.
 - `REPORT_TEMPLATE.tex` — minimal report skeleton.
-- `examples/primitive_acceptance_test.tex` — exercises all v1.2 primitives; useful
-  as a smoke test after any core-file change (see `scripts/acceptance_check.sh`).
+- `examples/{primitive_acceptance_test,visual_grammar_acceptance_test}.tex` —
+  compile the legacy and v1.4 public APIs respectively; use the acceptance
+  check after any core-file change.
 - `examples/career_guide_en/` — full 7-page worked example (pdflatex).
 - `examples/career_guide_vi/` — full 4-page worked example with Vietnamese content
   (lualatex; see `references/font-setup.md` for the extra setup this needs).
 
 ## 2. python_scripts/
 - `reportkit_viz.py` — Matplotlib analytical chart theme (palette synced with
-  `reportkit.cls`, includes the `Deliverable` color).
+  `reportkit.cls`, including treemap, waterfall, tornado, bubble-matrix, and
+  dated timeline figures alongside standard analytical charts).
 - `reportkit_doctor.py` — environment check (FULL BUILD / SOURCE BUILD detection).
 - `career_guide_en_make_figures.py` — example figure generator using `reportkit_viz`.
 
@@ -57,3 +60,11 @@ you're a person cloning this locally or a Claude session bootstrapping it.
 
 Releases are git tags (e.g. `v1.2.1`, `v1.3.0`) on this repo, not a zip or
 package registry. See `CHANGELOG.md`.
+
+## Visual grammar
+
+Use a native semantic diagram for qualitative reasoning (such as a strategy
+matrix, risk heatmap, process, architecture, roadmap, or capability map). Use
+`reportkit_viz.py` for figures whose geometry represents measured values. The
+full interfaces, constraints, and acceptance requirements are in
+[`VISUAL_GRAMMAR_SPEC.md`](VISUAL_GRAMMAR_SPEC.md).
