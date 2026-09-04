@@ -103,6 +103,45 @@ native form for conceptual explanation only.
   \RKFunnelStage[rk accent]{3}{0.20}{0.10}{Offers}
 \end{diagram}
 
+\section{Positioning matrix}
+Two independent axes -- effort and impact -- sort candidate initiatives into four
+quadrants at a glance, which a bulleted list cannot do without forcing the reader to
+hold both axes in their head at once. \texttt{RKMatrix} makes the two axes, and the
+resulting quadrant a given item falls into, directly visible.
+
+\begin{diagram}[
+  type=matrix,
+  caption={Initiatives by effort and impact.},
+  label={fig:matrix},
+  source={Illustrative placement; not derived from a scored rubric.},
+  description={A 2x2 matrix with effort on the horizontal axis and impact on the vertical axis, one initiative labelled in each quadrant.}
+]
+  \RKMatrixSetup{10.4}{6.2}
+  \RKMatrix{Effort}{Impact}
+  \RKMatrixCell{nw}{Quick polish}{Low effort, high impact}
+  \RKMatrixCell[accent]{ne}{Flagship bet}{High effort, high impact}
+  \RKMatrixCell{sw}{Backlog}{Low effort, low impact}
+  \RKMatrixCell{se}{Reconsider}{High effort, low impact}
+\end{diagram}
+
+\section{Layered architecture}
+The system separates concerns into three layers of equal visual weight, distinct from
+the matrix above: no axis, just top-to-bottom separation of responsibility.
+\texttt{RKLayer} renders each layer as its own labelled band.
+
+\begin{diagram}[
+  type=layer,
+  caption={System layers, top to bottom.},
+  label={fig:layer},
+  source={Illustrative architecture.},
+  description={Three stacked layers: presentation, application logic, and data storage.}
+]
+  \RKLayerSetup{10}{1.0}
+  \RKLayer[rk accent]{0}{Presentation}{Renders reports and diagrams for the reader.}
+  \RKLayer{1}{Application logic}{Applies ReportKit macros and semantic styling.}
+  \RKLayer{2}{Data storage}{Holds source content and configuration.}
+\end{diagram}
+
 \section{Grayscale and semantic check}
 \begin{principle}{Semantics before decoration}
 The new primitives follow the same rule as the existing ones: \texttt{RKStack} and

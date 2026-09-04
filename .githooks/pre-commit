@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# Runs scripts/acceptance_check.sh only when the commit touches LaTeX or
+# Python core files -- see CONTRIBUTING.md for how to enable this hook.
+set -uo pipefail
+
+ROOT="$(git rev-parse --show-toplevel)"
+changed="$(git diff --cached --name-only)"
+
+if echo "$changed" | grep -qE '^(latex_templates|python_scripts)/'; then
+  echo "pre-commit: latex_templates/ or python_scripts/ changed -- running acceptance check"
+  "$ROOT/scripts/acceptance_check.sh"
+  exit $?
+fi
+
+exit 0
