@@ -1,0 +1,57 @@
+% ReportKit v1.1.0 -- code and output blocks
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{reportkit-code}[2026/09/03 v1.1.0 ReportKit code blocks]
+\RequirePackage{listings}
+\RequirePackage[most]{tcolorbox}
+\RequirePackage{xparse}
+\RequirePackage{needspace}
+\RequirePackage{xcolor}
+
+\lstdefinestyle{reportkit}{%
+  basicstyle=\ttfamily\fontsize{8.2}{10}\selectfont,
+  keywordstyle=\color{LinkBlue}\bfseries,
+  commentstyle=\color{Muted}\itshape,
+  stringstyle=\color{Tip},
+  showstringspaces=false,
+  columns=fullflexible,
+  keepspaces=true,
+  breaklines=true,
+  breakatwhitespace=false,
+  tabsize=2,
+  frame=none,
+  xleftmargin=0pt,
+  xrightmargin=0pt,
+  aboveskip=0pt,
+  belowskip=0pt
+}
+
+\newcommand{\rk@lstlang}[1]{%
+  \def\rk@lang{#1}%
+  \ifdefstring{\rk@lang}{Python}{Python}{%
+  \ifdefstring{\rk@lang}{SQL}{SQL}{%
+  \ifdefstring{\rk@lang}{HTML}{HTML}{}}}%
+}
+
+\NewTCBListing{codeblock}{O{} m}{%
+  listing only,
+  listing options={style=reportkit,language=#2},
+  enhanced,breakable,colback=Surface,colframe=Hairline,boxrule=.45pt,
+  arc=0pt,outer arc=0pt,left=7pt,right=7pt,top=8pt,bottom=7pt,
+  before upper={\Needspace{8\baselineskip}},
+  title={\sffamily\fontsize{7.1}{8.2}\selectfont\color{Muted}\IfNoValueTF{#1}{}{#1\hfill}\MakeUppercase{#2}},
+  coltitle=Muted,fonttitle=\sffamily,
+  attach boxed title to top left={xshift=0pt,yshift=-1pt},
+  boxed title style={colback=Surface,colframe=Surface,boxrule=0pt,left=1pt,right=1pt,top=1pt,bottom=1pt},
+  before skip=7pt,after skip=8pt
+}
+
+\NewDocumentEnvironment{outputblock}{}{%
+  \par\Needspace{6\baselineskip}%
+  \begin{tcolorbox}[enhanced,breakable,colback=Surface,colframe=Hairline,boxrule=.45pt,
+    arc=0pt,outer arc=0pt,left=8pt,right=8pt,top=7pt,bottom=7pt,
+    title={\sffamily\fontsize{7.1}{8.2}\selectfont\bfseries\color{Muted}OUTPUT},
+    coltitle=Muted,fontupper=\ttfamily\fontsize{8.2}{10}\selectfont,
+    before skip=7pt,after skip=8pt]
+}{\end{tcolorbox}}
+
+\endinput

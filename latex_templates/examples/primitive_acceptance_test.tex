@@ -1,0 +1,114 @@
+\documentclass{reportkit}
+
+\setreportkitleftheader{REPORTKIT / v1.2 PRIMITIVE TEST}
+\setreportkitfooter{New primitive acceptance test}
+\setreportkitversion{v1.2.0}
+
+\title{ReportKit v1.2 -- new diagram primitives}
+\author{Test build}
+\date{4 September 2026}
+
+\begin{document}
+\maketitle
+
+\begin{execsummary}
+This is an acceptance test for three new diagram primitives (\texttt{RKStack},
+\texttt{RKCycle}, \texttt{RKFunnel}) and one new callout (\texttt{deliverablenote}),
+added to support process/workflow guides -- content with accumulating evidence tiers,
+genuinely cyclic loops, and staged conversion, none of which the existing matrix,
+swimlane, network, or layer primitives express cleanly. Content is drawn from the
+career-exploration framework this extension was built for.
+\end{execsummary}
+
+\section{Evidence stack}
+Portfolio evidence is not all equally persuasive. A credential is common and weak;
+a measured, externally validated outcome is rare and strong. \texttt{RKStack} makes
+that asymmetry visible directly, rather than as a bulleted list where every line
+reads with equal weight.
+
+\begin{diagram}[
+  type=stack,
+  caption={The career evidence stack.},
+  label={fig:stack},
+  source={Illustrative progression; ordering reflects persuasiveness, not a measured population.},
+  description={Six tiers rising from credential through measured impact, each narrower and rarer than the one below it.}
+]
+  \RKStackSetup{11}{1.05}{6}
+  \RKStackTier{0}{Credential --- ``I studied X''}
+  \RKStackTier{1}{Assessment --- scored well}
+  \RKStackTier{2}{Project --- built something}
+  \RKStackTier{3}{Demonstrated complexity --- deployed, monitored}
+  \RKStackTier[rk accent]{4}{External validation --- others used it}
+  \RKStackTier{5}{Measured impact --- quantified result}
+\end{diagram}
+
+\begin{deliverablenote}{Evidence Portfolio}
+Students should be able to point to at least one artifact per tier they claim, not
+just assert the tier verbally.
+\end{deliverablenote}
+
+\section{Continuous feedback loop}
+The career-exploration process in Figure~\ref{fig:cycle} has no natural endpoint:
+recruitment outcomes update the competency model, which changes what gets learned
+next. A \texttt{sequence} chain of \texttt{RKNode}/\texttt{RKEdge} implies a
+terminus; \texttt{RKCycle} does not.
+
+\begin{diagram}[
+  type=cycle,
+  caption={The career exploration feedback loop.},
+  label={fig:cycle},
+  source={Illustrative conceptual cycle.},
+  description={Six stages arranged in a ring, each connected to the next, looping back to the first.}
+]
+  \RKCycleSetup{4.3}
+  \RKCycleNode{explore}{90}{Explore\\careers}
+  \RKCycleNode{research}{30}{Research\\market}
+  \RKCycleNode{assess}{-30}{Assess\\self}
+  \RKCycleNode[rk accent]{build}{-90}{Build\\evidence}
+  \RKCycleNode{recruit}{-150}{Enter\\recruitment}
+  \RKCycleNode{update}{150}{Update\\hypothesis}
+
+  \RKCycleEdge{explore}{research}
+  \RKCycleEdge{research}{assess}
+  \RKCycleEdge{assess}{build}
+  \RKCycleEdge{build}{recruit}
+  \RKCycleEdge{recruit}{update}
+  \RKCycleEdge[repeat]{update}{explore}
+\end{diagram}
+
+\section{Recruitment funnel}
+Where a student's conversion rate collapses is diagnostic: few interviews suggests a
+targeting or resume problem, while technical passes followed by final-round rejection
+suggests a fit or communication problem. \texttt{RKFunnel} makes the narrowing itself
+the point.
+
+\begin{redflag}{Illustrative, not measured}
+This funnel's proportions are illustrative. If a report needs the shape driven by
+real conversion counts, generate it with \texttt{reportkit\_viz.py}
+(\texttt{rkv.bar\_chart} or a purpose-built funnel chart) instead, and keep this
+native form for conceptual explanation only.
+\end{redflag}
+
+\begin{diagram}[
+  type=funnel,
+  caption={Recruitment conversion narrows at every stage.},
+  label={fig:funnel},
+  source={Illustrative shape; not derived from measured conversion data.},
+  description={Four tapering stages: applications, screens, interviews, and offers.}
+]
+  \RKFunnelSetup{10}{1.15}
+  \RKFunnelStage{0}{1.00}{0.74}{Applications}
+  \RKFunnelStage{1}{0.74}{0.42}{Screens}
+  \RKFunnelStage{2}{0.42}{0.20}{Interviews}
+  \RKFunnelStage[rk accent]{3}{0.20}{0.10}{Offers}
+\end{diagram}
+
+\section{Grayscale and semantic check}
+\begin{principle}{Semantics before decoration}
+The new primitives follow the same rule as the existing ones: \texttt{RKStack} and
+\texttt{RKFunnel} both narrow, but for opposite semantic reasons (rising rigor versus
+falling population), so they must remain visually distinguishable without relying on
+a shared visual trick that would blur that distinction.
+\end{principle}
+
+\end{document}

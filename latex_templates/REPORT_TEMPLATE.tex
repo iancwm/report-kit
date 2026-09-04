@@ -1,0 +1,58 @@
+% ReportKit minimal report skeleton (v1.1.0)
+% Copy this file to start a new report. Sections are placeholders — remove
+% any that don't fit the task per SKILL.md §3.
+\documentclass{reportkit}
+
+\setreportkitleftheader{REPORT FAMILY}
+\setreportkitfooter{Short report descriptor}
+\setreportkitversion{v1.0}
+
+\title{Report title}
+\author{Author or team}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{execsummary}
+State the problem, the strongest evidence, the conclusion, and the implication in a short narrative.
+Avoid turning the executive summary into a list of disconnected highlights.
+\end{execsummary}
+
+\section{Problem}
+Define the question, scope, and why it matters.
+
+\begin{researchproblem}{Primary question}
+What evidence would distinguish the competing explanations or options?
+\end{researchproblem}
+
+\section{Evidence and method}
+Explain the evidence, data, method, and assumptions needed to interpret the result.
+
+\begin{assumption}{Key assumption}
+State a premise that materially affects the analysis.
+\end{assumption}
+
+\section{Results}
+Present the minimum set of equations, tables, metrics, and figures needed to support the conclusion.
+
+\begin{metric}{25,000}{commits per quarter}
+Explain what this quantity measures and why it changes the reader's interpretation, decision, or
+control requirement.
+\end{metric}
+
+\section{Implications}
+Separate what the evidence shows from what should be done about it.
+
+\begin{decisionpoint}{Decision required}
+State the trade-off, options, criterion, and recommended default if appropriate.
+\end{decisionpoint}
+
+\section{Risks and limitations}
+Describe meaningful uncertainty and failure modes rather than boilerplate caveats.
+
+\begin{limitationnote}{Boundary condition}
+State where the evidence should not be generalized.
+\end{limitationnote}
+
+\end{document}

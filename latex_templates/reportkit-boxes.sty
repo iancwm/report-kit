@@ -1,0 +1,64 @@
+% ReportKit v1.1.0 -- semantic callouts and metric object
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{reportkit-boxes}[2026/09/04 v1.2.0 ReportKit semantic boxes]
+\RequirePackage[most]{tcolorbox}
+\RequirePackage{xparse}
+\RequirePackage{needspace}
+
+\newtcolorbox{rk@callout}[3][]{%
+  enhanced,
+  breakable,
+  colback=Surface,
+  colframe=Hairline,
+  boxrule=.45pt,
+  leftrule=2.2pt,
+  arc=0pt,
+  outer arc=0pt,
+  left=8pt,right=8pt,top=6pt,bottom=6pt,
+  before skip=6pt,after skip=7pt,
+  borderline west={2.2pt}{0pt}{#2},
+  title={\sffamily\fontsize{7.3}{8.5}\selectfont\bfseries\color{#2}\MakeUppercase{#3}},
+  fonttitle=\sffamily,
+  coltitle=#2,
+  attach title to upper={\quad},
+  #1
+}
+
+\NewDocumentEnvironment{principle}{m}{\Needspace{6\baselineskip}\begin{rk@callout}{Principle}{PRINCIPLE\quad #1}}{\end{rk@callout}}
+\NewDocumentEnvironment{decisionpoint}{m}{\Needspace{6\baselineskip}\begin{rk@callout}{Decision}{DECISION POINT\quad #1}}{\end{rk@callout}}
+\NewDocumentEnvironment{researchproblem}{m}{\Needspace{6\baselineskip}\begin{rk@callout}{Research}{RESEARCH PROBLEM\quad #1}}{\end{rk@callout}}
+\NewDocumentEnvironment{assumption}{m}{\Needspace{6\baselineskip}\begin{rk@callout}{Assumption}{ASSUMPTION\quad #1}}{\end{rk@callout}}
+\NewDocumentEnvironment{redflag}{m}{\Needspace{6\baselineskip}\begin{rk@callout}{RedFlag}{RED FLAG\quad #1}}{\end{rk@callout}}
+\NewDocumentEnvironment{evidencenote}{m}{\Needspace{5\baselineskip}\begin{rk@callout}{Evidence}{EVIDENCE\quad #1}}{\end{rk@callout}}
+\NewDocumentEnvironment{limitationnote}{m}{\Needspace{5\baselineskip}\begin{rk@callout}{Limitation}{LIMITATION\quad #1}}{\end{rk@callout}}
+\NewDocumentEnvironment{tipnote}{m}{\Needspace{5\baselineskip}\begin{rk@callout}{Tip}{TIP\quad #1}}{\end{rk@callout}}
+
+% v1.2 addition: many process/workflow reports end a module with a named
+% output artifact (a brief, a matrix, a tracker) that the reader is meant to
+% produce or collect. That's a distinct semantic category from evidence,
+% limitation, or tip -- it's neither a claim about the world nor guidance,
+% it's "this step exists to yield deliverable X". Reuses \Deliverable color,
+% defined in reportkit.cls's palette and mirrored in reportkit_viz.py's
+% LATEX_THEME_COLORS for check-theme sync.
+\NewDocumentEnvironment{deliverablenote}{m}{\Needspace{5\baselineskip}\begin{rk@callout}{Deliverable}{DELIVERABLE\quad #1}}{\end{rk@callout}}
+
+% Compatibility aliases.
+\NewDocumentEnvironment{evidence}{m}{\begin{evidencenote}{#1}}{\end{evidencenote}}
+\NewDocumentEnvironment{limitation}{m}{\begin{limitationnote}{#1}}{\end{limitationnote}}
+\NewDocumentEnvironment{tip}{m}{\begin{tipnote}{#1}}{\end{tipnote}}
+
+\NewDocumentEnvironment{metric}{m m}{%
+  \par\Needspace{9\baselineskip}%
+  \begin{tcolorbox}[
+    enhanced,breakable,colback=white,colframe=Hairline,boxrule=.45pt,
+    arc=0pt,outer arc=0pt,left=10pt,right=10pt,top=8pt,bottom=8pt,
+    before skip=7pt,after skip=8pt,borderline west={2.4pt}{0pt}{MetricAccent}]
+  {\sffamily\fontsize{7.3}{8.5}\selectfont\bfseries\color{MetricAccent}METRIC\par}
+  {\sffamily\bfseries\fontsize{21}{23}\selectfont\color{Ink}#1\par}
+  {\sffamily\fontsize{8.3}{10}\selectfont\color{Muted}#2\par\vspace{4pt}}
+  {\sffamily\fontsize{7.2}{8.4}\selectfont\bfseries\color{MetricAccent}WHY IT MATTERS\quad}\ignorespaces
+}{%
+  \end{tcolorbox}
+}
+
+\endinput

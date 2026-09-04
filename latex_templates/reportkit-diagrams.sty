@@ -1,0 +1,265 @@
+% ReportKit v1.1.0 -- native conceptual diagram grammar
+% v1.1 structural fix:
+%   * conceptual diagrams are non-floating reading units;
+%   * diagrams reserve vertical space before they begin;
+%   * section-opening diagrams can use \RKDiagramSection from reportkit.cls;
+%   * node labels are native LaTeX text with align=center and explicit \\ breaks;
+%   * dashed lines are reserved for typed handoff/optional semantics.
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{reportkit-diagrams}[2026/09/04 v1.2.0 ReportKit diagrams]
+\RequirePackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,calc,fit,backgrounds}
+\RequirePackage{xparse}
+\RequirePackage{pgfkeys}
+\RequirePackage{needspace}
+\RequirePackage{caption}
+\RequirePackage{etoolbox}
+
+% -----------------------------------------------------------------------------
+% Common semantic styles
+% -----------------------------------------------------------------------------
+\tikzset{
+  rk node/.style={
+    draw=Hairline,fill=Surface,text=Ink,
+    rectangle,rounded corners=1.2pt,
+    minimum height=10mm,text width=28mm,
+    inner xsep=5pt,inner ysep=4pt,
+    align=center,
+    font=\sffamily\fontsize{8.1}{9.7}\selectfont
+  },
+  rk accent/.style={draw=LinkBlue,line width=.8pt,fill=Surface},
+  rk layer accent/.style={draw=LinkBlue,line width=.8pt,fill=Surface},
+  rk edge flow/.style={-{Stealth[length=4pt,width=4pt]},draw=Evidence,line width=.8pt},
+  rk edge sequence/.style={-{Stealth[length=4pt,width=4pt]},draw=Evidence,line width=.8pt},
+  rk edge dependency/.style={-{Stealth[length=4pt,width=4pt]},draw=LinkBlue,line width=.75pt},
+  rk edge handoff/.style={-{Stealth[length=4pt,width=4pt]},draw=Muted,line width=.75pt,dashed},
+  rk edge causal/.style={-{Stealth[length=4pt,width=4pt]},draw=Research,line width=.9pt},
+  rk edge optional/.style={-{Stealth[length=4pt,width=4pt]},draw=Muted,line width=.7pt,dashed},
+  rk edge label/.style={fill=white,inner sep=1.5pt,text=Muted,font=\sffamily\fontsize{6.8}{8}\selectfont}
+}
+
+% -----------------------------------------------------------------------------
+% Diagram wrapper metadata and placement
+% -----------------------------------------------------------------------------
+\newcommand{\rk@diagramtype}{network}
+\newcommand{\rk@diagramcaption}{}
+\newcommand{\rk@diagramlabel}{}
+\newcommand{\rk@diagramsource}{Conceptual diagram.}
+\newcommand{\rk@diagramdescription}{}
+\newcommand{\rk@diagramminspace}{0.27\textheight}
+
+\pgfkeys{
+  /reportkit/diagram/.is family,
+  /reportkit/diagram,
+  type/.store in=\rk@diagramtype,
+  caption/.store in=\rk@diagramcaption,
+  label/.store in=\rk@diagramlabel,
+  source/.store in=\rk@diagramsource,
+  description/.store in=\rk@diagramdescription,
+  minspace/.store in=\rk@diagramminspace,
+}
+
+% Non-floating by design. A conceptual diagram should not drift away from the
+% prose that introduces it. Needspace moves the entire diagram/caption block to
+% the next page when the remaining space is too small.
+\NewDocumentEnvironment{diagram}{O{}}{%
+  \pgfkeys{/reportkit/diagram,
+    type=network,caption={},label={},source={Conceptual diagram.},description={},minspace={0.27\textheight},#1}%
+  \par\Needspace{\rk@diagramminspace}%
+  \vspace{4pt}%
+  \begin{center}
+  \begin{tikzpicture}[x=1cm,y=1cm]
+}{%
+  \end{tikzpicture}
+  \end{center}
+  \vspace{-2pt}%
+  \ifstrempty{\rk@diagramcaption}{}{%
+    \captionof{figure}{\rk@diagramcaption}%
+    \ifstrempty{\rk@diagramlabel}{}{\label{\rk@diagramlabel}}%
+  }%
+  \ifstrempty{\rk@diagramsource}{}{\source{\rk@diagramsource}}%
+  \par\vspace{5pt}%
+}
+
+% -----------------------------------------------------------------------------
+% Generic nodes and edges
+% -----------------------------------------------------------------------------
+\NewDocumentCommand{\RKNode}{O{} m m m m}{%
+  \node[rk node,#1] (#2) at (#3,#4) {\strut #5};%
+}
+
+\NewDocumentCommand{\RKNodeRel}{O{} m m m}{%
+  \node[rk node,#1,#3] (#2) {\strut #4};%
+}
+
+\newcommand{\rk@drawedge}[5]{%
+  % #1 type, #2 from, #3 to, #4 label, #5 style
+  \ifstrempty{#4}{\draw[#5] (#2) -- (#3);}{\draw[#5] (#2) -- node[midway,rk edge label]{#4} (#3);}%
+}
+
+\NewDocumentCommand{\RKEdge}{O{} m m m}{%
+  \ifstrequal{#2}{flow}{\rk@drawedge{#2}{#3}{#4}{#1}{rk edge flow}}{%
+  \ifstrequal{#2}{sequence}{\rk@drawedge{#2}{#3}{#4}{#1}{rk edge sequence}}{%
+  \ifstrequal{#2}{dependency}{\rk@drawedge{#2}{#3}{#4}{#1}{rk edge dependency}}{%
+  \ifstrequal{#2}{handoff}{\rk@drawedge{#2}{#3}{#4}{#1}{rk edge handoff}}{%
+  \ifstrequal{#2}{causal}{\rk@drawedge{#2}{#3}{#4}{#1}{rk edge causal}}{%
+  \ifstrequal{#2}{optional}{\rk@drawedge{#2}{#3}{#4}{#1}{rk edge optional}}{%
+    \PackageError{reportkit-diagrams}{Unknown edge type '#2'}{Use flow, sequence, dependency, handoff, causal, or optional.}%
+  }}}}}}%
+}
+
+% -----------------------------------------------------------------------------
+% 2 x 2 matrices
+% -----------------------------------------------------------------------------
+\newcommand{\rk@matrixw}{12.2}
+\newcommand{\rk@matrixh}{6.1}
+\NewDocumentCommand{\RKMatrixSetup}{m m}{\renewcommand{\rk@matrixw}{#1}\renewcommand{\rk@matrixh}{#2}}
+\NewDocumentCommand{\RKMatrix}{m m}{%
+  \draw[Hairline,line width=.55pt] (0,0) rectangle (\rk@matrixw,\rk@matrixh);
+  \draw[Hairline,line width=.55pt] ({\rk@matrixw/2},0) -- ({\rk@matrixw/2},\rk@matrixh);
+  \draw[Hairline,line width=.55pt] (0,{\rk@matrixh/2}) -- (\rk@matrixw,{\rk@matrixh/2});
+  \node[font=\sffamily\fontsize{7.2}{8.6}\selectfont,text=Muted] at ({\rk@matrixw/2},-0.48) {#1 $\longrightarrow$};
+  \node[font=\sffamily\fontsize{7.2}{8.6}\selectfont,text=Muted,rotate=90] at (-0.58,{\rk@matrixh/2}) {#2 $\longrightarrow$};
+}
+\NewDocumentCommand{\RKMatrixCell}{O{} m m m}{%
+  \def\rk@cx{0}\def\rk@cy{0}%
+  \ifstrequal{#2}{nw}{\def\rk@cx{0.25*\rk@matrixw}\def\rk@cy{0.75*\rk@matrixh}}{}%
+  \ifstrequal{#2}{ne}{\def\rk@cx{0.75*\rk@matrixw}\def\rk@cy{0.75*\rk@matrixh}}{}%
+  \ifstrequal{#2}{sw}{\def\rk@cx{0.25*\rk@matrixw}\def\rk@cy{0.25*\rk@matrixh}}{}%
+  \ifstrequal{#2}{se}{\def\rk@cx{0.75*\rk@matrixw}\def\rk@cy{0.25*\rk@matrixh}}{}%
+  \ifstrequal{#1}{accent}{%
+    \fill[LinkBlue!6] ({\rk@cx-0.25*\rk@matrixw},{\rk@cy-0.25*\rk@matrixh}) rectangle ({\rk@cx+0.25*\rk@matrixw},{\rk@cy+0.25*\rk@matrixh});
+  }{}%
+  \pgfmathsetlengthmacro{\rk@cellw}{0.39*\rk@matrixw cm}%
+  \node[align=center,text width=\rk@cellw,font=\sffamily\fontsize{8}{9.5}\selectfont,text=Ink] at (\rk@cx,\rk@cy) {\textbf{#3}\\[2pt]#4};
+}
+
+% -----------------------------------------------------------------------------
+% Swimlanes
+% -----------------------------------------------------------------------------
+\newcommand{\rk@lanew}{12.4}
+\newcommand{\rk@laneh}{1.25}
+\NewDocumentCommand{\RKSwimlaneSetup}{m m}{\renewcommand{\rk@lanew}{#1}\renewcommand{\rk@laneh}{#2}}
+\NewDocumentCommand{\RKLane}{m m}{%
+  \pgfmathsetmacro{\rky}{-#1*\rk@laneh}
+  \draw[Hairline,line width=.5pt] (0,{\rky-0.5*\rk@laneh}) -- (\rk@lanew,{\rky-0.5*\rk@laneh});
+  \node[anchor=east,font=\sffamily\fontsize{7.2}{8.5}\selectfont,text=Muted] at (-0.3,\rky) {#2};
+}
+\NewDocumentCommand{\RKLaneNode}{O{} m m m m}{%
+  \pgfmathsetmacro{\rky}{-#3*\rk@laneh}
+  \node[rk node,text width=22mm,minimum height=8mm,#1] (#2) at (#4,\rky) {\strut #5};
+}
+
+% -----------------------------------------------------------------------------
+% Layered architecture
+% -----------------------------------------------------------------------------
+\newcommand{\rk@layerw}{12.2}
+\newcommand{\rk@layerh}{1.0}
+\NewDocumentCommand{\RKLayerSetup}{m m}{\renewcommand{\rk@layerw}{#1}\renewcommand{\rk@layerh}{#2}}
+\NewDocumentCommand{\RKLayer}{O{} m m m}{%
+  \pgfmathsetmacro{\rky}{-#2*\rk@layerh}
+  \draw[Hairline,line width=.5pt,fill=white,#1] (0,{\rky-0.46*\rk@layerh}) rectangle (\rk@layerw,{\rky+0.46*\rk@layerh});
+  \node[anchor=west,font=\sffamily\bfseries\fontsize{7.7}{9}\selectfont,text=Ink] at (0.25,\rky) {#3};
+  \pgfmathsetlengthmacro{\rk@layerdescw}{0.62*\rk@layerw cm}%
+  \node[anchor=west,font=\sffamily\fontsize{7.2}{8.5}\selectfont,text=Muted,text width=\rk@layerdescw,align=left] at ({0.34*\rk@layerw},\rky) {#4};
+}
+
+% -----------------------------------------------------------------------------
+% Evidence/accumulation stack (v1.2 addition)
+%
+% For content where tiers represent increasing rigor, rarity, or strength of
+% evidence rather than sequence or hierarchy of ownership (e.g. credential ->
+% assessment -> project -> external validation -> measured impact). Tiers
+% narrow going upward like a pyramid: broad, common tiers at the base,
+% narrow, rare tiers at the top. This is a distinct shape from \RKLayer
+% (which shows separation of concerns at *equal* visual weight) and from
+% \RKLane (which shows ownership, not rigor).
+% -----------------------------------------------------------------------------
+\newcommand{\rk@stackw}{10}
+\newcommand{\rk@stackh}{1.05}
+\newcommand{\rk@stackn}{6}
+\NewDocumentCommand{\RKStackSetup}{m m m}{%
+  \renewcommand{\rk@stackw}{#1}\renewcommand{\rk@stackh}{#2}\renewcommand{\rk@stackn}{#3}%
+}
+% \RKStackTier[accent]{index}{label}
+% index: 0 = bottom tier (widest, weakest evidence), rising to \rk@stackn - 1
+% at the top (narrowest, strongest evidence). Draws the connecting upward
+% arrow automatically for every tier above the base.
+\NewDocumentCommand{\RKStackTier}{O{} m m}{%
+  \pgfmathsetmacro{\rk@sdenom}{\rk@stackn-1}%
+  \pgfmathsetmacro{\rk@sfrac}{1 - (0.60*#2/\rk@sdenom)}%
+  \pgfmathsetmacro{\rk@scx}{0.5*\rk@stackw}%
+  \pgfmathsetmacro{\rk@scy}{#2*\rk@stackh}%
+  \pgfmathsetmacro{\rk@shw}{0.5*\rk@sfrac*\rk@stackw}%
+  \draw[Hairline,line width=.5pt,fill=Surface,#1]
+    ({\rk@scx-\rk@shw},{\rk@scy-0.42*\rk@stackh}) rectangle ({\rk@scx+\rk@shw},{\rk@scy+0.42*\rk@stackh});
+  \node[font=\sffamily\fontsize{7.5}{9}\selectfont,text=Ink,align=center,
+        text width={0.9*\rk@sfrac*\rk@stackw cm}] at (\rk@scx,\rk@scy) {#3};
+  \ifnum#2>0
+    \pgfmathsetmacro{\rk@sprevy}{(#2-1)*\rk@stackh}
+    \draw[-{Stealth[length=3.5pt,width=3.5pt]},draw=Evidence,line width=.7pt]
+      (\rk@scx,{\rk@sprevy+0.42*\rk@stackh+0.02}) -- (\rk@scx,{\rk@scy-0.42*\rk@stackh-0.02});
+  \fi
+}
+
+% -----------------------------------------------------------------------------
+% Cyclic flow (v1.2 addition)
+%
+% For genuinely cyclic processes with no dominant start/end (e.g. a
+% continuous feedback loop that repeats indefinitely). A \flow or \sequence
+% chain of \RKNode/\RKEdge implies a terminus; \RKCycle explicitly does not.
+% Nodes are placed by explicit angle so irregular stage counts and uneven
+% label lengths stay controllable, consistent with \RKNode's explicit
+% placement rather than automatic layout.
+% -----------------------------------------------------------------------------
+\newcommand{\rk@cycler}{4.4}
+\NewDocumentCommand{\RKCycleSetup}{m}{\renewcommand{\rk@cycler}{#1}}
+% \RKCycleNode[accent]{id}{angle-degrees}{label}  (0 = east, 90 = north, CCW)
+\NewDocumentCommand{\RKCycleNode}{O{} m m m}{%
+  \node[rk node,text width=19mm,minimum height=8.5mm,font=\sffamily\fontsize{7.4}{8.8}\selectfont,#1]
+    (#2) at ({\rk@cycler*cos(#3)},{\rk@cycler*sin(#3)}) {\strut #4};%
+}
+% \RKCycleEdge[label]{from}{to}  -- bends outward (away from the ring center)
+% so consecutive arcs approximate the true circular arc between adjacent
+% nodes and the whole loop reads as one smooth ring. NOTE: "bend left" is
+% correct here, not "bend right" -- for nodes walking clockwise around a
+% circle, TikZ's "right" relative to travel direction points toward the
+% center, so bend right pulls every arc inward and produces a six-pointed
+% "snowflake" instead of a ring. Bend left bulges each arc outward instead.
+\NewDocumentCommand{\RKCycleEdge}{O{} m m}{%
+  \draw[-{Stealth[length=4pt,width=4pt]},draw=Evidence,line width=.8pt] (#2) to[bend left=15] (#3);%
+  \ifstrempty{#1}{}{\node[rk edge label] at ($(#2)!0.5!(#3)$) {#1};}%
+}
+
+% -----------------------------------------------------------------------------
+% Conversion funnel (v1.2 addition)
+%
+% For staged conversion where each stage retains a subset of the previous
+% stage's population (e.g. applications -> screens -> interviews -> offers).
+% Distinct from \RKMatrix (two independent axes) and \RKLayer (equal-weight
+% separation of concerns): a funnel's defining feature is monotonic
+% narrowing, and each trapezoid's own top/bottom widths are supplied
+% explicitly rather than computed, since real conversion is not evenly
+% spaced. This diagram is structural/illustrative by default -- if a report
+% encodes real measured conversion rates, generate the chart with
+% reportkit_viz.py (e.g. rkv.bar_chart) instead and mark this native form
+% conceptual in its \source note.
+% -----------------------------------------------------------------------------
+\newcommand{\rk@funnelw}{10}
+\newcommand{\rk@funnelh}{1.2}
+\NewDocumentCommand{\RKFunnelSetup}{m m}{\renewcommand{\rk@funnelw}{#1}\renewcommand{\rk@funnelh}{#2}}
+% \RKFunnelStage[accent]{index}{top-width-frac}{bottom-width-frac}{label}
+% index 0 = top stage (widest); width fractions are of \rk@funnelw, in (0,1].
+\NewDocumentCommand{\RKFunnelStage}{O{} m m m m}{%
+  \pgfmathsetmacro{\rk@fcx}{0.5*\rk@funnelw}%
+  \pgfmathsetmacro{\rk@fy}{-#2*\rk@funnelh}%
+  \pgfmathsetmacro{\rk@ftw}{0.5*#3*\rk@funnelw}%
+  \pgfmathsetmacro{\rk@fbw}{0.5*#4*\rk@funnelw}%
+  \draw[Hairline,line width=.5pt,fill=Surface,#1]
+    ({\rk@fcx-\rk@ftw},{\rk@fy}) -- ({\rk@fcx+\rk@ftw},{\rk@fy})
+    -- ({\rk@fcx+\rk@fbw},{\rk@fy-\rk@funnelh}) -- ({\rk@fcx-\rk@fbw},{\rk@fy-\rk@funnelh}) -- cycle;%
+  \node[font=\sffamily\fontsize{7.5}{9}\selectfont,text=Ink,align=center,
+        text width={0.85*#3*\rk@funnelw cm}] at (\rk@fcx,{\rk@fy-0.5*\rk@funnelh}) {#5};%
+}
+
+\endinput

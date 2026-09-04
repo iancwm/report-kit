@@ -1,0 +1,256 @@
+\documentclass{reportkit}
+\usepackage{float}
+
+\setreportkitleftheader{PHÂN TÍCH NGHỀ NGHIỆP CÁ NHÂN}
+\setreportkitfooter{Con đường vào AI \& Data Engineering tại Úc}
+\setreportkitversion{v1.0}
+
+\title{Kim Chỉ Nam Nghề Nghiệp: Con Đường Vào AI \& Data Engineering Tại Úc}
+\author{Áp dụng khung CR = D × C × E × A × R vào hồ sơ cá nhân}
+\date{4 tháng 9, 2026}
+
+\begin{document}
+\maketitle
+
+\begin{execsummary}
+Hồ sơ hiện tại có nền tảng thực chiến AI hiếm gặp ở sinh viên/tân cử nhân, đặc biệt là
+kỳ thực tập tại VinBigdata với bằng chứng ở tầng ứng dụng thực tế (fine-tuning LLM,
+ASR, NLU). Vấn đề không nằm ở năng lực chuyên môn, mà ở hai điểm: (1) bằng chứng --
+portfolio GitHub hiện dừng ở mức phân tích độc lập, chưa phản ánh đúng tầm của kinh
+nghiệm đã có; và (2) khoảng trống kỹ năng triển khai/vận hành (MLOps), yếu tố quyết
+định mức lương cao nhất tại thị trường Úc. Định hướng đề xuất là AI Engineering /
+MLOps thay vì ML Research thuần túy. Ưu tiên 90 ngày tới: nâng cấp một dự án hiện có
+lên chuẩn triển khai được, thay vì học thêm một khóa học hay làm thêm một dự án mới.
+\end{execsummary}
+
+\section{Giả thuyết nghề nghiệp}
+Áp dụng khung Professional Career Exploration Framework, giả thuyết nghề nghiệp hiện
+tại được phát biểu như sau, cùng với hai câu hỏi cần kiểm chứng trước khi cam kết
+hoàn toàn:
+
+\begin{deliverablenote}{Giả thuyết nghề nghiệp (đã điền)}
+``Tôi muốn trở thành một AI/ML Engineer vì đây là ngành có nhu cầu tuyển dụng tăng
+nhanh nhất tại Úc và đã có nền tảng thực chiến từ kỳ thực tập AI. Công việc này đòi
+hỏi không chỉ xây dựng mô hình mà còn triển khai và vận hành hệ thống AI trong môi
+trường thực tế. Trước khi cam kết hoàn toàn, cần kiểm chứng: liệu hướng đi phù hợp là
+kỹ sư triển khai (MLOps/AI Engineering) hay hướng nghiên cứu mô hình (ML Research)?''
+\end{deliverablenote}
+
+Dựa trên bằng chứng hiện có, hướng \textbf{triển khai/vận hành (MLOps, AI
+Engineering)} phù hợp hơn với hồ sơ hiện tại -- đây cũng là hướng có mức lương cao
+nhất và ít cạnh tranh hơn hướng nghiên cứu thuần túy, vốn thường yêu cầu bằng Tiến sĩ.
+
+\section{Bức tranh năng lực hiện có}
+Điểm mạnh nổi bật nhất trong hồ sơ là kỳ thực tập AI Intern tại VinBigdata -- bằng
+chứng ở tầng ``Application'' (ứng dụng thực tế), hiếm gặp ở sinh viên/tân cử nhân
+(Bảng~\ref{tab:evidence}).
+
+\begin{table}[H]
+\caption{Năng lực hiện có và bằng chứng cụ thể}
+\label{tab:evidence}
+\centering
+\begin{tabular}{p{3.1cm}p{7.3cm}l}
+\toprule
+Năng lực & Bằng chứng cụ thể & Tầng bằng chứng \\
+\midrule
+Fine-tuning mô hình LLM & Tối ưu ViGPT (1.6B--13B tham số) cho Q\&A/dialogue, giảm 15\%
+  thời gian suy luận & Application \\
+ASR / xử lý giọng nói & Gán nhãn 30K+ giờ dữ liệu, nâng độ chính xác nhận dạng lên
+  98\% & Application \\
+NLU / phát hiện ý định & Tinh chỉnh mô hình, cải thiện độ chính xác 10\% trong kịch
+  bản lái xe thực tế & Application \\
+Xử lý dữ liệu quy mô lớn & Xử lý 600GB+ dữ liệu văn bản tiếng Việt & Application \\
+SQL, dự báo (ARIMA, XGBoost) & Dự báo nhu cầu hỗ trợ lập kế hoạch thu mua tại
+  Matthews Liquor & Application \\
+Tự động hóa / công cụ agentic & Xây dựng báo cáo tự động bằng Claude Code, tiết kiệm
+  10 giờ thủ công/tuần & Application \\
+Giao tiếp đa bên liên quan & Làm việc với đội ngũ lâm sàng/QA (Twin Global), 13 cửa
+  hàng (Matthews Liquor) & Application \\
+\bottomrule
+\end{tabular}
+\source{Trích từ hồ sơ cá nhân; phân loại tầng bằng chứng theo khung đánh giá năng lực.}
+\end{table}
+
+\begin{evidencenote}{Tổ hợp năng lực thực chất}
+Đây là tổ hợp năng lực thực chất hơn nhiều so với đa số hồ sơ sinh viên cùng trình độ.
+Vấn đề không nằm ở việc ``chưa đủ giỏi'', mà ở việc hồ sơ minh chứng (portfolio) chưa
+phản ánh đúng tầm của những kinh nghiệm này.
+\end{evidencenote}
+
+\section{Khoảng trống năng lực}
+So với mô hình năng lực thị trường Úc -- nơi trả lương cao nhất cho khả năng triển
+khai và vận hành mô hình, không chỉ xây dựng -- ba khoảng trống chính nổi lên
+(Bảng~\ref{tab:gap}).
+
+\begin{table}[H]
+\caption{Khoảng trống năng lực so với thị trường}
+\label{tab:gap}
+\centering
+\begin{tabular}{p{3.6cm}p{2.6cm}p{6.1cm}}
+\toprule
+Năng lực còn thiếu & Mức độ quan trọng & Ghi chú \\
+\midrule
+Cloud (AWS/GCP/Azure) & Cao & Chưa có bằng chứng trong hồ sơ \\
+MLOps / triển khai (Docker, CI/CD, giám sát mô hình) & \textbf{Cao nhất} & Đây là yếu
+  tố quyết định mức lương -- chưa có bằng chứng, đây là nút thắt chính \\
+RAG / vector database / agent framework & Đang tăng mạnh & Chưa có, nhưng gần với
+  kinh nghiệm LLM đã có \\
+\bottomrule
+\end{tabular}
+\source{So sánh với yêu cầu thị trường AI/ML Engineer tại Úc.}
+\end{table}
+
+Để chẩn đoán có hệ thống, áp dụng lại phương trình mức độ sẵn sàng nghề nghiệp từ
+khung gốc:
+
+\begin{equation}
+  \mathrm{CR} = D \times C \times E \times A \times R,
+  \label{eq:readiness}
+\end{equation}
+
+trong đó $D$ là định hướng, $C$ là năng lực nền, $E$ là bằng chứng, $A$ là khả năng
+tiếp cận thị trường tuyển dụng (bao gồm visa), và $R$ là kỹ năng tuyển dụng (hồ sơ ứng
+tuyển và phỏng vấn).
+
+\begin{researchproblem}{Yếu tố nào đang gần bằng 0?}
+Theo Phương trình~\ref{eq:readiness}, định hướng ($D$) và năng lực nền ($C$) không
+phải điểm yếu trong hồ sơ này. Yếu tố gần bằng 0 nhất chính là \textbf{bằng chứng
+($E$)} cho khả năng triển khai sản phẩm AI vào môi trường thực tế. Đây là yếu tố cần
+ưu tiên xử lý tiếp theo -- không phải học thêm một khóa học ML nữa.
+\end{researchproblem}
+
+\section{Đánh giá portfolio GitHub hiện tại}
+Ba dự án hiện tại (ví dụ: Customer Churn Analysis) đang dừng ở tầng ``Independent
+Analysis'' -- phân tích tốt, có framing kinh doanh rõ ràng, so sánh nhiều mô hình (đạt
+86\% accuracy, AUC-ROC 0.84) -- nhưng chưa ở mức ``professionally realistic''
+(Hình~\ref{fig:portfolio}).
+
+\begin{diagram}[
+  type=network,
+  caption={Vị trí hiện tại của portfolio so với mục tiêu cần đạt.},
+  label={fig:portfolio},
+  source={Minh họa khái niệm dựa trên thang mức độ thực tế của dự án.},
+  description={Năm mức độ theo thứ tự, vị trí hiện tại được đánh dấu ở mức Independent, mục tiêu ở mức Professionally realistic.}
+]
+  \RKNode[text width=17mm]{guided}{0.2}{0}{Guided}
+  \RKNode[text width=17mm]{modified}{3.1}{0}{Modified}
+  \RKNode[rk accent,text width=19mm]{independent}{6.2}{0}{Independent\\(hiện tại)}
+  \RKNode[rk accent,text width=19mm]{realistic}{9.5}{0}{Realistic\\(mục tiêu)}
+  \RKNode[text width=17mm]{validated}{12.6}{0}{Validated}
+  \RKEdge{sequence}{guided}{modified}
+  \RKEdge{sequence}{modified}{independent}
+  \RKEdge{sequence}{independent}{realistic}
+  \RKEdge{sequence}{realistic}{validated}
+\end{diagram}
+
+\begin{limitationnote}{Khoảng cách cụ thể cần đóng}
+Toàn bộ nằm trong 1 file Jupyter notebook, không có cấu trúc \code{src/}; không có
+\code{requirements.txt} nên người khác không thể tái tạo môi trường; không có kiểm
+thử (test) hay theo dõi thực nghiệm (experiment tracking); và không có bất kỳ hình
+thức triển khai nào (API, container, pipeline).
+\end{limitationnote}
+
+\begin{principle}{Đào sâu một dự án, không dàn trải}
+Ba dự án cùng một tầng bằng chứng không cộng dồn thành một dự án sâu hơn. Thay vì làm
+thêm dự án thứ tư, nên nâng cấp \emph{một} dự án hiện có lên tầng kế tiếp.
+\end{principle}
+
+\section{Vai trò mục tiêu tại thị trường Úc}
+Bối cảnh thị trường: AI Engineer hiện là nghề tăng trưởng nhanh nhất tại Úc theo
+LinkedIn (tăng khoảng 150\%), với mức thiếu hụt nhân lực AI dự kiến lên tới 60.000
+người vào năm 2027. Nhu cầu rất lớn, nhưng phần thưởng cao nhất dành cho người có khả
+năng đưa mô hình vào vận hành thực tế (Bảng~\ref{tab:roles}).
+
+\begin{table}[H]
+\caption{Đánh giá mức độ phù hợp theo vai trò mục tiêu}
+\label{tab:roles}
+\centering
+\begin{tabular}{p{3.4cm}p{5.6cm}p{3.3cm}}
+\toprule
+Vai trò & Mức độ phù hợp & Mức lương tham khảo (Úc) \\
+\midrule
+ML Engineer (junior/grad) & Phù hợp trực tiếp -- kinh nghiệm VinBigdata hỗ trợ mạnh &
+  \textasciitilde148K--170K+ AUD (mid-level) \\
+Data/AI Engineer & Phù hợp -- kinh nghiệm pipeline, SQL, dự báo hỗ trợ tốt & Tương tự,
+  phổ rộng cơ hội hơn \\
+AI Engineer (yêu cầu MLOps rõ ràng) & Chưa nên nhắm tới ngay -- cần đóng khoảng trống
+  triển khai trước & Tránh bị loại ở vòng phỏng vấn kỹ thuật \\
+\bottomrule
+\end{tabular}
+\source{Ước tính dựa trên khảo sát thị trường lao động AI/ML tại Úc; mang tính minh họa.}
+\end{table}
+
+\section{Yếu tố khả năng tiếp cận -- visa và di trú}
+Với vai trò là du học sinh quốc tế, yếu tố tiếp cận ($A$ trong Phương
+trình~\ref{eq:readiness}) thường là nút thắt thực sự, độc lập với năng lực chuyên môn
+(Hình~\ref{fig:visa}).
+
+\begin{diagram}[
+  type=network,
+  caption={Trình tự các mốc visa cần xác nhận sớm.},
+  label={fig:visa},
+  source={Minh họa khái niệm; không thay thế tư vấn di trú chính thức.},
+  description={Bốn mốc theo trình tự: kết thúc khóa học, nộp visa 485, đánh giá kỹ năng ACS, phương án dự phòng.}
+]
+  \RKNode[text width=22mm]{finish}{0.2}{0}{Kết thúc\\khóa học}
+  \RKNode[text width=22mm]{visa485}{4.0}{0}{Nộp visa 485\\(trong 6 tháng)}
+  \RKNode[text width=22mm]{acs}{7.8}{0}{Đánh giá\\kỹ năng ACS}
+  \RKNode[rk accent,text width=22mm]{fallback}{11.6}{0}{Phương án\\dự phòng}
+  \RKEdge{sequence}{finish}{visa485}
+  \RKEdge{sequence}{visa485}{acs}
+  \RKEdge{sequence}{acs}{fallback}
+\end{diagram}
+
+\begin{decisionpoint}{Lộ trình visa nào là phương án chính?}
+\textbf{Visa 485 (Temporary Graduate)}: cầu nối chuẩn sau khi tốt nghiệp -- cần nộp
+trong vòng 6 tháng sau khi hoàn thành khóa học, đang ở Úc tại thời điểm nộp.
+\textbf{Đánh giá kỹ năng ACS}: bắt buộc cho các visa định cư diện kỹ năng
+(189/190/491, 494/186) -- giá trị 2 năm, cần chọn đúng mã ngành nghề ANZSCO ngay từ
+đầu vì chọn sai có thể bị đánh giá thấp hơn thực tế. \textbf{Bảo lãnh từ doanh nghiệp
+(482/186)}: phương án khả thi hơn sau ``vách đá 485'' nếu các visa tính điểm quá cạnh
+tranh. Nên xác nhận sớm mốc thời gian cho cả bốn bước ở Hình~\ref{fig:visa}.
+\end{decisionpoint}
+
+\section{Kế hoạch hành động ưu tiên (90 ngày)}
+\begin{enumerate}
+  \item \textbf{Nâng cấp một dự án hiện có} (ví dụ: Customer Churn Analysis) thành sản
+    phẩm triển khai được:
+    \begin{itemize}
+      \item Tách notebook thành cấu trúc \code{src/} rõ ràng
+      \item Thêm \code{requirements.txt}, lưu model artifact
+      \item Bọc inference bằng API đơn giản (FastAPI)
+      \item Đóng gói bằng Docker, triển khai miễn phí (Render/Railway/AWS free tier)
+      \item Viết README chuẩn, thêm test cơ bản
+    \end{itemize}
+  \item \textbf{Kết hợp mảng mạnh nhất (LLM/NLU từ VinBigdata) với kỹ năng triển khai
+    còn thiếu}: xây một dự án RAG hoặc agent nhỏ, deploy lên cloud, có giám sát cơ bản
+    -- đây là dự án bắc cầu giữa kinh nghiệm cũ và yêu cầu thị trường Úc hiện tại.
+  \item \textbf{Xác nhận lộ trình visa} song song với kế hoạch kỹ thuật -- không để
+    yếu tố này trở thành nút thắt bị phát hiện quá muộn.
+  \item \textbf{Thu thập 30--50 tin tuyển dụng AI/ML Engineer tại Úc}, gắn nhãn theo:
+    yêu cầu kỹ thuật, có bảo lãnh visa hay không, cấp độ kinh nghiệm -- dùng làm cơ sở
+    nhắm mục tiêu ứng tuyển thực tế thay vì phỏng đoán.
+\end{enumerate}
+
+\section{Vòng lặp phản hồi liên tục}
+Tài liệu này nên được xem lại định kỳ khi có dự án mới, phản hồi phỏng vấn, hoặc thay
+đổi về tình trạng visa -- đúng theo tinh thần của khung ``vòng lặp phản hồi liên tục''
+gốc (Hình~\ref{fig:loop}).
+
+\begin{diagram}[
+  type=cycle,
+  caption={Vòng lặp cập nhật hồ sơ nghề nghiệp.},
+  label={fig:loop},
+  source={Minh họa khái niệm.},
+  description={Bốn giai đoạn theo vòng tròn: hành động, thu thập phản hồi, cập nhật bằng chứng, đánh giá lại giả thuyết, quay lại hành động.}
+]
+  \RKCycleSetup{3.8}
+  \RKCycleNode{action}{90}{Hành động\\(dự án, ứng tuyển)}
+  \RKCycleNode[rk accent]{feedback}{-18}{Thu thập\\phản hồi}
+  \RKCycleNode{evidence}{-162}{Cập nhật\\bằng chứng}
+  \RKCycleEdge{action}{feedback}
+  \RKCycleEdge{feedback}{evidence}
+  \RKCycleEdge[quay lại]{evidence}{action}
+\end{diagram}
+
+\end{document}
