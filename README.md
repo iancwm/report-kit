@@ -1,7 +1,11 @@
-# ReportKit — complete bundle
+# ReportKit
 
-Everything needed to set up and use ReportKit in a fresh Claude Project session,
-organized into four categories.
+A LaTeX toolkit for producing polished, professionally designed technical
+reports as PDFs, packaged as a Claude Skill.
+
+**`SKILL.md` is the Claude-driven entry point** — a claude.ai session
+clones this repo and follows it directly. This file is the human-facing
+overview.
 
 ## 1. latex_templates/
 - `reportkit.cls` (v1.2.1), `reportkit-boxes.sty`, `reportkit-code.sty`,
@@ -10,10 +14,10 @@ organized into four categories.
   callout, and the v1.2.1 lualatex/pdflatex engine-guard fix.
 - `REPORT_TEMPLATE.tex` — minimal report skeleton.
 - `examples/primitive_acceptance_test.tex` — exercises all v1.2 primitives; useful
-  as a smoke test after any core-file change.
+  as a smoke test after any core-file change (see `scripts/acceptance_check.sh`).
 - `examples/career_guide_en/` — full 7-page worked example (pdflatex).
 - `examples/career_guide_vi/` — full 4-page worked example with Vietnamese content
-  (lualatex; see docs/CLAUDE_EXECUTION.md §2.2 for the extra setup this needs).
+  (lualatex; see `references/font-setup.md` for the extra setup this needs).
 
 ## 2. python_scripts/
 - `reportkit_viz.py` — Matplotlib analytical chart theme (palette synced with
@@ -30,27 +34,26 @@ organized into four categories.
 ## 4. shell_scripts/
 - `bootstrap.sh` — one-command session setup: copies core files, installs fonts to
   `TEXMFLOCAL` (persists across tool calls, no env var needed), creates `figures/`,
-  runs the doctor. Covers the pdflatex path; see docs for the lualatex additions.
+  runs the doctor. Covers the pdflatex path; see `references/font-setup.md` for the
+  lualatex additions.
 
-## docs/
-- `CLAUDE_EXECUTION.md` — the full execution guide, including every bug found and
-  fixed this session (diagram arithmetic bug, `RKCycle` arrow direction, float
-  drift, font setup cost, the lualatex `\times` bug) with verification notes for
-  each, not just the fixes themselves.
+## 5. references/
+- `font-setup.md`, `known-fixes.md`, `troubleshooting.md` — split from the
+  former execution guide, and linked from `SKILL.md` on demand rather than
+  loaded up front, so a session's context only grows with the specific
+  problem it's actually hitting.
 
-## Setup (fresh session)
-```bash
-# 1. Core pdflatex path
-bash shell_scripts/bootstrap.sh <project_dir> <work_dir>
+## 6. scripts/ and .githooks/
+- `scripts/acceptance_check.sh` — compiles the primitive acceptance test and
+  checks for known failure signatures; run by hand, or automatically via
+  `.githooks/pre-commit` once enabled (see `CONTRIBUTING.md`). No hosted CI.
 
-# 2. If compiling Vietnamese or other Unicode content, additionally:
-apt-get install -y --no-install-recommends texlive-luatex
-mkdir -p /usr/local/share/texmf/fonts/opentype/public/libertine-stub
-cp font_data/LinBiolinum_K.otf /usr/local/share/texmf/fonts/opentype/public/libertine-stub/
-mktexlsr /usr/local/share/texmf
-```
+## Setup
 
-To use this bundle as the project's source of truth going forward, upload its
-contents to the Claude Project files (or a connected GitHub repo — see the earlier
-discussion on splitting core-library maintenance into Claude Code vs. day-to-day
-report generation in this chat interface).
+See `SKILL.md`'s Quick start section — the commands are the same whether
+you're a person cloning this locally or a Claude session bootstrapping it.
+
+## Versioning
+
+Releases are git tags (e.g. `v1.2.1`, `v1.3.0`) on this repo, not a zip or
+package registry. See `CHANGELOG.md`.
