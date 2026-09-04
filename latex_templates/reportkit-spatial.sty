@@ -1,0 +1,339 @@
+% ReportKit v1.4.0 -- semantic positioning and risk diagrams
+% This extension is loaded by reportkit-diagrams.sty.  Its environments draw
+% into the tikzpicture opened by the public diagram wrapper.
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{reportkit-spatial}[2026/09/04 v1.4.0 ReportKit spatial diagrams]
+
+\RequirePackage{tikz}
+\RequirePackage{xparse}
+\RequirePackage{pgfkeys}
+\RequirePackage{etoolbox}
+
+% -----------------------------------------------------------------------------
+% Shared helpers
+% -----------------------------------------------------------------------------
+\newcommand{\rk@spatial@error}[2]{%
+  \PackageError{reportkit-spatial}{#1}{#2}%
+}
+
+% \rk@spatial@severity{impact}{likelihood}
+% Thresholds use a normalised score (impact * likelihood / size^2), which
+% gives the same qualitative meaning for the 3x3 and 5x5 forms.
+\newcommand{\rk@spatial@severity}[2]{%
+  \pgfmathsetmacro{\rk@severityscore}{(#1*#2)/(\rk@heatmapsize*\rk@heatmapsize)}%
+  \pgfmathparse{\rk@severityscore >= \rk@criticalthreshold}%
+  \ifdim\pgfmathresult pt=1pt
+    \def\rk@severitylabel{Critical}\def\rk@severityinitial{C}\def\rk@severityfill{RedFlag!18}%
+  \else
+    \pgfmathparse{\rk@severityscore >= \rk@highthreshold}%
+    \ifdim\pgfmathresult pt=1pt
+      \def\rk@severitylabel{High}\def\rk@severityinitial{H}\def\rk@severityfill{Assumption!18}%
+    \else
+      \pgfmathparse{\rk@severityscore >= \rk@mediumthreshold}%
+      \ifdim\pgfmathresult pt=1pt
+        \def\rk@severitylabel{Medium}\def\rk@severityinitial{M}\def\rk@severityfill{Tip!16}%
+      \else
+        \def\rk@severitylabel{Low}\def\rk@severityinitial{L}\def\rk@severityfill{Surface}%
+      \fi
+    \fi
+  \fi
+}
+
+% -----------------------------------------------------------------------------
+% Positioning matrix
+% -----------------------------------------------------------------------------
+\newcount\rk@matrixpointcount
+\newif\ifrk@matrixvalid
+
+\newcommand{\rk@matrixwidth}{12.2}
+\newcommand{\rk@matrixheight}{6.1}
+\newcommand{\rk@matrixxlabel}{Implementation complexity}
+\newcommand{\rk@matrixylabel}{Expected value}
+\newcommand{\rk@matrixxlow}{Low}
+\newcommand{\rk@matrixxhigh}{High}
+\newcommand{\rk@matrixylow}{Low}
+\newcommand{\rk@matrixyhigh}{High}
+\newcommand{\rk@matrixhighlight}{}
+\newcommand{\rk@pointlabelposition}{auto}
+
+\pgfkeys{
+  /reportkit/reportmatrix/.is family,
+  /reportkit/reportmatrix,
+  width/.store in=\rk@matrixwidth,
+  height/.store in=\rk@matrixheight,
+  xlabel/.store in=\rk@matrixxlabel,
+  ylabel/.store in=\rk@matrixylabel,
+  xlow/.store in=\rk@matrixxlow,
+  xhigh/.store in=\rk@matrixxhigh,
+  ylow/.store in=\rk@matrixylow,
+  yhigh/.store in=\rk@matrixyhigh,
+  highlight/.store in=\rk@matrixhighlight,
+  .unknown/.code={\rk@spatial@error{Unknown reportmatrix key '\pgfkeyscurrentname'}{Use width, height, xlabel, ylabel, xlow, xhigh, ylow, yhigh, or highlight.}}
+}
+
+\pgfkeys{
+  /reportkit/reportmatrix/point/.is family,
+  /reportkit/reportmatrix/point,
+  label-position/.store in=\rk@pointlabelposition,
+  .unknown/.code={\rk@spatial@error{Unknown point key '\pgfkeyscurrentname'}{Use label-position=auto, above, below, left, or right.}}
+}
+
+\def\rk@spatial@parsehighlight#1/#2\@nil{%
+  \def\rk@matrixhighlightx{#1}%
+  \def\rk@matrixhighlighty{#2}%
+  \def\rk@matrixhighlightvalid{1}%
+  \ifstrequal{#1}{low}{}{\ifstrequal{#1}{high}{}{\def\rk@matrixhighlightvalid{0}}}%
+  \ifstrequal{#2}{low}{}{\ifstrequal{#2}{high}{}{\def\rk@matrixhighlightvalid{0}}}%
+}
+
+\newcommand{\rk@spatial@matrix@highlight}{%
+  \ifx\rk@matrixhighlight\@empty
+  \else
+    \expandafter\rk@spatial@parsehighlight\rk@matrixhighlight\@nil
+    \ifnum\rk@matrixhighlightvalid=0
+      \rk@spatial@error{Invalid highlight '\rk@matrixhighlight'}{Use highlight=low/low, low/high, high/low, or high/high.}%
+    \else
+      \expandafter\ifstrequal\expandafter{\rk@matrixhighlightx}{low}{\def\rk@matrixhighlightxmin{0}}{\def\rk@matrixhighlightxmin{0.5*\rk@matrixwidth}}%
+      \expandafter\ifstrequal\expandafter{\rk@matrixhighlighty}{low}{\def\rk@matrixhighlightymin{0}}{\def\rk@matrixhighlightymin{0.5*\rk@matrixheight}}%
+      \fill[LinkBlue!7] (\rk@matrixhighlightxmin,\rk@matrixhighlightymin) rectangle
+        ({\rk@matrixhighlightxmin+0.5*\rk@matrixwidth},{\rk@matrixhighlightymin+0.5*\rk@matrixheight});%
+    \fi
+  \fi
+}
+
+\NewDocumentEnvironment{reportmatrix}{O{}}{%
+  \begingroup
+  \pgfkeys{/reportkit/reportmatrix,
+    width=12.2,height=6.1,xlabel={Implementation complexity},ylabel={Expected value},
+    xlow={Low},xhigh={High},ylow={Low},yhigh={High},highlight={},#1}%
+  \global\rk@matrixpointcount=0\relax
+  \rk@spatial@matrix@highlight
+  \draw[Hairline,line width=.55pt] (0,0) rectangle (\rk@matrixwidth,\rk@matrixheight);
+  \draw[Hairline,line width=.55pt] ({0.5*\rk@matrixwidth},0) -- ({0.5*\rk@matrixwidth},\rk@matrixheight);
+  \draw[Hairline,line width=.55pt] (0,{0.5*\rk@matrixheight}) -- (\rk@matrixwidth,{0.5*\rk@matrixheight});
+  \node[anchor=north west,font=\sffamily\fontsize{6.8}{8}\selectfont,text=Muted] at (0,-.20) {\rk@matrixxlow};
+  \node[anchor=north east,font=\sffamily\fontsize{6.8}{8}\selectfont,text=Muted] at (\rk@matrixwidth,-.20) {\rk@matrixxhigh};
+  \node[anchor=north,font=\sffamily\fontsize{7.2}{8.5}\selectfont,text=Muted] at ({0.5*\rk@matrixwidth},-.56) {\rk@matrixxlabel\ $\longrightarrow$};
+  \node[anchor=south east,font=\sffamily\fontsize{6.8}{8}\selectfont,text=Muted] at (-.20,0) {\rk@matrixylow};
+  \node[anchor=south west,font=\sffamily\fontsize{6.8}{8}\selectfont,text=Muted] at (-.20,\rk@matrixheight) {\rk@matrixyhigh};
+  \node[rotate=90,font=\sffamily\fontsize{7.2}{8.5}\selectfont,text=Muted] at (-.85,{0.5*\rk@matrixheight}) {\rk@matrixylabel\ $\longrightarrow$};
+}{%
+  \endgroup
+}
+
+% \quadrant{x-position}{y-position}{label}; positions are low or high.
+\NewDocumentCommand{\quadrant}{m m m}{%
+  \rk@matrixvalidtrue
+  \ifboolexpr{ not test {\ifstrequal{#1}{low}} and not test {\ifstrequal{#1}{high}} }{\rk@matrixvalidfalse}{}%
+  \ifboolexpr{ not test {\ifstrequal{#2}{low}} and not test {\ifstrequal{#2}{high}} }{\rk@matrixvalidfalse}{}%
+  \ifrk@matrixvalid
+    \ifstrequal{#1}{low}{\def\rk@matrixquadrantx{0.25*\rk@matrixwidth}}{\def\rk@matrixquadrantx{0.75*\rk@matrixwidth}}%
+    \ifstrequal{#2}{low}{\def\rk@matrixquadranty{0.25*\rk@matrixheight}}{\def\rk@matrixquadranty{0.75*\rk@matrixheight}}%
+    \node[align=center,text width={0.40*\rk@matrixwidth cm},font=\sffamily\bfseries\fontsize{8}{9.5}\selectfont,text=Ink]
+      at (\rk@matrixquadrantx,\rk@matrixquadranty) {#3};%
+  \else
+    \rk@spatial@error{Invalid quadrant position '#1/#2'}{Use low or high for both the x and y position.}%
+  \fi
+}
+
+% \point[label-position=auto|above|below|left|right]{label}{x}{y}
+\NewDocumentCommand{\point}{O{} m m m}{%
+  \begingroup
+  \pgfkeys{/reportkit/reportmatrix/point,label-position=auto,#1}%
+  \rk@matrixvalidtrue
+  \pgfmathparse{(#3 >= 0) && (#3 <= 1)}%
+  \ifdim\pgfmathresult pt=1pt\else\rk@matrixvalidfalse\fi
+  \pgfmathparse{(#4 >= 0) && (#4 <= 1)}%
+  \ifdim\pgfmathresult pt=1pt\else\rk@matrixvalidfalse\fi
+  \ifrk@matrixvalid
+    \global\advance\rk@matrixpointcount by 1\relax
+    \pgfmathsetmacro{\rk@matrixpointx}{#3*\rk@matrixwidth}%
+    \pgfmathsetmacro{\rk@matrixpointy}{#4*\rk@matrixheight}%
+    \fill[LinkBlue] (\rk@matrixpointx,\rk@matrixpointy) circle[radius=1.55pt];
+    \def\rk@matrixpointanchor{}\def\rk@matrixpointxshift{0}\def\rk@matrixpointyshift{0}%
+    \expandafter\ifstrequal\expandafter{\rk@pointlabelposition}{auto}{%
+      \ifodd\rk@matrixpointcount\def\rk@pointlabelposition{above}\else\def\rk@pointlabelposition{below}\fi
+    }{}%
+    \expandafter\ifstrequal\expandafter{\rk@pointlabelposition}{above}{\def\rk@matrixpointanchor{south}\def\rk@matrixpointyshift{.13}}{}%
+    \expandafter\ifstrequal\expandafter{\rk@pointlabelposition}{below}{\def\rk@matrixpointanchor{north}\def\rk@matrixpointyshift{-.13}}{}%
+    \expandafter\ifstrequal\expandafter{\rk@pointlabelposition}{left}{\def\rk@matrixpointanchor{east}\def\rk@matrixpointxshift{-.13}}{}%
+    \expandafter\ifstrequal\expandafter{\rk@pointlabelposition}{right}{\def\rk@matrixpointanchor{west}\def\rk@matrixpointxshift{.13}}{}%
+    \ifstrempty{\rk@matrixpointanchor}{%
+      \rk@spatial@error{Invalid point label-position '\rk@pointlabelposition'}{Use label-position=auto, above, below, left, or right.}%
+    }{%
+      \node[anchor=\rk@matrixpointanchor,xshift=\rk@matrixpointxshift cm,yshift=\rk@matrixpointyshift cm,
+        align=center,font=\sffamily\fontsize{6.9}{8.2}\selectfont,text=Ink]
+        at (\rk@matrixpointx,\rk@matrixpointy) {#2};%
+    }%
+  \else
+    \rk@spatial@error{Matrix point '#2' is outside the allowed range [0,1]}{Both normalised point coordinates must be numbers from 0 through 1.}%
+  \fi
+  \endgroup
+}
+
+% -----------------------------------------------------------------------------
+% Risk heatmap
+% -----------------------------------------------------------------------------
+\newcount\rk@riskcount
+\newif\ifrk@riskvalid
+
+\newcommand{\rk@heatmapsize}{5}
+\newcommand{\rk@heatmapwidth}{10.6}
+\newcommand{\rk@impactlabel}{Impact}
+\newcommand{\rk@likelihoodlabel}{Likelihood}
+\newcommand{\rk@criticalthreshold}{.64}
+\newcommand{\rk@highthreshold}{.36}
+\newcommand{\rk@mediumthreshold}{.16}
+\newcommand{\rk@criticallabel}{Critical}
+\newcommand{\rk@highlabel}{High}
+\newcommand{\rk@mediumlabel}{Medium}
+\newcommand{\rk@lowlabel}{Low}
+\newcommand{\rk@riskowner}{}
+\newcommand{\rk@riskstatus}{}
+
+\pgfkeys{
+  /reportkit/riskheatmap/.is family,
+  /reportkit/riskheatmap,
+  size/.store in=\rk@heatmapsize,
+  width/.store in=\rk@heatmapwidth,
+  impact/.store in=\rk@impactlabel,
+  likelihood/.store in=\rk@likelihoodlabel,
+  critical-threshold/.store in=\rk@criticalthreshold,
+  high-threshold/.store in=\rk@highthreshold,
+  medium-threshold/.store in=\rk@mediumthreshold,
+  critical-label/.store in=\rk@criticallabel,
+  high-label/.store in=\rk@highlabel,
+  medium-label/.store in=\rk@mediumlabel,
+  low-label/.store in=\rk@lowlabel,
+  .unknown/.code={\rk@spatial@error{Unknown riskheatmap key '\pgfkeyscurrentname'}{Use size, width, impact, likelihood, threshold, or severity-label keys.}}
+}
+
+\pgfkeys{
+  /reportkit/risk/.is family,
+  /reportkit/risk,
+  owner/.store in=\rk@riskowner,
+  status/.store in=\rk@riskstatus,
+  .unknown/.code={\rk@spatial@error{Unknown risk metadata key '\pgfkeyscurrentname'}{Use owner or status.}}
+}
+
+\newcommand{\rk@spatial@validateheatmap}{%
+  \expandafter\ifstrequal\expandafter{\rk@heatmapsize}{3}{}{%
+  \expandafter\ifstrequal\expandafter{\rk@heatmapsize}{5}{}{%
+    \rk@spatial@error{Invalid risk heatmap size '\rk@heatmapsize'}{Use size=3 or size=5.}%
+  }}%
+  \pgfmathparse{(\rk@criticalthreshold >= 0) && (\rk@criticalthreshold <= 1) && (\rk@highthreshold >= 0) && (\rk@mediumthreshold >= 0) && (\rk@criticalthreshold > \rk@highthreshold) && (\rk@highthreshold > \rk@mediumthreshold)}%
+  \ifdim\pgfmathresult pt=1pt\else
+    \rk@spatial@error{Invalid risk severity thresholds}{Thresholds must satisfy 1 >= critical-threshold > high-threshold > medium-threshold >= 0.}%
+  \fi
+}
+
+\newcommand{\rk@spatial@legendentry}[3]{%
+  \pgfmathsetmacro{\rk@legendy}{\rk@heatmapwidth-.34-(#1*.52)}%
+  \path[draw=Hairline,line width=.35pt,fill=#3] ({\rk@heatmapwidth+.45},\rk@legendy) rectangle ({\rk@heatmapwidth+.72},{\rk@legendy-.27});
+  \node[anchor=west,font=\sffamily\fontsize{6.8}{8}\selectfont,text=Ink] at ({\rk@heatmapwidth+.82},{\rk@legendy-.135}) {#2};%
+}
+
+\newcommand{\rk@spatial@drawheatmap}{%
+  \pgfmathsetmacro{\rk@heatmapcell}{\rk@heatmapwidth/\rk@heatmapsize}%
+  \foreach \rk@heatmapcol in {1,...,\rk@heatmapsize}{%
+    \foreach \rk@heatmaprow in {1,...,\rk@heatmapsize}{%
+      \rk@spatial@severity{\rk@heatmapcol}{\rk@heatmaprow}%
+      \path[draw=Hairline,line width=.45pt,fill=\rk@severityfill]
+        ({(\rk@heatmapcol-1)*\rk@heatmapcell},{(\rk@heatmaprow-1)*\rk@heatmapcell}) rectangle
+        ({\rk@heatmapcol*\rk@heatmapcell},{\rk@heatmaprow*\rk@heatmapcell});
+      \node[anchor=north east,inner sep=1.4pt,font=\sffamily\bfseries\fontsize{5.3}{6.2}\selectfont,text=Muted]
+        at ({\rk@heatmapcol*\rk@heatmapcell},{\rk@heatmaprow*\rk@heatmapcell}) {\rk@severityinitial};%
+    }%
+  }%
+  \foreach \rk@heatmaptick in {1,...,\rk@heatmapsize}{%
+    \node[anchor=north,font=\sffamily\fontsize{6.3}{7.5}\selectfont,text=Muted] at ({(\rk@heatmaptick-.5)*\rk@heatmapcell},-.15) {\rk@heatmaptick};
+    \node[anchor=east,font=\sffamily\fontsize{6.3}{7.5}\selectfont,text=Muted] at (-.15,{(\rk@heatmaptick-.5)*\rk@heatmapcell}) {\rk@heatmaptick};
+  }%
+  \node[anchor=north,font=\sffamily\fontsize{7.2}{8.5}\selectfont,text=Muted] at ({.5*\rk@heatmapwidth},-.52) {\rk@impactlabel\ $\longrightarrow$};
+  \node[rotate=90,font=\sffamily\fontsize{7.2}{8.5}\selectfont,text=Muted] at (-.66,{.5*\rk@heatmapwidth}) {\rk@likelihoodlabel\ $\longrightarrow$};
+  \node[anchor=north west,font=\sffamily\bfseries\fontsize{6.8}{8}\selectfont,text=Muted] at ({\rk@heatmapwidth+.45},\rk@heatmapwidth) {SEVERITY};
+  \rk@spatial@legendentry{0}{\rk@criticallabel}{RedFlag!18}%
+  \rk@spatial@legendentry{1}{\rk@highlabel}{Assumption!18}%
+  \rk@spatial@legendentry{2}{\rk@mediumlabel}{Tip!16}%
+  \rk@spatial@legendentry{3}{\rk@lowlabel}{Surface}%
+}
+
+\newcommand{\rk@spatial@drawriskregister}{%
+  \ifnum\rk@riskcount>0\relax
+    \ifnum\rk@riskhasmetadata=1\relax
+      \node[anchor=north west,inner sep=0pt,align=left,text width=\rk@heatmapwidth cm,
+        font=\sffamily\fontsize{6.8}{8.2}\selectfont,text=Ink]
+        at (0,{-.1-\rk@heatmapwidth}) {%
+          \textbf{Risk register}\par\vspace{2pt}%
+          \foreach \rk@registerindex in {1,...,\the\rk@riskcount}{%
+            \textbf{\csname rk@riskid@\rk@registerindex\endcsname}\enspace
+            \csname rk@riskdescription@\rk@registerindex\endcsname%
+            \expandafter\ifx\csname rk@riskowner@\rk@registerindex\endcsname\@empty\else\enspace---\enspace Owner: \csname rk@riskowner@\rk@registerindex\endcsname\fi%
+            \expandafter\ifx\csname rk@riskstatus@\rk@registerindex\endcsname\@empty\else\enspace; Status: \csname rk@riskstatus@\rk@registerindex\endcsname\fi%
+            \par%
+          }%
+        };%
+    \fi
+  \fi
+}
+
+\NewDocumentEnvironment{riskheatmap}{O{}}{%
+  \begingroup
+  \pgfkeys{/reportkit/riskheatmap,
+    size=5,width=10.6,impact={Impact},likelihood={Likelihood},
+    critical-threshold=.64,high-threshold=.36,medium-threshold=.16,
+    critical-label={Critical},high-label={High},medium-label={Medium},low-label={Low},#1}%
+  \gdef\rk@riskhasmetadata{0}%
+  \global\rk@riskcount=0\relax
+  \rk@spatial@validateheatmap
+  \rk@spatial@drawheatmap
+  \foreach \rk@heatmapcol in {1,...,\rk@heatmapsize}{%
+    \foreach \rk@heatmaprow in {1,...,\rk@heatmapsize}{%
+      \expandafter\gdef\csname rk@riskcellcount@\rk@heatmapcol-\rk@heatmaprow\endcsname{0}%
+    }%
+  }%
+}{%
+  \rk@spatial@drawriskregister
+  \endgroup
+}
+
+% \risk{id}{impact}{likelihood}{description}{owner=...,status=...}
+\NewDocumentCommand{\risk}{m m m m m}{%
+  \begingroup
+  \pgfkeys{/reportkit/risk,owner={},status={},#5}%
+  \rk@riskvalidtrue
+  \pgfmathtruncatemacro{\rk@riskimpactint}{#2}%
+  \pgfmathtruncatemacro{\rk@risklikelihoodint}{#3}%
+  \pgfmathparse{(#2 == \rk@riskimpactint) && (#2 >= 1) && (#2 <= \rk@heatmapsize)}%
+  \ifdim\pgfmathresult pt=1pt\else\rk@riskvalidfalse\fi
+  \pgfmathparse{(#3 == \rk@risklikelihoodint) && (#3 >= 1) && (#3 <= \rk@heatmapsize)}%
+  \ifdim\pgfmathresult pt=1pt\else\rk@riskvalidfalse\fi
+  \ifrk@riskvalid
+    \global\advance\rk@riskcount by 1\relax
+    \edef\rk@riskindex{\the\rk@riskcount}%
+    \expandafter\gdef\csname rk@riskid@\rk@riskindex\endcsname{#1}%
+    \expandafter\gdef\csname rk@riskdescription@\rk@riskindex\endcsname{#4}%
+    \global\expandafter\let\csname rk@riskowner@\rk@riskindex\endcsname\rk@riskowner
+    \global\expandafter\let\csname rk@riskstatus@\rk@riskindex\endcsname\rk@riskstatus
+    \ifx\rk@riskowner\@empty
+      \ifx\rk@riskstatus\@empty\else\gdef\rk@riskhasmetadata{1}\fi
+    \else
+      \gdef\rk@riskhasmetadata{1}%
+    \fi
+    \expandafter\ifx\csname rk@riskcellcount@#2-#3\endcsname\relax
+      \expandafter\gdef\csname rk@riskcellcount@#2-#3\endcsname{0}%
+    \fi
+    \edef\rk@cellriskcount{\csname rk@riskcellcount@#2-#3\endcsname}%
+    \pgfmathtruncatemacro{\rk@cellriskcount}{\rk@cellriskcount+1}%
+    \expandafter\xdef\csname rk@riskcellcount@#2-#3\endcsname{\rk@cellriskcount}%
+    \pgfmathsetmacro{\rk@riskx}{(#2-.5)*\rk@heatmapcell}%
+    \pgfmathsetmacro{\rk@risky}{(#3-.16-.24*\rk@cellriskcount)*\rk@heatmapcell}%
+    \node[font=\sffamily\bfseries\fontsize{6.5}{7.6}\selectfont,text=Ink]
+      at (\rk@riskx,\rk@risky) {#1};%
+  \else
+    \rk@spatial@error{Risk '#1' has an out-of-range impact or likelihood}{Impact and likelihood must be ordinal integers from 1 through \rk@heatmapsize.}%
+  \fi
+  \endgroup
+}
+
+\endinput

@@ -27,7 +27,7 @@ from __future__ import annotations
 import argparse
 import re
 from pathlib import Path
-from typing import Mapping, Sequence
+from typing import Any, Mapping, Sequence
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -645,39 +645,601 @@ def drawdown_chart(
 def waterfall_chart(
     contributions: pd.Series | Mapping[str, float],
     *,
+    opening: float = 0.0,
+    opening_label: str = "Opening",
     total_label: str = "Total",
+    subtotals: Mapping[str, int] | Sequence[tuple[str, int]] | None = None,
+    closing_total: float | None = None,
     value_formatter: FuncFormatter | str | None = None,
     ylabel: str | None = None,
     size: str | tuple[float, float] = "full",
     title: str | None = None,
 ) -> tuple[mpl.figure.Figure, mpl.axes.Axes]:
-    """Attribution-style waterfall using warm/cool sign encoding.
+    """Render an opening-to-closing financial or operational bridge.
 
-    Warm/cool encodes arithmetic sign, not desirability.  Total is neutral ink.
+    ``contributions`` contains signed deltas in their intended reading order.
+    ``subtotals`` maps a subtotal label to the number of deltas after which it
+    should be shown (for example, ``{"Gross profit": 3}``).  The closing
+    total defaults to ``opening + contributions.sum()``; an explicit
+    ``closing_total`` is useful when reconciling a separately reported total.
+    Warm/cool encodes arithmetic sign, not desirability.
     """
     s = pd.Series(contributions, dtype=float)
+    if s.empty:
+        raise ValueError("waterfall_chart requires at least one contribution")
+    if not np.isfinite(s.to_numpy()).all():
+        raise ValueError("waterfall_chart contributions must all be finite numbers")
+    if not np.isfinite(opening):
+        raise ValueError("waterfall_chart opening must be a finite number")
+    if closing_total is not None and not np.isfinite(closing_total):
+        raise ValueError("waterfall_chart closing_total must be a finite number")
+
+    subtotal_items = list(subtotals.items()) if isinstance(subtotals, Mapping) else list(subtotals or [])
+    subtotal_after: dict[int, list[str]] = {}
+    for label, position in subtotal_items:
+        if not isinstance(position, (int, np.integer)) or not 1 <= position <= len(s):
+            raise ValueError(
+                f"waterfall subtotal '{label}' must follow an integer contribution position from 1 to {len(s)}"
+            )
+        subtotal_after.setdefault(int(position), []).append(str(label))
+
     vals = s.to_numpy()
-    starts = np.r_[0.0, np.cumsum(vals)[:-1]]
-    colors = [PRIMARY if v >= 0 else DATA_WARM for v in vals]
+    running = float(opening)
+    bars: list[tuple[str, float, float, str]] = [(opening_label, 0.0, float(opening), "total")]
+    for position, (label, value) in enumerate(s.items(), start=1):
+        bars.append((str(label), running, float(value), "delta"))
+        running += float(value)
+        for subtotal_label in subtotal_after.get(position, []):
+            bars.append((subtotal_label, 0.0, running, "subtotal"))
+    closing = running if closing_total is None else float(closing_total)
+    if closing_total is not None and not np.isclose(closing, running, rtol=1e-9, atol=1e-12):
+        raise ValueError(
+            "waterfall_chart closing_total does not reconcile to opening plus contributions; "
+            "add the missing bridge item instead"
+        )
+    bars.append((total_label, 0.0, closing, "total"))
 
-    labels = [str(x) for x in s.index] + [total_label]
     fig, ax = new_figure(size)
-    x = np.arange(len(vals))
-    ax.bar(x, vals, bottom=starts, color=colors, width=0.62)
+    x = np.arange(len(bars))
+    for i, (_, bottom, height, kind) in enumerate(bars):
+        if kind == "delta":
+            color = PRIMARY if height >= 0 else DATA_WARM
+        elif kind == "subtotal":
+            color = EVIDENCE
+        else:
+            color = INK
+        ax.bar(i, height, bottom=bottom, color=color, width=0.62)
 
-    cumulative = np.cumsum(vals)
-    for i in range(len(vals) - 1):
-        ax.plot([i + 0.31, i + 1 - 0.31], [cumulative[i], cumulative[i]], color=HAIRLINE, linewidth=0.8)
+    # Connect only consecutive delta steps.  Totals deliberately break the
+    # connector so arithmetic state remains readable without relying on color.
+    previous_delta: int | None = 0
+    running = float(opening)
+    for i, (_, bottom, height, kind) in enumerate(bars[1:], start=1):
+        if kind == "delta" and previous_delta is not None:
+            ax.plot([previous_delta + 0.31, i - 0.31], [running, running], color=HAIRLINE, linewidth=0.8)
+            running = bottom + height
+            previous_delta = i
+        elif kind == "delta":
+            running = bottom + height
+            previous_delta = i
+        else:
+            previous_delta = None
 
-    total = float(vals.sum())
-    ax.bar(len(vals), total, color=INK, width=0.62)
-    ax.set_xticks(np.arange(len(labels)))
-    ax.set_xticklabels(labels, rotation=25, ha="right")
+    ax.set_xticks(x)
+    ax.set_xticklabels([item[0] for item in bars], rotation=25, ha="right")
     style_axes(ax, grid="y", zero_line=True)
     _apply_formatter(ax.yaxis, value_formatter)
     ax.set_ylabel(ylabel or "")
     _title(ax, title)
     return fig, ax
+
+
+def _format_chart_value(value: float, formatter: FuncFormatter | str | None) -> str:
+    """Format a value for an in-chart label using the public formatter API."""
+    if formatter is None:
+        return f"{value:,.3g}"
+    if isinstance(formatter, str):
+        presets: dict[str, FuncFormatter] = {
+            "percent": percent_formatter(0),
+            "percent1": percent_formatter(1),
+            "bps": bps_formatter(0),
+            "integer": integer_formatter(),
+            "number": number_formatter(1),
+            "multiple": multiple_formatter(1),
+        }
+        if formatter not in presets:
+            raise ValueError(f"unknown formatter preset: {formatter}")
+        formatter = presets[formatter]
+    return str(formatter(value, 0))
+
+
+def _treemap_rectangles(
+    items: Sequence[tuple[Any, float]], x: float, y: float, width: float, height: float
+) -> dict[Any, tuple[float, float, float, float]]:
+    """Return deterministic, value-proportional rectangles without extra deps.
+
+    The balanced binary subdivision is intentionally modest rather than a
+    clever-looking dependency: it stays vector-native and makes small report
+    figures reproducible across environments.
+    """
+    if not items:
+        return {}
+    ordered = sorted(items, key=lambda item: (-item[1], str(item[0])))
+    if len(ordered) == 1:
+        return {ordered[0][0]: (x, y, width, height)}
+    total = sum(item[1] for item in ordered)
+    running = 0.0
+    split = 1
+    best_distance = float("inf")
+    for index, (_, value) in enumerate(ordered[:-1], start=1):
+        running += value
+        distance = abs(total / 2 - running)
+        if distance <= best_distance:
+            best_distance = distance
+            split = index
+        else:
+            break
+    first, second = ordered[:split], ordered[split:]
+    first_total = sum(item[1] for item in first)
+    ratio = first_total / total
+    if width >= height:
+        first_rect = _treemap_rectangles(first, x, y, width * ratio, height)
+        second_rect = _treemap_rectangles(second, x + width * ratio, y, width * (1 - ratio), height)
+    else:
+        first_rect = _treemap_rectangles(first, x, y, width, height * ratio)
+        second_rect = _treemap_rectangles(second, x, y + height * ratio, width, height * (1 - ratio))
+    return first_rect | second_rect
+
+
+def _treemap_mapping(data: Mapping[Any, Any], path: tuple[str, ...] = ()) -> dict[str, Any]:
+    """Normalize nested mapping input to a small validated tree."""
+    tree: dict[str, Any] = {}
+    for raw_label, raw_value in data.items():
+        label = str(raw_label)
+        if isinstance(raw_value, Mapping):
+            if not raw_value:
+                raise ValueError(f"treemap hierarchy '{'/'.join(path + (label,))}' cannot be empty")
+            tree[label] = _treemap_mapping(raw_value, path + (label,))
+        else:
+            try:
+                value = float(raw_value)
+            except (TypeError, ValueError) as exc:
+                raise ValueError(f"treemap value for '{'/'.join(path + (label,))}' must be numeric") from exc
+            if not np.isfinite(value) or value <= 0:
+                raise ValueError(f"treemap value for '{'/'.join(path + (label,))}' must be finite and greater than zero")
+            tree[label] = value
+    return tree
+
+
+def _treemap_value(node: Any) -> float:
+    return float(node) if not isinstance(node, Mapping) else sum(_treemap_value(child) for child in node.values())
+
+
+def _treemap_from_frame(
+    data: pd.DataFrame,
+    *,
+    label_column: str,
+    value_column: str,
+    parent_column: str | None,
+    group_column: str | None,
+) -> dict[str, Any]:
+    required = {label_column, value_column}
+    if parent_column:
+        required.add(parent_column)
+    if group_column:
+        required.add(group_column)
+    missing = required - set(data.columns)
+    if missing:
+        raise ValueError(f"treemap data is missing required column(s): {', '.join(sorted(missing))}")
+    frame = data.loc[:, list(required)].copy()
+    frame[label_column] = frame[label_column].astype(str)
+    if frame[label_column].duplicated().any():
+        raise ValueError("treemap hierarchy labels must be unique when a DataFrame is used")
+    values = pd.to_numeric(frame[value_column], errors="coerce")
+    if values.isna().any() or not np.isfinite(values).all() or (values <= 0).any():
+        raise ValueError("treemap values must be finite numbers greater than zero")
+    frame[value_column] = values
+
+    if not parent_column:
+        flat = dict(zip(frame[label_column], frame[value_column]))
+        if group_column:
+            grouped: dict[str, dict[str, float]] = {}
+            for group, label, value in frame[[group_column, label_column, value_column]].itertuples(index=False):
+                grouped.setdefault(str(group), {})[str(label)] = float(value)
+            return grouped
+        return flat
+
+    labels = set(frame[label_column])
+    parents: dict[str, str | None] = {}
+    children: dict[str, list[str]] = {label: [] for label in labels}
+    values_by_label = dict(zip(frame[label_column], frame[value_column]))
+    for label, parent in frame[[label_column, parent_column]].itertuples(index=False):
+        parent_label = None if pd.isna(parent) or str(parent).strip() == "" else str(parent)
+        if parent_label is not None and parent_label not in labels:
+            raise ValueError(f"treemap parent '{parent_label}' for '{label}' is not present in the data")
+        parents[str(label)] = parent_label
+        if parent_label is not None:
+            children[parent_label].append(str(label))
+
+    def build(label: str, ancestry: tuple[str, ...] = ()) -> Any:
+        if label in ancestry:
+            raise ValueError(f"treemap hierarchy contains a cycle at '{label}'")
+        if not children[label]:
+            return float(values_by_label[label])
+        return {child: build(child, ancestry + (label,)) for child in children[label]}
+
+    roots = [label for label in labels if parents[label] is None]
+    if not roots:
+        raise ValueError("treemap hierarchy needs at least one root node")
+    # Validate disconnected components as well: otherwise a cycle alongside a
+    # valid root would be silently omitted from the rendered hierarchy.
+    for label in labels:
+        build(label)
+    return {root: build(root) for root in roots}
+
+
+def treemap_chart(
+    data: pd.Series | Mapping[str, float | Mapping] | pd.DataFrame,
+    *,
+    label_column: str = "label",
+    value_column: str = "value",
+    parent_column: str | None = None,
+    group_column: str | None = None,
+    min_category_fraction: float = 0.02,
+    min_label_fraction: float = 0.045,
+    other_label: str = "Other",
+    value_formatter: FuncFormatter | str | None = None,
+    size: str | tuple[float, float] = "full",
+    title: str | None = None,
+) -> tuple[mpl.figure.Figure, mpl.axes.Axes]:
+    """Draw a flat or nested, vector-native treemap.
+
+    A mapping of scalars or a Series produces a flat chart.  A nested mapping
+    produces hierarchy; DataFrames support either flat ``label``/``value``
+    data or a unique-label parent hierarchy.  Flat categories below
+    ``min_category_fraction`` are combined into ``other_label`` so the chart
+    does not pretend tiny values are equally legible.
+    """
+    if not 0 <= min_category_fraction < 1 or not 0 <= min_label_fraction < 1:
+        raise ValueError("treemap minimum category and label fractions must be in [0, 1)")
+    if isinstance(data, pd.DataFrame):
+        tree = _treemap_from_frame(
+            data, label_column=label_column, value_column=value_column,
+            parent_column=parent_column, group_column=group_column,
+        )
+    elif isinstance(data, pd.Series):
+        tree = _treemap_mapping(data.to_dict())
+    elif isinstance(data, Mapping):
+        tree = _treemap_mapping(data)
+    else:
+        raise TypeError("treemap_chart data must be a pandas Series, DataFrame, or mapping")
+    if not tree:
+        raise ValueError("treemap_chart requires at least one category")
+
+    # Combine only a flat tree.  Grouped and nested input intentionally retains
+    # its declared hierarchy, which itself gives small leaves useful context.
+    if all(not isinstance(value, Mapping) for value in tree.values()):
+        total = _treemap_value(tree)
+        small = {label: value for label, value in tree.items() if value / total < min_category_fraction}
+        if small and len(small) < len(tree):
+            tree = {label: value for label, value in tree.items() if label not in small}
+            tree[other_label] = sum(small.values())
+
+    total = _treemap_value(tree)
+    fig, ax = new_figure(size)
+    ax.set_xlim(0, 100)
+    ax.set_ylim(0, 100)
+    ax.set_aspect("auto")
+    ax.axis("off")
+    top_colors = {label: DATA_COLORS[index % len(DATA_COLORS)] for index, label in enumerate(tree)}
+
+    def draw_level(nodes: Mapping[str, Any], bounds: tuple[float, float, float, float], depth: int, top_label: str | None) -> None:
+        x, y, width, height = bounds
+        items = [(label, _treemap_value(value)) for label, value in nodes.items()]
+        rectangles = _treemap_rectangles(items, x, y, width, height)
+        for label, node in nodes.items():
+            rx, ry, rw, rh = rectangles[label]
+            branch = label if top_label is None else top_label
+            color = top_colors[branch]
+            if isinstance(node, Mapping):
+                ax.add_patch(mpl.patches.Rectangle((rx, ry), rw, rh, facecolor=mcolors.to_rgba(color, 0.08), edgecolor=color, linewidth=1.0))
+                inset = min(0.65, rw / 9, rh / 9)
+                if rw > inset * 2 and rh > inset * 2:
+                    draw_level(node, (rx + inset, ry + inset, rw - 2 * inset, rh - 2 * inset), depth + 1, branch)
+                if rw * rh / 10000 >= min_label_fraction:
+                    ax.text(rx + 1.1, ry + rh - 1.3, label, va="top", ha="left", color=INK, fontsize=7.7,
+                            fontweight="semibold", clip_on=True)
+            else:
+                ax.add_patch(mpl.patches.Rectangle((rx, ry), rw, rh, facecolor=mcolors.to_rgba(color, 0.84 if depth == 0 else 0.60), edgecolor=WHITE, linewidth=0.8))
+                fraction = float(node) / total
+                if fraction >= min_label_fraction:
+                    label_text = f"{label}\n{_format_chart_value(float(node), value_formatter)}"
+                    ax.text(rx + rw / 2, ry + rh / 2, label_text, ha="center", va="center", color=WHITE,
+                            fontsize=7.4, linespacing=1.22, clip_on=True)
+
+    draw_level(tree, (0, 0, 100, 100), 0, None)
+    _title(ax, title)
+    return fig, ax
+
+
+def tornado_chart(
+    sensitivities: Mapping[str, Sequence[float]] | pd.DataFrame,
+    *,
+    base_case: float = 0.0,
+    low_column: str = "low",
+    high_column: str = "high",
+    label_column: str | None = None,
+    value_formatter: FuncFormatter | str | None = None,
+    xlabel: str | None = None,
+    size: str | tuple[float, float] = "full",
+    title: str | None = None,
+) -> tuple[mpl.figure.Figure, mpl.axes.Axes]:
+    """Draw ordered low/high sensitivity bars around a labelled base case."""
+    if not np.isfinite(base_case):
+        raise ValueError("tornado_chart base_case must be a finite number")
+    if isinstance(sensitivities, pd.DataFrame):
+        required = {low_column, high_column}
+        if label_column:
+            required.add(label_column)
+        missing = required - set(sensitivities.columns)
+        if missing:
+            raise ValueError(f"tornado data is missing required column(s): {', '.join(sorted(missing))}")
+        labels = sensitivities[label_column].astype(str) if label_column else sensitivities.index.astype(str)
+        frame = pd.DataFrame({"label": labels, "low": sensitivities[low_column], "high": sensitivities[high_column]})
+    elif isinstance(sensitivities, Mapping):
+        rows = []
+        for label, pair in sensitivities.items():
+            if len(pair) != 2:
+                raise ValueError(f"tornado sensitivity '{label}' must contain exactly (low, high)")
+            rows.append((str(label), pair[0], pair[1]))
+        frame = pd.DataFrame(rows, columns=["label", "low", "high"])
+    else:
+        raise TypeError("tornado_chart sensitivities must be a DataFrame or mapping of (low, high) pairs")
+    if frame.empty:
+        raise ValueError("tornado_chart requires at least one sensitivity")
+    frame[["low", "high"]] = frame[["low", "high"]].apply(pd.to_numeric, errors="coerce")
+    if frame[["low", "high"]].isna().any().any() or not np.isfinite(frame[["low", "high"]].to_numpy()).all():
+        raise ValueError("tornado low and high values must be finite numbers")
+    frame["spread"] = (frame["high"] - frame["low"]).abs()
+    frame = frame.sort_values("spread", ascending=True, kind="stable")
+
+    fig, ax = new_figure(size)
+    y = np.arange(len(frame))
+    low_delta = frame["low"].to_numpy() - base_case
+    high_delta = frame["high"].to_numpy() - base_case
+    ax.barh(y, low_delta, color=DATA_WARM, height=0.62, label="Low case")
+    ax.barh(y, high_delta, color=PRIMARY, height=0.62, label="High case")
+    ax.axvline(0, color=INK, linewidth=0.9, zorder=3)
+    ax.set_yticks(y)
+    ax.set_yticklabels(frame["label"])
+    style_axes(ax, grid="x")
+    _apply_formatter(ax.xaxis, value_formatter)
+    ax.set_xlabel(xlabel or f"Change from base case ({_format_chart_value(float(base_case), value_formatter)})")
+    _title(ax, title)
+    legend_above(ax, ncol=2)
+    return fig, ax
+
+
+def _bubble_areas(values: Sequence[float], minimum: float, maximum: float) -> np.ndarray:
+    raw = np.asarray(values, dtype=float)
+    if not np.isfinite(raw).all() or (raw < 0).any():
+        raise ValueError("bubble sizes must be finite, non-negative numbers")
+    if np.all(raw == 0):
+        return np.zeros_like(raw)
+    if float(raw.max()) == float(raw.min()):
+        return np.full_like(raw, (minimum + maximum) / 2)
+    return minimum + (raw - raw.min()) / (raw.max() - raw.min()) * (maximum - minimum)
+
+
+def bubble_matrix(
+    data: pd.DataFrame,
+    *,
+    x: str,
+    y: str,
+    xlabel: str,
+    ylabel: str,
+    size_column: str | None = None,
+    label_column: str | None = None,
+    group_column: str | None = None,
+    reference_x: float | None = None,
+    reference_y: float | None = None,
+    quadrant_labels: Mapping[str, str] | None = None,
+    x_formatter: FuncFormatter | str | None = None,
+    y_formatter: FuncFormatter | str | None = None,
+    size: str | tuple[float, float] = "full",
+    title: str | None = None,
+) -> tuple[mpl.figure.Figure, mpl.axes.Axes]:
+    """DataFrame-oriented scatter/bubble matrix with optional quadrants.
+
+    ``quadrant_labels`` accepts ``upper-left``, ``upper-right``,
+    ``lower-left``, and ``lower-right`` keys and requires both reference lines.
+    """
+    required = {x, y}
+    for column in (size_column, label_column, group_column):
+        if column:
+            required.add(column)
+    missing = required - set(data.columns)
+    if missing:
+        raise ValueError(f"bubble matrix data is missing required column(s): {', '.join(sorted(missing))}")
+    frame = data.loc[:, list(required)].copy()
+    frame[x] = pd.to_numeric(frame[x], errors="coerce")
+    frame[y] = pd.to_numeric(frame[y], errors="coerce")
+    frame = frame[np.isfinite(frame[x]) & np.isfinite(frame[y])]
+    if frame.empty:
+        raise ValueError("bubble_matrix requires at least one row with finite x and y values")
+    areas = _bubble_areas(frame[size_column], 30, 260) if size_column else np.full(len(frame), 34.0)
+    if quadrant_labels and (reference_x is None or reference_y is None):
+        raise ValueError("quadrant_labels requires both reference_x and reference_y")
+
+    fig, ax = new_figure(size)
+    if group_column:
+        groups = list(pd.unique(frame[group_column].astype(str)))
+        if len(groups) > len(DATA_COLORS):
+            raise ValueError(f"bubble_matrix supports at most {len(DATA_COLORS)} groups")
+        for index, group in enumerate(groups):
+            mask = frame[group_column].astype(str) == group
+            ax.scatter(frame.loc[mask, x], frame.loc[mask, y], s=areas[mask.to_numpy()], color=DATA_COLORS[index],
+                       alpha=0.72, linewidths=0.45, edgecolors=WHITE, label=group)
+    else:
+        ax.scatter(frame[x], frame[y], s=areas, color=PRIMARY, alpha=0.72, linewidths=0.45, edgecolors=WHITE)
+    style_axes(ax, grid="both")
+    if reference_x is not None:
+        ax.axvline(reference_x, color=EVIDENCE, linewidth=0.85, linestyle="--", zorder=1)
+    if reference_y is not None:
+        ax.axhline(reference_y, color=EVIDENCE, linewidth=0.85, linestyle="--", zorder=1)
+    if label_column:
+        offsets = ((6, 6), (6, -10), (-6, 6), (-6, -10))
+        for index, row in enumerate(frame.itertuples(index=False)):
+            ax.annotate(str(getattr(row, label_column)), (getattr(row, x), getattr(row, y)),
+                        xytext=offsets[index % len(offsets)], textcoords="offset points", fontsize=7.3,
+                        ha="left" if offsets[index % len(offsets)][0] > 0 else "right",
+                        va="bottom" if offsets[index % len(offsets)][1] > 0 else "top")
+    if quadrant_labels:
+        positions = {
+            "upper-left": (0.02, 0.98, "left", "top"), "upper-right": (0.98, 0.98, "right", "top"),
+            "lower-left": (0.02, 0.02, "left", "bottom"), "lower-right": (0.98, 0.02, "right", "bottom"),
+        }
+        for key, text in quadrant_labels.items():
+            normalized = key.lower().replace("_", "-")
+            if normalized not in positions:
+                raise ValueError(f"unknown quadrant label '{key}'; use upper/lower-left/right")
+            px, py, ha, va = positions[normalized]
+            ax.text(px, py, str(text), transform=ax.transAxes, ha=ha, va=va, color=MUTED, fontsize=7.5)
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+    _apply_formatter(ax.xaxis, x_formatter)
+    _apply_formatter(ax.yaxis, y_formatter)
+    _title(ax, title)
+    if group_column:
+        legend_above(ax, ncol=min(len(groups), 3))
+    return fig, ax
+
+
+def _quarter_start(value: Any) -> pd.Timestamp:
+    """Coerce a date or common YYYY-QN quarter label to a timestamp."""
+    if isinstance(value, pd.Period):
+        return value.asfreq("D", "start").to_timestamp()
+    text = str(value).strip()
+    match = re.fullmatch(r"(\d{4})\s*[- ]?Q([1-4])", text, flags=re.IGNORECASE)
+    if match:
+        return pd.Period(f"{match.group(1)}Q{match.group(2)}", freq="Q").start_time
+    try:
+        parsed = pd.to_datetime(value)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"timeline date '{value}' is not a valid date or quarter label") from exc
+    if pd.isna(parsed):
+        raise ValueError(f"timeline date '{value}' is not a valid date or quarter label")
+    return pd.Timestamp(parsed)
+
+
+def _timeline_boolean(value: Any) -> bool:
+    """Parse an explicit milestone flag without treating arbitrary text as true."""
+    if pd.isna(value):
+        return False
+    if isinstance(value, (bool, np.bool_)):
+        return bool(value)
+    if isinstance(value, (int, np.integer)) and value in (0, 1):
+        return bool(value)
+    if isinstance(value, str):
+        normalized = value.strip().lower()
+        if normalized in {"true", "yes", "1"}:
+            return True
+        if normalized in {"false", "no", "0", ""}:
+            return False
+    raise ValueError(f"timeline milestone value '{value}' must be boolean")
+
+
+def timeline_chart(
+    tasks: pd.DataFrame | Sequence[Mapping[str, Any]],
+    *,
+    label_column: str = "label",
+    start_column: str = "start",
+    end_column: str = "end",
+    workstream_column: str | None = "workstream",
+    milestone_column: str | None = "milestone",
+    current_date: Any | None = None,
+    scale: str = "auto",
+    size: str | tuple[float, float] = "full",
+    title: str | None = None,
+) -> tuple[mpl.figure.Figure, mpl.axes.Axes]:
+    """Render a dated or quarterly planning timeline with bars and milestones.
+
+    Each task needs a label and start.  Non-milestones also need an end date;
+    dates may be normal pandas-compatible values or ``YYYY QN`` labels.
+    Workstreams are shown in the row labels, so category colors are supportive
+    rather than the sole carrier of meaning.
+    """
+    if scale not in {"auto", "date", "quarter"}:
+        raise ValueError("timeline scale must be 'auto', 'date', or 'quarter'")
+    frame = pd.DataFrame(tasks).copy()
+    required = {label_column, start_column}
+    if milestone_column is None:
+        required.add(end_column)
+    missing = required - set(frame.columns)
+    if missing:
+        raise ValueError(f"timeline data is missing required column(s): {', '.join(sorted(missing))}")
+    if frame.empty:
+        raise ValueError("timeline_chart requires at least one task")
+    if workstream_column and workstream_column not in frame:
+        frame[workstream_column] = ""
+    if milestone_column and milestone_column not in frame:
+        frame[milestone_column] = False
+    frame["_start"] = frame[start_column].map(_quarter_start)
+    frame["_milestone"] = frame[milestone_column].map(_timeline_boolean) if milestone_column else False
+    if end_column not in frame and (~frame["_milestone"]).any():
+        raise ValueError(f"timeline data needs '{end_column}' for every non-milestone task")
+    if end_column in frame:
+        frame["_end"] = frame[end_column].where(frame[end_column].notna(), frame[start_column]).map(_quarter_start)
+    else:
+        frame["_end"] = frame["_start"]
+    invalid_order = (~frame["_milestone"]) & (frame["_end"] < frame["_start"])
+    if invalid_order.any():
+        label = str(frame.loc[invalid_order, label_column].iloc[0])
+        raise ValueError(f"timeline task '{label}' ends before it starts")
+    if len(frame) > 30:
+        raise ValueError("timeline_chart supports at most 30 tasks; split dense plans into separate figures")
+
+    frame = frame.sort_values(["_start", label_column], kind="stable").reset_index(drop=True)
+    streams = list(pd.unique(frame[workstream_column].fillna("").astype(str))) if workstream_column else [""]
+    if len(streams) > len(DATA_COLORS):
+        raise ValueError(f"timeline_chart supports at most {len(DATA_COLORS)} workstreams")
+    stream_colors = {stream: DATA_COLORS[index] for index, stream in enumerate(streams)}
+    fig, ax = new_figure(size)
+    y = np.arange(len(frame))
+    for index, row in frame.iterrows():
+        stream = str(row[workstream_column]) if workstream_column else ""
+        color = stream_colors[stream]
+        if row["_milestone"]:
+            ax.scatter(row["_start"], index, marker="D", s=42, color=color, edgecolors=WHITE, linewidths=0.65, zorder=3)
+        else:
+            duration = max((row["_end"] - row["_start"]).days, 1)
+            ax.barh(index, duration, left=row["_start"], height=0.52, color=color, alpha=0.86)
+    labels = [f"{row[workstream_column]} — {row[label_column]}" if workstream_column and str(row[workstream_column]).strip() else str(row[label_column]) for _, row in frame.iterrows()]
+    ax.set_yticks(y)
+    ax.set_yticklabels(labels)
+    ax.invert_yaxis()
+    style_axes(ax, grid="x")
+    if current_date is not None:
+        marker = _quarter_start(current_date)
+        ax.axvline(marker, color=RED_FLAG, linewidth=1.0, linestyle="--", zorder=2)
+        ax.annotate("Today", (marker, 1), xycoords=("data", "axes fraction"), xytext=(3, -2), textcoords="offset points",
+                    color=RED_FLAG, fontsize=7.4, ha="left", va="top")
+    if scale == "quarter" or (scale == "auto" and all(re.fullmatch(r"\d{4}\s*[- ]?Q[1-4]", str(value).strip(), re.I) for value in frame[start_column])):
+        locator = mdates.MonthLocator(bymonth=(1, 4, 7, 10))
+        ax.xaxis.set_major_locator(locator)
+        ax.xaxis.set_major_formatter(FuncFormatter(lambda value, _: f"{mdates.num2date(value).year} Q{(mdates.num2date(value).month - 1) // 3 + 1}"))
+    else:
+        _format_datetime_axis(ax, pd.DatetimeIndex(frame["_start"].tolist() + frame["_end"].tolist()))
+    ax.tick_params(axis="y", length=0)
+    _title(ax, title)
+    return fig, ax
+
+
+# Concise semantic aliases for report scripts.  The *_chart names follow the
+# existing API; aliases make the visual grammar's nouns convenient to discover.
+treemap = treemap_chart
+tornado = tornado_chart
+gantt_chart = timeline_chart
 
 
 # -----------------------------------------------------------------------------
@@ -807,6 +1369,41 @@ def build_demo(out_dir: str | Path) -> list[Path]:
     attr = pd.Series({"Selection": 0.0062, "Value": 0.0031, "Momentum": -0.0024, "Trading": -0.0012, "Other": 0.0007})
     fig, _ = waterfall_chart(attr, total_label="Active return", value_formatter=percent_formatter(1), ylabel="Contribution")
     outputs += save_figure(fig, out_dir / "attribution")
+
+    allocation = {
+        "Public markets": {"Equities": 0.47, "Rates": 0.18, "Credit": 0.11},
+        "Private markets": {"Buyout": 0.12, "Infrastructure": 0.07, "Real estate": 0.05},
+    }
+    fig, _ = treemap_chart(allocation, value_formatter="percent", title="Illustrative allocation")
+    outputs += save_figure(fig, out_dir / "allocation_treemap")
+
+    sensitivity = {"Revenue growth": (0.041, 0.069), "Margin": (0.047, 0.064), "Multiple": (0.039, 0.071)}
+    fig, _ = tornado_chart(sensitivity, base_case=0.055, value_formatter="percent1", xlabel="Change in IRR")
+    outputs += save_figure(fig, out_dir / "sensitivity_tornado")
+
+    initiatives = pd.DataFrame(
+        {
+            "value": [0.81, 0.72, 0.43, 0.55], "effort": [0.62, 0.31, 0.44, 0.77],
+            "investment": [8, 4, 3, 6], "initiative": ["Data platform", "Client portal", "Controls", "Automation"],
+            "portfolio": ["Core", "Growth", "Core", "Growth"],
+        }
+    )
+    fig, _ = bubble_matrix(
+        initiatives, x="effort", y="value", xlabel="Implementation effort", ylabel="Expected value",
+        size_column="investment", label_column="initiative", group_column="portfolio", reference_x=0.5, reference_y=0.5,
+        quadrant_labels={"upper-right": "Strategic priorities", "upper-left": "Quick wins"},
+    )
+    outputs += save_figure(fig, out_dir / "initiative_matrix")
+
+    plan = pd.DataFrame(
+        {
+            "label": ["Foundation", "Pilot", "Launch"], "start": ["2026 Q1", "2026 Q2", "2026 Q4"],
+            "end": ["2026 Q2", "2026 Q4", None], "workstream": ["Platform", "Product", "Product"],
+            "milestone": [False, False, True],
+        }
+    )
+    fig, _ = timeline_chart(plan, current_date="2026 Q3", scale="quarter")
+    outputs += save_figure(fig, out_dir / "delivery_timeline")
 
     return outputs
 

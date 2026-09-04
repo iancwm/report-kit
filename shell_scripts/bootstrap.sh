@@ -40,7 +40,7 @@ echo
 
 echo "-- [1/4] core files --"
 mkdir -p "$WORK_DIR"
-LATEX_REQUIRED=(reportkit.cls reportkit-boxes.sty reportkit-code.sty reportkit-diagrams.sty)
+LATEX_REQUIRED=(reportkit.cls reportkit-boxes.sty reportkit-code.sty reportkit-diagrams.sty reportkit-process.sty reportkit-spatial.sty reportkit-structure.sty)
 PYTHON_REQUIRED=(reportkit_doctor.py reportkit_viz.py)
 missing=0
 for f in "${LATEX_REQUIRED[@]}"; do

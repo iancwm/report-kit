@@ -1,0 +1,128 @@
+% ReportKit v1.4.0 -- semantic process and relationship primitives
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{reportkit-process}[2026/09/04 v1.4.0 ReportKit process diagrams]
+\RequirePackage{xparse}
+\RequirePackage{pgfkeys}
+\RequirePackage{etoolbox}
+
+% This module is loaded after reportkit-diagrams.sty, which supplies the
+% ReportKit node and edge styles used below.
+\newcommand{\rk@flowdirection}{horizontal}
+\newcommand{\rk@flowspacing}{3.05}
+\newcount\rk@flowindex
+\pgfkeys{
+  /reportkit/flow/.is family,
+  /reportkit/flow,
+  direction/.store in=\rk@flowdirection,
+  step spacing/.store in=\rk@flowspacing,
+}
+
+% A flow's declaration order is its primary reading order.  Edges are
+% intentionally declared after steps: authors control only semantic links,
+% not coordinates or routing.
+\NewDocumentEnvironment{reportflow}{O{}}{%
+  \begingroup
+  \pgfkeys{/reportkit/flow,direction=horizontal,step spacing=3.05,#1}%
+  \rk@flowindex=0\relax
+}{\endgroup}
+
+\NewDocumentCommand{\step}{m m}{%
+  \ifstrequal{\rk@flowdirection}{vertical}{%
+    \node[rk node] (#1) at (0,{-\the\rk@flowindex*\rk@flowspacing}) {\strut #2};%
+  }{%
+    \node[rk node] (#1) at ({\the\rk@flowindex*\rk@flowspacing},0) {\strut #2};%
+  }%
+  \advance\rk@flowindex by 1\relax
+}
+\NewDocumentCommand{\flowedge}{O{} m m}{\RKEdge[#1]{flow}{#2}{#3}}
+\NewDocumentCommand{\branch}{O{} m m m}{%
+  \flowedge[#1]{#2}{#3}\flowedge[#1]{#2}{#4}%
+}
+\NewDocumentCommand{\merge}{O{} m m m}{%
+  \flowedge[#1]{#2}{#4}\flowedge[#1]{#3}{#4}%
+}
+
+\newcommand{\rk@swimlanes}{}
+\newcommand{\rk@lanespacing}{1.32}
+\newcommand{\rk@lanewidth}{12.2}
+\newcount\rk@laneindex
+\newcount\rk@lanequery
+\pgfkeys{
+  /reportkit/swimlane/.is family,
+  /reportkit/swimlane,
+  lanes/.store in=\rk@swimlanes,
+  lane spacing/.store in=\rk@lanespacing,
+  width/.store in=\rk@lanewidth,
+}
+\makeatletter
+\newcommand{\rk@drawlanes}{%
+  \rk@laneindex=0\relax
+  \expandafter\@for\expandafter\rk@lanename\expandafter:=\rk@swimlanes\do{%
+    \draw[Hairline,line width=.5pt] (0,{-\the\rk@laneindex*\rk@lanespacing-0.5*\rk@lanespacing}) --
+      (\rk@lanewidth,{-\the\rk@laneindex*\rk@lanespacing-0.5*\rk@lanespacing});%
+    \node[anchor=east,font=\sffamily\fontsize{7.2}{8.5}\selectfont,text=Muted]
+      at (-0.28,{-\the\rk@laneindex*\rk@lanespacing}) {\rk@lanename};%
+    \advance\rk@laneindex by 1\relax
+  }%
+  \draw[Hairline,line width=.5pt] (0,{0.5*\rk@lanespacing}) -- (\rk@lanewidth,{0.5*\rk@lanespacing});%
+}
+\newcommand{\rk@findlane}[1]{%
+  \rk@laneindex=0\relax\rk@lanequery=-1\relax
+  \def\rk@lanetarget{#1}%
+  \expandafter\@for\expandafter\rk@lanename\expandafter:=\rk@swimlanes\do{%
+    \edef\rk@lanecandidate{\rk@lanename}%
+    \ifx\rk@lanecandidate\rk@lanetarget
+      \global\rk@lanequery=\rk@laneindex
+    \fi
+    \advance\rk@laneindex by 1\relax
+  }%
+  \ifnum\rk@lanequery<0
+    \PackageError{reportkit-process}{Unknown swimlane '#1'}{Declare it in the lanes key before using \string\lanestep.}%
+    \rk@lanequery=0\relax
+  \fi
+}
+\makeatother
+\makeatletter
+\NewDocumentEnvironment{reportswimlane}{O{}}{%
+  \begingroup
+  \pgfkeys{/reportkit/swimlane,lanes={},lane spacing=1.32,width=12.2,#1}%
+  \ifstrempty{\rk@swimlanes}{%
+    \PackageError{reportkit-process}{reportswimlane requires lanes={...}}{Provide one or more comma-separated lane names.}%
+  }{}%
+  \rk@drawlanes
+}{\endgroup}
+% #1 id, #2 lane name, #3 label, #4 one-based process column.
+\NewDocumentCommand{\lanestep}{m m m m}{%
+  \rk@findlane{#2}%
+  \node[rk node,text width=20mm,minimum height=8mm] (#1)
+    at ({#4*2.55},{-\the\rk@lanequery*\rk@lanespacing}) {\strut #3};%
+}
+\NewDocumentCommand{\handoff}{O{} m m}{\RKEdge[#1]{handoff}{#2}{#3}}
+\NewDocumentCommand{\laneflow}{O{} m m}{\RKEdge[#1]{flow}{#2}{#3}}
+
+\newcommand{\rk@networklayout}{grid}
+\newcount\rk@networkindex
+\pgfkeys{
+  /reportkit/network/.is family,
+  /reportkit/network,
+  layout/.store in=\rk@networklayout,
+}
+\NewDocumentEnvironment{reportnetwork}{O{}}{%
+  \begingroup\pgfkeys{/reportkit/network,layout=grid,#1}\rk@networkindex=0\relax
+}{\endgroup}
+\NewDocumentCommand{\networknode}{O{} m m}{%
+  \ifstrequal{\rk@networklayout}{radial}{%
+    \node[rk node,#1] (#2) at ({3.5*cos(90-\the\rk@networkindex*60)},{3.5*sin(90-\the\rk@networkindex*60)}) {\strut #3};%
+  }{%
+    \node[rk node,#1] (#2) at ({mod(\the\rk@networkindex,4)*3.15},{-floor(\the\rk@networkindex/4)*2.25}) {\strut #3};%
+  }%
+  \advance\rk@networkindex by 1\relax
+}
+% #1 edge type: dependency (default), flow, handoff, optional, or causal.
+\NewDocumentCommand{\networkedge}{O{dependency} m m O{}}{\RKEdge[#4]{#1}{#2}{#3}}
+\NewDocumentEnvironment{causalloop}{O{}}{\begin{reportnetwork}[layout=radial,#1]}{\end{reportnetwork}}
+\NewDocumentCommand{\causalnode}{O{} m m}{\networknode[#1]{#2}{#3}}
+\NewDocumentCommand{\causaledge}{m m m}{\RKEdge[#3]{causal}{#1}{#2}}
+
+\makeatother
+\endinput

@@ -8,9 +8,9 @@ git config core.hooksPath .githooks
 
 This points git at `.githooks/pre-commit`, which runs
 `scripts/acceptance_check.sh` automatically before any commit that touches
-`latex_templates/**` or `python_scripts/**` — it compiles the primitive
-acceptance test and checks the log for known failure signatures (see
-`references/known-fixes.md`).
+`latex_templates/**` or `python_scripts/**` — it compiles the legacy and
+visual-grammar acceptance tests and checks their logs for known failure
+signatures (see `references/known-fixes.md`).
 
 It is not enabled automatically by any script in this repo; the `git
 config` command above is a one-time, explicit opt-in per clone, so hook

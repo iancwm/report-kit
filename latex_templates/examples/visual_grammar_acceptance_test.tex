@@ -1,0 +1,179 @@
+\documentclass{reportkit}
+
+\setreportkitleftheader{REPORTKIT / v1.4 VISUAL GRAMMAR TEST}
+\setreportkitfooter{Semantic visual grammar acceptance test}
+\setreportkitversion{v1.4.0}
+
+\title{ReportKit v1.4 visual grammar test}
+\author{Test build}
+\date{4 September 2026}
+
+\begin{document}
+\maketitle
+
+\begin{execsummary}
+This test exercises every public native visual-grammar environment. The
+examples are intentionally compact, but each provides the caption, source,
+and description required of a report deliverable.
+\end{execsummary}
+
+\section{Positioning and risk}
+\begin{diagram}[type=matrix,caption={Portfolio priorities by complexity and value.},source={Illustrative workshop assessment.},description={A 2 by 2 matrix with a highlighted high-value, high-complexity quadrant and two labelled points.}]
+  \begin{reportmatrix}[xlabel={Complexity},ylabel={Value},highlight=high/high]
+    \quadrant{low}{high}{Quick wins}
+    \quadrant{high}{high}{Strategic priorities}
+    \point{Knowledge graph}{.72}{.83}
+    \point[label-position=below]{LMS upgrade}{.35}{.61}
+  \end{reportmatrix}
+\end{diagram}
+
+\begin{diagram}[type=risk-heatmap,caption={Priority risks by ordinal impact and likelihood.},source={Illustrative risk register.},description={A five by five severity heatmap showing two numbered risks and a register with owner and status.}]
+  \begin{riskheatmap}[size=5]
+    \risk{R1}{5}{4}{Identity dependency}{owner=Security,status=mitigating}
+    \risk{R2}{3}{2}{Migration delay}{owner=Platform,status=open}
+  \end{riskheatmap}
+\end{diagram}
+
+\section{Process and relationship}
+\begin{diagram}[type=flow,caption={A linear publication flow.},source={Conceptual diagram.},description={Three ordered steps connected from identity check through review to publication.}]
+  \begin{reportflow}
+    \step{id}{Identity check}
+    \step{review}{Human review}
+    \step{publish}{Publish}
+    \flowedge{id}{review}
+    \flowedge{review}{publish}
+  \end{reportflow}
+\end{diagram}
+
+\begin{diagram}[type=swimlane,caption={Ownership moves between four actors.},source={Conceptual diagram.},description={A four-lane workflow from user request to reviewer approval.}]
+  \begin{reportswimlane}[lanes={User,Frontend,Backend,Reviewer}]
+    \lanestep{request}{User}{Request}{1}
+    \lanestep{validate}{Frontend}{Validate}{2}
+    \lanestep{process}{Backend}{Process}{3}
+    \lanestep{approve}{Reviewer}{Approve}{4}
+    \handoff{request}{validate}
+    \handoff{validate}{process}
+    \handoff{process}{approve}
+  \end{reportswimlane}
+\end{diagram}
+
+\begin{diagram}[type=network,caption={Service dependencies.},source={Conceptual diagram.},description={Three automatically laid-out components connected by directed dependency edges.}]
+  \begin{reportnetwork}
+    \networknode{client}{Web client}
+    \networknode{api}{API gateway}
+    \networknode{store}{Data store}
+    \networkedge{client}{api}[request]
+    \networkedge{api}{store}[read/write]
+  \end{reportnetwork}
+\end{diagram}
+
+\begin{diagram}[type=causal-loop,caption={Capacity feedback loop.},source={Conceptual diagram.},description={Three factors arranged in a loop with signed causal edges.}]
+  \begin{causalloop}
+    \causalnode{demand}{Demand}
+    \causalnode{investment}{Investment}
+    \causalnode{capacity}{Capacity}
+    \causaledge{demand}{investment}{+}
+    \causaledge{investment}{capacity}{+}
+    \causaledge{capacity}{demand}{-}
+  \end{causalloop}
+\end{diagram}
+
+\section{Architecture and strategy}
+\begin{diagram}[type=architecture,caption={Three layers of a reporting platform.},source={Conceptual architecture.},description={Consumers, services, and data layers each contain two labelled components.}]
+  \begin{reportarchitecture}
+    \layer{Consumers}{Web client, Analyst workspace}
+    \layer{Services}{API gateway, Decision service}
+    \layer{Data}{Operational store, Analytics warehouse}
+  \end{reportarchitecture}
+\end{diagram}
+
+\begin{diagram}[type=roadmap,caption={Now, next, and later roadmap.},source={Illustrative delivery plan.},description={Three horizon cards covering foundation, integration, and scale.}]
+  \begin{reportroadmap}
+    \horizon{Now}{Foundation}{Data model, Governance}
+    \horizon{Next}{Integration}{APIs, Pilot}
+    \horizon{Later}{Scale}{Automation, Optimization}
+  \end{reportroadmap}
+\end{diagram}
+
+\begin{diagram}[type=roadmap,caption={Dated roadmap milestones.},source={Illustrative delivery plan.},description={Three ordered quarterly milestones placed on a timeline.}]
+  \begin{reportroadmap}[mode=dated]
+    \period{2026 Q4}
+    \period{2027 Q1}
+    \period{2027 Q2}
+    \milestone{2026 Q4}{Design}
+    \milestone{2027 Q1}{Pilot}
+    \milestone{2027 Q2}{Rollout}
+  \end{reportroadmap}
+\end{diagram}
+
+\begin{diagram}[type=pillars,caption={Strategic pillars supporting the objective.},source={Conceptual strategy.},description={One objective supports people, process, and technology pillars.}]
+  \begin{strategicpillars}[objective={Build scalable analytics capability}]
+    \pillar{People}{Skills and operating model}
+    \pillar{Process}{Standards and governance}
+    \pillar{Technology}{Platform and automation}
+  \end{strategicpillars}
+\end{diagram}
+
+\begin{diagram}[type=maturity,caption={Capability maturity progression.},source={Illustrative assessment model.},description={Four ordered maturity stages with Managed marked as current.}]
+  \begin{maturitymodel}[current=Managed]
+    \stage{Ad hoc}{Local and inconsistent}
+    \stage{Defined}{Common practices}
+    \stage{Managed}{Measured execution}
+    \stage{Optimized}{Continuous improvement}
+  \end{maturitymodel}
+\end{diagram}
+
+\begin{diagram}[type=continuum,caption={Operating-model continuum.},source={Conceptual positioning.},description={A continuum from centralized to decentralized with two labelled markers.}]
+  \begin{continuum}[left={Centralized},right={Decentralized}]
+    \marker{Company A}{.32}
+    \marker{Company B}{.73}
+  \end{continuum}
+\end{diagram}
+
+\begin{diagram}[type=capability-map,caption={Analytics capability map.},source={Conceptual capability model.},description={Two business domains contain named capability cards.}]
+  \begin{capabilitymap}
+    \domain{Data management}{Acquisition, Governance, Quality}
+    \domain{Analytics}{BI, Statistics, ML}
+  \end{capabilitymap}
+\end{diagram}
+
+\begin{diagram}[type=tree,caption={Revenue issue tree.},source={Conceptual diagnostic framework.},description={Revenue decomposes into volume and price, each with two child drivers.}]
+  \begin{reporttree}[kind=issue]
+    \root{Why did revenue fall?}
+    \branch{Volume}{Customers, Usage}
+    \branch{Price}{List price, Discounts}
+  \end{reporttree}
+\end{diagram}
+
+\section{Existing shape semantics through the new DSL}
+\begin{diagram}[type=stack,caption={Evidence increases in rigor.},source={Conceptual progression.},description={Three tiers narrow from credential to measured impact.}]
+  \begin{evidencestack}[tiers=3]
+    \evidencetier{Credential}
+    \evidencetier{Project}
+    \evidencetier[rk accent]{Measured impact}
+  \end{evidencestack}
+\end{diagram}
+
+\begin{diagram}[type=cycle,caption={A continuous feedback cycle.},source={Conceptual process.},description={Four stages are arranged in a closed cycle.}]
+  \begin{reportcycle}[stages=4]
+    \cyclestage{observe}{Observe}
+    \cyclestage{learn}{Learn}
+    \cyclestage{act}{Act}
+    \cyclestage{measure}{Measure}
+    \cycleedge{observe}{learn}
+    \cycleedge{learn}{act}
+    \cycleedge{act}{measure}
+    \cycleedge{measure}{observe}
+  \end{reportcycle}
+\end{diagram}
+
+\begin{diagram}[type=funnel,caption={A conceptual conversion funnel.},source={Illustrative conceptual shape.},description={Four progressively narrower conversion stages.}]
+  \begin{reportfunnel}
+    \funnelstage{1.00}{.72}{Applications}
+    \funnelstage{.72}{.42}{Screens}
+    \funnelstage{.42}{.20}{Interviews}
+    \funnelstage[rk accent]{.20}{.10}{Offers}
+  \end{reportfunnel}
+\end{diagram}
+
+\end{document}

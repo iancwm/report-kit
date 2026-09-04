@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# ReportKit acceptance check -- compiles the primitive acceptance test and
-# greps the log for known failure signatures. Intended to run from
+# ReportKit acceptance check -- compiles legacy and visual-grammar acceptance
+# tests and greps their logs for known failure signatures. Intended to run from
 # .githooks/pre-commit before a commit touching latex_templates/** or
 # python_scripts/**, and by hand before tagging a release.
 #
@@ -10,7 +10,10 @@
 set -uo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-TEST_TEX="latex_templates/examples/primitive_acceptance_test.tex"
+TEST_TEXES=(
+  "latex_templates/examples/primitive_acceptance_test.tex"
+  "latex_templates/examples/visual_grammar_acceptance_test.tex"
+)
 
 echo "== ReportKit acceptance check =="
 
@@ -45,13 +48,19 @@ else
 fi
 
 cp "$ROOT"/latex_templates/*.cls "$ROOT"/latex_templates/*.sty "$WORKDIR"/
-cp "$ROOT/$TEST_TEX" "$WORKDIR"/
-
-(
-  cd "$WORKDIR"
-  pdflatex -interaction=nonstopmode -halt-on-error primitive_acceptance_test.tex
-) > "$WORKDIR/compile.log" 2>&1
-status=$?
+status=0
+: > "$WORKDIR/compile.log"
+for test_tex in "${TEST_TEXES[@]}"; do
+  cp "$ROOT/$test_tex" "$WORKDIR"/
+  test_name="$(basename "$test_tex")"
+  if ! (
+    cd "$WORKDIR"
+    pdflatex -interaction=nonstopmode -halt-on-error "$test_name"
+    pdflatex -interaction=nonstopmode -halt-on-error "$test_name"
+  ) >> "$WORKDIR/compile.log" 2>&1; then
+    status=1
+  fi
+done
 
 echo "-- compile exit status: $status --"
 
@@ -77,5 +86,5 @@ if [ "$status" -ne 0 ] || [ "$hit" -ne 0 ]; then
   exit 1
 fi
 
-echo "PASS: primitive acceptance test compiled cleanly."
+echo "PASS: legacy and visual-grammar acceptance tests compiled cleanly."
 exit 0
