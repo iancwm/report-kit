@@ -47,9 +47,10 @@ overview.
   problem it's actually hitting.
 
 ## 6. scripts/ and .githooks/
-- `scripts/acceptance_check.sh` — compiles the primitive acceptance test and
-  checks for known failure signatures; run by hand, or automatically via
-  `.githooks/pre-commit` once enabled (see `CONTRIBUTING.md`). No hosted CI.
+- `scripts/acceptance_check.sh` — compiles the legacy and visual-grammar
+  acceptance tests and checks for known failure signatures; run by hand, or
+  automatically via `.githooks/pre-commit` once enabled (see
+  `CONTRIBUTING.md`). No hosted CI.
 
 ## Setup
 

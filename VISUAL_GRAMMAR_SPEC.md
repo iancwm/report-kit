@@ -1,6 +1,6 @@
 # ReportKit Visual Grammar Specification
 
-**Status:** Proposed
+**Status:** Implemented; native raster visual QA pending
 **Target release:** v1.4.0
 **Audience:** ReportKit maintainers and report-authoring agents
 
@@ -254,12 +254,11 @@ normalized `\marker` values.
    owner. It owns semantic styles, diagram metadata integration, errors, and
    backwards-compatible aliases.
 2. New implementation files are split by concern and loaded by the entry
-   point: `reportkit-spatial.sty`, `reportkit-process.sty`,
-   `reportkit-structure.sty`, and `reportkit-strategy.sty`.
-3. Optional TeX dependencies are only loaded for a primitive that needs them.
-   `pgfgantt` is only required for the dated Gantt extension; `forest` is
-   only required for deep trees. A missing optional package produces a clear
-   feature-specific error with the fallback recommendation.
+   point: `reportkit-spatial.sty`, `reportkit-process.sty`, and
+   `reportkit-structure.sty`.
+3. The v1.4.0 native primitives rely on the existing TikZ stack. The dated
+   roadmap and tree implementations use deterministic layouts, so they do not
+   add `pgfgantt` or `forest` as bootstrap dependencies.
 4. `reportkit_viz.py` owns quantitative figure constructors and uses the
    existing ReportKit palette, fonts, `save_figure`, and PDF/PNG export
    convention. Its public chart functions receive tabular values rather than
