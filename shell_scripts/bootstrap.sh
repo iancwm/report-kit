@@ -3,7 +3,7 @@
 #
 # Run this once at the start of any ReportKit task, before writing or
 # compiling anything. It replaces the several separate steps in
-# CLAUDE_EXECUTION.md sections 1-3 with one idempotent command.
+# references/font-setup.md and references/troubleshooting.md with one idempotent command.
 #
 # Usage:
 #   bash bootstrap.sh [project_dir] [work_dir]
@@ -23,14 +23,14 @@
 #   3. Falls back to apt-get only if no bundle is present, and prints
 #      guidance for the multi-call polling pattern that fallback needs
 #      (a single bash_tool call's timeout does not equal process death;
-#      see CLAUDE_EXECUTION.md section 2.0 for what was actually observed).
+#      see references/font-setup.md for what was actually observed).
 #   4. Runs the environment doctor and prints its verdict plainly, so nothing
 #      about the build mode is assumed rather than confirmed.
 set -uo pipefail
 
 PROJECT_DIR="${1:-/mnt/project}"
 WORK_DIR="${2:-/home/claude/report}"
-BUNDLE="$PROJECT_DIR/reportkit-libertinus-fonts.tar.gz"
+BUNDLE="$PROJECT_DIR/font_data/reportkit-libertinus-fonts.tar.gz"
 TEXMFLOCAL="$(kpsewhich -var-value TEXMFLOCAL 2>/dev/null || echo /usr/local/share/texmf)"
 
 echo "== ReportKit bootstrap =="
@@ -40,11 +40,18 @@ echo
 
 echo "-- [1/4] core files --"
 mkdir -p "$WORK_DIR"
-REQUIRED=(reportkit.cls reportkit-boxes.sty reportkit-code.sty reportkit-diagrams.sty reportkit_doctor.py reportkit_viz.py)
+LATEX_REQUIRED=(reportkit.cls reportkit-boxes.sty reportkit-code.sty reportkit-diagrams.sty)
+PYTHON_REQUIRED=(reportkit_doctor.py reportkit_viz.py)
 missing=0
-for f in "${REQUIRED[@]}"; do
-  if [ ! -f "$PROJECT_DIR/$f" ]; then
-    echo "  MISSING: $PROJECT_DIR/$f" >&2
+for f in "${LATEX_REQUIRED[@]}"; do
+  if [ ! -f "$PROJECT_DIR/latex_templates/$f" ]; then
+    echo "  MISSING: $PROJECT_DIR/latex_templates/$f" >&2
+    missing=1
+  fi
+done
+for f in "${PYTHON_REQUIRED[@]}"; do
+  if [ ! -f "$PROJECT_DIR/python_scripts/$f" ]; then
+    echo "  MISSING: $PROJECT_DIR/python_scripts/$f" >&2
     missing=1
   fi
 done
@@ -53,8 +60,9 @@ if [ "$missing" = "1" ]; then
   echo "  This is a real gap, not something to route around silently." >&2
   exit 1
 fi
-cp "${REQUIRED[@]/#/$PROJECT_DIR/}" "$WORK_DIR/"
-echo "  copied ${#REQUIRED[@]} core files to $WORK_DIR"
+cp "${LATEX_REQUIRED[@]/#/$PROJECT_DIR/latex_templates/}" "$WORK_DIR/"
+cp "${PYTHON_REQUIRED[@]/#/$PROJECT_DIR/python_scripts/}" "$WORK_DIR/"
+echo "  copied $((${#LATEX_REQUIRED[@]} + ${#PYTHON_REQUIRED[@]})) core files to $WORK_DIR"
 echo
 
 echo "-- [2/4] fonts --"
@@ -77,7 +85,7 @@ else
   echo "  not 'nohup ... &' -- backgrounded processes do not survive across separate" >&2
   echo "  bash_tool calls here. If it runs long, it is safe to let the call return and" >&2
   echo "  poll for completion from a later call with a wait loop; do not assume it died." >&2
-  echo "  Consider harvesting a bundle afterward (CLAUDE_EXECUTION.md section 2.0) so" >&2
+  echo "  Consider harvesting a bundle afterward (references/font-setup.md) so" >&2
   echo "  future sessions skip this path -- offer that to the person, don't do it silently." >&2
 fi
 echo
