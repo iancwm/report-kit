@@ -216,3 +216,8 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Superpowers process docs (brainstorming specs, plans) — planning
+# scaffolding, not part of the shipped skill. Skill-facing reference docs
+# live in tracked references/, not here.
+docs/
