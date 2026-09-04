@@ -1,7 +1,7 @@
 # ReportKit Visual Grammar Specification
 
-**Status:** Proposed  
-**Target release:** v1.4.0  
+**Status:** Proposed
+**Target release:** v1.4.0
 **Audience:** ReportKit maintainers and report-authoring agents
 
 ## 1. Purpose
