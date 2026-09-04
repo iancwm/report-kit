@@ -23,6 +23,27 @@ fi
 WORKDIR="$(mktemp -d)"
 trap 'rm -rf "$WORKDIR"' EXIT
 
+hit=0
+
+# python_scripts/** also triggers this check via the pre-commit hook, so
+# make sure the Python files actually import cleanly.
+if command -v python3 >/dev/null 2>&1; then
+  if ! python3 -c "
+import sys
+sys.path.insert(0, '$ROOT/python_scripts')
+import reportkit_viz
+import reportkit_doctor
+" > "$WORKDIR/python-check.log" 2>&1; then
+    echo "FAIL: python_scripts/ failed to import cleanly:" >&2
+    cat "$WORKDIR/python-check.log" >&2
+    hit=1
+  else
+    echo "-- python_scripts/ import check: OK --"
+  fi
+else
+  echo "WARN: python3 not found -- skipping python_scripts/ import check (not blocking)." >&2
+fi
+
 cp "$ROOT"/latex_templates/*.cls "$ROOT"/latex_templates/*.sty "$WORKDIR"/
 cp "$ROOT/$TEST_TEX" "$WORKDIR"/
 
@@ -43,7 +64,6 @@ SIGNATURES=(
   "Emergency stop"
 )
 
-hit=0
 for sig in "${SIGNATURES[@]}"; do
   if grep -q "$sig" "$WORKDIR/compile.log"; then
     echo "FAIL: log matched known failure signature: \"$sig\"" >&2

@@ -6,6 +6,12 @@ version: 1.2.1
 
 # ReportKit
 
+> The `version` field in this file's frontmatter tracks the LaTeX
+> document class version (`reportkit.cls`'s `\ProvidesClass` version), not
+> the skill-packaging release — that's versioned separately via git tags
+> (see `CHANGELOG.md`). `version: 1.2.1` here alongside a `v1.3.0` git tag
+> is expected, not a mismatch.
+
 ReportKit is a LaTeX document class (`reportkit.cls`) plus supporting style
 files, a matplotlib chart theme, and a font bundle, for producing
 professionally designed technical reports as PDFs — narrative-first
@@ -23,12 +29,19 @@ throwaway output or plain prose.
 ```bash
 git clone https://github.com/iancwm/report-kit.git <workdir>
 # Or pin to a specific release (see CHANGELOG.md for tags):
-#   git clone --branch v1.2.1 https://github.com/iancwm/report-kit.git <workdir>
+#   git clone --branch v1.3.0 https://github.com/iancwm/report-kit.git <workdir>
 
 bash <workdir>/shell_scripts/bootstrap.sh <workdir> <session-workdir>
 cd <session-workdir>
 python3 reportkit_doctor.py   # confirm MODE: FULL BUILD before trusting a compile
 ```
+
+`<session-workdir>` holds only the flat core files (`reportkit.cls`,
+`reportkit-boxes.sty`, `reportkit-code.sty`, `reportkit-diagrams.sty`,
+`reportkit_doctor.py`, `reportkit_viz.py`) plus `figures/` — enough to
+compile a report — while examples (`latex_templates/examples/`), the
+report template (`latex_templates/REPORT_TEMPLATE.tex`), and reference
+docs (`references/*.md`) remain only in `<workdir>`, the cloned repo.
 
 `main` always has the latest tooling; a release tag is the reproducible
 choice when stability matters more than newest features. See
@@ -55,7 +68,7 @@ choice when stability matters more than newest features. See
   diagram.
 - **Worked examples** — `latex_templates/examples/career_guide_en/`
   (7-page pdflatex) and `career_guide_vi/` (4-page lualatex, Vietnamese
-  content — see "Unicode content" below).
+  content — see the Unicode content section of `references/font-setup.md`).
 
 ## When something goes wrong
 
