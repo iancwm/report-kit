@@ -221,3 +221,7 @@ __marimo__/
 # scaffolding, not part of the shipped skill. Skill-facing reference docs
 # live in tracked references/, not here.
 docs/
+
+# Subagent-driven-development scratch workspace (ledgers, briefs, review
+# packages) — per-plan, regenerated, not part of the shipped skill.
+.superpowers/
