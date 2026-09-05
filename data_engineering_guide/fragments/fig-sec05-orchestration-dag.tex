@@ -1,0 +1,25 @@
+\begin{diagram}[
+  type=flow,
+  label={fig:sec05-orchestration-dag},
+  caption={Each task in this DAG depends on the one before it completing successfully; Validate is the task most likely to fail first, which blocks Transform and Publish until the data is fixed or quarantined.},
+  source={Conceptual diagram.},
+  description={A top-down flow of five dependent tasks in reading order: Extract, Load, Validate, Transform, and Publish. Extract and Load must finish before Validate runs; Validate must pass before Transform runs; Transform must finish before Publish runs. A failed Validate task blocks Transform and Publish rather than letting them run on unchecked data.}
+]
+% reportkit-process.sty's \step command does not currently honor
+% direction=vertical (etoolbox's \ifstrequal detokenizes its literal
+% argument instead of expanding \rk@flowdirection, so the comparison is
+% always false and every reportflow renders horizontally -- confirmed
+% during Task 5). Placing these directly with \RKNode/\flowedge instead
+% of \begin{reportflow}[direction=vertical]; only 5 nodes, so the sty's
+% own default 3.05cm spacing is used and needs no compression. See Task
+% 5's report for the full diagnosis.
+\RKNode{extract}{0}{0}{Extract}
+\RKNode{load}{0}{-3.05}{Load}
+\RKNode{validate}{0}{-6.10}{Validate}
+\RKNode{transform}{0}{-9.15}{Transform}
+\RKNode{publish}{0}{-12.20}{Publish}
+\flowedge{extract}{load}
+\flowedge{load}{validate}
+\flowedge{validate}{transform}
+\flowedge{transform}{publish}
+\end{diagram}
