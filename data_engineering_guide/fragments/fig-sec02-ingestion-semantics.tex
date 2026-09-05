@@ -1,0 +1,33 @@
+\begin{diagram}[
+  type=flow,
+  label={fig:sec02-ingestion-semantics},
+  caption={A delivery path from source to an idempotent sink; a duplicate or unacknowledged event detours through retry and deduplication before landing in the same sink.},
+  source={Conceptual diagram.},
+  description={A top-down flow of eight stages in reading order: Source, Extractor or Producer, Broker or Buffer, Raw Landing, Checkpoint, Retry, Deduplication, and Idempotent Sink. The checkpoint, retry, and deduplication stages exist because at-least-once delivery can create duplicate or replayed events; the flow reaches the same idempotent sink whether or not that detour is taken.},
+  minspace={0.62\textheight}
+]
+% reportkit-process.sty's \step command does not currently honor
+% direction=vertical (etoolbox's \ifstrequal detokenizes its literal
+% argument instead of expanding \rk@flowdirection, so the comparison is
+% always false and every reportflow renders horizontally -- confirmed
+% during Task 5). Eight horizontally-spaced steps overflow the text
+% width, so this diagram places the same eight stages directly with
+% \RKNode/\flowedge in a vertical column instead of
+% \begin{reportflow}[direction=vertical]. See Task 5's report for the
+% full diagnosis.
+\RKNode{source}{0}{0}{Source}
+\RKNode{extractor}{0}{-1.85}{Extractor or Producer}
+\RKNode{broker}{0}{-3.70}{Broker or Buffer}
+\RKNode{landing}{0}{-5.55}{Raw Landing}
+\RKNode{checkpoint}{0}{-7.40}{Checkpoint}
+\RKNode{retry}{0}{-9.25}{Retry}
+\RKNode{dedup}{0}{-11.10}{Deduplication}
+\RKNode{sink}{0}{-12.95}{Idempotent Sink}
+\flowedge{source}{extractor}
+\flowedge{extractor}{broker}
+\flowedge{broker}{landing}
+\flowedge{landing}{checkpoint}
+\flowedge{checkpoint}{retry}
+\flowedge{retry}{dedup}
+\flowedge{dedup}{sink}
+\end{diagram}
