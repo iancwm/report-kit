@@ -40,6 +40,19 @@ cat > "$isolated_dir/harness.tex" <<'EOF'
 % supplied here for any manuscript containing an ordinary tight list.
 \providecommand{\tightlist}{%
   \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+% Pandoc's own default LaTeX template loads this exact block whenever the
+% document contains a Markdown table (Pandoc renders tables as longtable);
+% render-visuals.sh emits pandoc's body only (no --standalone template),
+% and reportkit.cls loads booktabs but not longtable/array/calc, so this
+% must be supplied here for any manuscript containing a table.
+\usepackage{longtable,booktabs,array}
+\usepackage{calc} % for calculating minipage widths
+\usepackage{etoolbox}
+\makeatletter
+\patchcmd\longtable{\par}{\if@noskipsec\mbox{}\fi\par}{}{}
+\makeatother
+\IfFileExists{footnotehyper.sty}{\usepackage{footnotehyper}}{\usepackage{footnote}}
+\makesavenoteenv{longtable}
 \begin{document}
 \maketitle
 \input{body.tex}
