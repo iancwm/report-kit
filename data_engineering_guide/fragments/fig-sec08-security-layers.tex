@@ -1,0 +1,15 @@
+\begin{diagram}[
+  type=architecture,
+  label={fig:sec08-security-layers},
+  caption={A conceptual layering of security controls, not a prescriptive reference architecture; a given tool can implement controls in more than one layer.},
+  source={Conceptual diagram.},
+  description={Five stacked layers, top to bottom: Identity (Identity, Secrets); Network (Network); Data (Storage, Classification, Retention, Audit); Application or workload (Processing); Consumers (Consumer). Each layer is a category of control, not a specific product.}
+]
+\begin{reportarchitecture}
+  \layer{Identity}{Identity, Secrets}
+  \layer{Network}{Network}
+  \layer{Data}{Storage, Classification, Retention, Audit}
+  \layer{Application or workload}{Processing}
+  \layer{Consumers}{Consumer}
+\end{reportarchitecture}
+\end{diagram}
