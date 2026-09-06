@@ -1,0 +1,29 @@
+\begin{diagram}[
+  type=network,
+  label={fig:sec07-lineage},
+  caption={Lineage traces responsibility from producer to consumer; the catalog documents the dataset for discovery and governance rather than sitting in the data's physical path, but a field change at the producer or dataset can still silently break any consumer relying on it.},
+  source={Conceptual diagram.},
+  description={A four-node reading-order chain: Producer, Dataset, Catalog or Steward, and Consumer. Consumer represents any of a dashboard, a feature or model, or an application -- the three are named in the surrounding text as examples of that final node. Catalog or Steward documents and governs the dataset for discovery; it does not receive or forward data itself. The chain shows who is upstream of whom and who is accountable for a change, not the dataset's physical transport path.}
+]
+% The reportnetwork grid layout spaces node centers 3.15cm apart, but the
+% shared rk node style's default text width=28mm plus its inner xsep
+% renders each box at ~31.5-31.6mm wide -- equal to or a hair over that
+% 3.15cm step. Adjacent boxes end up touching/overlapping by a fraction
+% of a millimeter, which breaks pgf's automatic node-border edge-clipping
+% math and reverses the arrowhead direction (confirmed by isolated
+% minimal-tex testing during Task 11: plain rectangle nodes at this exact
+% spacing point the correct way; text-width rk nodes at this spacing
+% reverse; adding a few mm of gap between boxes fixes it either way).
+% text width=24mm here shrinks each box just enough to leave a ~4mm gap,
+% which restores correct left-to-right arrow direction without changing
+% node count, labels, or edges from the brief.
+\begin{reportnetwork}
+  \networknode[text width=24mm]{producer}{Producer}
+  \networknode[text width=24mm]{dataset}{Dataset}
+  \networknode[text width=24mm]{catalog}{Catalog or Steward}
+  \networknode[text width=24mm]{consumer}{Consumer}
+  \networkedge[flow]{producer}{dataset}
+  \networkedge[flow]{dataset}{catalog}
+  \networkedge[flow]{catalog}{consumer}
+\end{reportnetwork}
+\end{diagram}

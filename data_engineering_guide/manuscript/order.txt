@@ -1,0 +1,12 @@
+00-frontmatter.md
+01-introduction.md
+02-ingestion.md
+03-storage.md
+04-transformation-processing.md
+05-orchestration.md
+06-quality-reliability.md
+07-metadata-governance-serving.md
+08-practitioner-topics.md
+09-learning-path.md
+10-glossary.md
+11-references.md

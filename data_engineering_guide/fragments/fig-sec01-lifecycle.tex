@@ -1,0 +1,26 @@
+\begin{diagram}[
+  type=flow,
+  label={fig:sec01-lifecycle},
+  caption={The data lifecycle from source systems to consumers; quality, metadata, security, and observability apply across every stage.},
+  source={Conceptual diagram.},
+  description={A top-down flow of eight stages in reading order: Sources, Ingestion, Storage, Processing and Transformation, Orchestration, Quality and Reliability, Metadata and Governance, and Serving. Observability, security, and cost are not drawn as separate nodes because they apply across every stage; the surrounding text states this explicitly.},
+  minspace={0.62\textheight}
+]
+% Eight stages are too dense for the default horizontal spacing, so this
+% diagram places them directly with \RKNode/\flowedge in a vertical column.
+\RKNode{sources}{0}{0}{Sources}
+\RKNode{ingestion}{0}{-1.85}{Ingestion}
+\RKNode{storage}{0}{-3.70}{Storage}
+\RKNode{processing}{0}{-5.55}{Processing and Transformation}
+\RKNode{orchestration}{0}{-7.40}{Orchestration}
+\RKNode{quality}{0}{-9.25}{Quality and Reliability}
+\RKNode{governance}{0}{-11.10}{Metadata and Governance}
+\RKNode{serving}{0}{-12.95}{Serving}
+\flowedge{sources}{ingestion}
+\flowedge{ingestion}{storage}
+\flowedge{storage}{processing}
+\flowedge{processing}{orchestration}
+\flowedge{orchestration}{quality}
+\flowedge{quality}{governance}
+\flowedge{governance}{serving}
+\end{diagram}
