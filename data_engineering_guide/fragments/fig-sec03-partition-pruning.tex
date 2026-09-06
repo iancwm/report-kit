@@ -6,7 +6,7 @@
   description={A query predicate for one event date branches into a matching partition whose files are read and other partitions whose files are skipped. The figure explains the read decision, not a specific storage engine.}
 ]
 \begin{reporttree}[kind=hierarchy]
-  \root{event_date = target}
+  \root{\rkcode{event_date} = target}
   \branch{Matching partition}{Files read}
   \branch{Other partitions}{Files skipped}
 \end{reporttree}
