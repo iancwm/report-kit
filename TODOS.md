@@ -1,0 +1,243 @@
+# ReportKit — Outstanding Work
+
+**Compiled:** 2026-09-06
+**Method:** Every item below was checked against the working tree, the branch
+graph, or a compiled probe — not taken from a spec's own status line. Where a
+spec and reality disagreed, reality won and the spec is cited as wrong.
+
+**Source documents (all under `docs/`):**
+
+| Document | Status | Keep? |
+|---|---|---|
+| `data-engineering-guide-publication-review.md` | Evidence + release gate for the 56-page build | Keep — release gate |
+| `superpowers/specs/2026-09-06-reportkit-tooling-hardening-design.md` | Approved, **0% implemented** | Keep — active |
+| `superpowers/specs/2026-09-06-data-engineering-guide-content-design.md` | Approved, **~60% implemented** | Keep — active |
+| `superpowers/plans/2026-09-06-reportkit-visual-grammar.md` | Written, **unexecuted** | Keep — active |
+| `ReportKit vNext — AI Publication System Minimal Implementation Spec.md` | Roadmap, unimplemented | Keep — P3 |
+| `licensing.md` | Source for tooling spec §E, unimplemented | Keep — P1 |
+
+---
+
+## P0 — Nothing can ship until these are resolved
+
+### P0-1. No branch can build the guide
+
+The manuscript and the build scripts live on different branches, and neither
+branch has both:
+
+| Branch | manuscript | fragments | scripts | vs `main` |
+|---|---|---|---|---|
+| `main` | 0 | 0 | 0 | — |
+| `tooling` | 0 | 0 | 5 | 0 ahead, **17 behind** |
+| `data-engineering-guide` | 0 | 0 | 12 | 0 ahead, 2 behind |
+| `data-engineering-guide-content` | 13 | 14 | 0 | 3 ahead, 0 behind |
+
+`data-engineering-guide-content` has the content and no builder.
+`data-engineering-guide` has the builder and no content. **The Data
+Engineering Guide currently cannot be built from any single checkout.**
+
+Decide the integration model and write it down: either a documented merge
+order that produces a buildable tree, or a build script that reads the
+manuscript from a sibling checkout. Until then every downstream item that
+needs a rendered PDF is blocked.
+
+### P0-2. `tooling` is 17 commits behind `main` and holds a stale script set
+
+`docs/superpowers/plans/2026-09-06-reportkit-visual-grammar.md` states
+"Branch: `tooling`, off `main`". That is **not true today** — `tooling` is
+0 ahead / 17 behind, and carries 5 script files against
+`data-engineering-guide`'s 12.
+
+Re-cut `tooling` from `main` before executing that plan, or the plan's line
+references into `latex_templates/` will not match the files it edits. Fix the
+plan's Global Constraints block at the same time.
+
+### P0-3. Figure alt text is discarded at build time
+
+`latex_templates/reportkit-diagrams.sty:54,:64` store the `diagram`
+environment's `description=` key and **never read it**. Verified: a probe
+figure's description appeared in no page text and in no object stream, while
+its caption and source rendered normally.
+
+All **14 of 14** tracked fragments set `description=`. The content spec's §D5
+requires it. `publication-guidelines.md:377-390` mandates it. None of it
+reaches a reader.
+
+→ Tooling spec **B7**; plan **Task 4**.
+Note the trade-off recorded in B7: an `/ActualText` span *replaces* the text
+it wraps, so diagram labels stop being extractable. Only tagging (B8) gives
+both.
+
+`type=` has the identical defect at `:50,:60` — stored, read by nothing.
+Resolve it or document it; a stored-and-unread key is a trap.
+
+### P0-4. `reportnetwork` draws fused nodes and reversed arrows, silently
+
+`rk node` renders **89.370pt** wide (`text width=28mm` + `inner xsep=5pt` × 2);
+the grid step at `reportkit-process.sty:117` is 3.15cm = **89.291pt**. Nodes
+are 0.079pt wider than their spacing, so a four-node chain renders as one
+fused bar with every arrowhead pointing backwards — declared `n1→n2`, drawn
+`n1←n2`.
+
+**The build exits 0 with an empty warning list.** `scripts/acceptance_check.sh`
+greps TeX logs and is structurally incapable of catching this.
+
+→ Tooling spec **C1-2**; plan **Task 2**.
+
+---
+
+## P1 — Required before public distribution
+
+### Tooling spec (`2026-09-06-reportkit-tooling-hardening-design.md`) — none started
+
+- **A. Build correctness gate** — strict log gate (`check-build-log.py`),
+  commit hook covering guide paths, one canonical full-document build. The
+  retained logs from the reviewed build contain four overfull boxes.
+- **B1.** `reportkit-pandoc.sty` — de-duplicate the ~90-line Pandoc preamble
+  currently copied verbatim in `build-section.sh:37-112` and `combine.sh:32-96`.
+- **B2.** `reportkit-longform.sty` — contents page, front matter, page break
+  before every H1, running heads that match the page. Covers review P0-01,
+  P0-02, P1-05, P2-01, P2-03 at the class level.
+- **B3.** `reportkit.cls` PDF metadata + document language.
+- **B5.** Release identity out of `combine.sh` (currently hardcodes
+  `\setreportkitversion{draft}` at `combine.sh:26-31`).
+- **B6.** `width=`/`scale=` key on the `diagram` environment → plan **Task 3**.
+- **C1-1.** *Already fixed* by `1c00be3` — needs only a regression test, not a
+  fix. The spec was written against pre-fix code. → plan **Task 1**.
+- **C2.** Three new primitives: `reportstate`, `reportcompare`,
+  `reporttimeline` → plan **Tasks 5–7**.
+- **D1.** Declared, locked toolchain. A clean clone currently cannot build:
+  `build-section.sh:113-114` needs a venv that nothing creates and no
+  dependency file declares.
+- **D2.** `validate-guide.py` — static validation before TeX runs.
+- **D3.** Atomic page rendering (`render_pdf_pages.py:25` leaves stale PNGs).
+- **D4.** Run manifest (`build-report.json`).
+- **D5.** Pandoc feature fixtures.
+- **D6.** Visual QA as a result, **including the bounding-box check** the
+  review's P0-03 requires. Use **PyMuPDF only** — poppler (`pdfinfo`,
+  `pdffonts`, `pdftoppm`) and `pypdf`/`pdfplumber` are **not installed** on
+  current dev machines, so the review's own evidence method is not
+  reproducible today.
+- **E. Licensing** — `metadata/licenses.yml`, `CONTENT-LICENSE.md`,
+  `THIRD-PARTY-NOTICES.md`. Nothing exists yet.
+- **B8. PDF accessibility tagging spike** — time-boxed, with a written go/no-go
+  and evidence committed. Unblocked once C2 and B6 land. Risky: tagging needs
+  `\DocumentMetadata{testphase=...}` on LuaLaTeX, and every figure here is a
+  tikzpicture. Do not put the release behind it.
+
+### Content spec (`2026-09-06-data-engineering-guide-content-design.md`)
+
+Already implemented on `data-engineering-guide-content`: §A front matter, §B
+overflowing paths, §C tables, §D2 source statements, §D3 (5 of 8 figures),
+§E1 references.
+
+Still open — **all blocked on the tooling spec**:
+
+- **§D1.** Recompose the nine narrow vertical figures. Blocked on B6 `width=`.
+- **§D3.** The three remaining Tier 1 figures — join cardinality, event vs
+  processing time, task recovery. Blocked on C2.
+- **§D4.** Two Tier 2 figures (reconciliation flow, serving surfaces) to reach
+  **19 figures**, the top of the review's 16–19 range. Blocked on B6.
+- **§E2.** Glossary/references page separation. Blocked on B2.
+- **§F.** Reading-load polish — key-takeaway boxes in recovered whitespace.
+
+### Content follow-ups once tooling lands
+
+- Retire the `\RKNode` hand-placement workaround in
+  `fragments/fig-sec01-lifecycle.tex` — C1-1 has been fixed since `1c00be3`.
+- Retire the per-node `text width=24mm` workaround in
+  `fragments/fig-sec07-lineage.tex` — fixed by P0-4.
+
+### Distribution package
+
+- **Cover asset.** The review asserts an A4 cover exists in the workspace;
+  **it does not exist in any branch of this repo.** Either produce one or drop
+  the claim. Review P0-04 / P2-03.
+
+---
+
+## P2 — Polish after correctness and structure are stable
+
+- **B4.** Contrast audit — the `Muted` header/footer colour
+  (`reportkit.cls:44`) and the syntax palette against contrast requirements
+  and a grayscale proof. Review P2-02.
+- **P2-01.** Page rhythm — rebalance after the structural page breaks land.
+- **P1-06.** Keep short code listings together (`samepage`/minipage), mark
+  unavoidable splits.
+- **F1/F2.** Strict modes and measure-before-optimising.
+
+---
+
+## P3 — Roadmap
+
+`ReportKit vNext — AI Publication System Minimal Implementation Spec.md`
+proposes a Typer CLI, `publication.yaml`, structured diagnostics, chapter
+builds, PDF inspection, build manifest, link/visualization registries, and a
+publication skill.
+
+**Substantial overlap with the tooling spec** — vNext §7–8 (PDF inspection,
+page rendering) is the tooling spec's D6; vNext §9 (build manifest) is D4;
+vNext §12 (visualization registry) is C2 plus `SKILL.md`'s primitive table.
+Do not implement twice. Reconcile the two documents before starting Phase 1,
+or fold vNext Phase 1–2 into the tooling spec.
+
+---
+
+## Housekeeping
+
+### Stale documents — deleted 2026-09-06
+
+Verified implemented and superseded by the working tree, then removed. Four
+were untracked (and therefore unrecoverable); the fifth was tracked and is
+recoverable from git history.
+
+| Document | Evidence it is done |
+|---|---|
+| `superpowers/specs/2026-09-04-reportkit-as-claude-skill-design.md` | `SKILL.md`, `shell_scripts/bootstrap.sh`, `scripts/acceptance_check.sh`, `references/`, `.githooks/pre-commit` all present |
+| `superpowers/plans/2026-09-04-reportkit-as-claude-skill.md` | Paired plan for the above (32 unchecked boxes, but every deliverable exists) |
+| `superpowers/specs/2026-09-05-data-engineering-guide-visuals-design.md` | All nine section anchor figures present in `data_engineering_guide/fragments/` |
+| `superpowers/plans/2026-09-05-data-engineering-guide-visuals.md` | Paired plan for the above (66 unchecked boxes, all nine figures exist) |
+| `2026-09-06-reportkit-build-regression-remediation-spec.md` | `\rkcode` at `reportkit-diagrams.sty:45`; failure-path directory copy in `guide-build.py`. **Was tracked in git** — recoverable from history |
+
+`docs/` now contains exactly the six documents listed in the source table at
+the top of this file. Note that the tracked spec was removed on `main` only;
+`data-engineering-guide-content` still carries it until that branch merges.
+
+Note both older plans have **zero ticked checkboxes** despite their
+deliverables existing. Plans in this repo are not being updated as they are
+executed, which is why staleness had to be established from the working tree.
+Worth fixing as a habit, or the same audit repeats next time.
+
+### `docs/tooling-improvement-spec-draft.md` is gone and unrecoverable
+
+Present at the start of the 2026-09-06 session (14,404 bytes, dated
+2026-09-05), absent now. It is in **no git object on any branch** and **no
+copy exists anywhere on the filesystem** — `docs/` is gitignored
+(`.gitignore:223`), so an untracked deletion leaves nothing behind.
+
+This matters because the tooling spec cites it as the source for its findings
+1–11, which is most of sections A, D, and F. Those sections now have no
+traceable origin document. Either reconstruct it from the tooling spec's own
+summaries or accept the spec as the new source of record and stop citing it.
+
+### `docs/` is gitignored by design
+
+`.gitignore:223` excludes `docs/` as "Superpowers process docs (brainstorming
+specs, plans) — planning scaffolding, not part of the shipped skill." One file
+was force-added as an exception. Consequences to keep in mind:
+
+- Specs and plans are **not backed up by git**. A deletion is permanent.
+- This `TODOS.md` is at repo root and therefore **is** tracked.
+
+Consider whether the specs that drive active work should stay unversioned.
+
+### Toolchain gaps on the current dev machine
+
+- `pdfinfo`, `pdffonts`, `pdftoppm` (poppler-utils): **not installed**
+- `pypdf`, `pdfplumber`, PyMuPDF: **not installed** system-wide
+- `accsupp.sty`: **not installed**, and `tlmgr install` fails — this checkout
+  is TinyTeX on TL2025 against a TL2026 remote. Plan Task 4 has a hard stop
+  for this.
+- Libertinus fonts were not installed at session start; they were installed to
+  `TEXMFHOME` (`~/.TinyTeX/texmf-local`) from
+  `font_data/reportkit-libertinus-fonts.tar.gz` to run the probes.
