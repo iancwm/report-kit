@@ -12,6 +12,12 @@ tags on this repository, not a published package registry.
   artifact reports, and a pinned PyMuPDF renderer environment.
 - The publication sources remain on the dedicated `data-engineering-guide`
   branch; `main` retains the reusable build system and tooling tests.
+- `\rkcode{...}` for rendering identifier-like technical tokens, such as
+  `event_date`, safely in direct semantic-diagram labels.
+
+### Fixed
+- Failed guide builds now report the retained stable log path instead of a
+  deleted staging-directory path.
 
 ### Changed
 - The ReportKit acceptance fixture now exercises vertical `reportflow`

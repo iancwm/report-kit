@@ -212,6 +212,8 @@ Architecture layers show responsibility or technical separation; components with
 
 `maturitymodel` requires four to six ordered stages; `current` accepts an exact stage label or its one-based number. A continuum needs named endpoints and normalized marker positions. Tree node labels must be unique; `\branch[parent]{label}{children}` attaches below a previously declared label. Split a deep or dense tree rather than relying on its compact layout.
 
+Use `\rkcode{...}` for literal technical tokens inside a direct label argument, especially an identifier with an underscore, such as `\rkcode{event_date}`. It is safe when a semantic primitive stores label text for later rendering. In a tree, it is display-only and cannot be used as a `\branch[parent]{...}` reference or in the comma-delimited child list; use a direct `\root{...}` or `\branch{...}{children}` label instead. `\rkcode` is deliberately limited to short identifier-like tokens, not general verbatim text.
+
 ```latex
 \begin{maturitymodel}[current=Managed]
   \stage{Ad hoc}{Local and inconsistent}

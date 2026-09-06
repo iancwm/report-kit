@@ -38,6 +38,12 @@
   rk edge label/.style={fill=white,inner sep=1.5pt,text=Muted,font=\sffamily\fontsize{6.8}{8}\selectfont}
 }
 
+% Use this for literal technical tokens inside semantic node labels. The macro
+% is deliberately robust because structure primitives can store a label for
+% deferred rendering. It is not a general verbatim environment: keep commas
+% outside it when they delimit a primitive's item list.
+\DeclareRobustCommand{\rkcode}[1]{\texttt{\detokenize{#1}}}
+
 % -----------------------------------------------------------------------------
 % Diagram wrapper metadata and placement
 % -----------------------------------------------------------------------------

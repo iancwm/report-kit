@@ -36,6 +36,10 @@ RENDER_VISUALS = SCRIPT_DIR / "render-visuals.sh"
 class BuildFailure(RuntimeError):
     """A build failed after the report context was initialized."""
 
+    def __init__(self, message: str, *, artifact_name: str | None = None) -> None:
+        super().__init__(message)
+        self.artifact_name = artifact_name
+
 
 def utc_now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
@@ -254,6 +258,20 @@ def replace_directory(temp_output: Path, final_output: Path) -> None:
     os.replace(temp_output, final_output)
 
 
+def retain_failed_output(temp_output: Path, output_dir: Path) -> None:
+    """Copy failed staging artifacts to the stable location named in reports."""
+    if output_dir.exists():
+        shutil.rmtree(output_dir)
+    shutil.copytree(temp_output, output_dir)
+
+
+def public_failure_message(error: Exception, output_dir: Path) -> str:
+    """Describe a failure using the retained output path, never staging paths."""
+    artifact_name = error.artifact_name if isinstance(error, BuildFailure) else None
+    artifact = output_dir / (artifact_name or "build-report.json")
+    return f"{error}; see {artifact}"
+
+
 def render_pages(python: Path, pdf: Path, pages: Path, report: dict, output: Path) -> dict:
     manifest = output / "page-manifest.json"
     command = [str(python), str(RENDERER), str(pdf), str(pages), "--dpi", "150", "--manifest", str(manifest)]
@@ -308,11 +326,11 @@ def build_one(root: Path, *, mode: str, manuscripts: list[Path], labels: list[st
         report["commands"].append(f"pdflatex -file-line-error -interaction=nonstopmode -halt-on-error {main_tex.name} (pass 1)")
         first_log = temp_output / "pass-1.log"
         if run_logged(["pdflatex", "-file-line-error", "-interaction=nonstopmode", "-halt-on-error", main_tex.name], cwd=temp_output, log_path=first_log):
-            raise BuildFailure(f"pdflatex pass 1 failed; see {first_log}")
+            raise BuildFailure("pdflatex pass 1 failed", artifact_name=first_log.name)
         report["commands"].append(f"pdflatex -file-line-error -interaction=nonstopmode -halt-on-error {main_tex.name} (pass 2)")
         second_log = temp_output / "pass-2.log"
         if run_logged(["pdflatex", "-file-line-error", "-interaction=nonstopmode", "-halt-on-error", main_tex.name], cwd=temp_output, log_path=second_log):
-            raise BuildFailure(f"pdflatex pass 2 failed; see {second_log}")
+            raise BuildFailure("pdflatex pass 2 failed", artifact_name=second_log.name)
 
         gate_json = temp_output / "log-gate.json"
         gate_command = [sys.executable, str(LOG_GATE), str(second_log), "--allowlist", str(ALLOWLIST), "--json", str(gate_json)]
@@ -345,19 +363,19 @@ def build_one(root: Path, *, mode: str, manuscripts: list[Path], labels: list[st
         return report
     except Exception as exc:
         report["status"] = "failed"
-        report["error"] = str(exc)
+        report["error"] = public_failure_message(exc, output_dir)
         report["finished_at"] = utc_now()
         if temp_output.exists():
-            if output_dir.exists():
-                shutil.rmtree(output_dir)
-            shutil.copytree(temp_output, output_dir)
+            retain_failed_output(temp_output, output_dir)
+            if isinstance(exc, BuildFailure) and exc.artifact_name and not (output_dir / exc.artifact_name).is_file():
+                report["error"] = f"{exc}; expected retained artifact is missing: {output_dir / exc.artifact_name}"
             write_report(output_dir / "build-report.json", report)
             shutil.rmtree(temp_output)
         else:
             write_report(report_path, report)
         if isinstance(exc, BuildFailure):
-            raise
-        raise BuildFailure(str(exc)) from exc
+            raise BuildFailure(report["error"]) from None
+        raise BuildFailure(report["error"]) from exc
 
 
 def source_files_for(root: Path, manuscripts: list[Path]) -> list[Path]:

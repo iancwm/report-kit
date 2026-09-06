@@ -149,8 +149,8 @@ and description required of a report deliverable.
 
 \begin{diagram}[type=tree,caption={Revenue issue tree.},source={Conceptual diagnostic framework.},description={Revenue decomposes into volume and price, each with two child drivers.}]
   \begin{reporttree}[kind=issue]
-    \root{Why did revenue fall?}
-    \branch{Volume}{Customers, Usage}
+    \root{\rkcode{event_date} = target}
+    \branch{\rkcode{partition_key}}{Customers, Usage}
     \branch{Price}{List price, Discounts}
   \end{reporttree}
 \end{diagram}

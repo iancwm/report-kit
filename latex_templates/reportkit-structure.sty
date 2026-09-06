@@ -476,6 +476,7 @@
 \newcount\rk@treelevel
 \newcount\rk@treeslot
 \newif\ifrk@treedeepwarning
+\newcommand{\rk@tree@literal}[1]{\in@{\rkcode}{#1}}
 \NewDocumentEnvironment{reporttree}{O{}}{%
   \def\rk@treekind{hierarchy}\def\rk@treewidth{15.2}%
   \rk@treecount=0\relax\rk@treeroot=0\relax\rk@treedeepwarningfalse
@@ -491,7 +492,12 @@
   \fi
 }
 \newcommand{\rk@tree@knownlabel}[1]{%
-  \@ifundefined{rk@tree@id@#1}{\expandafter\@secondoftwo}{\expandafter\@firstoftwo}%
+  \rk@tree@literal{#1}%
+  \ifin@
+    \expandafter\@secondoftwo
+  \else
+    \@ifundefined{rk@tree@id@#1}{\expandafter\@secondoftwo}{\expandafter\@firstoftwo}%
+  \fi
 }
 \newcommand{\rk@tree@addnode}[3]{%
   % #1 label, #2 parent id (0 for root), #3 level
@@ -500,7 +506,12 @@
     \rk@structure@error{Duplicate reporttree node label '#1'}{Use unique labels because \string\branch references labels.}%
   }{}%
   \advance\rk@treecount by 1\relax
-  \expandafter\edef\csname rk@tree@id@#1\endcsname{\the\rk@treecount}%
+  % Literal technical runs are display-only. They cannot be safely embedded in
+  % a control-sequence name, and are intentionally not valid parent references.
+  \rk@tree@literal{#1}%
+  \ifin@\else
+    \expandafter\edef\csname rk@tree@id@#1\endcsname{\the\rk@treecount}%
+  \fi
   % `#1` can be a loop variable while a comma-delimited child list is being
   % read.  Freeze its current text now; retaining the loop macro would make
   % every stored child turn into \string\@nil after the loop finishes.
@@ -534,10 +545,16 @@
       \rk@treeparent=\rk@treeroot\relax
     \fi
   }{%
-    \@ifundefined{rk@tree@id@#1}{%
-      \rk@structure@error{Unknown reporttree parent '#1'}{Declare the parent label before using it in \string\branch[parent].}%
+    \rk@tree@literal{#1}%
+    \ifin@
+      \rk@structure@error{reporttree parent references cannot use \string\rkcode}{Use a plain-text branch label as the parent reference.}%
       \rk@treeparent=0\relax
-    }{\rk@treeparent=\csname rk@tree@id@#1\endcsname\relax}%
+    \else
+      \@ifundefined{rk@tree@id@#1}{%
+        \rk@structure@error{Unknown reporttree parent '#1'}{Declare the parent label before using it in \string\branch[parent].}%
+        \rk@treeparent=0\relax
+      }{\rk@treeparent=\csname rk@tree@id@#1\endcsname\relax}%
+    \fi
   }%
   \rk@structure@nonempty{#2}{Tree branch label}{Every \string\branch needs a non-empty label.}%
   \rk@structure@nonempty{#3}{Tree branch '#2' children}{Provide one or more comma-delimited children.}%
