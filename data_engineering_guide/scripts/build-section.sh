@@ -40,6 +40,18 @@ cat > "$isolated_dir/harness.tex" <<'EOF'
 % supplied here for any manuscript containing an ordinary tight list.
 \providecommand{\tightlist}{%
   \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+% Pandoc's own standalone template (pandoc -D latex) also emits these two
+% lines unconditionally; render-visuals.sh emits pandoc's body only (no
+% --standalone template), so they must be supplied here too. Without them,
+% long unbreakable spans (e.g. a bare s3:// path in \texttt) can overflow
+% the text width instead of being allowed to stretch or break.
+\setlength{\emergencystretch}{3em} % prevent overfull lines
+\IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
+% emergencystretch/xurl alone still leave one long unbroken \texttt span
+% (a bare s3:// path with no natural break point) running off the page
+% edge; hyphenat's htt option allows hyphenation inside \texttt/monospace
+% text so that span can actually break.
+\usepackage[htt]{hyphenat}
 % Pandoc's own default LaTeX template loads this exact block whenever the
 % document contains a Markdown table (Pandoc renders tables as longtable);
 % render-visuals.sh emits pandoc's body only (no --standalone template),

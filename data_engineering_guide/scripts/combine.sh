@@ -34,6 +34,15 @@ cat > "$combined_dir/data-engineering-guide.tex" <<'EOF'
 % output (no --standalone) with reportkit.cls, so it needs its own copy.
 \providecommand{\tightlist}{%
   \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+% Same Pandoc-standalone-template emergencystretch/xurl lines as
+% build-section.sh's harness.tex -- this is a separate document-assembly
+% point that also needs them, for the same reason (prevents overfull lines
+% on long unbreakable spans like a bare s3:// path in \texttt).
+\setlength{\emergencystretch}{3em} % prevent overfull lines
+\IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
+% Same hyphenat fallback as build-section.sh's harness.tex -- needed so a
+% long unbroken s3:// path in \texttt can hyphenate instead of overflowing.
+\usepackage[htt]{hyphenat}
 % Same longtable/booktabs/array/calc block as build-section.sh's
 % harness.tex (Task 3) -- this is a separate document-assembly point that
 % also needs it, for the same reason.
