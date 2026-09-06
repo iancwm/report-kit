@@ -1,9 +1,9 @@
 \begin{diagram}[
   type=network,
   label={fig:sec07-lineage},
-  caption={Lineage flows downstream from the producer; changing a field at the producer or dataset can silently break any consumer relying on it.},
+  caption={Lineage traces responsibility from producer to consumer; the catalog documents the dataset for discovery and governance rather than sitting in the data's physical path, but a field change at the producer or dataset can still silently break any consumer relying on it.},
   source={Conceptual diagram.},
-  description={A four-node chain in reading order: Producer, Dataset, Catalog or Steward, and Consumer. Consumer represents any of a dashboard, a feature or model, or an application -- the three are named in the surrounding text as examples of that final node. The arrows point downstream, from the team that produces the data to the team or system that consumes it.}
+  description={A four-node reading-order chain: Producer, Dataset, Catalog or Steward, and Consumer. Consumer represents any of a dashboard, a feature or model, or an application -- the three are named in the surrounding text as examples of that final node. Catalog or Steward documents and governs the dataset for discovery; it does not receive or forward data itself. The chain shows who is upstream of whom and who is accountable for a change, not the dataset's physical transport path.}
 ]
 % The reportnetwork grid layout spaces node centers 3.15cm apart, but the
 % shared rk node style's default text width=28mm plus its inner xsep

@@ -1,9 +1,9 @@
 \begin{diagram}[
   type=flow,
   label={fig:sec02-ingestion-semantics},
-  caption={A delivery path from source to an idempotent sink; a duplicate or unacknowledged event detours through retry and deduplication before landing in the same sink.},
+  caption={Every event on this path is checkpointed, retried, and deduplicated before it reaches the sink; that sequence is what makes the sink safe to call idempotent under at-least-once delivery.},
   source={Conceptual diagram.},
-  description={A top-down flow of eight stages in reading order: Source, Extractor or Producer, Broker or Buffer, Raw Landing, Checkpoint, Retry, Deduplication, and Idempotent Sink. The checkpoint, retry, and deduplication stages exist because at-least-once delivery can create duplicate or replayed events; the flow reaches the same idempotent sink whether or not that detour is taken.},
+  description={A top-down flow of eight stages in reading order: Source, Extractor or Producer, Broker or Buffer, Raw Landing, Checkpoint, Retry, Deduplication, and Idempotent Sink. Every event passes through all eight stages in sequence; the checkpoint, retry, and deduplication stages exist because at-least-once delivery can create duplicate or replayed events, so the flow deduplicates before writing to a sink built to tolerate repeated writes.},
   minspace={0.62\textheight}
 ]
 % reportkit-process.sty's \step command does not currently honor
