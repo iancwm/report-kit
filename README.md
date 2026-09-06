@@ -51,10 +51,6 @@ overview.
   acceptance tests and checks for known failure signatures; run by hand, or
   automatically via `.githooks/pre-commit` once enabled (see
   `CONTRIBUTING.md`).
-- `data_engineering_guide/` — reusable tooling for a reproducible manuscript
-  pipeline: static source validation, strict TeX log gating, isolated section
-  builds, and a canonical combined PDF build. Publication sources live on the
-  separate `data-engineering-guide` branch.
 
 ## Setup
 

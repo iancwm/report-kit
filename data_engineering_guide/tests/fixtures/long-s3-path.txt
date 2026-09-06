@@ -1,1 +1,0 @@
-s3://crypto-lake/raw/trades/event_date=2026-09-06/event_hour=12/part-000123.parquet

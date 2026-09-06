@@ -1,9 +1,0 @@
-{
-  "entries": [
-    {
-      "pattern": "ignored error: Infinite glue shrinkage found in box being split",
-      "reason": "Known benign pdfTeX/longtable diagnostic in the pinned TeX Live 2025 toolchain; re-review when the toolchain changes.",
-      "expires": "2026-12-31"
-    }
-  ]
-}

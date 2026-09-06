@@ -25,17 +25,6 @@ bash scripts/acceptance_check.sh --require-tex
 python3 python_scripts/reportkit_doctor.py --require full-build
 ```
 
-The guide renderer has its own locked Python environment. To build the
-publication, first use the `data-engineering-guide` branch (or a worktree for
-it), then run:
-```bash
-bash data_engineering_guide/scripts/setup.sh
-bash data_engineering_guide/scripts/combine.sh
-```
-
-`main` carries the renderer and its tests; it intentionally does not carry the
-publication manuscript or diagram fragments.
-
 ## Before tagging a release
 
 Run the acceptance check directly and confirm it passes:

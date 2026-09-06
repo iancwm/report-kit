@@ -7,22 +7,12 @@ tags on this repository, not a published package registry.
 ## [Unreleased]
 
 ### Added
-- Reproducible Data Engineering Guide tooling with manuscript validation,
-  isolated and combined PDF builds, strict TeX diagnostics, page rendering,
-  artifact reports, and a pinned PyMuPDF renderer environment.
-- The publication sources remain on the dedicated `data-engineering-guide`
-  branch; `main` retains the reusable build system and tooling tests.
 - `\rkcode{...}` for rendering identifier-like technical tokens, such as
   `event_date`, safely in direct semantic-diagram labels.
 
 ### Fixed
-- Failed guide builds now report the retained stable log path instead of a
-  deleted staging-directory path.
-
-### Changed
 - The ReportKit acceptance fixture now exercises vertical `reportflow`
-  layout, and the guide's combined build rejects duplicate section anchors when
-  run from the publication branch.
+  layout.
 
 ## [1.4.0] - 2026-09-04
 ### Added

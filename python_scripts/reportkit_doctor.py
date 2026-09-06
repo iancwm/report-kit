@@ -42,32 +42,6 @@ def check_executable(name: str) -> tuple[bool, str]:
         return True, path
 
 
-def check_pymupdf() -> tuple[bool, str]:
-    """Check the locked guide renderer environment before the host interpreter."""
-    candidates = [
-        (Path(sys.executable), "host Python"),
-        (ROOT.parent / "data_engineering_guide" / "build" / ".venv" / "bin" / "python", "guide venv"),
-    ]
-    code = (
-        "try:\n"
-        " import pymupdf\n"
-        " print(getattr(pymupdf, '__version__', getattr(pymupdf, 'VersionBind', 'installed')))\n"
-        "except ImportError:\n"
-        " import fitz\n"
-        " print(getattr(fitz, 'VersionBind', 'installed'))\n"
-    )
-    for python, label in candidates:
-        if not python.is_file():
-            continue
-        try:
-            proc = subprocess.run([str(python), "-c", code], capture_output=True, text=True, timeout=8)
-        except (OSError, subprocess.SubprocessError):
-            continue
-        if proc.returncode == 0 and proc.stdout.strip():
-            return True, f"{proc.stdout.strip().splitlines()[0]} ({label})"
-    return False, "not installed in host Python or guide venv"
-
-
 def check_kpse(name: str) -> tuple[bool, str]:
     """Check a TeX file is findable on the current texmf tree via kpsewhich.
 
@@ -138,11 +112,8 @@ def main() -> int:
     fonts_ok &= print_check("libertinust1math.sty", check_kpse("libertinust1math.sty"))
 
     print()
-    pandoc_ok = print_check("pandoc", check_executable("pandoc"))
-    pymupdf_ok = print_check("PyMuPDF (guide renderer)", check_pymupdf())
-
     tex_ok = pdflatex_ok or lualatex_ok
-    full_ok = py_ok and viz_ok and tex_ok and fonts_ok and pandoc_ok and pymupdf_ok
+    full_ok = py_ok and viz_ok and tex_ok and fonts_ok
     print()
     if full_ok:
         print("MODE: FULL BUILD")
