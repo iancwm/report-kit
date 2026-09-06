@@ -1,35 +1,21 @@
-# Data Engineering Guide — build quick reference
+# Data Engineering Guide — build tooling
 
-This is a quick reference for maintaining the Data Engineering Guide manuscript
-and its ReportKit-native diagrams. It is not a full spec — see
-`publication-guidelines.md` for the editorial/production design spec this
-project was built from.
+This directory contains the reusable renderer, validators, templates, and test
+fixtures for the Data Engineering Guide. The publication manuscript, diagram
+fragments, and editorial guidelines are maintained on the separate
+`data-engineering-guide` branch and are intentionally not part of `main`.
 
-## Adding a diagram to a manuscript section
+The build scripts expect that source tree when they are run. Use a worktree or
+checkout of `data-engineering-guide` for a complete publication build.
 
-Insert a line of the exact form, on its own line with blank lines around it,
-at the point in the manuscript where the diagram should appear:
+## Source conventions
 
-```
-[[REPORTKIT-VISUAL:fig:<slug>]]
-```
+The publication branch uses these conventions:
 
-`<slug>` must match a fragment file named `fragments/fig-<slug>.tex`. For
-example, `[[REPORTKIT-VISUAL:fig:sec02-ingestion-semantics]]` pulls in
-`fragments/fig-sec02-ingestion-semantics.tex`.
-
-## Fragment convention
-
-Each file in `fragments/` is named `fig-<slug>.tex` and contains exactly one
-`\begin{diagram}[...] ... \end{diagram}` block (type, label, caption, source,
-and description are set in the `[...]` options; the diagram body follows).
-
-## Build order
-
-`manuscript/order.txt` lists every manuscript file in final build order, one
-per line. `scripts/combine.sh` reads this file to assemble the combined
-document — a manuscript file that exists but isn't listed here will not
-appear in the final PDF.
+- `manuscript/order.txt` lists manuscript files in final build order.
+- `[[REPORTKIT-VISUAL:fig:<slug>]]` markers resolve to
+  `fragments/fig-<slug>.tex` files.
+- Each fragment contains exactly one `diagram` environment.
 
 ## Building
 
@@ -73,7 +59,5 @@ existing direct-node fragments remain valid for dense layouts.
    The default grid step (3.15cm) is at or under the shared `rk node`
    style's rendered width (~31.5mm), so adjacent boxes touch/overlap by a
    fraction of a millimeter — enough to break pgf's automatic node-border
-   edge-clipping math and flip the arrowhead direction. Workaround: add a
-   per-node `text width=24mm` override to shrink each box just enough to
-   leave a few millimeters of gap. See `fragments/fig-sec07-lineage.tex` for
-   the pattern.
+   edge-clipping math and flip the arrowhead direction. The publication branch
+   carries the per-node `text width=24mm` workaround for dense fragments.

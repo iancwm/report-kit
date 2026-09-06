@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Runs the relevant fast checks for staged core and guide files.
+# Runs the relevant fast checks for staged core files.
 set -uo pipefail
 
 ROOT="$(git rev-parse --show-toplevel)"
@@ -9,13 +9,6 @@ status=0
 if echo "$changed" | grep -qE '^(latex_templates|python_scripts)/'; then
   echo "pre-commit: latex_templates/ or python_scripts/ changed -- running acceptance check"
   if ! "$ROOT/scripts/acceptance_check.sh"; then
-    status=1
-  fi
-fi
-
-if echo "$changed" | grep -qE '^data_engineering_guide/(config|scripts|manuscript|fragments|templates|requirements\.txt)(/|$)'; then
-  echo "pre-commit: guide sources or scripts changed -- running static guide gate"
-  if ! "$ROOT/data_engineering_guide/scripts/check-staged.sh"; then
     status=1
   fi
 fi

@@ -10,12 +10,13 @@ tags on this repository, not a published package registry.
 - Reproducible Data Engineering Guide tooling with manuscript validation,
   isolated and combined PDF builds, strict TeX diagnostics, page rendering,
   artifact reports, and a pinned PyMuPDF renderer environment.
-- Hosted CI for the canonical guide build, plus staged-source checks for local
-  guide changes.
+- The publication sources remain on the dedicated `data-engineering-guide`
+  branch; `main` retains the reusable build system and tooling tests.
 
 ### Changed
 - The ReportKit acceptance fixture now exercises vertical `reportflow`
-  layout, and the guide's combined build rejects duplicate section anchors.
+  layout, and the guide's combined build rejects duplicate section anchors when
+  run from the publication branch.
 
 ## [1.4.0] - 2026-09-04
 ### Added
