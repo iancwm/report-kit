@@ -1,0 +1,18 @@
+\begin{diagram}[
+  type=cycle,
+  label={fig:sec06-quality-loop},
+  caption={Data quality as a recurring loop: a contract sets the expectation, a test checks it, a failing test raises an alert that leads to a decision to block, warn, or quarantine the data, and remediation feeds back into the contract.},
+  source={Conceptual diagram.},
+  description={A four-stage cycle with no fixed start or end: Contract, Test, Alert, and Remediation, each stage leading to the next and Remediation looping back to Contract. The action tied to a failing test is a decision to block, warn, or quarantine the affected data, not merely a pass/fail result.}
+]
+\begin{reportcycle}[stages=4]
+  \cyclestage{contract}{Contract}
+  \cyclestage{test}{Test}
+  \cyclestage{alert}{Alert}
+  \cyclestage{remediation}{Remediation}
+  \cycleedge{contract}{test}
+  \cycleedge{test}{alert}
+  \cycleedge{alert}{remediation}
+  \cycleedge{remediation}{contract}
+\end{reportcycle}
+\end{diagram}
