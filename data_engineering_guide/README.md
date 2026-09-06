@@ -28,6 +28,9 @@ python3 scripts/validate-guide.py
 
 `requirements.txt` pins PyMuPDF, which rasterizes PDF pages to PNG for visual
 QA. The build prints the Python, PyMuPDF, Pandoc, and TeX versions it used.
+The combined build also supplies the publication front matter, generated
+linked contents page, Roman-numbered preliminaries, and Arabic numbering for
+the main guide.
 
 - `bash scripts/build-section.sh manuscript/<file>.md` — build one section in
   isolation (fast QA loop for a single section's diagrams/content).

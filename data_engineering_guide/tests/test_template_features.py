@@ -24,6 +24,18 @@ class TemplateFeatureTests(unittest.TestCase):
     def test_code_fixture_enables_highlighting_compatibility(self) -> None:
         self.assertTrue(module.has_code(self.fixture))
 
+    def test_combined_body_plan_has_linked_contents_boundary(self) -> None:
+        plan = module.body_plan("combined", ["00-frontmatter.tex", "01-introduction.tex"])
+        self.assertEqual(plan[0], r"\input{00-frontmatter.tex}")
+        self.assertIn(r"\pdfbookmark[1]{Contents}{guide-contents}", plan)
+        self.assertIn(r"\tableofcontents", plan)
+        self.assertIn(r"\pagenumbering{arabic}", plan)
+        self.assertEqual(plan[-1], r"\input{01-introduction.tex}")
+
+    def test_section_body_plan_does_not_add_book_contents(self) -> None:
+        plan = module.body_plan("section", ["09-learning-path.tex"])
+        self.assertEqual(plan, [r"\input{09-learning-path.tex}"])
+
 
 if __name__ == "__main__":
     unittest.main()
