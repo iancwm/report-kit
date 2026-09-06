@@ -16,6 +16,8 @@ At a minimum, reason about:
 - **Lifecycle controls:** classify data, minimize collection, define retention periods, support approved deletion or correction requests, and document where copies exist.
 - **Accountability:** record access and administrative changes, preserve enough audit context to investigate incidents, and review permissions as roles change.
 
+The security-layers figure groups these controls by responsibility and emphasizes that a single product may implement more than one layer.
+
 [[REPORTKIT-VISUAL:fig:sec08-security-layers]]
 
 Access control can be implemented with roles, attributes, row-level policies, column masking, tokenization, or a combination. The mechanism matters less than making the policy explicit. For example, "analysts can read aggregated regional revenue but not customer email addresses" is a testable rule; "the warehouse is secure" is not.
@@ -67,7 +69,9 @@ Track unit measures such as cost per successful pipeline run, cost per gigabyte 
 
 ## Architecture Patterns
 
-Architecture patterns are useful vocabulary for discussing trade-offs, not templates to copy. They operate at different levels and can be combined: Lambda and Kappa describe processing paths, medallion describes data organization, and data mesh describes an organizational model.
+Architecture patterns are useful vocabulary for discussing trade-offs, not templates to copy. They operate at different levels and can be combined: Lambda and Kappa describe processing paths, medallion describes data organization, and data mesh describes an organizational model. The pattern-comparison table keeps the choice tied to a workload and its main risk.
+
+Table: Data architecture patterns and trade-offs. \label{tbl:architecture-patterns}
 
 | Pattern | Useful when | Main cost or risk |
 | --- | --- | --- |
@@ -88,7 +92,9 @@ Prefer backward-compatible changes when possible. Add a nullable field before ma
 
 ## Tools and Technology Landscape
 
-Tool names change faster than capabilities. The following map is deliberately small; each row describes a responsibility boundary and gives representative choices rather than an exhaustive catalogue. A single product may cover several rows, but its responsibilities should still be named separately.
+Tool names change faster than capabilities. The following maps are deliberately small; each row describes a responsibility boundary and gives representative choices rather than an exhaustive catalogue. A single product may cover several rows, but its responsibilities should still be named separately. The first table covers the core pipeline capabilities.
+
+Table: Core data-platform capabilities and representative tools. \label{tbl:core-tool-landscape}
 
 | Capability | Responsibility | Representative starting choices | Boundary to remember |
 | --- | --- | --- | --- |
@@ -99,6 +105,13 @@ Tool names change faster than capabilities. The following map is deliberately sm
 | Orchestration | Represent dependencies, schedule work, retry, backfill, and record runs | Airflow, Dagster, Prefect, or a managed workflow service | An orchestrator coordinates tasks; it should not become the place where all business logic is hidden |
 | Quality and observability | Test data, record signals, detect drift, and support diagnosis | Native assertions and metrics first; dbt tests, Great Expectations, or Soda as needs grow | Tests state expected conditions; observability explains behavior over time |
 | Catalog and governance | Describe, discover, classify, trace, and control data | A platform catalog, DataHub, or a commercial catalog | A catalog documents and helps enforce policy; it is not a replacement for ownership |
+
+The cross-cutting and consumption table completes the landscape without leaving a single serving row stranded on a continuation page.
+
+Table: Cross-cutting governance and consumption capabilities. \label{tbl:cross-cutting-tool-landscape}
+
+| Capability | Responsibility | Representative starting choices | Boundary to remember |
+| --- | --- | --- | --- |
 | Serving and consumption | Deliver trusted data to people or applications | BI tools such as Looker, Tableau, or Power BI; APIs or feature stores for programmatic consumers | A dashboard is a consumer and does not remove the need for data contracts and freshness guarantees |
 
 The examples are illustrative, not endorsements. A warehouse may provide storage, query execution, access control, and monitoring in one service. An open table format may provide table semantics on object storage but still need a query engine and catalog. Name the capability first so that a product change does not change the architecture by accident.
@@ -130,7 +143,9 @@ Most learners can build a complete, credible batch pipeline without adopting a d
 - one orchestrator once the manual workflow is understood;
 - assertions, structured logs, run metadata, and a basic freshness check.
 
-Learn and add capability in this order:
+Learn and add capability in this order. The learning-order table makes the recommended progression explicit and names what to defer until the current limitation is measured.
+
+Table: Learning stages and capabilities to defer. \label{tbl:learning-order}
 
 | Stage | Learn or use | Defer until there is evidence of need |
 | --- | --- | --- |

@@ -27,7 +27,9 @@ Storage architecture follows workload. The most important distinction is between
 
 OLTP means online transaction processing. These systems support live applications: creating orders, updating balances, recording payments, changing user settings, or serving a shopping cart. They are optimized for many small reads and writes, concurrency, low latency, and transactional correctness.
 
-OLAP means online analytical processing. These systems support analysis: scanning large histories, joining datasets, calculating aggregates, building dashboards, and training models. They are optimized for large read-heavy queries, compression, columnar execution, and parallel processing.
+OLAP means online analytical processing. These systems support analysis: scanning large histories, joining datasets, calculating aggregates, building dashboards, and training models. They are optimized for large read-heavy queries, compression, columnar execution, and parallel processing. The workload table contrasts the access patterns that drive the storage choice.
+
+Table: OLTP and OLAP workloads. \label{tbl:oltp-olap}
 
 | Workload | Optimized for | Common systems | Example query |
 | --- | --- | --- | --- |
@@ -42,7 +44,9 @@ The physical layout of data has a large effect on performance.
 
 Row-oriented systems store values for the same record together. This is efficient when an application needs to read or update a whole record, such as one account, one user, or one order. Traditional OLTP databases are usually row-oriented.
 
-Columnar systems store values from the same column together. This is efficient when a query reads only a few columns across many rows, such as calculating average price, total volume, or monthly revenue. Analytical engines can skip unused columns, compress similar values efficiently, and perform vectorized operations.
+Columnar systems store values from the same column together. This is efficient when a query reads only a few columns across many rows, such as calculating average price, total volume, or monthly revenue. Analytical engines can skip unused columns, compress similar values efficiently, and perform vectorized operations. The layout table compares row-oriented and columnar storage on the dimensions that matter for this choice.
+
+Table: Row-oriented and columnar storage layouts. \label{tbl:storage-layouts}
 
 | Layout | Strengths | Weaknesses | Best fit |
 | --- | --- | --- | --- |
@@ -115,6 +119,8 @@ A lakehouse attempts to combine the flexibility and scale of a data lake with th
 
 Lakehouses are useful when teams need the same data foundation to support several workloads, including SQL analytics, data science, machine learning, streaming, and large-scale batch processing.
 
+The lakehouse layers figure separates physical files from table metadata, compute, analytical surfaces, and consumers so those responsibilities are not conflated.
+
 [[REPORTKIT-VISUAL:fig:sec03-lakehouse-layers]]
 
 ## Open Table Formats
@@ -139,7 +145,9 @@ It is also important not to overstate idempotency. Delta, Iceberg, and Hudi prov
 
 ## File Formats
 
-File format affects performance, schema handling, and interoperability.
+File format affects performance, schema handling, and interoperability. The file-format table summarizes the practical trade-offs among common interchange and analytical formats.
+
+Table: File formats and their engineering trade-offs. \label{tbl:file-formats}
 
 | Format | Strengths | Weaknesses | Common use |
 | --- | --- | --- | --- |
@@ -158,10 +166,14 @@ A data lake or lakehouse can be slow and expensive if files are poorly organized
 Partitioning divides a table into groups based on one or more columns, often represented as path prefixes such as:
 
 ```text
-s3://example-lake/trades/event_date=YYYY-MM-DD/event_hour=HH/
+s3://example-lake/trades/{event_date}/{event_hour}/...
 ```
 
 When a query filters by a partition column, the engine can use partition pruning to skip irrelevant partitions. Partitioning works best on low- to medium-cardinality columns that are frequently used in filters, such as date, region, environment, or source.
+
+The partition-pruning figure shows the intended physical-read decision: a predicate selects the matching event-time partition while unrelated partitions are skipped.
+
+[[REPORTKIT-VISUAL:fig:sec03-partition-pruning]]
 
 Bad partitioning can hurt performance. Partitioning by a high-cardinality field such as user ID may create too many tiny partitions. Partitioning by a column that queries rarely filter on may add complexity without benefit.
 
@@ -199,6 +211,10 @@ The catalog is often the difference between a pile of files and a usable data pl
 
 ## Storage Tooling Landscape
 
+The storage-tooling table maps each physical or logical layer to representative choices.
+
+Table: Storage layers and representative tools. \label{tbl:storage-tooling}
+
 | Layer | Purpose | Examples |
 | --- | --- | --- |
 | Object storage | Durable file and object storage | S3, ADLS, GCS, MinIO |
@@ -213,6 +229,10 @@ The catalog is often the difference between a pile of files and a usable data pl
 DuckDB is particularly useful for local data engineering because it can query local Parquet files and, with extensions and configuration, object storage. MinIO is useful because it provides an S3-compatible object store for local testing. Together, they let a developer prototype lake-style workflows without immediately relying on cloud infrastructure.
 
 ## Choosing Storage
+
+The storage-choice table maps common needs to a likely starting point; it is a decision aid, not a product prescription.
+
+Table: Storage needs and likely choices. \label{tbl:storage-choices}
 
 | Need | Likely storage choice |
 | --- | --- |
@@ -233,7 +253,7 @@ The crypto trade ingestion project from Section 2 can be extended into a storage
 
 The capstone uses these storage conventions:
 
-- Raw files remain under `s3://crypto-lake/raw/trades/event_date=YYYY-MM-DD/event_hour=HH/`, with partition values derived from the UTC `event_timestamp`.
+- Raw files remain under `s3://crypto-lake/raw/trades/{event_date}/{event_hour}/...`, with partition values derived from the UTC `event_timestamp`.
 - Each event retains `event_timestamp` (when the trade happened) and `ingested_at` (when the producer received it). Neither is silently replaced by the other; file-write time belongs in the manifest rather than being substituted into the event record.
 - `curated_trades` is the normalized analytical table. Its logical key is `(exchange_name, asset_symbol, source_trade_id)`, and its grain is one row per unique source trade.
 - A late event may update an older event-time partition. Curated writes must therefore support a bounded merge or partition replacement and must be safe to retry.
@@ -243,7 +263,7 @@ One possible architecture:
 
 1. Object storage: run MinIO locally and create a bucket such as `crypto-lake`.
 2. Input: register or read the Section 2 raw files and manifest without overwriting the raw history.
-3. File format: keep the raw micro-batches as Parquet and write normalized records to `s3://crypto-lake/curated/trades/`.
+3. File format: keep the raw micro-batches as Parquet and write normalized records to `s3://crypto-lake/curated/trades/...`.
 4. Curated table: create `curated_trades` over the normalized files, using a Delta Lake or Iceberg table when transactional commits, merges, and snapshots are required.
 5. Catalog: use the table format's local catalog option, or a lightweight catalog suitable for local development, and record the table location and schema.
 6. Query engine: use DuckDB, Spark, or another engine that is known to read the chosen format and catalog. For the smallest local path, DuckDB can query the Parquet dataset directly before a table format is added.

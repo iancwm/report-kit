@@ -6,7 +6,15 @@ Quality is not the same as cleaning. Cleaning happens during transformation: cas
 
 The goal is not perfect data. The goal is known, measured, communicated trust. A dataset used for exploratory analysis may tolerate rough edges. A dataset used for trading, regulatory reporting, billing, or executive decisions needs much stronger controls.
 
+The quality-control figure places checks at the boundaries where each class of failure becomes observable, from source schema and completeness through publication freshness and ownership.
+
+[[REPORTKIT-VISUAL:fig:sec06-quality-control-points]]
+
 ## Dimensions of Data Quality
+
+The quality-dimensions table connects each expectation to a question and an executable check.
+
+Table: Data-quality dimensions and example tests. \label{tbl:quality-dimensions}
 
 | Dimension | Question | Example test |
 | --- | --- | --- |
@@ -21,6 +29,8 @@ The goal is not perfect data. The goal is known, measured, communicated trust. A
 Quality is contextual. A dataset can be good enough for exploratory analysis but not acceptable for regulatory reporting.
 
 For market, pricing, or fundamental datasets, these dimensions become concrete. A price table may need tests for missing securities, stale values, negative prices, duplicated vendor records, invalid currency codes, suspicious day-over-day moves, and reconciliation against source delivery counts. The exact tests should follow the use case, not a generic checklist.
+
+The quality-loop figure shows the feedback relationship among expectations, tests, monitoring, and incident response rather than treating quality as a one-time cleanup step.
 
 [[REPORTKIT-VISUAL:fig:sec06-quality-loop]]
 
@@ -58,7 +68,9 @@ Common tests include row counts, null checks, uniqueness checks, accepted value 
 
 Treat these checks as code. They should be version-controlled, reviewed, run automatically, and tied to clear failure behavior. Some failures should block publication. Some should warn owners. Some should create incidents only if the affected dataset is business-critical.
 
-Useful test categories include:
+Useful test categories include the following. The test-categories table shows how each category protects a different failure mode.
+
+Table: Data-quality test categories. \label{tbl:quality-test-categories}
 
 | Test type | Purpose | Example |
 | --- | --- | --- |
@@ -125,6 +137,10 @@ Post-incident reviews should ask:
 
 ## Quality Tooling Landscape
 
+The quality-tooling table maps test and operational responsibilities to representative choices.
+
+Table: Quality and reliability tooling categories. \label{tbl:quality-tooling}
+
 | Tool category | Purpose | Examples |
 | --- | --- | --- |
 | Transformation tests | Run checks close to modeled data | dbt tests, custom SQL tests |
@@ -156,7 +172,7 @@ One possible implementation:
 5. Add freshness checks for the distinct clocks: compare the latest manifest or table `landed_at` with the expected pipeline schedule, measure the gap between `ingested_at` and `event_timestamp` as source delay, and compare `event_timestamp` with a source heartbeat or an active-source expectation. A quiet exchange is not automatically an ingestion failure.
 6. Add volume checks: compare current finalized UTC-hour trade counts with a documented historical baseline, allowing for market-activity changes and the initial warm-up period.
 7. Add reconciliation checks for each closed event-time interval. Verify that accepted raw attempts plus quarantined records explain all received records; count duplicate accepted attempts separately; then verify that the distinct trade-key count in `stg_trades` agrees with `fct_trades`, and that the sum of `trade_count` in finalized hourly aggregates agrees with the fact table for the same interval.
-8. Quarantine malformed records under a path such as `s3://crypto-lake/quarantine/trades/event_date=YYYY-MM-DD/event_hour=HH/`, retaining the raw payload, `ingested_at`, and an actionable error code instead of silently dropping records.
+8. Quarantine malformed records under a path such as `s3://crypto-lake/quarantine/trades/{event_date}/{event_hour}/...`, retaining the raw payload, `ingested_at`, and an actionable error code instead of silently dropping records.
 9. Document owners, expected refresh times, the allowed-lateness and lookback policies, and failure response steps.
 10. Publish or expose the curated models only after blocking checks pass; route warning-level anomalies to owners with enough context for investigation.
 
@@ -164,12 +180,16 @@ Avoid hardcoded thresholds without thought. A rule such as `price < 100000` may 
 
 ## Capstone Milestone Map
 
-| Milestone | Consumes | Produces | Handoff condition |
-| --- | --- | --- | --- |
-| Ingest | Binance Spot `BTCUSDT` events | Raw payloads, normalized envelope, UTC timestamps, manifest, replay path | Files and manifest are durable; offsets are committed only after successful writes |
-| Store | Section 2 raw landing and manifest | `curated_trades` with one row per unique trade key, documented schema and location | Curated writes are retry-safe; late events can update the correct event-time partition |
-| Model | `curated_trades` | `stg_trades`, `fct_trades`, and `fct_hourly_ohlcv` with declared grains | Incremental lookback and aggregate finalization rules are documented |
-| Operationalize trust | Raw and modeled outputs | Test results, freshness and volume signals, reconciliation evidence, quarantine records, ownership and runbook | Blocking failures prevent publication; warnings and incidents reach the responsible owner |
+The capstone milestone table uses three columns so each handoff remains readable: the middle column combines the inputs and outputs that define the milestone's boundary.
+
+Table: Capstone milestones, data boundaries, and handoff conditions. \label{tbl:capstone-milestones}
+
+| Milestone | Data boundary | Handoff condition |
+| --- | --- | --- |
+| Ingest | Consumes Binance Spot `BTCUSDT` events; produces raw payloads, a normalized envelope, UTC timestamps, a manifest, and a replay path | Files and manifest are durable; offsets are committed only after successful writes |
+| Store | Consumes the Section 2 raw landing and manifest; produces `curated_trades` with one row per unique trade key, documented schema, and location | Curated writes are retry-safe; late events can update the correct event-time partition |
+| Model | Consumes `curated_trades`; produces `stg_trades`, `fct_trades`, and `fct_hourly_ohlcv` with declared grains | Incremental lookback and aggregate finalization rules are documented |
+| Operationalize trust | Consumes raw and modeled outputs; produces test results, freshness and volume signals, reconciliation evidence, quarantine records, ownership, and a runbook | Blocking failures prevent publication; warnings and incidents reach the responsible owner |
 
 The completed capstone is therefore more than a set of tables. It is a reproducible path from a source event to a documented analytical result, with enough evidence to explain what arrived, what was accepted, what was delayed or quarantined, and which outputs consumers can trust.
 

@@ -20,7 +20,9 @@ A data catalog helps users discover and understand data assets. A useful catalog
 
 Catalogs fail when they become stale documentation. They work best when integrated with pipelines, access controls, tests, and lineage systems.
 
-A useful catalog contains both technical metadata and business metadata.
+A useful catalog contains both technical metadata and business metadata. The metadata table shows the kinds of context a reader should expect to find together.
+
+Table: Metadata types and examples. \label{tbl:metadata-types}
 
 | Metadata type | Examples |
 | --- | --- |
@@ -42,6 +44,8 @@ Lineage is valuable for:
 - identifying unused or duplicated assets.
 
 Lineage is most valuable when tied to action. If a source column changes, lineage should help identify affected ingestion jobs, staging models, fact tables, dashboards, machine learning features, and consumers. If a quality alert fires, lineage should help trace the issue upstream and communicate impact downstream.
+
+The lineage figure makes that impact path concrete by connecting upstream data assets, transformations, and downstream consumers.
 
 [[REPORTKIT-VISUAL:fig:sec07-lineage]]
 
@@ -84,6 +88,10 @@ A practical contract may include:
 
 Contracts should be version-controlled and tested where possible. The goal is not bureaucracy. The goal is to make producer-consumer expectations explicit before production data breaks.
 
+The data-contract figure summarizes that boundary: producers declare what they provide, the contract makes expectations testable, and consumers can depend on the agreed behavior.
+
+[[REPORTKIT-VISUAL:fig:sec07-data-contract]]
+
 ## Access, Classification, and Retention
 
 Governance also includes protecting sensitive data. Data may include personal information, payment details, health records, credentials, confidential business information, or regulated investment data.
@@ -102,6 +110,10 @@ Practical controls include:
 Security and compliance are discussed further in Section 8, but they are not separate from governance. A catalog that knows sensitivity, ownership, and lineage is much more useful than one that lists table names only.
 
 ## Governance Tooling Landscape
+
+The governance-tooling table maps common policy and discovery responsibilities to representative choices.
+
+Table: Governance and metadata tooling categories. \label{tbl:governance-tooling}
 
 | Tool category | Purpose | Examples |
 | --- | --- | --- |

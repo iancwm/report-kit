@@ -2,7 +2,7 @@
   type=flow,
   label={fig:sec02-ingestion-semantics},
   caption={Every event on this path is checkpointed, retried, and deduplicated before it reaches the sink; that sequence is what makes the sink safe to call idempotent under at-least-once delivery.},
-  source={Conceptual diagram.},
+  source={Author's synthesis.},
   description={A top-down flow of eight stages in reading order: Source, Extractor or Producer, Broker or Buffer, Raw Landing, Checkpoint, Retry, Deduplication, and Idempotent Sink. Every event passes through all eight stages in sequence; the checkpoint, retry, and deduplication stages exist because at-least-once delivery can create duplicate or replayed events, so the flow deduplicates before writing to a sink built to tolerate repeated writes.},
   minspace={0.62\textheight}
 ]

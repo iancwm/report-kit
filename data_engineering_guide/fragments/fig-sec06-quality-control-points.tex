@@ -1,0 +1,14 @@
+\begin{diagram}[
+  type=architecture,
+  label={fig:sec06-quality-control-points},
+  caption={Quality controls follow the data boundary from ingestion through publication; each stage checks the failure modes it can observe and owns.},
+  source={Author's synthesis.},
+  description={Four ordered layers show quality controls at Ingestion (schema and completeness), Storage (partition and durability), Transformation (grain and reconciliation), and Publication (freshness and ownership). The controls are complementary rather than a single final gate.}
+]
+\begin{reportarchitecture}
+  \layer{Ingestion}{Schema, Completeness}
+  \layer{Storage}{Partition, Durability}
+  \layer{Transformation}{Grain, Reconciliation}
+  \layer{Publication}{Freshness, Ownership}
+\end{reportarchitecture}
+\end{diagram}

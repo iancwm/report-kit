@@ -536,3 +536,45 @@ or comparison tables and explain their capability category.
   nearby textual description.
 - [ ] A final read-through checks that diagrams clarify rather than repeat the
   surrounding prose.
+
+## 2026-09-06 Content Design Implementation Log
+
+This log records what the content branch implements from the approved design
+and what remains dependent on the separate tooling branch or a later
+publication pass.
+
+### Addressed in the manuscript source
+
+- Updated front-matter source identity, date, version, license, disclaimer, and
+  project URL metadata; removed draft-oriented wording from the preface.
+- Replaced long illustrative object-storage paths with the short-form
+  `{event_date}/{event_hour}` convention.
+- Added captions and stable semantic labels to all comparison tables, added
+  nearby prose references, reduced the capstone map from four columns to three,
+  and split the technology landscape into core and cross-cutting tables.
+- Normalized the five reference entries with publication metadata, stable URLs,
+  and an access date for the mutable Databricks page.
+- Changed diagram source notes to `Author's synthesis.` and repaired the
+  security-layer label wrap.
+- Added five figures using current primitives: CDC versus polling, partition
+  pruning, quality control points, data-contract boundaries, and capstone
+  architecture. Each has a sentinel, caption, semantic label, and descriptive
+  text.
+
+### Partial or deferred
+
+- The cover asset is not present in this content branch, so no replacement
+  asset was fabricated. Final cover treatment and rendered metadata remain a
+  production task.
+- Figure recomposition, diagram-level width/scale controls, and the denser
+  before/after, event-timeline, and state-machine figures remain blocked on the
+  new tooling primitives. Existing per-node width workarounds are retained
+  until that tooling lands.
+- The current source now contains fourteen figures, below the 16--19 target.
+  The two Tier 2 candidates (reconciliation flow and serving surfaces) are
+  intentionally cut from this pass until the new primitives are available;
+  adding them without the layout controls would increase page-risk without
+  resolving the underlying design issue.
+- Takeaway boxes, page-rhythm tuning, PDF accessibility metadata, grayscale and
+  margin proofing, and final cross-reference/render checks require the
+  publication build and an explicit PDF QA pass.

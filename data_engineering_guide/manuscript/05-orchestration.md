@@ -2,7 +2,9 @@
 
 Orchestration coordinates data workflows. It decides when work may start, which tasks must run first, what can run in parallel, and what should happen when a task is late or fails. An orchestrator records the state of each run so that a person or another system can understand what happened and take the next action.
 
-Orchestration is related to, but different from, the other stages of the lifecycle:
+Orchestration is related to, but different from, the other stages of the lifecycle. The responsibilities table separates coordination from ingestion, transformation, storage, and observability.
+
+Table: Lifecycle concerns and orchestration responsibilities. \label{tbl:orchestration-concerns}
 
 | Concern | Main question | Typical responsibility |
 | --- | --- | --- |
@@ -59,11 +61,15 @@ Good DAGs make data dependencies explicit, keep tasks small enough to retry, and
 
 The graph is a control structure, not a substitute for data modeling. A dependency saying "the orders task succeeded" does not prove that orders are complete, unique, or fit for a revenue calculation. Quality checks or asset conditions must express those additional requirements.
 
+The orchestration figure gives a compact dependency example; its edges describe control order, while the later quality checks determine whether the resulting data is fit to publish.
+
 [[REPORTKIT-VISUAL:fig:sec05-orchestration-dag]]
 
 ## Schedules and Event Triggers
 
-A schedule starts runs according to time. A trigger starts a run because something happened. The distinction matters because a clock tells you that an attempt should begin, while a data event can tell you that an input is available.
+A schedule starts runs according to time. A trigger starts a run because something happened. The distinction matters because a clock tells you that an attempt should begin, while a data event can tell you that an input is available. The trigger table compares the common start conditions and the risk each one requires the operator to manage.
+
+Table: Workflow start conditions and operational risks. \label{tbl:workflow-start-conditions}
 
 | Start condition | Example | Strength | Risk to manage |
 | --- | --- | --- | --- |
@@ -213,7 +219,9 @@ This approach can reduce unnecessary polling and make dependencies match the dat
 
 ## Orchestration Tooling Landscape
 
-Choose an orchestrator according to workflow shape, deployment model, team skills, and operational constraints. The names below describe common fits rather than hard boundaries.
+Choose an orchestrator according to workflow shape, deployment model, team skills, and operational constraints. The names below describe common fits rather than hard boundaries. The orchestration-tooling table is a starting map, not a ranking.
+
+Table: Orchestration tools and common fits. \label{tbl:orchestration-tooling}
 
 | Tool or category | Typical fit | Important consideration |
 | --- | --- | --- |

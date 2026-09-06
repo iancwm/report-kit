@@ -1,0 +1,13 @@
+\begin{diagram}[
+  type=tree,
+  label={fig:sec03-partition-pruning},
+  caption={Partition pruning uses the query predicate to read the matching event-time partition and skip unrelated partitions.},
+  source={Author's synthesis.},
+  description={A query predicate for one event date branches into a matching partition whose files are read and other partitions whose files are skipped. The figure explains the read decision, not a specific storage engine.}
+]
+\begin{reporttree}[kind=hierarchy]
+  \root{event_date = target}
+  \branch{Matching partition}{Files read}
+  \branch{Other partitions}{Files skipped}
+\end{reporttree}
+\end{diagram}

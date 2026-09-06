@@ -1,0 +1,20 @@
+\begin{diagram}[
+  type=swimlane,
+  label={fig:sec02-cdc-vs-polling},
+  caption={Change data capture and query-based extraction follow different paths from an operational source to a downstream change stream; CDC includes deletes when the source log exposes them, while polling can miss hard deletes.},
+  source={Author's synthesis.},
+  description={Two horizontal lanes compare extraction approaches. The CDC lane moves from a transaction log to a change event and then to a delete-aware downstream record. The query-based lane moves from a source table to a timestamp query and then to a result that may miss hard deletes.}
+]
+\begin{reportswimlane}[lanes={CDC,Query-based}]
+  \lanestep{cdc-source}{CDC}{Transaction log}{1}
+  \lanestep{cdc-change}{CDC}{Change event}{2}
+  \lanestep{cdc-delete}{CDC}{Delete included}{3}
+  \lanestep{poll-source}{Query-based}{Source table}{1}
+  \lanestep{poll-query}{Query-based}{Timestamp query}{2}
+  \lanestep{poll-limit}{Query-based}{Deletes may be missed}{3}
+  \laneflow{cdc-source}{cdc-change}
+  \laneflow{cdc-change}{cdc-delete}
+  \laneflow{poll-source}{poll-query}
+  \laneflow{poll-query}{poll-limit}
+\end{reportswimlane}
+\end{diagram}

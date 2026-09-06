@@ -8,6 +8,8 @@ For someone with coding proficiency and AI assistance, the most important skill 
 
 ## Extraction Methods
 
+The extraction-methods table compares the main ways a pipeline obtains source data.
+
 Common ingestion methods include:
 
 - full extracts, where the entire dataset is copied each time;
@@ -16,6 +18,8 @@ Common ingestion methods include:
 - event ingestion, where systems publish events into a stream;
 - file ingestion, where data arrives in object storage or file transfer locations;
 - API ingestion, where data is pulled from service endpoints.
+
+Table: Extraction methods, strengths, and weaknesses. \label{tbl:extraction-methods}
 
 | Method | Strengths | Weaknesses |
 | --- | --- | --- |
@@ -32,7 +36,9 @@ The first design choice is usually whether the data should move in batches or co
 
 Batch ingestion reads data in bounded chunks at scheduled intervals, such as every hour or every day. It optimizes for throughput, cost, simplicity, and reproducibility. Batch jobs can group network calls, compress outputs, write efficient files, and rerun historical periods. The trade-off is latency: the data is stale between runs.
 
-Streaming ingestion moves data continuously, either record by record or in micro-batches. It optimizes for freshness and event-driven use cases, such as fraud monitoring, market data, telemetry, personalization, and operational alerts. The trade-off is higher complexity. Streaming systems must handle long-running processes, network interruptions, duplicate events, out-of-order arrival, state management, and continuous compute cost.
+Streaming ingestion moves data continuously, either record by record or in micro-batches. It optimizes for freshness and event-driven use cases, such as fraud monitoring, market data, telemetry, personalization, and operational alerts. The trade-off is higher complexity. Streaming systems must handle long-running processes, network interruptions, duplicate events, out-of-order arrival, state management, and continuous compute cost. The batch-versus-streaming table maps common requirements to a proportionate fit.
+
+Table: Ingestion requirements and proportionate processing models. \label{tbl:batch-streaming-ingestion}
 
 | Requirement | Better fit | Reason |
 | --- | --- | --- |
@@ -46,7 +52,9 @@ The practical question is not "batch or streaming?" but "what freshness does the
 
 ## Delivery Semantics
 
-When data moves across systems, failures are normal. Delivery semantics describe what happens when a message, record, or file is sent but the sender does not know whether the receiver processed it successfully.
+When data moves across systems, failures are normal. Delivery semantics describe what happens when a message, record, or file is sent but the sender does not know whether the receiver processed it successfully. The delivery-semantics table makes the main loss, duplication, and complexity trade-offs explicit.
+
+Table: Delivery semantics, risks, and typical uses. \label{tbl:delivery-semantics}
 
 | Semantic | Meaning | Main risk | Typical use |
 | --- | --- | --- | --- |
@@ -55,6 +63,8 @@ When data moves across systems, failures are normal. Delivery semantics describe
 | Exactly-once processing | Process each logical record once despite retries | Complex assumptions | Systems with transactional sinks, offsets, and idempotent writes |
 
 "Exactly once" needs careful interpretation. True exactly-once delivery across heterogeneous systems is rarely something to assume. In practice, reliable systems usually combine at-least-once delivery with idempotent writes, transactional commits, deterministic keys, and offset tracking. The goal is not magic; it is making retries safe.
+
+The delivery-semantics figure places those guarantees in an operational context, showing why retries and idempotent sinks matter when a handoff is uncertain.
 
 [[REPORTKIT-VISUAL:fig:sec02-ingestion-semantics]]
 
@@ -107,6 +117,10 @@ Change data capture, or CDC, reads database change logs such as a write-ahead lo
 
 CDC is not free. It is source-specific, operationally sensitive, and still consumes source resources. It requires careful handling of schema changes, initial snapshots, transaction ordering, tombstone records, and downstream replay.
 
+The CDC comparison figure makes the delete-handling difference concrete: query-based extraction depends on a reliable query boundary, while CDC can carry the source change event itself.
+
+[[REPORTKIT-VISUAL:fig:sec02-cdc-vs-polling]]
+
 ## Schema Drift
 
 Schema drift occurs when a source changes its structure. Examples include added columns, renamed fields, changed types, nested JSON changes, or altered enum values. A robust ingestion system should detect these changes, classify their severity, and route them appropriately.
@@ -140,7 +154,11 @@ Late data policy should be explicit. A dashboard may show preliminary numbers qu
 
 ## Ingestion Tooling Landscape
 
+The ingestion-tooling table groups choices by responsibility rather than vendor name.
+
 Tool choice depends on source type, volume, latency, reliability requirements, team capability, and cost. AI can help write implementation code, but architecture choices still need human judgment.
+
+Table: Ingestion tooling categories and operating trade-offs. \label{tbl:ingestion-tooling}
 
 | Tool category | What it does | When to use | Main catch |
 | --- | --- | --- | --- |
@@ -154,7 +172,9 @@ Examples include Airbyte and Fivetran for connectors, Kafka and Redpanda for eve
 
 ## Free Data Sources for Practice
 
-Good portfolio projects need sources that reveal real ingestion problems, not just clean CSV loading.
+Good portfolio projects need sources that reveal real ingestion problems, not just clean CSV loading. The practice-source table gives examples by ingestion style and the failure modes they expose.
+
+Table: Practice data sources grouped by ingestion style. \label{tbl:practice-data-sources}
 
 | Ingestion style | Example sources | What they teach |
 | --- | --- | --- |
@@ -186,7 +206,7 @@ One possible architecture:
 1. Source: connect to a public WebSocket stream such as `btcusdt@trade`.
 2. Producer: write a Python ingestion service that preserves the raw JSON, normalizes the fields in the project contract, attaches `exchange_name`, `asset_symbol`, `source_trade_id`, `event_timestamp`, and `ingested_at`, and publishes the event to a `raw_crypto_trades` topic.
 3. Buffer: run Redpanda or Kafka locally through Docker. Retain messages long enough to replay after failures.
-4. Consumer: read from the topic in micro-batches and write append-only Parquet files under `s3://crypto-lake/raw/trades/event_date=YYYY-MM-DD/event_hour=HH/part-<batch_id>.parquet`, deriving the partition values from `event_timestamp` in UTC. For local testing, map this logical URI to MinIO or a filesystem-backed equivalent.
+4. Consumer: read from the topic in micro-batches and write append-only Parquet files under `s3://crypto-lake/raw/trades/{event_date}/{event_hour}/...`, deriving the partition values from `event_timestamp` in UTC. For local testing, map this logical URI to MinIO or a filesystem-backed equivalent.
 5. Manifest: track written batch identifiers, offsets, file paths, row counts, checksums, and a UTC `landed_at` timestamp for each durable file.
 6. Quality checks: validate required fields, timestamp sanity, non-negative quantity, and duplicate trade identifiers.
 7. Recovery: test what happens when the consumer crashes, the broker restarts, or the sink is temporarily unavailable.

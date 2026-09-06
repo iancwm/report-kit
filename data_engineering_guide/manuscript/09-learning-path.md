@@ -2,6 +2,8 @@
 
 Data engineering is best learned by building systems. The following path moves from foundations to production thinking.
 
+The learning-roadmap figure gives the high-level progression before the guide narrows to core skills, a portfolio project, and advanced operating concerns.
+
 [[REPORTKIT-VISUAL:fig:sec09-learning-roadmap]]
 
 ## Core Skills
@@ -28,6 +30,10 @@ A strong beginner-to-intermediate project is a complete analytics pipeline:
 8. Document lineage, assumptions, and known limitations.
 
 Possible datasets include public transit arrivals, weather observations, stock prices, sports results, open government datasets, or e-commerce sample data.
+
+The capstone architecture figure shows how those project steps fit together as one operable data product, from source capture through quality controls to a reader-facing output.
+
+[[REPORTKIT-VISUAL:fig:sec09-capstone-architecture]]
 
 ## Advanced Project
 

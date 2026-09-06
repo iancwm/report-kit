@@ -6,7 +6,9 @@ This is often the most intellectually demanding part of data engineering because
 
 ## ETL and ELT
 
-ETL stands for extract, transform, load. Data is transformed before it enters the target analytical system. ELT stands for extract, load, transform. Data is loaded first and transformed inside the warehouse, lakehouse, or processing engine.
+ETL stands for extract, transform, load. Data is transformed before it enters the target analytical system. ELT stands for extract, load, transform. Data is loaded first and transformed inside the warehouse, lakehouse, or processing engine. The ETL-versus-ELT table compares where the work happens and why a team might choose each pattern.
+
+Table: ETL and ELT patterns. \label{tbl:etl-elt}
 
 | Pattern | Description | Common use |
 | --- | --- | --- |
@@ -18,6 +20,8 @@ ELT is common in modern platforms because storage is relatively cheap, compute i
 ETL is still useful when data must be transformed before landing, when raw data cannot be stored for privacy or regulatory reasons, when the source emits data in a form that requires specialized parsing, or when the transformation is better handled by a dedicated compute engine such as Spark, Flink, or a machine learning pipeline.
 
 The practical rule is not "always use ELT." It is: preserve raw data when safe and affordable, make transformation logic version-controlled and testable, and run computation where it is most reliable and cost-effective.
+
+The transformation figure follows the movement from raw records to modeled outputs and makes the processing boundary visible before the detailed examples that follow.
 
 [[REPORTKIT-VISUAL:fig:sec04-transformation-flow]]
 
@@ -83,7 +87,9 @@ Streaming introduces challenges:
 - exactly-once behavior is difficult and system-specific;
 - testing and replay require careful design.
 
-"Real-time" is often used loosely. Many business needs are actually near real-time. A fraud decision may need milliseconds. A support dashboard may need one-minute freshness. An executive dashboard may be fine with hourly updates.
+"Real-time" is often used loosely. Many business needs are actually near real-time. A fraud decision may need milliseconds. A support dashboard may need one-minute freshness. An executive dashboard may be fine with hourly updates. The latency table gives the terms a practical range rather than treating them as guarantees.
+
+Table: Processing latency terms and typical ranges. \label{tbl:processing-latency}
 
 | Requirement | Typical meaning |
 | --- | --- |
@@ -172,7 +178,9 @@ Metrics are organizational contracts, not just SQL expressions. Two teams can bo
 
 Data modeling structures data for use. Common modeling styles include normalized relational models, dimensional models, wide analytical tables, data vault models, and entity-centric models.
 
-Dimensional modeling is especially common in analytics. It separates facts, which represent business events or measurements, from dimensions, which describe entities.
+Dimensional modeling is especially common in analytics. It separates facts, which represent business events or measurements, from dimensions, which describe entities. The dimensional-model table defines the building blocks used in the examples that follow.
+
+Table: Dimensional-model elements. \label{tbl:dimensional-model-elements}
 
 | Model element | Description | Example |
 | --- | --- | --- |
@@ -199,7 +207,9 @@ Good models make common questions easy and uncommon questions possible.
 
 ## Slowly Changing Dimensions
 
-Dimension attributes change. A customer moves country, a product changes category, a security changes classification, or an account changes relationship manager. Slowly changing dimension techniques define how much history to preserve.
+Dimension attributes change. A customer moves country, a product changes category, a security changes classification, or an account changes relationship manager. Slowly changing dimension techniques define how much history to preserve. The slowly-changing-dimension table compares the common history policies.
+
+Table: Slowly changing dimension types. \label{tbl:slowly-changing-dimensions}
 
 | Type | Behavior | Use case |
 | --- | --- | --- |
@@ -211,7 +221,9 @@ Type 2 dimensions are powerful because they allow point-in-time joins. A fact ca
 
 ## Transformation Tooling Landscape
 
-Different tools fit different transformation workloads.
+Different tools fit different transformation workloads. The transformation-tooling table groups them by execution model and highlights the failure mode to watch.
+
+Table: Transformation tooling and operating trade-offs. \label{tbl:transformation-tooling}
 
 | Tool | Best fit | Key ideas | Watch out for |
 | --- | --- | --- | --- |

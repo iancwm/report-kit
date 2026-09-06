@@ -2,7 +2,7 @@
   type=network,
   label={fig:sec07-lineage},
   caption={Lineage traces responsibility from producer to consumer; the catalog documents the dataset for discovery and governance rather than sitting in the data's physical path, but a field change at the producer or dataset can still silently break any consumer relying on it.},
-  source={Conceptual diagram.},
+  source={Author's synthesis.},
   description={A four-node reading-order chain: Producer, Dataset, Catalog or Steward, and Consumer. Consumer represents any of a dashboard, a feature or model, or an application -- the three are named in the surrounding text as examples of that final node. Catalog or Steward documents and governs the dataset for discovery; it does not receive or forward data itself. The chain shows who is upstream of whom and who is accountable for a change, not the dataset's physical transport path.}
 ]
 % The reportnetwork grid layout spaces node centers 3.15cm apart, but the

@@ -1,0 +1,13 @@
+\begin{diagram}[
+  type=architecture,
+  label={fig:sec07-data-contract},
+  caption={A data contract connects producer commitments to consumer expectations through explicit schema, freshness, quality, and compatibility rules.},
+  source={Author's synthesis.},
+  description={Three layers show a producer exposing schema, grain, and ownership; a contract defining freshness, quality, and compatibility; and consumers using dashboards, models, or applications. The contract is the shared boundary between producers and consumers.}
+]
+\begin{reportarchitecture}
+  \layer{Producer}{Schema, Grain, Ownership}
+  \layer{Contract}{Freshness, Quality, Compatibility}
+  \layer{Consumers}{Dashboard, Model, Application}
+\end{reportarchitecture}
+\end{diagram}

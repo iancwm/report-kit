@@ -1,8 +1,12 @@
 ---
 title: "A Practical Guide to Data Engineering"
 subtitle: "Core Concepts, Systems, Pipelines, and Production Practices"
-author: "Prepared with ChatGPT"
-date: "2026-09-05"
+author: "ReportKit contributors"
+date: "2026-09-06"
+version: "Version 1.0"
+license: "Original prose and diagrams are licensed CC BY 4.0; code examples and third-party assets retain their separate licences."
+disclaimer: "Educational material only. Verify examples against your systems and current documentation; this guide is not operational, financial, legal, or security advice."
+project-url: "https://github.com/iancwm/report-kit"
 documentclass: article
 papersize: a4
 fontsize: 11pt
@@ -16,7 +20,7 @@ numbersections: false
 
 This guide introduces data engineering from first principles and then develops the subject into a practical map of the discipline. It begins with the central idea that data engineering is the work of designing, building, operating, and improving the systems that move data from raw sources into trustworthy forms that people and software can use.
 
-The guide is written with publication in mind. It uses ordinary Markdown headings, tables, and references so that a later publication workflow can convert it to LaTeX. Formatting and diagram conventions for that workflow are collected separately in `publication-guidelines.md`.
+The guide is prepared as a publication source. It uses ordinary Markdown headings, tables, and references so that the publication workflow can convert it to LaTeX. Formatting and diagram conventions for that workflow are collected separately in `publication-guidelines.md`.
 
 ## Reader's Roadmap
 

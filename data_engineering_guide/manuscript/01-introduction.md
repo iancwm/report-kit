@@ -15,6 +15,8 @@ The main ideas from the Databricks article ["What Is Data Engineering?"](https:/
 
 The core promise of data engineering is trust. If a dashboard shows revenue, a recommendation model predicts churn, or a compliance report lists customer activity, someone must ensure that the underlying data is complete, timely, correct, secure, and explainable. Data engineering is the practical craft behind that assurance.
 
+The lifecycle figure provides the guide's map: sources feed the core stages, serving closes the loop, and quality, metadata, security, and observability span the entire path.
+
 [[REPORTKIT-VISUAL:fig:sec01-lifecycle]]
 
 ## How to Use This Guide
@@ -50,7 +52,9 @@ The lifecycle is not always linear. A machine learning system may send predictio
 
 ## Lifecycle Overview: Terms, Decisions, and Tools
 
-The table below is a high-level map. The later sections return to each stage in more detail, including implementation choices and failure modes.
+The lifecycle overview table below is a high-level map. The later sections return to each stage in more detail, including implementation choices and failure modes.
+
+Table: Lifecycle overview: stages, decisions, and representative tools. \label{tbl:lifecycle-overview}
 
 | Stage | Main purpose | Key terms | Common tools and technologies |
 | --- | --- | --- | --- |
@@ -70,7 +74,9 @@ This table is deliberately broad. In a small project, one Python script and a Po
 
 ## Common Confusions
 
-The lifecycle stages are related, but they are not interchangeable. The following questions are useful checkpoints while reading the rest of the guide.
+The lifecycle stages are related, but they are not interchangeable. The common-confusions table below provides useful checkpoints while reading the rest of the guide.
+
+Table: Common confusions about data-engineering concepts. \label{tbl:common-confusions}
 
 | Question | Short answer |
 | --- | --- |
@@ -239,6 +245,10 @@ In small organizations, one person may do all of this. In larger organizations, 
 
 ## Data Engineering Compared with Related Roles
 
+The role-comparison table distinguishes the questions and outputs owned by adjacent disciplines.
+
+Table: Data engineering compared with related roles. \label{tbl:related-roles}
+
 | Role | Main question | Typical output |
 | --- | --- | --- |
 | Data engineer | How do we make data reliable, available, and usable? | Pipelines, platforms, data models, quality checks |
@@ -292,7 +302,9 @@ The pipeline is successful only if it produces the right result at the right tim
 
 ## The Layered View
 
-Many teams organize data by layers:
+Many teams organize data by layers. The layered-data table below shows the names and purpose of the most common boundaries.
+
+Table: Common data layers and their purposes. \label{tbl:data-layers}
 
 | Layer | Purpose | Example names |
 | --- | --- | --- |
@@ -320,6 +332,10 @@ Data engineering begins with source systems. A source system is any system that 
 
 ## Common Data Sources
 
+The source-types table below pairs common origins with the engineering concerns they introduce.
+
+Table: Common data sources and engineering concerns. \label{tbl:common-data-sources}
+
 | Source | Example data | Engineering concerns |
 | --- | --- | --- |
 | Application databases | users, orders, subscriptions | schema changes, load impact, consistency |
@@ -334,7 +350,9 @@ Each source has its own failure modes. APIs throttle requests. Databases change 
 
 ## Structured, Semi-Structured, and Unstructured Data
 
-Structured data has a predictable schema, such as relational tables with columns and types. Semi-structured data has organization but more flexible shape, such as JSON, XML, Avro, or nested event records. Unstructured data has no simple tabular form, such as free text, images, audio, video, and documents.
+Structured data has a predictable schema, such as relational tables with columns and types. Semi-structured data has organization but more flexible shape, such as JSON, XML, Avro, or nested event records. Unstructured data has no simple tabular form, such as free text, images, audio, video, and documents. The data-shape table summarizes the handling implications.
+
+Table: Data shapes and typical handling approaches. \label{tbl:data-shapes}
 
 | Type | Examples | Typical handling |
 | --- | --- | --- |

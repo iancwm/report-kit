@@ -1,0 +1,15 @@
+\begin{diagram}[
+  type=architecture,
+  label={fig:sec09-capstone-architecture},
+  caption={The capstone architecture connects a public source to a durable, tested, and scheduled serving path.},
+  source={Author's synthesis.},
+  description={Five ordered layers show a public API or stream, raw landing and manifest ingestion, a curated lakehouse table and catalog, quality tests with scheduling and replay, and downstream dashboard or report consumers.}
+]
+\begin{reportarchitecture}
+  \layer{Source}{Public API or stream}
+  \layer{Ingestion}{Raw landing, Manifest}
+  \layer{Lakehouse}{Curated table, Catalog}
+  \layer{Quality and orchestration}{Tests, Schedule, Replay}
+  \layer{Serving}{Dashboard, Report}
+\end{reportarchitecture}
+\end{diagram}
