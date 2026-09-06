@@ -5,9 +5,18 @@
 # python_scripts/**, and by hand before tagging a release.
 #
 # Exit codes:
-#   0 - clean compile, OR pdflatex not installed (warns, does not block)
-#   1 - compile failed, or the log matched a known failure signature
+#   0 - clean compile, OR pdflatex not installed in diagnostic mode
+#   1 - compile failed, log matched a known failure signature, or strict mode
+#       was requested but TeX is unavailable
 set -uo pipefail
+
+require_tex=0
+if [[ "${1:-}" == "--require-tex" ]]; then
+  require_tex=1
+elif [[ $# -gt 0 ]]; then
+  echo "usage: $0 [--require-tex]" >&2
+  exit 1
+fi
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TEST_TEXES=(
@@ -20,7 +29,9 @@ echo "== ReportKit acceptance check =="
 if ! command -v pdflatex >/dev/null 2>&1; then
   echo "WARN: pdflatex not found on PATH -- skipping acceptance check (not blocking)." >&2
   echo "      Real enforcement happens the next time this runs somewhere with TeX installed." >&2
-  exit 0
+  [[ "$require_tex" -eq 0 ]] && exit 0
+  echo "FAIL: --require-tex was requested but pdflatex is unavailable." >&2
+  exit 1
 fi
 
 WORKDIR="$(mktemp -d)"

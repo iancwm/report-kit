@@ -27,7 +27,7 @@
 }{\endgroup}
 
 \NewDocumentCommand{\step}{m m}{%
-  \ifstrequal{\rk@flowdirection}{vertical}{%
+  \expandafter\ifstrequal\expandafter{\rk@flowdirection}{vertical}{%
     \node[rk node] (#1) at (0,{-\the\rk@flowindex*\rk@flowspacing}) {\strut #2};%
   }{%
     \node[rk node] (#1) at ({\the\rk@flowindex*\rk@flowspacing},0) {\strut #2};%

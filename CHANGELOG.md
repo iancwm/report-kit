@@ -6,6 +6,17 @@ tags on this repository, not a published package registry.
 
 ## [Unreleased]
 
+### Added
+- Reproducible Data Engineering Guide tooling with manuscript validation,
+  isolated and combined PDF builds, strict TeX diagnostics, page rendering,
+  artifact reports, and a pinned PyMuPDF renderer environment.
+- Hosted CI for the canonical guide build, plus staged-source checks for local
+  guide changes.
+
+### Changed
+- The ReportKit acceptance fixture now exercises vertical `reportflow`
+  layout, and the guide's combined build rejects duplicate section anchors.
+
 ## [1.4.0] - 2026-09-04
 ### Added
 - Semantic visual grammar over the existing native TikZ primitives:

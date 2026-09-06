@@ -50,7 +50,10 @@ overview.
 - `scripts/acceptance_check.sh` — compiles the legacy and visual-grammar
   acceptance tests and checks for known failure signatures; run by hand, or
   automatically via `.githooks/pre-commit` once enabled (see
-  `CONTRIBUTING.md`). No hosted CI.
+  `CONTRIBUTING.md`).
+- `data_engineering_guide/` — a reproducible manuscript pipeline with static
+  source validation, strict TeX log gating, isolated section builds, and a
+  canonical combined PDF build.
 
 ## Setup
 

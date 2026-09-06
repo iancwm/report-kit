@@ -27,6 +27,16 @@ and description required of a report deliverable.
   \end{reportmatrix}
 \end{diagram}
 
+\begin{diagram}[type=flow,caption={A vertical publication flow.},source={Conceptual diagram.},description={Three ordered steps arranged vertically from request through review to publication.}]
+  \begin{reportflow}[direction=vertical]
+    \step{vertical-request}{Request}
+    \step{vertical-review}{Review}
+    \step{vertical-publish}{Publish}
+    \flowedge{vertical-request}{vertical-review}
+    \flowedge{vertical-review}{vertical-publish}
+  \end{reportflow}
+\end{diagram}
+
 \begin{diagram}[type=risk-heatmap,caption={Priority risks by ordinal impact and likelihood.},source={Illustrative risk register.},description={A five by five severity heatmap showing two numbered risks and a register with owner and status.}]
   \begin{riskheatmap}[size=5]
     \risk{R1}{5}{4}{Identity dependency}{owner=Security,status=mitigating}
