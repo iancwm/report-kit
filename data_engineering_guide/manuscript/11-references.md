@@ -1,6 +1,6 @@
 # Section 11 - References
 
-Databricks. "What Is Data Engineering?" <https://www.databricks.com/blog/what-is-data-engineering>.
+[Databricks. "What Is Data Engineering?"](https://www.databricks.com/blog/what-is-data-engineering).
 
 Kimball, Ralph, and Margy Ross. *The Data Warehouse Toolkit*. Wiley.
 

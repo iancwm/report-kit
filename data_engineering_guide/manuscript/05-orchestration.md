@@ -211,7 +211,7 @@ Data-aware scheduling can express rules such as:
 
 This approach can reduce unnecessary polling and make dependencies match the data lifecycle. It also introduces a responsibility: upstream producers must publish accurate asset events and consumers must understand whether an update is provisional or final. A successful task status alone is not enough if the task wrote the wrong interval or skipped a partition.
 
-## Tooling Landscape
+## Orchestration Tooling Landscape
 
 Choose an orchestrator according to workflow shape, deployment model, team skills, and operational constraints. The names below describe common fits rather than hard boundaries.
 

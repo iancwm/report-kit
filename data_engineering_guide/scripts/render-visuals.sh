@@ -46,4 +46,9 @@ while IFS= read -r line; do
   fi
 done < "$pandoc_output"
 
+# Pandoc renders inline code as \texttt{...}; add explicit break opportunities
+# inside long paths without changing their visible text. This prevents a
+# single S3 URI from creating a clipped line or an underfull paragraph.
+python3 "$(dirname "${BASH_SOURCE[0]}")/tex_hygiene.py" "$output"
+
 echo "render-visuals.sh: wrote $output" >&2

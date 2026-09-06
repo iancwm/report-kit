@@ -138,7 +138,7 @@ Data engineers handle late data with:
 
 Late data policy should be explicit. A dashboard may show preliminary numbers quickly and finalize them later. A financial reporting process may wait for reconciliation before publishing. A machine learning feature pipeline may need point-in-time correctness to avoid leakage.
 
-## Tooling Landscape
+## Ingestion Tooling Landscape
 
 Tool choice depends on source type, volume, latency, reliability requirements, team capability, and cost. AI can help write implementation code, but architecture choices still need human judgment.
 

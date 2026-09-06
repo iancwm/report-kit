@@ -5,14 +5,8 @@
   source={Conceptual diagram.},
   description={A top-down flow of four stages in reading order: Raw, Standardized, Curated, and Serving Model. Raw preserves source data with minimal change; Standardized fixes formats and obvious defects; Curated models the data for analytics or applications at a stated grain; Serving Model optimizes the curated data for a specific consumer.}
 ]
-% reportkit-process.sty's \step command does not currently honor
-% direction=vertical (etoolbox's \ifstrequal detokenizes its literal
-% argument instead of expanding \rk@flowdirection, so the comparison is
-% always false and every reportflow renders horizontally -- confirmed
-% during Task 5). Placing these directly with \RKNode/\flowedge instead
-% of \begin{reportflow}[direction=vertical]; only 4 nodes, so the sty's
-% own default 3.05cm spacing is used and needs no compression. See Task
-% 5's report for the full diagnosis.
+% Four stages fit the direct-node layout cleanly and keep the flow legible
+% on the page.
 \RKNode{raw}{0}{0}{Raw}
 \RKNode{standardized}{0}{-3.05}{Standardized}
 \RKNode{curated}{0}{-6.10}{Curated}

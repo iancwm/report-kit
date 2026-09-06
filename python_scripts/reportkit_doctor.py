@@ -2,11 +2,12 @@
 """ReportKit environment doctor.
 
 Checks the capabilities needed for SOURCE BUILD and FULL BUILD without
-requiring network access. Exit code is always 0 unless the doctor itself fails;
-read the reported mode to decide what the agent can safely promise.
+requiring network access. Diagnostic mode reports gaps without failing; use
+``--require full-build`` in CI when a missing dependency must block the build.
 """
 from __future__ import annotations
 
+import argparse
 import importlib.util
 import shutil
 import subprocess
@@ -39,6 +40,32 @@ def check_executable(name: str) -> tuple[bool, str]:
         return True, line.strip()
     except Exception:
         return True, path
+
+
+def check_pymupdf() -> tuple[bool, str]:
+    """Check the locked guide renderer environment before the host interpreter."""
+    candidates = [
+        (Path(sys.executable), "host Python"),
+        (ROOT.parent / "data_engineering_guide" / "build" / ".venv" / "bin" / "python", "guide venv"),
+    ]
+    code = (
+        "try:\n"
+        " import pymupdf\n"
+        " print(getattr(pymupdf, '__version__', getattr(pymupdf, 'VersionBind', 'installed')))\n"
+        "except ImportError:\n"
+        " import fitz\n"
+        " print(getattr(fitz, 'VersionBind', 'installed'))\n"
+    )
+    for python, label in candidates:
+        if not python.is_file():
+            continue
+        try:
+            proc = subprocess.run([str(python), "-c", code], capture_output=True, text=True, timeout=8)
+        except (OSError, subprocess.SubprocessError):
+            continue
+        if proc.returncode == 0 and proc.stdout.strip():
+            return True, f"{proc.stdout.strip().splitlines()[0]} ({label})"
+    return False, "not installed in host Python or guide venv"
 
 
 def check_kpse(name: str) -> tuple[bool, str]:
@@ -88,7 +115,11 @@ def print_check(label: str, result: tuple[bool, str]) -> bool:
     return ok
 
 
-def main() -> None:
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--require", choices=("full-build",), help="fail unless the requested build mode is available")
+    args = parser.parse_args()
+
     print("ReportKit environment doctor")
     print(f"[OK] Python: {sys.version.split()[0]}")
     py_ok = True
@@ -106,9 +137,14 @@ def main() -> None:
     fonts_ok = print_check("libertinus.sty", check_kpse("libertinus.sty"))
     fonts_ok &= print_check("libertinust1math.sty", check_kpse("libertinust1math.sty"))
 
-    tex_ok = pdflatex_ok or lualatex_ok
     print()
-    if py_ok and viz_ok and tex_ok and fonts_ok:
+    pandoc_ok = print_check("pandoc", check_executable("pandoc"))
+    pymupdf_ok = print_check("PyMuPDF (guide renderer)", check_pymupdf())
+
+    tex_ok = pdflatex_ok or lualatex_ok
+    full_ok = py_ok and viz_ok and tex_ok and fonts_ok and pandoc_ok and pymupdf_ok
+    print()
+    if full_ok:
         print("MODE: FULL BUILD")
         if not (bibtex_ok or biber_ok):
             print("NOTE: bibliography tool not found; reports without external bibliography can still compile.")
@@ -122,7 +158,11 @@ def main() -> None:
     else:
         print("MODE: SOURCE BUILD")
         print("Generate a portable ReportKit source bundle; do not promise compiled output.")
+    if args.require and not full_ok:
+        print(f"REQUIREMENT FAILED: {args.require}", file=sys.stderr)
+        return 1
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())
