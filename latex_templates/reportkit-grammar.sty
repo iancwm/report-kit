@@ -19,10 +19,22 @@
 }
 \newcommand{\rk@statestep}{4.2}
 \newcount\rk@stateindex
+\newcommand{\rk@transitionroute}{straight}
+\newcommand{\rk@transitionlabelposition}{above}
+\newcommand{\rk@transitionstyle}{}
 \pgfkeys{
   /reportkit/state/.is family,
   /reportkit/state,
   step spacing/.store in=\rk@statestep,
+}
+\pgfkeys{
+  /reportkit/state/transition/.is family,
+  /reportkit/state/transition,
+  route/.store in=\rk@transitionroute,
+  routing/.store in=\rk@transitionroute,
+  label-position/.store in=\rk@transitionlabelposition,
+  style/.store in=\rk@transitionstyle,
+  .unknown/.code={\PackageError{reportkit-grammar}{Unknown reportstate transition key '\pgfkeyscurrentname'}{Use route=straight, bend left=<degrees>, bend right=<degrees>, orthogonal, or label-position=above|below|left|right.}}
 }
 \NewDocumentEnvironment{reportstate}{O{}}{%
   \begingroup\pgfkeys{/reportkit/state,step spacing=4.2,#1}%
@@ -36,8 +48,51 @@
   \node[rk terminal,#1] (#2) at ({\the\rk@stateindex*\rk@statestep},0) {\strut #3};%
   \advance\rk@stateindex by 1\relax
 }
+\NewDocumentCommand{\stateat}{O{} m m m m}{%
+  \node[rk node,#1] (#2) at (#3,#4) {\strut #5};%
+}
+\NewDocumentCommand{\terminalstateat}{O{} m m m m}{%
+  \node[rk terminal,#1] (#2) at (#3,#4) {\strut #5};%
+}
+\newcommand{\rk@transition@validlabelposition}{%
+  \expandafter\ifstrequal\expandafter{\rk@transitionlabelposition}{above}{}{%
+  \expandafter\ifstrequal\expandafter{\rk@transitionlabelposition}{below}{}{%
+  \expandafter\ifstrequal\expandafter{\rk@transitionlabelposition}{left}{}{%
+  \expandafter\ifstrequal\expandafter{\rk@transitionlabelposition}{right}{}{%
+    \PackageError{reportkit-grammar}{Invalid reportstate label-position '\rk@transitionlabelposition'}{Use above, below, left, or right.}\def\rk@transitionlabelposition{above}%
+  }}}}%
+}
+\ExplSyntaxOn
+\prg_new_conditional:Npnn \rk_transition_route_bend:n #1 { T, F, TF }
+  {
+    \regex_match:nnTF
+      { \A \s* bend \s+ (?: left | right ) \s* = \s* [-+]? (?: [0-9]+ | [0-9]* \. [0-9]+ ) \s* \Z }
+      {#1} { \prg_return_true: } { \prg_return_false: }
+  }
+\cs_new_eq:NN \rk@transition@routebendTF \rk_transition_route_bend:nTF
+\ExplSyntaxOff
+\newcommand{\rk@transition@draw}[3]{%
+  \rk@transition@validlabelposition
+  \expandafter\ifstrequal\expandafter{\rk@transitionroute}{straight}{%
+    \draw[rk edge flow,\rk@transitionstyle] (#1) -- node[midway,rk transition label,\rk@transitionlabelposition] {#3} (#2);%
+  }{\expandafter\ifstrequal\expandafter{\rk@transitionroute}{orthogonal}{%
+    \draw[rk edge flow,\rk@transitionstyle] (#1) |- node[midway,rk transition label,\rk@transitionlabelposition] {#3} (#2);%
+  }{%
+    \edef\rk@transitionroutevalue{\rk@transitionroute}%
+    \expandafter\rk@transition@routebendTF\expandafter{\rk@transitionroutevalue}{%
+      \edef\rk@transition@routedcommand{\noexpand\draw[rk edge flow,\rk@transitionstyle] (#1) to[\rk@transitionroute] node[midway,rk transition label,\rk@transitionlabelposition] {\unexpanded{#3}} (#2);}%
+      \rk@transition@routedcommand
+    }{%
+      \PackageError{reportkit-grammar}{Unknown reportstate route '\rk@transitionroute'}{Use route=straight, bend left=<degrees>, bend right=<degrees>, or orthogonal.}%
+      \draw[rk edge flow,\rk@transitionstyle] (#1) -- node[midway,rk transition label,\rk@transitionlabelposition] {#3} (#2);%
+    }%
+  }}%
+}
 \NewDocumentCommand{\transition}{O{} m m m}{%
-  \draw[rk edge flow,#1] (#2) -- (#3) node[rk transition label] {#4};%
+  \def\rk@transitionroute{straight}\def\rk@transitionlabelposition{above}\def\rk@transitionstyle{}%
+  \in@{=}{#1}%
+  \ifin@\pgfkeys{/reportkit/state/transition,#1}\else\def\rk@transitionstyle{#1}\fi
+  \rk@transition@draw{#2}{#3}{#4}%
 }
 \NewDocumentCommand{\selfloop}{O{} m m}{%
   \draw[rk edge flow,#1] (#2.north) .. controls +(0.7,1.1) and +(-0.7,1.1) .. (#2.north)
@@ -96,6 +151,9 @@
 \newcommand{\rk@tracks}{}
 \newcommand{\rk@trackspan}{12.0}
 \newcommand{\rk@trackgap}{1.6}
+\newcommand{\rk@watermarklabelposition}{below}
+\newcommand{\rk@watermarklabelwidth}{}
+\newcommand{\rk@watermarklabelanchor}{}
 \newcount\rk@trackindex
 \newcount\rk@trackquery
 \pgfkeys{
@@ -104,6 +162,14 @@
   tracks/.store in=\rk@tracks,
   span/.store in=\rk@trackspan,
   track gap/.store in=\rk@trackgap,
+}
+\pgfkeys{
+  /reportkit/timeline/watermark/.is family,
+  /reportkit/timeline/watermark,
+  label-position/.store in=\rk@watermarklabelposition,
+  label-width/.store in=\rk@watermarklabelwidth,
+  label-anchor/.store in=\rk@watermarklabelanchor,
+  .unknown/.code={\PackageError{reportkit-grammar}{Unknown watermark key '\pgfkeyscurrentname'}{Use label-position=above|below|left|right, label-width=<length>, or label-anchor=<TikZ anchor>.}}
 }
 \tikzset{
   rk track axis/.style={Hairline,line width=.6pt,-{Stealth[length=4pt]}},
@@ -155,13 +221,33 @@
     ({#2*\rk@trackspan},{-\rk@skewfrom*\rk@trackgap+0.18}) --
     ({#4*\rk@trackspan},{-\rk@skewto*\rk@trackgap-0.18});%
 }
-\NewDocumentCommand{\watermark}{m m m}{%
-  \rk@findtrack{#1}%
+\NewDocumentCommand{\watermark}{O{} m m m}{%
+  \def\rk@watermarklabelposition{below}\def\rk@watermarklabelwidth{}\def\rk@watermarklabelanchor{}%
+  \pgfkeys{/reportkit/timeline/watermark,#1}%
+  \rk@findtrack{#2}%
   \draw[LinkBlue,line width=.8pt]
-    ({#2*\rk@trackspan},{-\the\rk@trackquery*\rk@trackgap-0.42}) --
-    ({#2*\rk@trackspan},{-\the\rk@trackquery*\rk@trackgap+0.42});%
-  \node[rk transition label,below=2pt] at
-    ({#2*\rk@trackspan},{-\the\rk@trackquery*\rk@trackgap-0.42}) {#3};%
+    ({#3*\rk@trackspan},{-\the\rk@trackquery*\rk@trackgap-0.42}) --
+    ({#3*\rk@trackspan},{-\the\rk@trackquery*\rk@trackgap+0.42});%
+  \tikzset{rk watermark label/.style={rk transition label}}%
+  \expandafter\ifstrempty\expandafter{\rk@watermarklabelwidth}{}{\tikzset{rk watermark label/.append style={text width=\rk@watermarklabelwidth,align=center}}}%
+  \expandafter\ifstrempty\expandafter{\rk@watermarklabelanchor}{}{\tikzset{rk watermark label/.append style={anchor=\rk@watermarklabelanchor}}}%
+  \expandafter\ifstrequal\expandafter{\rk@watermarklabelposition}{above}{%
+    \node[rk watermark label,above=2pt] at
+      ({#3*\rk@trackspan},{-\the\rk@trackquery*\rk@trackgap+0.42}) {#4};%
+  }{\expandafter\ifstrequal\expandafter{\rk@watermarklabelposition}{below}{%
+    \node[rk watermark label,below=2pt] at
+      ({#3*\rk@trackspan},{-\the\rk@trackquery*\rk@trackgap-0.42}) {#4};%
+  }{\expandafter\ifstrequal\expandafter{\rk@watermarklabelposition}{left}{%
+    \node[rk watermark label,left=2pt] at
+      ({#3*\rk@trackspan},{-\the\rk@trackquery*\rk@trackgap}) {#4};%
+  }{\expandafter\ifstrequal\expandafter{\rk@watermarklabelposition}{right}{%
+    \node[rk watermark label,right=2pt] at
+      ({#3*\rk@trackspan},{-\the\rk@trackquery*\rk@trackgap}) {#4};%
+  }{%
+    \PackageError{reportkit-grammar}{Invalid watermark label-position '\rk@watermarklabelposition'}{Use above, below, left, or right.}%
+    \node[rk watermark label,below=2pt] at
+      ({#3*\rk@trackspan},{-\the\rk@trackquery*\rk@trackgap-0.42}) {#4};%
+  }}}}%
 }
 \makeatother
 

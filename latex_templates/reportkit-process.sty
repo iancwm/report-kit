@@ -10,11 +10,23 @@
 \newcommand{\rk@flowdirection}{horizontal}
 \newcommand{\rk@flowspacing}{3.05}
 \newcount\rk@flowindex
+\newcommand{\rk@flowroute}{straight}
+\newcommand{\rk@flowlabelposition}{above}
+\newcommand{\rk@flowlabel}{}
 \pgfkeys{
   /reportkit/flow/.is family,
   /reportkit/flow,
   direction/.store in=\rk@flowdirection,
   step spacing/.store in=\rk@flowspacing,
+}
+\pgfkeys{
+  /reportkit/flow/edge/.is family,
+  /reportkit/flow/edge,
+  route/.store in=\rk@flowroute,
+  routing/.store in=\rk@flowroute,
+  label-position/.store in=\rk@flowlabelposition,
+  label/.store in=\rk@flowlabel,
+  .unknown/.code={\PackageError{reportkit-process}{Unknown reportflow edge key '\pgfkeyscurrentname'}{Use route=straight, bend left=<degrees>, bend right=<degrees>, orthogonal, label-position=above|below|left|right, or label=.}}
 }
 
 % A flow's declaration order is its primary reading order.  Edges are
@@ -34,7 +46,56 @@
   }%
   \advance\rk@flowindex by 1\relax
 }
-\NewDocumentCommand{\flowedge}{O{} m m}{\RKEdge[#1]{flow}{#2}{#3}}
+% Explicit positions deliberately complement, rather than replace, declaration
+% order. They are useful for small deterministic DAG branches.
+\NewDocumentCommand{\stepat}{O{} m m m m}{%
+  \node[rk node,#1] (#2) at (#3,#4) {\strut #5};%
+}
+\newcommand{\rk@flow@validlabelposition}{%
+  \expandafter\ifstrequal\expandafter{\rk@flowlabelposition}{above}{}{%
+  \expandafter\ifstrequal\expandafter{\rk@flowlabelposition}{below}{}{%
+  \expandafter\ifstrequal\expandafter{\rk@flowlabelposition}{left}{}{%
+  \expandafter\ifstrequal\expandafter{\rk@flowlabelposition}{right}{}{%
+    \PackageError{reportkit-process}{Invalid reportflow label-position '\rk@flowlabelposition'}{Use above, below, left, or right.}\def\rk@flowlabelposition{above}%
+  }}}}%
+}
+\ExplSyntaxOn
+\prg_new_conditional:Npnn \rk_flow_route_bend:n #1 { T, F, TF }
+  {
+    \regex_match:nnTF
+      { \A \s* bend \s+ (?: left | right ) \s* = \s* [-+]? (?: [0-9]+ | [0-9]* \. [0-9]+ ) \s* \Z }
+      {#1} { \prg_return_true: } { \prg_return_false: }
+  }
+\cs_new_eq:NN \rk@flow@routebendTF \rk_flow_route_bend:nTF
+\ExplSyntaxOff
+% The route helper takes the label separately because the historical optional
+% argument of \flowedge is a label. Keep that compact form source-compatible.
+\newcommand{\rk@flow@draw}[3]{%
+  \rk@flow@validlabelposition
+  \expandafter\ifstrequal\expandafter{\rk@flowroute}{straight}{%
+    \ifstrempty{#3}{\draw[rk edge flow] (#1) -- (#2);}{\draw[rk edge flow] (#1) -- node[midway,rk edge label,\rk@flowlabelposition] {#3} (#2);}%
+  }{\expandafter\ifstrequal\expandafter{\rk@flowroute}{orthogonal}{%
+    \ifstrempty{#3}{\draw[rk edge flow] (#1) |- (#2);}{\draw[rk edge flow] (#1) |- node[midway,rk edge label,\rk@flowlabelposition] {#3} (#2);}%
+  }{%
+    \edef\rk@flowroutevalue{\rk@flowroute}%
+    \expandafter\rk@flow@routebendTF\expandafter{\rk@flowroutevalue}{%
+      \ifstrempty{#3}{%
+        \edef\rk@flow@routedcommand{\noexpand\draw[rk edge flow] (#1) to[\rk@flowroute] (#2);}\rk@flow@routedcommand
+      }{%
+        \edef\rk@flow@routedcommand{\noexpand\draw[rk edge flow] (#1) to[\rk@flowroute] node[midway,rk edge label,\rk@flowlabelposition] {\unexpanded{#3}} (#2);}\rk@flow@routedcommand
+      }%
+    }{%
+      \PackageError{reportkit-process}{Unknown reportflow route '\rk@flowroute'}{Use route=straight, bend left=<degrees>, bend right=<degrees>, or orthogonal.}%
+      \ifstrempty{#3}{\draw[rk edge flow] (#1) -- (#2);}{\draw[rk edge flow] (#1) -- node[midway,rk edge label,\rk@flowlabelposition] {#3} (#2);}%
+    }%
+  }}%
+}
+\NewDocumentCommand{\flowedge}{O{} m m}{%
+  \def\rk@flowroute{straight}\def\rk@flowlabelposition{above}\def\rk@flowlabel{}%
+  \in@{=}{#1}%
+  \ifin@\pgfkeys{/reportkit/flow/edge,#1}\else\def\rk@flowlabel{#1}\fi
+  \rk@flow@draw{#2}{#3}{\rk@flowlabel}%
+}
 \NewDocumentCommand{\branch}{O{} m m m}{%
   \flowedge[#1]{#2}{#3}\flowedge[#1]{#2}{#4}%
 }
@@ -45,6 +106,10 @@
 \newcommand{\rk@swimlanes}{}
 \newcommand{\rk@lanespacing}{1.32}
 \newcommand{\rk@lanewidth}{12.2}
+\newcommand{\rk@lanecolumns}{}
+\newcommand{\rk@lanenodewidth}{20mm}
+\newcommand{\rk@lanecolumnspacing}{}
+\newcommand{\rk@labelgutter}{0.28}
 \newcount\rk@laneindex
 \newcount\rk@lanequery
 \pgfkeys{
@@ -53,6 +118,10 @@
   lanes/.store in=\rk@swimlanes,
   lane spacing/.store in=\rk@lanespacing,
   width/.store in=\rk@lanewidth,
+  columns/.store in=\rk@lanecolumns,
+  node width/.store in=\rk@lanenodewidth,
+  column spacing/.store in=\rk@lanecolumnspacing,
+  label gutter/.store in=\rk@labelgutter,
 }
 \makeatletter
 \newcommand{\rk@drawlanes}{%
@@ -61,7 +130,7 @@
     \draw[Hairline,line width=.5pt] (0,{-\the\rk@laneindex*\rk@lanespacing-0.5*\rk@lanespacing}) --
       (\rk@lanewidth,{-\the\rk@laneindex*\rk@lanespacing-0.5*\rk@lanespacing});%
     \node[anchor=east,font=\sffamily\fontsize{7.2}{8.5}\selectfont,text=Muted]
-      at (-0.28,{-\the\rk@laneindex*\rk@lanespacing}) {\rk@lanename};%
+      at (-\rk@labelgutter,{-\the\rk@laneindex*\rk@lanespacing}) {\rk@lanename};%
     \advance\rk@laneindex by 1\relax
   }%
   \draw[Hairline,line width=.5pt] (0,{0.5*\rk@lanespacing}) -- (\rk@lanewidth,{0.5*\rk@lanespacing});%
@@ -85,7 +154,7 @@
 \makeatletter
 \NewDocumentEnvironment{reportswimlane}{O{}}{%
   \begingroup
-  \pgfkeys{/reportkit/swimlane,lanes={},lane spacing=1.32,width=12.2,#1}%
+  \pgfkeys{/reportkit/swimlane,lanes={},lane spacing=1.32,width=12.2,columns={},node width=20mm,column spacing={},label gutter=.28,#1}%
   \ifstrempty{\rk@swimlanes}{%
     \PackageError{reportkit-process}{reportswimlane requires lanes={...}}{Provide one or more comma-separated lane names.}%
   }{}%
@@ -94,8 +163,32 @@
 % #1 id, #2 lane name, #3 label, #4 one-based process column.
 \NewDocumentCommand{\lanestep}{m m m m}{%
   \rk@findlane{#2}%
-  \node[rk node,text width=20mm,minimum height=8mm] (#1)
-    at ({#4*2.55},{-\the\rk@lanequery*\rk@lanespacing}) {\strut #3};%
+  \expandafter\ifstrempty\expandafter{\rk@lanecolumns}{%
+    % Historical coordinates remain exact unless authors opt into columns=.
+    \node[rk node,text width=\rk@lanenodewidth,minimum height=8mm] (#1)
+      at ({#4*2.55},{-\the\rk@lanequery*\rk@lanespacing}) {\strut #3};%
+  }{%
+    \ifnum#4>\rk@lanecolumns\relax
+      \PackageError{reportkit-process}{Swimlane columns=\rk@lanecolumns is below declared step column #4}{Increase columns to at least #4.}%
+    \fi
+    % rk node adds 5pt horizontal padding on either side of its usable width.
+    \pgfmathsetlengthmacro{\rk@laneouterwidth}{\rk@lanenodewidth + 10pt}%
+    \expandafter\ifstrempty\expandafter{\rk@lanecolumnspacing}{%
+      \pgfmathsetmacro{\rk@lanestepwidth}{(\rk@lanewidth-\rk@laneouterwidth/1cm)/(\rk@lanecolumns-1)}%
+    }{%
+      \pgfmathsetmacro{\rk@lanemaxstep}{(\rk@lanewidth-\rk@laneouterwidth/1cm)/(\rk@lanecolumns-1)}%
+      \pgfmathsetmacro{\rk@lanespacingvalue}{\rk@lanecolumnspacing/1cm}%
+      \pgfmathparse{\rk@lanespacingvalue <= \rk@lanemaxstep}%
+      \ifdim\pgfmathresult pt=1pt
+        \let\rk@lanestepwidth\rk@lanespacingvalue
+      \else
+        \PackageError{reportkit-process}{Swimlane column spacing \rk@lanecolumnspacing exceeds declared width}{Reduce column spacing so all declared nodes fit within width=\rk@lanewidth.}%
+        \let\rk@lanestepwidth\rk@lanemaxstep
+      \fi
+    }%
+    \node[rk node,text width=\rk@lanenodewidth,minimum height=8mm] (#1)
+      at ({0.5*\rk@laneouterwidth/1cm+(#4-1)*\rk@lanestepwidth},{-\the\rk@lanequery*\rk@lanespacing}) {\strut #3};%
+  }%
 }
 \NewDocumentCommand{\handoff}{O{} m m}{\RKEdge[#1]{handoff}{#2}{#3}}
 \NewDocumentCommand{\laneflow}{O{} m m}{\RKEdge[#1]{flow}{#2}{#3}}
