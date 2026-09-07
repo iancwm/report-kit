@@ -23,7 +23,7 @@ Before editing anything, know which side of the line you are on:
 | `python_scripts/` — viz, doctor, licence/config loaders | `fragments/` — LaTeX diagram fragments |
 | `publication_pipeline/` — build/validate/inspect harness | `assets/` — cover art, images, source data |
 | `shell_scripts/`, `scripts/`, `.githooks/` | `figures/` — generated chart PDF/PNG |
-| `references/`, `documentation/`, `metadata/` | `publication.yaml` — title, author, version, identity |
+| `references/`, `metadata/` | `publication.yaml` — title, author, version, identity |
 | `tests/` — engine regression suites | `build/`, `output/` — build artefacts, QA logs, final PDF |
 | `font_data/` | `reportkit.lock` — pinned engine ref + toolchain versions |
 

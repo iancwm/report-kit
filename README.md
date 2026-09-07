@@ -88,7 +88,7 @@ See [`publication_pipeline/README.md`](publication_pipeline/README.md).
 | Code examples and third-party assets | Separately licensed; see `THIRD-PARTY-NOTICES.md` |
 
 The machine-readable defaults are in `metadata/licenses.yml`; contributor
-requirements are documented in `documentation/licensing.md`.
+requirements are documented in `references/licensing.md`.
 
 ## 7. scripts/ and .githooks/
 - `scripts/acceptance_check.sh` — compiles the legacy and visual-grammar
