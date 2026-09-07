@@ -225,3 +225,14 @@ docs/
 # Subagent-driven-development scratch workspace (ledgers, briefs, review
 # packages) — per-plan, regenerated, not part of the shipped skill.
 .superpowers/
+
+# Publication content belongs in a consumer project, not in this engine
+# repository. See references/repository-boundary.md. Root-anchored so
+# publication_pipeline/example_publication/ and latex_templates/examples/
+# stay tracked.
+/manuscript/
+/fragments/
+/assets/
+/output/
+/publication.yaml
+/reportkit.lock

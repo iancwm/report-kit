@@ -13,7 +13,9 @@ Git tags are the reproducible release identifiers. Check `reportkit.cls` when th
 
 ## Set up the report
 
-Keep generated TeX files and figures outside this repository. From a clone of this skill, bootstrap a separate report directory:
+**This repository is a reusable engine, not a place for report content.** Keep generated TeX files, figures, and any publication's manuscript outside this repository — in a separate report or publication directory. See [references/repository-boundary.md](references/repository-boundary.md) for the full boundary and guardrails.
+
+From a clone of this skill, bootstrap a separate report directory:
 
 ```bash
 git clone https://github.com/iancwm/report-kit.git <skill-directory>
@@ -22,13 +24,24 @@ cd <report-directory>
 python3 reportkit_doctor.py
 ```
 
-The bootstrap script copies the required class, style files, and Python modules; creates `figures/`; and installs the bundled Libertinus fonts when needed. Trust the actual `MODE:` line:
+`bootstrap.sh` refuses to run if `<report-directory>` resolves inside `<skill-directory>` — pick a directory outside the clone. It copies the required class, style files, and Python modules; scaffolds `manuscript/`, `fragments/`, `assets/`, `figures/`, `build/`, `output/`, and a `publication.yaml` stub; and installs the bundled Libertinus fonts when needed. Trust the actual `MODE:` line:
 
 - `FULL BUILD`: TeX and ReportKit's required fonts work; a compiled PDF may be delivered.
 - `SOURCE BUILD + FIGURES`: create source and figures, but do not claim that the PDF compiled.
 - `SOURCE BUILD`: create a portable source bundle only.
 
-Copy `latex_templates/REPORT_TEMPLATE.tex` to `<report-directory>/report.tex` to start. Use `lualatex` for Unicode content outside pdfLaTeX's T1 encoding. For environment or font problems, read [references/troubleshooting.md](references/troubleshooting.md) and [references/font-setup.md](references/font-setup.md).
+For a single short report, copy `latex_templates/REPORT_TEMPLATE.tex` to `<report-directory>/report.tex` to start. Use `lualatex` for Unicode content outside pdfLaTeX's T1 encoding. For environment or font problems, read [references/troubleshooting.md](references/troubleshooting.md) and [references/font-setup.md](references/font-setup.md).
+
+### Long-form publications
+
+For a multi-chapter publication (a guide, book, or report assembled from several manuscript files), write Markdown into `<report-directory>/manuscript/` (listed in `manuscript/order.txt`), place diagram fragments in `fragments/`, and fill in `<report-directory>/publication.yaml` with at least a `title`. Then build with the pipeline instead of compiling `report.tex` directly:
+
+```bash
+python3 <skill-directory>/publication_pipeline/scripts/publication_build.py \
+  --mode combined --source-root <report-directory> --output-root <report-directory>/build
+```
+
+This never writes into `<skill-directory>` — every build artefact, including `reportkit.lock` (the pinned ReportKit ref and toolchain versions), lands under `<report-directory>`. See [`publication_pipeline/README.md`](publication_pipeline/README.md) for the section-build and validation commands.
 
 ## Write for the decision
 

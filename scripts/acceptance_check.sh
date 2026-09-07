@@ -66,9 +66,6 @@ TEST_PYTHON="${REPORTKIT_TEST_PYTHON:-}"
 if [[ -z "$TEST_PYTHON" && -x "$ROOT/build/.venv-tests/bin/python" ]]; then
   TEST_PYTHON="$ROOT/build/.venv-tests/bin/python"
 fi
-if [[ -z "$TEST_PYTHON" && -x "$ROOT/data_engineering_guide/build/.venv/bin/python" ]]; then
-  TEST_PYTHON="$ROOT/data_engineering_guide/build/.venv/bin/python"
-fi
 if [[ -n "$TEST_PYTHON" ]]; then
   if ! "$TEST_PYTHON" -m pytest "$ROOT/tests" -q > "$WORKDIR/pytest.log" 2>&1; then
     echo "FAIL: rendered-geometry tests failed:" >&2

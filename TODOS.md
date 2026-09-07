@@ -22,15 +22,22 @@ The current working tree now contains the ReportKit-side hardening slice:
 strict guide diagnostics, static validation, atomic page rendering, run
 manifests, locked PyMuPDF tooling, long-form/Pandoc packages, PDF metadata and
 language, diagram sizing and alternatives, the three C2 primitives, licensing
-metadata/notices, and rendered-geometry regression tests. The guide content
-branch remains separate; the merge order is documented in
-`data_engineering_guide/README.md`.
+metadata/notices, and rendered-geometry regression tests.
+
+**2026-09-07 update:** the harness was renamed `data_engineering_guide/` →
+`publication_pipeline/`, stripped of every book-specific default, and wired
+to build against an external `--source-root`/`--output-root`. The
+branch-merge integration model described below is retired — see
+[references/repository-boundary.md](references/repository-boundary.md) and
+[references/migrating-content-branches.md](references/migrating-content-branches.md).
+The guide content branch (`data-engineering-guide-content`) still needs to be
+extracted into its own consumer repository; it has not been deleted.
 
 ---
 
 ## P0 — Nothing can ship until these are resolved
 
-### P0-1. No branch can build the guide — resolved by documented integration model
+### P0-1. No branch can build the guide — resolved by extracting content to a consumer repo, not by merging branches
 
 The manuscript and the build scripts live on different branches, and neither
 branch has both:
@@ -43,14 +50,27 @@ branch has both:
 | `data-engineering-guide-content` | 13 | 14 | 0 | 3 ahead, 0 behind |
 
 `data-engineering-guide-content` has the content and no builder.
-`data-engineering-guide` has the builder and no content. **The Data
-Engineering Guide currently cannot be built from any single checkout.**
+`data-engineering-guide` has the builder and no content.
 
-The integration model is now documented in `data_engineering_guide/README.md`:
-assemble the tooling tree with `data-engineering-guide-content`, validate the
-combined source tree, and use `combine.sh` as the release build. The tooling
-checkout also carries a minimal fixture so the pipeline is exercised without
-pretending the manuscript is present.
+**This is no longer resolved by merging branches together.** The previous
+resolution — documented in `data_engineering_guide/README.md` — instructed
+assembling the tooling tree with `data-engineering-guide-content` inside one
+checkout. That is the long-lived-content-branch pattern
+[references/repository-boundary.md](references/repository-boundary.md) now
+forbids: report-kit is a reusable engine, and a publication's manuscript does
+not belong in it, on any branch.
+
+The correct resolution is to **extract `data-engineering-guide-content`'s
+manuscript and fragments into their own consumer repository**, add the
+structure `publication_build.py` expects (`publication.yaml`, etc.), and
+build it against a report-kit clone with `--source-root`/`--output-root`. The
+recipe is in
+[references/migrating-content-branches.md](references/migrating-content-branches.md).
+This has not been done yet — the branch still exists, unextracted. The
+harness itself (`publication_pipeline/`) already builds any external
+manuscript this way; it carries its own minimal fixture
+(`example_publication/`) so the pipeline is exercised in this repo's tests
+without pretending a real manuscript is present here.
 
 ### P0-2. `tooling` is 17 commits behind `main` and holds a stale script set
 
