@@ -1,6 +1,6 @@
 % ReportKit v1.4.0 -- semantic process and relationship primitives
 \NeedsTeXFormat{LaTeX2e}
-\ProvidesPackage{reportkit-process}[2026/09/04 v1.4.0 ReportKit process diagrams]
+\ProvidesPackage{reportkit-process}[2026/09/06 v1.5.0 ReportKit process diagrams]
 \RequirePackage{xparse}
 \RequirePackage{pgfkeys}
 \RequirePackage{etoolbox}
@@ -101,20 +101,28 @@
 \NewDocumentCommand{\laneflow}{O{} m m}{\RKEdge[#1]{flow}{#2}{#3}}
 
 \newcommand{\rk@networklayout}{grid}
+% Grid spacing must exceed the rendered width of an rk node. The default node
+% is 28mm of text plus 5pt inner padding on each side (89.370pt); the former
+% 3.15cm step was fractionally narrower and caused touching nodes to reverse
+% pgf's edge-clipping direction without producing a TeX diagnostic.
+\newcommand{\rk@networkxstep}{3.9}
+\newcommand{\rk@networkystep}{2.25}
 \newcount\rk@networkindex
 \pgfkeys{
   /reportkit/network/.is family,
   /reportkit/network,
   layout/.store in=\rk@networklayout,
+  x spacing/.store in=\rk@networkxstep,
+  y spacing/.store in=\rk@networkystep,
 }
 \NewDocumentEnvironment{reportnetwork}{O{}}{%
-  \begingroup\pgfkeys{/reportkit/network,layout=grid,#1}\rk@networkindex=0\relax
+  \begingroup\pgfkeys{/reportkit/network,layout=grid,x spacing=3.9,y spacing=2.25,#1}\rk@networkindex=0\relax
 }{\endgroup}
 \NewDocumentCommand{\networknode}{O{} m m}{%
   \ifstrequal{\rk@networklayout}{radial}{%
     \node[rk node,#1] (#2) at ({3.5*cos(90-\the\rk@networkindex*60)},{3.5*sin(90-\the\rk@networkindex*60)}) {\strut #3};%
   }{%
-    \node[rk node,#1] (#2) at ({mod(\the\rk@networkindex,4)*3.15},{-floor(\the\rk@networkindex/4)*2.25}) {\strut #3};%
+    \node[rk node,#1] (#2) at ({mod(\the\rk@networkindex,4)*\rk@networkxstep},{-floor(\the\rk@networkindex/4)*\rk@networkystep}) {\strut #3};%
   }%
   \advance\rk@networkindex by 1\relax
 }

@@ -6,7 +6,7 @@
 %   * node labels are native LaTeX text with align=center and explicit \\ breaks;
 %   * dashed lines are reserved for typed handoff/optional semantics.
 \NeedsTeXFormat{LaTeX2e}
-\ProvidesPackage{reportkit-diagrams}[2026/09/04 v1.4.0 ReportKit diagrams]
+\ProvidesPackage{reportkit-diagrams}[2026/09/06 v1.5.0 ReportKit diagrams]
 \RequirePackage{tikz}
 \usetikzlibrary{arrows.meta,positioning,calc,fit,backgrounds}
 \RequirePackage{xparse}
@@ -14,6 +14,7 @@
 \RequirePackage{needspace}
 \RequirePackage{caption}
 \RequirePackage{etoolbox}
+\RequirePackage{pdftexcmds}
 
 % -----------------------------------------------------------------------------
 % Common semantic styles
@@ -53,6 +54,10 @@
 \newcommand{\rk@diagramsource}{Conceptual diagram.}
 \newcommand{\rk@diagramdescription}{}
 \newcommand{\rk@diagramminspace}{0.27\textheight}
+% Optional figure-level sizing. If both are supplied, width= wins over scale=.
+\newcommand{\rk@diagramwidth}{}
+\newcommand{\rk@diagramscale}{}
+\newsavebox{\rk@diagrambox}
 
 \pgfkeys{
   /reportkit/diagram/.is family,
@@ -63,6 +68,53 @@
   source/.store in=\rk@diagramsource,
   description/.store in=\rk@diagramdescription,
   minspace/.store in=\rk@diagramminspace,
+  width/.store in=\rk@diagramwidth,
+  scale/.store in=\rk@diagramscale,
+}
+
+% Emit a PDF marked-content span without adding a system-level dependency.
+% accsupp is not available in every supported TinyTeX installation; the
+% primitive is sufficient for the plain-text descriptions ReportKit accepts.
+\newcommand{\rk@actualtextbegin}[1]{%
+  \begingroup
+  % Keep ordinary descriptions as readable PDF strings so inspection tools can
+  % find them directly. Parentheses are valid prose punctuation in guide alt
+  % text, so switch those cases to a hex string rather than corrupting the PDF
+  % literal; the decoded PDF alternative is identical.
+  \edef\rk@actualtextvalue{\expandafter\detokenize\expandafter{#1}}%
+  \edef\rk@actualtextprobe{\noexpand\in@{(}{\rk@actualtextvalue}}\rk@actualtextprobe
+  \ifin@
+    \edef\rk@actualtextvalue{\expandafter\pdf@escapehex\expandafter{\rk@actualtextvalue}}%
+    \ifPDFTeX
+      \pdfliteral direct { /Span << /ActualText <\rk@actualtextvalue> >> BDC }%
+    \else
+      \pdfextension literal direct { /Span << /ActualText <\rk@actualtextvalue> >> BDC }%
+    \fi
+  \else
+    \edef\rk@actualtextprobe{\noexpand\in@{)}{\rk@actualtextvalue}}\rk@actualtextprobe
+    \ifin@
+      \edef\rk@actualtextvalue{\expandafter\pdf@escapehex\expandafter{\rk@actualtextvalue}}%
+      \ifPDFTeX
+        \pdfliteral direct { /Span << /ActualText <\rk@actualtextvalue> >> BDC }%
+      \else
+        \pdfextension literal direct { /Span << /ActualText <\rk@actualtextvalue> >> BDC }%
+      \fi
+    \else
+      \ifPDFTeX
+        \pdfliteral direct { /Span << /ActualText (\rk@actualtextvalue) >> BDC }%
+      \else
+        \pdfextension literal direct { /Span << /ActualText (\rk@actualtextvalue) >> BDC }%
+      \fi
+    \fi
+  \fi
+  \endgroup
+}
+\newcommand{\rk@actualtextend}{%
+  \ifPDFTeX
+    \pdfliteral direct { EMC }%
+  \else
+    \pdfextension literal direct { EMC }%
+  \fi
 }
 
 % Non-floating by design. A conceptual diagram should not drift away from the
@@ -70,14 +122,33 @@
 % the next page when the remaining space is too small.
 \NewDocumentEnvironment{diagram}{O{}}{%
   \pgfkeys{/reportkit/diagram,
-    type=network,caption={},label={},source={Conceptual diagram.},description={},minspace={0.27\textheight},#1}%
+    type=network,caption={},label={},source={Conceptual diagram.},description={},
+    minspace={0.27\textheight},width={},scale={},#1}%
+  \typeout{ReportKit diagram type: \rk@diagramtype}%
   \par\Needspace{\rk@diagramminspace}%
   \vspace{4pt}%
-  \begin{center}
+  \begin{center}%
+  \begin{lrbox}{\rk@diagrambox}%
   \begin{tikzpicture}[x=1cm,y=1cm]
 }{%
-  \end{tikzpicture}
-  \end{center}
+  \end{tikzpicture}%
+  \end{lrbox}%
+  \ifx\rk@diagramdescription\@empty
+    \PackageWarning{reportkit-diagrams}{diagram has no description= and will expose no alt text}%
+  \else
+    \rk@actualtextbegin{\rk@diagramdescription}%
+  \fi
+  \ifx\rk@diagramwidth\@empty
+    \ifx\rk@diagramscale\@empty
+      \usebox{\rk@diagrambox}%
+    \else
+      \scalebox{\rk@diagramscale}{\usebox{\rk@diagrambox}}%
+    \fi
+  \else
+    \resizebox{\rk@diagramwidth}{!}{\usebox{\rk@diagrambox}}%
+  \fi
+  \ifx\rk@diagramdescription\@empty\else\rk@actualtextend\fi
+  \end{center}%
   \vspace{-2pt}%
   \ifstrempty{\rk@diagramcaption}{}{%
     \captionof{figure}{\rk@diagramcaption}%

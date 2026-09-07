@@ -1,8 +1,8 @@
-% ReportKit v1.1.0 -- core document class
+% ReportKit v1.5.0 -- core document class
 % Project-local technical report grammar.
 % v1.1 adds structural pagination guards for section openings and diagrams.
 \NeedsTeXFormat{LaTeX2e}
-\ProvidesClass{reportkit}[2026/09/04 v1.4.0 ReportKit technical report class]
+\ProvidesClass{reportkit}[2026/09/06 v1.5.0 ReportKit technical report class]
 
 \LoadClass[10pt,a4paper]{article}
 
@@ -59,7 +59,7 @@
 \definecolor{Deliverable}{HTML}{2C6E49}
 
 \color{Ink}
-\hypersetup{colorlinks=true,linkcolor=LinkBlue,urlcolor=LinkBlue,citecolor=LinkBlue,pdfborder={0 0 0}}
+\hypersetup{colorlinks=true,linkcolor=LinkBlue,urlcolor=LinkBlue,citecolor=LinkBlue,pdfborder={0 0 0},pdfdisplaydoctitle=true}
 \setlength{\parindent}{0pt}
 \setlength{\parskip}{4.5pt plus 1pt minus .5pt}
 \setlist{nosep,leftmargin=1.45em,topsep=3pt}
@@ -72,9 +72,35 @@
 \newcommand{\rk@leftheader}{REPORTKIT}
 \newcommand{\rk@footer}{Technical report}
 \newcommand{\rk@version}{v1.0}
+\newcommand{\rk@subject}{Technical report}
+\newcommand{\rk@keywords}{ReportKit, technical report}
+\newcommand{\rk@language}{en-US}
 \newcommand{\setreportkitleftheader}[1]{\renewcommand{\rk@leftheader}{#1}}
 \newcommand{\setreportkitfooter}[1]{\renewcommand{\rk@footer}{#1}}
 \newcommand{\setreportkitversion}[1]{\renewcommand{\rk@version}{#1}}
+\newcommand{\setreportkitsubject}[1]{\renewcommand{\rk@subject}{#1}}
+\newcommand{\setreportkitkeywords}[1]{\renewcommand{\rk@keywords}{#1}}
+\newcommand{\setreportkitlanguage}[1]{\renewcommand{\rk@language}{#1}}
+
+% Keep PDF metadata coupled to the document's normal title and author fields.
+% hyperref performs the necessary PDF-string sanitisation for bookmarks and
+% metadata, so callers can continue using ordinary LaTeX in \title/\author.
+\AtBeginDocument{%
+  \hypersetup{
+    pdftitle={\@title},
+    pdfauthor={\@author},
+    pdfsubject={\rk@subject},
+    pdfkeywords={\rk@keywords},
+    pdfdisplaydoctitle=true
+  }%
+  % Write the catalog language directly; pdflang support varies by hyperref
+  % engine, while the PDF catalog requirement is stable.
+  \ifPDFTeX
+    \pdfcatalog{/Lang (\rk@language)}%
+  \else
+    \pdfextension catalog {/Lang (\rk@language)}%
+  \fi
+}
 
 \setlength{\headheight}{19pt}
 \pagestyle{fancy}
@@ -148,5 +174,6 @@
 \RequirePackage{reportkit-boxes}
 \RequirePackage{reportkit-code}
 \RequirePackage{reportkit-diagrams}
+\RequirePackage{reportkit-grammar}
 
 \endinput

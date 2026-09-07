@@ -186,4 +186,42 @@ and description required of a report deliverable.
   \end{reportfunnel}
 \end{diagram}
 
+\section{State, comparison, and time}
+
+\begin{diagram}[type=state,width=\textwidth,caption={Task recovery states.},source={Conceptual diagram.},description={A scheduled task starts running, retries on failure, and ends in either a succeeded or a failed terminal state.}]
+  \begin{reportstate}
+    \state{sched}{Scheduled}
+    \state{run}{Running}
+    \terminalstate{ok}{Succeeded}
+    \terminalstate{fail}{Failed}
+    \transition{sched}{run}{start}
+    \transition{run}{ok}{complete}
+    \transition{run}{fail}{give up}
+    \selfloop{run}{retry}
+  \end{reportstate}
+\end{diagram}
+
+\begin{diagram}[type=comparison,width=\textwidth,caption={Join cardinality before and after.},source={Conceptual diagram.},description={One order row joined to three item rows becomes three rows, changing the grain from order to order item.}]
+  \begin{reportcompare}
+    \panel{before}{Before join}
+    \panelitem{before}{0}{one order row}
+    \panelitem{before}{1}{grain: order}
+    \panel{after}{After join}
+    \panelitem{after}{0}{three item rows}
+    \panelitem{after}{1}{grain: order item}
+    \transformarrow{join multiplies rows}
+  \end{reportcompare}
+\end{diagram}
+
+\begin{diagram}[type=timeline,width=\textwidth,caption={Event time versus processing time.},source={Conceptual diagram.},description={Two events occur early in event time but are processed later, and a watermark closes the window before the second event is handled.}]
+  \begin{reporttimeline}[tracks={Event time,Processing time}]
+    \event{Event time}{0.15}{A}
+    \event{Event time}{0.35}{B}
+    \event{Processing time}{0.45}{A}
+    \event{Processing time}{0.80}{B}
+    \skewarrow{Event time}{0.15}{Processing time}{0.45}
+    \watermark{Processing time}{0.65}{watermark}
+  \end{reporttimeline}
+\end{diagram}
+
 \end{document}

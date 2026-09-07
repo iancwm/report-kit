@@ -13,4 +13,22 @@ if echo "$changed" | grep -qE '^(latex_templates|python_scripts)/'; then
   fi
 fi
 
+if echo "$changed" | grep -qE '^data_engineering_guide/(scripts|manuscript|fragments)/'; then
+  guide_root="$ROOT/data_engineering_guide"
+  if [[ -f "$guide_root/manuscript/order.txt" ]]; then
+    echo "pre-commit: guide source changed -- running static guide validation"
+    if ! python3 "$guide_root/scripts/validate-guide.py"; then
+      status=1
+    fi
+  else
+    echo "pre-commit: guide harness changed; source validation deferred until the content branch is assembled"
+  fi
+fi
+
+if echo "$changed" | grep -qE '^(metadata/licenses\.yml|python_scripts/license_metadata\.py)$'; then
+  if ! python3 "$ROOT/python_scripts/license_metadata.py" "$ROOT/metadata/licenses.yml"; then
+    status=1
+  fi
+fi
+
 exit "$status"

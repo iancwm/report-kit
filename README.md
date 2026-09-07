@@ -8,10 +8,11 @@ clones this repo and follows it directly. This file is the human-facing
 overview.
 
 ## 1. latex_templates/
-- `reportkit.cls` (v1.4.0), `reportkit-boxes.sty`, `reportkit-code.sty`,
-  `reportkit-diagrams.sty` plus its semantic visual-grammar modules — the core
-  document class and style files. The public diagram DSL covers positioning,
-  risk, process, architecture, hierarchy, planning, and strategy visuals;
+- `reportkit.cls` (v1.5.0), `reportkit-boxes.sty`, `reportkit-code.sty`,
+  `reportkit-diagrams.sty`, `reportkit-grammar.sty`, `reportkit-pandoc.sty`,
+  and `reportkit-longform.sty` — the core document class and style files. The
+  public diagram DSL covers positioning, risk, process, architecture,
+  hierarchy, planning, strategy, state, comparison, and timeline visuals;
   existing low-level primitives remain available for custom composition.
 - `REPORT_TEMPLATE.tex` — minimal report skeleton.
 - `examples/{primitive_acceptance_test,visual_grammar_acceptance_test}.tex` —
@@ -45,6 +46,17 @@ overview.
   former execution guide, and linked from `SKILL.md` on demand rather than
   loaded up front, so a session's context only grows with the specific
   problem it's actually hitting.
+
+## Licensing scope
+
+| Scope | Default licence |
+|---|---|
+| Source code and build tooling | GPL-3.0-or-later (`LICENSE`) |
+| Original publication prose and diagrams | CC BY 4.0 (`CONTENT-LICENSE.md`) |
+| Code examples and third-party assets | Separately licensed; see `THIRD-PARTY-NOTICES.md` |
+
+The machine-readable defaults are in `metadata/licenses.yml`; contributor
+requirements are documented in `documentation/licensing.md`.
 
 ## 6. scripts/ and .githooks/
 - `scripts/acceptance_check.sh` — compiles the legacy and visual-grammar

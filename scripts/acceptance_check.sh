@@ -22,6 +22,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TEST_TEXES=(
   "latex_templates/examples/primitive_acceptance_test.tex"
   "latex_templates/examples/visual_grammar_acceptance_test.tex"
+  "latex_templates/examples/longform_acceptance_test.tex"
 )
 
 echo "== ReportKit acceptance check =="
@@ -56,6 +57,32 @@ import reportkit_doctor
   fi
 else
   echo "WARN: python3 not found -- skipping python_scripts/ import check (not blocking)." >&2
+fi
+
+# Rendered-geometry tests catch defects that leave no trace in a TeX log. The
+# reportnetwork collision compiled successfully while reversing every arrow,
+# so log-grep alone cannot be the visual grammar gate.
+TEST_PYTHON="${REPORTKIT_TEST_PYTHON:-}"
+if [[ -z "$TEST_PYTHON" && -x "$ROOT/build/.venv-tests/bin/python" ]]; then
+  TEST_PYTHON="$ROOT/build/.venv-tests/bin/python"
+fi
+if [[ -z "$TEST_PYTHON" && -x "$ROOT/data_engineering_guide/build/.venv/bin/python" ]]; then
+  TEST_PYTHON="$ROOT/data_engineering_guide/build/.venv/bin/python"
+fi
+if [[ -n "$TEST_PYTHON" ]]; then
+  if ! "$TEST_PYTHON" -m pytest "$ROOT/tests" -q > "$WORKDIR/pytest.log" 2>&1; then
+    echo "FAIL: rendered-geometry tests failed:" >&2
+    tail -40 "$WORKDIR/pytest.log" >&2
+    hit=1
+  else
+    echo "-- rendered-geometry tests: OK --"
+  fi
+elif [[ "$require_tex" -eq 1 ]]; then
+  echo "FAIL: strict acceptance requires the geometry-test environment." >&2
+  echo "      Install it: python3 -m venv build/.venv-tests && build/.venv-tests/bin/pip install -r tests/requirements.txt" >&2
+  hit=1
+else
+  echo "WARN: no geometry-test environment -- skipping rendered-geometry tests (not blocking)." >&2
 fi
 
 cp "$ROOT"/latex_templates/*.cls "$ROOT"/latex_templates/*.sty "$WORKDIR"/

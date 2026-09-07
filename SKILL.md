@@ -59,6 +59,9 @@ Choose a visual by the question the reader needs answered, not by decoration. Na
 | How does evidence grow in rigor? | `evidencestack` |
 | What repeats without a true endpoint? | `reportcycle` |
 | How does a conceptual population narrow? | `reportfunnel` |
+| How does something move between states, and what happens on failure? | `reportstate` |
+| What changed between two arrangements? | `reportcompare` |
+| When did things happen, on more than one clock? | `reporttimeline` |
 | What do measured values show? | `reportkit_viz.py` |
 
 The distinction is strict:

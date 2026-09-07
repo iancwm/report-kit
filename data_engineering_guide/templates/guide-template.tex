@@ -1,0 +1,42 @@
+\documentclass{reportkit}
+\input{metadata.tex}
+\usepackage{reportkit-longform}
+\setcounter{secnumdepth}{-1}
+\setreportkitleftheader{\GuideLeftHeader}
+\setreportkitfooter{\GuideFooter}
+\setreportkitversion{\GuideVersion}
+\setreportkitsubject{\GuideSubject}
+\setreportkitkeywords{\GuideKeywords}
+\title{\GuideTitle}
+\author{\GuideAuthor}
+\date{\GuideDate}
+
+\newcommand{\GuidePublicationDetails}{%
+  \thispagestyle{empty}\phantomsection
+  \pdfbookmark[1]{Publication details}{publication-details}
+  \vspace*{12mm}{\sffamily\bfseries\fontsize{18}{22}\selectfont\color{Ink}\GuideSubtitle\par}
+  \vspace{6mm}{\sffamily\bfseries Publication and licensing\par}
+  \vspace{2mm}Original prose and diagrams in this publication are licensed under
+  \href{\GuideContentLicenseURL}{\GuideContentLicense}. Code examples and
+  third-party assets retain their separate licences.\par
+  \vspace{6mm}{\sffamily\bfseries Disclaimer\par}
+  \vspace{2mm}\GuideDisclaimer\par\vfill
+  \noindent\RKPath{\GuideProjectURL}\par
+}
+
+\begin{document}
+\ifGuideHasCover
+  \clearpage\thispagestyle{empty}\noindent
+  \makebox[\textwidth][c]{\includegraphics[page=1,width=\textwidth,height=\textheight,keepaspectratio]{\GuideCoverPath}}\clearpage
+\fi
+\ifGuideIsCombined
+  \RKFrontMatterBegin
+  \RKTitlePage[\GuideSubtitle]{\GuideTitle}
+  \GuidePublicationDetails
+  \RKContents
+  \RKMainMatterBegin
+\else
+  \maketitle
+\fi
+\input{body.tex}
+\end{document}

@@ -1,0 +1,30 @@
+\documentclass{reportkit}
+\usepackage{reportkit-longform}
+
+\setreportkitleftheader{REPORTKIT / LONGFORM TEST}
+\setreportkitfooter{Long-form acceptance test}
+\setreportkitversion{v1.5.0}
+\setreportkitsubject{Long-form capability acceptance}
+\setreportkitkeywords{ReportKit, long-form, contents}
+\title{ReportKit long-form acceptance test}
+\author{Test build}
+\date{6 September 2026}
+
+\begin{document}
+\RKFrontMatterBegin
+\RKTitlePage[Contents, metadata, and pagination]{ReportKit long-form}
+\RKContents
+\RKMainMatterBegin
+
+\section{First reading unit}
+This section starts on a fresh page and uses a breakable path:
+\RKPath{s3://example-bucket/a/long/path/with/a/key=value/and_more/data.parquet}.
+
+\begin{RKShortListing}[Short listing]
+The listing lead-in and its short body stay together.
+\end{RKShortListing}
+
+\section{Second reading unit}
+The second heading also begins a fresh reading unit.\footnote{A normal footnote remains supported.}
+
+\end{document}

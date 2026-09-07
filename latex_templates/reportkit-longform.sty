@@ -1,0 +1,73 @@
+% ReportKit long-form document helpers: front matter, contents, pagination,
+% breakable technical paths, and compact-listing controls.
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{reportkit-longform}[2026/09/06 v1.5.0 ReportKit long-form support]
+\RequirePackage{reportkit-pandoc}
+\RequirePackage{titlesec}
+\RequirePackage{fancyhdr}
+\RequirePackage{needspace}
+\RequirePackage{xparse}
+
+\makeatletter
+\newif\ifrk@longform@frontmatter
+\rk@longform@frontmatterfalse
+
+% Major sections start a fresh reading unit. The explicit mark update is
+% important: fancyhdr must not name a section before its heading begins.
+\pretocmd{\section}{\clearpage}{}{}
+\renewcommand{\contentsname}{Contents}
+\setcounter{tocdepth}{1}
+\newcommand{\RKContents}{%
+  \clearpage\phantomsection\pdfbookmark[1]{Contents}{reportkit-contents}%
+  \thispagestyle{fancy}%
+  \begingroup\sffamily\tableofcontents\endgroup\clearpage
+}
+
+% Use these around publication preliminaries and the main matter. They are
+% intentionally explicit so a combined build can place a rights page between
+% the title and contents without class-level magic.
+\newcommand{\RKFrontMatterBegin}{%
+  \clearpage\pagenumbering{roman}\setcounter{page}{1}%
+  \pagestyle{fancy}%
+}
+\newcommand{\RKMainMatterBegin}{%
+  \clearpage\pagenumbering{arabic}\setcounter{page}{1}%
+  \pagestyle{fancy}%
+}
+
+\NewDocumentCommand{\RKTitlePage}{O{} m}{%
+  \thispagestyle{empty}%
+  \begin{center}
+    \vspace*{0.18\textheight}
+    {\sffamily\fontsize{9}{11}\selectfont\bfseries\color{LinkBlue}\MakeUppercase{\rk@leftheader}\par}
+    \vspace{10mm}
+    {\sffamily\bfseries\fontsize{27}{32}\selectfont\color{Ink}#2\par}
+    \ifstrempty{#1}{}{\vspace{4mm}{\sffamily\large\color{Muted}#1\par}}
+    \vspace{10mm}\color{Hairline}\rule{0.62\textwidth}{0.5pt}\color{Ink}
+    \vspace{8mm}{\sffamily\color{Muted}\@author\par}
+    \vspace{2mm}{\sffamily\color{Muted}\@date\par}
+  \end{center}
+  \clearpage
+}
+
+% URL's native breakpoints cover '/', '=', and '_' while retaining a
+% searchable/clickable string. This is the supported path for long URIs.
+\NewDocumentCommand{\RKPath}{m}{\begingroup\urlstyle{tt}\url{#1}\endgroup}
+
+% Keep short listings with their lead-in. Longer listings may split normally;
+% authors can place the marker at a deliberate continuation boundary.
+\NewDocumentEnvironment{RKShortListing}{O{}}{%
+  \begin{samepage}\begin{minipage}{\linewidth}\ifstrempty{#1}{}{\textbf{#1}\par\smallskip}%
+}{\end{minipage}\end{samepage}}
+\newcommand{\RKListingContinued}{\par\smallskip\hfill\footnotesize\color{Muted}(continued)\par\smallskip}
+
+% Give section openers a compact visual anchor in the whitespace recovered by
+% the page-break rule, without changing the document's semantic hierarchy.
+\newcommand{\RKSectionOpener}[1]{%
+  \par\Needspace{0.22\textheight}\vspace*{4mm}%
+  {\sffamily\fontsize{7.5}{9}\selectfont\bfseries\color{LinkBlue}\MakeUppercase{#1}\par\vspace{2mm}%
+  \color{Hairline}\rule{\linewidth}{0.45pt}\color{Ink}\vspace{4mm}}%
+}
+
+\makeatother
+\endinput

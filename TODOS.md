@@ -10,17 +10,27 @@ spec and reality disagreed, reality won and the spec is cited as wrong.
 | Document | Status | Keep? |
 |---|---|---|
 | `data-engineering-guide-publication-review.md` | Evidence + release gate for the 56-page build | Keep — release gate |
-| `superpowers/specs/2026-09-06-reportkit-tooling-hardening-design.md` | Approved, **0% implemented** | Keep — active |
+| `superpowers/specs/2026-09-06-reportkit-tooling-hardening-design.md` | Approved, ReportKit tooling slice implemented; guide content still pending | Keep — active |
 | `superpowers/specs/2026-09-06-data-engineering-guide-content-design.md` | Approved, **~60% implemented** | Keep — active |
 | `superpowers/plans/2026-09-06-reportkit-visual-grammar.md` | Written, **unexecuted** | Keep — active |
 | `ReportKit vNext — AI Publication System Minimal Implementation Spec.md` | Roadmap, unimplemented | Keep — P3 |
-| `licensing.md` | Source for tooling spec §E, unimplemented | Keep — P1 |
+| `licensing.md` | Source for tooling spec §E, implemented | Keep — P1 |
+
+## Implementation update — 2026-09-06
+
+The current working tree now contains the ReportKit-side hardening slice:
+strict guide diagnostics, static validation, atomic page rendering, run
+manifests, locked PyMuPDF tooling, long-form/Pandoc packages, PDF metadata and
+language, diagram sizing and alternatives, the three C2 primitives, licensing
+metadata/notices, and rendered-geometry regression tests. The guide content
+branch remains separate; the merge order is documented in
+`data_engineering_guide/README.md`.
 
 ---
 
 ## P0 — Nothing can ship until these are resolved
 
-### P0-1. No branch can build the guide
+### P0-1. No branch can build the guide — resolved by documented integration model
 
 The manuscript and the build scripts live on different branches, and neither
 branch has both:
@@ -36,10 +46,11 @@ branch has both:
 `data-engineering-guide` has the builder and no content. **The Data
 Engineering Guide currently cannot be built from any single checkout.**
 
-Decide the integration model and write it down: either a documented merge
-order that produces a buildable tree, or a build script that reads the
-manuscript from a sibling checkout. Until then every downstream item that
-needs a rendered PDF is blocked.
+The integration model is now documented in `data_engineering_guide/README.md`:
+assemble the tooling tree with `data-engineering-guide-content`, validate the
+combined source tree, and use `combine.sh` as the release build. The tooling
+checkout also carries a minimal fixture so the pipeline is exercised without
+pretending the manuscript is present.
 
 ### P0-2. `tooling` is 17 commits behind `main` and holds a stale script set
 
@@ -52,7 +63,7 @@ Re-cut `tooling` from `main` before executing that plan, or the plan's line
 references into `latex_templates/` will not match the files it edits. Fix the
 plan's Global Constraints block at the same time.
 
-### P0-3. Figure alt text is discarded at build time
+### P0-3. Figure alt text is discarded at build time — fixed
 
 `latex_templates/reportkit-diagrams.sty:54,:64` store the `diagram`
 environment's `description=` key and **never read it**. Verified: a probe
@@ -63,7 +74,10 @@ All **14 of 14** tracked fragments set `description=`. The content spec's §D5
 requires it. `publication-guidelines.md:377-390` mandates it. None of it
 reaches a reader.
 
-→ Tooling spec **B7**; plan **Task 4**.
+The diagram wrapper now emits `description=` as a PDF `/ActualText` span and
+warns when it is missing. The interim trade-off is documented: alternatives
+replace extraction of labels inside the diagram until tagged-PDF support is
+available. → Tooling spec **B7**.
 Note the trade-off recorded in B7: an `/ActualText` span *replaces* the text
 it wraps, so diagram labels stop being extractable. Only tagging (B8) gives
 both.
@@ -71,7 +85,7 @@ both.
 `type=` has the identical defect at `:50,:60` — stored, read by nothing.
 Resolve it or document it; a stored-and-unread key is a trap.
 
-### P0-4. `reportnetwork` draws fused nodes and reversed arrows, silently
+### P0-4. `reportnetwork` draws fused nodes and reversed arrows, silently — fixed
 
 `rk node` renders **89.370pt** wide (`text width=28mm` + `inner xsep=5pt` × 2);
 the grid step at `reportkit-process.sty:117` is 3.15cm = **89.291pt**. Nodes
@@ -82,48 +96,49 @@ fused bar with every arrowhead pointing backwards — declared `n1→n2`, drawn
 **The build exits 0 with an empty warning list.** `scripts/acceptance_check.sh`
 greps TeX logs and is structurally incapable of catching this.
 
-→ Tooling spec **C1-2**; plan **Task 2**.
+The default grid step is now wider than `rk node`, both axes are configurable,
+and the rendered-geometry suite asserts visible clearance. → Tooling spec
+**C1-2**.
 
 ---
 
 ## P1 — Required before public distribution
 
-### Tooling spec (`2026-09-06-reportkit-tooling-hardening-design.md`) — none started
+### Tooling spec (`2026-09-06-reportkit-tooling-hardening-design.md`) — implementation slice landed
 
-- **A. Build correctness gate** — strict log gate (`check-build-log.py`),
+- **A. Build correctness gate** — implemented in the guide harness: strict log gate (`check-build-log.py`),
   commit hook covering guide paths, one canonical full-document build. The
   retained logs from the reviewed build contain four overfull boxes.
-- **B1.** `reportkit-pandoc.sty` — de-duplicate the ~90-line Pandoc preamble
+- **B1.** `reportkit-pandoc.sty` — implemented; the compatibility layer is shared.
   currently copied verbatim in `build-section.sh:37-112` and `combine.sh:32-96`.
-- **B2.** `reportkit-longform.sty` — contents page, front matter, page break
+- **B2.** `reportkit-longform.sty` — implemented: contents page, front matter, page breaks,
   before every H1, running heads that match the page. Covers review P0-01,
   P0-02, P1-05, P2-01, P2-03 at the class level.
-- **B3.** `reportkit.cls` PDF metadata + document language.
-- **B5.** Release identity out of `combine.sh` (currently hardcodes
+- **B3.** `reportkit.cls` PDF metadata + document language — implemented.
+- **B5.** Release identity out of `combine.sh` — implemented with CLI/environment configuration,
   `\setreportkitversion{draft}` at `combine.sh:26-31`).
-- **B6.** `width=`/`scale=` key on the `diagram` environment → plan **Task 3**.
+- **B6.** `width=`/`scale=` key on the `diagram` environment — implemented.
 - **C1-1.** *Already fixed* by `1c00be3` — needs only a regression test, not a
   fix. The spec was written against pre-fix code. → plan **Task 1**.
 - **C2.** Three new primitives: `reportstate`, `reportcompare`,
-  `reporttimeline` → plan **Tasks 5–7**.
-- **D1.** Declared, locked toolchain. A clean clone currently cannot build:
-  `build-section.sh:113-114` needs a venv that nothing creates and no
-  dependency file declares.
-- **D2.** `validate-guide.py` — static validation before TeX runs.
-- **D3.** Atomic page rendering (`render_pdf_pages.py:25` leaves stale PNGs).
-- **D4.** Run manifest (`build-report.json`).
-- **D5.** Pandoc feature fixtures.
+  `reporttimeline` — implemented with acceptance tests.
+- **D1.** Declared, locked toolchain — implemented with `requirements.txt`, setup, and version reporting.
+- **D2.** `validate-guide.py` — implemented and covered by tests.
+- **D3.** Atomic page rendering — implemented.
+- **D4.** Run manifest (`build-report.json`) — implemented with hashes, tool versions, commands, exit codes, diagnostics, and page counts.
+- **D5.** Pandoc feature fixtures — implemented for lists, tables, fenced code, links, and footnotes.
 - **D6.** Visual QA as a result, **including the bounding-box check** the
   review's P0-03 requires. Use **PyMuPDF only** — poppler (`pdfinfo`,
   `pdffonts`, `pdftoppm`) and `pypdf`/`pdfplumber` are **not installed** on
   current dev machines, so the review's own evidence method is not
-  reproducible today.
+  reproducible today. Implemented in `inspect_pdf.py`, with an atomic page
+  contact sheet and deterministic media-box check.
 - **E. Licensing** — `metadata/licenses.yml`, `CONTENT-LICENSE.md`,
-  `THIRD-PARTY-NOTICES.md`. Nothing exists yet.
-- **B8. PDF accessibility tagging spike** — time-boxed, with a written go/no-go
-  and evidence committed. Unblocked once C2 and B6 land. Risky: tagging needs
-  `\DocumentMetadata{testphase=...}` on LuaLaTeX, and every figure here is a
-  tikzpicture. Do not put the release behind it.
+  `THIRD-PARTY-NOTICES.md`, contributor guidance, and rights-notice injection
+  are implemented.
+- **B8. PDF accessibility tagging spike** — a time-boxed no-go is recorded in
+  `references/accessibility-tagging.md`; the installed format lacks
+  `\DocumentMetadata` support. Tagged structure remains a known limitation.
 
 ### Content spec (`2026-09-06-data-engineering-guide-content-design.md`)
 
@@ -131,14 +146,14 @@ Already implemented on `data-engineering-guide-content`: §A front matter, §B
 overflowing paths, §C tables, §D2 source statements, §D3 (5 of 8 figures),
 §E1 references.
 
-Still open — **all blocked on the tooling spec**:
+Still open now that the relevant tooling is available:
 
-- **§D1.** Recompose the nine narrow vertical figures. Blocked on B6 `width=`.
-- **§D3.** The three remaining Tier 1 figures — join cardinality, event vs
-  processing time, task recovery. Blocked on C2.
-- **§D4.** Two Tier 2 figures (reconciliation flow, serving surfaces) to reach
-  **19 figures**, the top of the review's 16–19 range. Blocked on B6.
-- **§E2.** Glossary/references page separation. Blocked on B2.
+- **§D1.** Recompose the nine narrow vertical figures with `width=`.
+- **§D3.** Author the three remaining Tier 1 figures — join cardinality, event
+  vs processing time, task recovery — using C2.
+- **§D4.** Author two Tier 2 figures (reconciliation flow, serving surfaces) to reach
+  **19 figures**, the top of the review's 16–19 range.
+- **§E2.** Glossary/references page separation using B2.
 - **§F.** Reading-load polish — key-takeaway boxes in recovered whitespace.
 
 ### Content follow-ups once tooling lands
@@ -164,7 +179,7 @@ Still open — **all blocked on the tooling spec**:
 - **P2-01.** Page rhythm — rebalance after the structural page breaks land.
 - **P1-06.** Keep short code listings together (`samepage`/minipage), mark
   unavoidable splits.
-- **F1/F2.** Strict modes and measure-before-optimising.
+- **F1.** Strict modes are implemented; **F2** measure-before-optimising remains.
 
 ---
 

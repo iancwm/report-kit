@@ -1,0 +1,168 @@
+% ReportKit v1.5.0 -- state, comparison, and timeline primitives.
+% These semantic forms complement flows: state recovery, before/after change,
+% and events observed on more than one clock.
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{reportkit-grammar}[2026/09/06 v1.5.0 ReportKit semantic grammar]
+\RequirePackage{xparse}
+\RequirePackage{pgfkeys}
+\RequirePackage{etoolbox}
+
+% -----------------------------------------------------------------------------
+% State machines
+% -----------------------------------------------------------------------------
+\tikzset{
+  rk terminal/.style={rk node,draw=LinkBlue,line width=.9pt,double,double distance=1.2pt},
+  rk transition label/.style={
+    font=\sffamily\fontsize{7.0}{8.2}\selectfont,text=Muted,
+    fill=Surface,inner sep=1.5pt,midway,above
+  },
+}
+\newcommand{\rk@statestep}{4.2}
+\newcount\rk@stateindex
+\pgfkeys{
+  /reportkit/state/.is family,
+  /reportkit/state,
+  step spacing/.store in=\rk@statestep,
+}
+\NewDocumentEnvironment{reportstate}{O{}}{%
+  \begingroup\pgfkeys{/reportkit/state,step spacing=4.2,#1}%
+  \rk@stateindex=0\relax
+}{\endgroup}
+\NewDocumentCommand{\state}{O{} m m}{%
+  \node[rk node,#1] (#2) at ({\the\rk@stateindex*\rk@statestep},0) {\strut #3};%
+  \advance\rk@stateindex by 1\relax
+}
+\NewDocumentCommand{\terminalstate}{O{} m m}{%
+  \node[rk terminal,#1] (#2) at ({\the\rk@stateindex*\rk@statestep},0) {\strut #3};%
+  \advance\rk@stateindex by 1\relax
+}
+\NewDocumentCommand{\transition}{O{} m m m}{%
+  \draw[rk edge flow,#1] (#2) -- (#3) node[rk transition label] {#4};%
+}
+\NewDocumentCommand{\selfloop}{O{} m m}{%
+  \draw[rk edge flow,#1] (#2.north) .. controls +(0.7,1.1) and +(-0.7,1.1) .. (#2.north)
+    node[rk transition label,above=6pt] {#3};%
+}
+
+% -----------------------------------------------------------------------------
+% Before/after comparisons
+% -----------------------------------------------------------------------------
+\newcommand{\rk@comparegap}{2.6}
+\newcommand{\rk@panelwidth}{5.4}
+\newcommand{\rk@rowheight}{0.82}
+\newcount\rk@panelindex
+\pgfkeys{
+  /reportkit/compare/.is family,
+  /reportkit/compare,
+  gap/.store in=\rk@comparegap,
+  panel width/.store in=\rk@panelwidth,
+}
+\tikzset{
+  rk panel heading/.style={font=\sffamily\bfseries\fontsize{8.4}{10}\selectfont,text=Ink,anchor=north west},
+  rk panel row/.style={rk node,text width={\rk@panelwidth cm - 10pt},minimum height=7mm,anchor=north west},
+}
+\NewDocumentEnvironment{reportcompare}{O{}}{%
+  \begingroup\pgfkeys{/reportkit/compare,gap=2.6,panel width=5.4,#1}%
+  \rk@panelindex=0\relax
+}{\endgroup}
+\NewDocumentCommand{\panel}{m m}{%
+  \ifnum\rk@panelindex>1
+    \PackageError{reportkit-grammar}{reportcompare takes exactly two panels}%
+      {Declare one \string\panel for the before state and one for the after state.}%
+  \fi
+  \node[rk panel heading] (#1) at
+    ({\rk@panelindex*(\rk@panelwidth+\rk@comparegap)},0) {#2};%
+  \expandafter\xdef\csname rk@panelpos@#1\endcsname{\the\rk@panelindex}%
+  \advance\rk@panelindex by 1\relax
+}
+\NewDocumentCommand{\panelitem}{m m m}{%
+  \@ifundefined{rk@panelpos@#1}{%
+    \PackageError{reportkit-grammar}{Unknown reportcompare panel '#1'}%
+      {Declare the panel before adding panel items.}%
+  }{}%
+  \node[rk panel row] at
+    ({\csname rk@panelpos@#1\endcsname*(\rk@panelwidth+\rk@comparegap)},
+     {-0.55-#2*\rk@rowheight}) {\strut #3};%
+}
+\NewDocumentCommand{\transformarrow}{m}{%
+  \draw[rk edge flow]
+    ({\rk@panelwidth+0.25},-1.1) -- ({\rk@panelwidth+\rk@comparegap-0.25},-1.1)
+    node[rk transition label,align=center,text width=2.4cm] {#1};%
+}
+
+% -----------------------------------------------------------------------------
+% Parallel event timelines
+% -----------------------------------------------------------------------------
+\newcommand{\rk@tracks}{}
+\newcommand{\rk@trackspan}{12.0}
+\newcommand{\rk@trackgap}{1.6}
+\newcount\rk@trackindex
+\newcount\rk@trackquery
+\pgfkeys{
+  /reportkit/timeline/.is family,
+  /reportkit/timeline,
+  tracks/.store in=\rk@tracks,
+  span/.store in=\rk@trackspan,
+  track gap/.store in=\rk@trackgap,
+}
+\tikzset{
+  rk track axis/.style={Hairline,line width=.6pt,-{Stealth[length=4pt]}},
+  rk track label/.style={font=\sffamily\fontsize{7.2}{8.5}\selectfont,text=Muted,anchor=east},
+  rk event mark/.style={circle,draw=LinkBlue,fill=Surface,line width=.7pt,inner sep=1.6pt,font=\sffamily\fontsize{6.8}{8}\selectfont,text=Ink},
+}
+\makeatletter
+\newcommand{\rk@findtrack}[1]{%
+  \rk@trackindex=0\relax\rk@trackquery=-1\relax
+  \def\rk@tracktarget{#1}%
+  \expandafter\@for\expandafter\rk@trackname\expandafter:=\rk@tracks\do{%
+    \edef\rk@trackcandidate{\rk@trackname}%
+    \ifx\rk@trackcandidate\rk@tracktarget
+      \global\rk@trackquery=\rk@trackindex
+    \fi
+    \advance\rk@trackindex by 1\relax
+  }%
+  \ifnum\rk@trackquery<0
+    \PackageError{reportkit-grammar}{Unknown reporttimeline track '#1'}%
+      {Declare it in the tracks key before using \string\event.}%
+    \rk@trackquery=0\relax
+  \fi
+}
+\newcommand{\rk@drawtracks}{%
+  \rk@trackindex=0\relax
+  \expandafter\@for\expandafter\rk@trackname\expandafter:=\rk@tracks\do{%
+    \draw[rk track axis] (0,{-\the\rk@trackindex*\rk@trackgap}) --
+      (\rk@trackspan,{-\the\rk@trackindex*\rk@trackgap});%
+    \node[rk track label] at (-0.2,{-\the\rk@trackindex*\rk@trackgap}) {\rk@trackname};%
+    \advance\rk@trackindex by 1\relax
+  }%
+}
+\NewDocumentEnvironment{reporttimeline}{O{}}{%
+  \begingroup\pgfkeys{/reportkit/timeline,tracks={},span=12.0,track gap=1.6,#1}%
+  \ifstrempty{\rk@tracks}{%
+    \PackageError{reportkit-grammar}{reporttimeline requires tracks={...}}%
+      {Provide one or more comma-separated track names.}%
+  }{}%
+  \rk@drawtracks
+}{\endgroup}
+\NewDocumentCommand{\event}{O{} m m m}{%
+  \rk@findtrack{#2}%
+  \node[rk event mark,#1] at ({#3*\rk@trackspan},{-\the\rk@trackquery*\rk@trackgap}) {#4};%
+}
+\NewDocumentCommand{\skewarrow}{m m m m}{%
+  \rk@findtrack{#1}\edef\rk@skewfrom{\the\rk@trackquery}%
+  \rk@findtrack{#3}\edef\rk@skewto{\the\rk@trackquery}%
+  \draw[Hairline,line width=.5pt,densely dashed,-{Stealth[length=4pt]}]
+    ({#2*\rk@trackspan},{-\rk@skewfrom*\rk@trackgap+0.18}) --
+    ({#4*\rk@trackspan},{-\rk@skewto*\rk@trackgap-0.18});%
+}
+\NewDocumentCommand{\watermark}{m m m}{%
+  \rk@findtrack{#1}%
+  \draw[LinkBlue,line width=.8pt]
+    ({#2*\rk@trackspan},{-\the\rk@trackquery*\rk@trackgap-0.42}) --
+    ({#2*\rk@trackspan},{-\the\rk@trackquery*\rk@trackgap+0.42});%
+  \node[rk transition label,below=2pt] at
+    ({#2*\rk@trackspan},{-\the\rk@trackquery*\rk@trackgap-0.42}) {#3};%
+}
+\makeatother
+
+\endinput
