@@ -21,6 +21,7 @@ fi
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TEST_TEXES=(
   "latex_templates/examples/primitive_acceptance_test.tex"
+  "latex_templates/examples/primitive_additions_acceptance_test.tex"
   "latex_templates/examples/visual_grammar_acceptance_test.tex"
   "latex_templates/examples/longform_acceptance_test.tex"
 )

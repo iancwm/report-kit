@@ -74,12 +74,14 @@
   /reportkit/architecture/.is family,
   /reportkit/architecture,
   width/.store in=\rk@archwidth,
+  annotation/.store in=\rk@archannotation,
+  annotation-position/.store in=\rk@archannotationposition,
   .unknown/.code={\rk@structure@unknownkey{reportarchitecture}}
 }
 \newcount\rk@archcount
 \newcount\rk@archcomponents
 \NewDocumentEnvironment{reportarchitecture}{O{}}{%
-  \def\rk@archwidth{15.2}%
+  \def\rk@archwidth{15.2}\def\rk@archannotation{}\def\rk@archannotationposition{top}%
   \rk@archcount=0\relax
   \pgfkeys{/reportkit/architecture,#1}%
   \rk@structure@widthwarning{\rk@archwidth}{10}%
@@ -116,6 +118,21 @@
       \node[rk structure card,text width={\rk@archcardw cm-8pt},minimum height=8.2mm]
         at (\rk@archx,\rk@archy) {\strut\rk@component};%
     }%
+  }%
+  % A cross-cutting ownership or vendor note belongs to the architecture's
+  % measured TikZ bounds, rather than being a separate raw node after it.
+  \expandafter\ifstrempty\expandafter{\rk@archannotation}{}{%
+    \pgfmathsetlengthmacro{\rk@archannotationwidth}{\rk@archwidth cm-4pt}%
+    \expandafter\ifstrequal\expandafter{\rk@archannotationposition}{top}{%
+      \node[rk structure muted,anchor=south,text width=\rk@archannotationwidth]
+        at ({0.5*\rk@archwidth},{.67+.34}) {\rk@archannotation};%
+    }{\expandafter\ifstrequal\expandafter{\rk@archannotationposition}{bottom}{%
+      \pgfmathsetmacro{\rk@archannotationy}{-(\rk@archcount-1)*1.65-.67-.34}%
+      \node[rk structure muted,anchor=north,text width=\rk@archannotationwidth]
+        at ({0.5*\rk@archwidth},\rk@archannotationy) {\rk@archannotation};%
+    }{%
+      \rk@structure@error{Invalid reportarchitecture annotation-position '\rk@archannotationposition'}{Use annotation-position=top or annotation-position=bottom.}%
+    }}%
   }%
 }
 

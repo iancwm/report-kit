@@ -143,7 +143,7 @@ Use `riskheatmap` for ordinal likelihood and impact, not estimated probabilities
 
 ### Process and relationships
 
-Declaration order establishes a flow's main reading sequence. Use `branch` and `merge` only for explicit divergence and convergence. Use a swimlane when ownership is central; its steps take an id, a declared lane name, a label, and a one-based column.
+Declaration order establishes a flow's main reading sequence. Use `branch` and `merge` only for explicit divergence and convergence. For a bounded, deterministic branch layout, use `\stepat[<style>]{id}{x}{y}{label}` and `\flowedge[route=orthogonal,label-position=below,label={...}]{from}{to}`; routes also accept `straight`, `bend left=<degrees>`, and `bend right=<degrees>`. Use a swimlane when ownership is central; its steps take an id, a declared lane name, a label, and a one-based column. Supply `columns=` when the declared width must bound all process nodes; `node width=`, `column spacing=`, and `label gutter=` tune that bounded layout.
 
 ```latex
 \begin{reportflow}[direction=horizontal]
@@ -154,7 +154,7 @@ Declaration order establishes a flow's main reading sequence. Use `branch` and `
   \flowedge{review}{publish}
 \end{reportflow}
 
-\begin{reportswimlane}[lanes={User,Frontend,Backend,Reviewer}]
+\begin{reportswimlane}[lanes={User,Frontend,Backend,Reviewer},columns=4]
   \lanestep{request}{User}{Request}{1}
   \lanestep{validate}{Frontend}{Validate}{2}
   \lanestep{process}{Backend}{Process}{3}
@@ -164,6 +164,8 @@ Declaration order establishes a flow's main reading sequence. Use `branch` and `
   \handoff{process}{approve}
 \end{reportswimlane}
 ```
+
+`reportstate` keeps its sequential declaration API and also supports explicit positions: `\stateat[<style>]{id}{x}{y}{label}` and `\terminalstateat[<style>]{id}{x}{y}{label}`. Use `\transition[route={bend left=30},label-position=above]{from}{to}{label}` for a readable retry loop or terminal branch. Timeline watermarks accept `label-position=above|below|left|right`, `label-width=<length>`, and `label-anchor=<TikZ anchor>`.
 
 Use `reportnetwork` for a compact relationship map. Use `causalloop` only for a feedback system; causal-edge labels normally indicate `+` or `-`. Dense networks need an external figure or deliberate low-level placement—automatic layout is intentionally limited.
 
@@ -191,7 +193,7 @@ Use `reportnetwork` for a compact relationship map. Use `causalloop` only for a 
 Architecture layers show responsibility or technical separation; components within a layer are comma-delimited. `reportroadmap` uses either qualitative horizons or ordered dated periods. Capability maps group capabilities by domain. Strategic pillars require an objective and three to six distinct levers.
 
 ```latex
-\begin{reportarchitecture}
+\begin{reportarchitecture}[annotation={Ownership remains explicit across layers.},annotation-position=top]
   \layer{Consumers}{Web client, Analyst workspace}
   \layer{Services}{API gateway, Decision service}
   \layer{Data}{Operational store, Analytics warehouse}

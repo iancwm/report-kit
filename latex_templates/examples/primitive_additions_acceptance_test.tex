@@ -1,0 +1,79 @@
+\documentclass{reportkit}
+
+\setreportkitleftheader{REPORTKIT / PRIMITIVE ADDITIONS TEST}
+\setreportkitfooter{Primitive additions acceptance test}
+\setreportkitversion{v1.5.0}
+
+\title{ReportKit primitive additions}
+\author{Test build}
+\date{7 September 2026}
+
+\begin{document}
+\maketitle
+
+\section{Width-aware swimlane}
+\begin{diagram}[type=swimlane,width=\textwidth,caption={Five process columns stay inside the declared lane width.},source={Conceptual diagram.},description={Five workflow nodes in four responsibility lanes are distributed within a 12.2 centimetre process area.}]
+  \begin{reportswimlane}[lanes={User,Frontend,Backend,Reviewer},width=12.2,columns=5,node width=18mm,label gutter=.35]
+    \lanestep{request}{User}{Request}{1}
+    \lanestep{validate}{Frontend}{Validate}{2}
+    \lanestep{enrich}{Backend}{Enrich}{3}
+    \lanestep{review}{Reviewer}{Review}{4}
+    \lanestep{publish}{Backend}{Publish}{5}
+    \handoff{request}{validate}
+    \handoff{validate}{enrich}
+    \handoff{enrich}{review}
+    \handoff{review}{publish}
+  \end{reportswimlane}
+\end{diagram}
+
+\section{Explicit state branches}
+\begin{diagram}[type=state,width=\textwidth,caption={Retry recovery with explicit terminal branches.},source={Conceptual diagram.},description={A running state retries through a curved loop and can end in either succeeded or failed terminal states.}]
+  \begin{reportstate}
+    \stateat{queued}{0}{0}{Queued}
+    \stateat{running}{3.8}{0}{Running}
+    \terminalstateat{done}{7.6}{1.8}{Succeeded}
+    \terminalstateat{failed}{7.6}{-1.8}{Failed}
+    \transition{queued}{running}{start}
+    \transition[route={bend left=42},label-position=above]{running}{queued}{retry}
+    \transition[route=orthogonal,label-position=above]{running}{done}{complete}
+    \transition[route=orthogonal,label-position=below]{running}{failed}{give up}
+  \end{reportstate}
+\end{diagram}
+
+\section{Explicit orchestration DAG}
+\begin{diagram}[type=flow,width=\textwidth,caption={Validation errors block the downstream run.},source={Conceptual diagram.},description={A horizontal orchestration DAG routes validation errors to a terminal branch and blocks the downstream task.}]
+  \begin{reportflow}
+    \stepat{extract}{0}{0}{Extract}
+    \stepat{validate}{3.5}{0}{Validate}
+    \stepat{load}{7.0}{0}{Load}
+    \stepat{publish-dag}{10.5}{0}{Publish}
+    \stepat[draw=RedFlag]{validation-error}{3.5}{-2.0}{Validation error}
+    \stepat[draw=Muted]{blocked}{7.0}{-2.0}{Blocked}
+    \flowedge[label=rows]{extract}{validate}
+    \flowedge[label=valid]{validate}{load}
+    \flowedge[label=ready]{load}{publish-dag}
+    \flowedge[route={bend right=24},label-position=left,label=invalid]{validate}{validation-error}
+    \flowedge[label=blocked]{validation-error}{blocked}
+  \end{reportflow}
+\end{diagram}
+
+\section{Architecture annotation}
+\begin{diagram}[type=architecture,width=\textwidth,caption={A cross-cutting ownership note belongs to the architecture.},source={Conceptual diagram.},description={Three responsibility layers have a top annotation about product ownership and exit planning.}]
+  \begin{reportarchitecture}[width=15.2,annotation={One product may span layers; ownership and exit planning remain explicit.},annotation-position=top]
+    \layer{Experience}{Reader application, Author workspace}
+    \layer{Services}{Report service, Validation service}
+    \layer{Data}{Source store, Publication archive}
+  \end{reportarchitecture}
+\end{diagram}
+
+\section{Timeline marker labels}
+\begin{diagram}[type=timeline,width=\textwidth,caption={Long marker labels remain clear at track endpoints.},source={Conceptual diagram.},description={An event-time track has an allowed-lateness marker near its start and an endpoint marker near its end, with labels placed away from the track name and boundary.}]
+  \begin{reporttimeline}[tracks={Event time},span=12]
+    \event{Event time}{.18}{A}
+    \event{Event time}{.84}{B}
+    \watermark[label-position=above,label-width=24mm]{Event time}{.08}{allowed lateness begins}
+    \watermark[label-position=left,label-width=20mm]{Event time}{.96}{window endpoint}
+  \end{reporttimeline}
+\end{diagram}
+
+\end{document}

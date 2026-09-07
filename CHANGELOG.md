@@ -9,6 +9,13 @@ tags on this repository, not a published package registry.
 ### Added
 - `\rkcode{...}` for rendering identifier-like technical tokens, such as
   `event_date`, safely in direct semantic-diagram labels.
+- Width-aware swimlanes: `columns=`, `node width=`, `column spacing=`, and
+  `label gutter=` keep opted-in process nodes inside their declared width.
+- Explicit state and flow branch layouts via `\stateat`, `\terminalstateat`,
+  and `\stepat`, with straight, bent, and orthogonal routed edges plus label
+  placement controls.
+- `reportarchitecture` annotations at the top or bottom of the measured
+  diagram, and positioned, width-constrained timeline watermark labels.
 
 ### Fixed
 - The ReportKit acceptance fixture now exercises vertical `reportflow`
