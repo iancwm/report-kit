@@ -19,13 +19,15 @@ for why.
 | [2026-09-06-data-engineering-guide-content-design.md](docs/superpowers/specs/2026-09-06-data-engineering-guide-content-design.md) | Approved, ~60% implemented | P1 |
 | [2026-09-06-reportkit-visual-grammar.md](docs/superpowers/plans/2026-09-06-reportkit-visual-grammar.md) | Approved, unexecuted — blocked on P0-2 | P1 |
 | [2026-09-06-reportkit-vnext-ai-publication-system-spec.md](docs/superpowers/specs/2026-09-06-reportkit-vnext-ai-publication-system-spec.md) | Draft / roadmap, not started | P3 |
+| [2026-09-07-documentation-and-status-tracking-cleanup-design.md](docs/superpowers/specs/2026-09-07-documentation-and-status-tracking-cleanup-design.md) | Approved | Process |
+| [2026-09-07-documentation-and-status-tracking-cleanup.md](docs/superpowers/plans/2026-09-07-documentation-and-status-tracking-cleanup.md) | In Progress | Process |
 
 ## Open work
 
 ### P0
 
 - **P0-1 — extract the guide content branch.** `data-engineering-guide-content` has the manuscript; no branch has both manuscript and builder. Resolution is to extract it into its own consumer repo per [references/migrating-content-branches.md](references/migrating-content-branches.md) — not yet done, branch still unextracted.
-- **P0-2 — re-cut `tooling` from `main`.** It's 0 ahead / 17 behind `main` and blocks executing the visual-grammar plan. Re-cut before starting that plan's Task 1.
+- **P0-2 — re-cut `tooling` from `main`.** It's significantly behind `main` (check with `git rev-list --left-right --count main...tooling` before relying on a specific count — the number drifts) and blocks executing the visual-grammar plan. Re-cut before starting that plan's Task 1.
 
 ### P1
 

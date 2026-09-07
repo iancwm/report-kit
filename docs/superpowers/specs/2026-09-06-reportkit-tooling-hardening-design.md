@@ -17,7 +17,10 @@ split between the two, both halves name each other.
 **Scope of this document:** All tooling work implied by three review
 documents — `docs/tooling-improvement-spec-draft.md` (11 findings),
 the tooling half of `docs/data-engineering-guide-publication-review.md`, and
-`docs/licensing.md`. It changes build scripts, `latex_templates/`,
+`docs/licensing.md` (a superseded task brief, deleted 2026-09-07 — see the
+[documentation-and-status-tracking-cleanup design
+spec](2026-09-07-documentation-and-status-tracking-cleanup-design.md)).
+It changes build scripts, `latex_templates/`,
 `python_scripts/`, and repository metadata. It changes **no** manuscript
 prose and **no** diagram fragment.
 

@@ -99,7 +99,10 @@ work.
 2. **Delete `docs/licensing.md`.** An untracked, superseded one-off task
    brief — everything it asked for already exists (`CONTENT-LICENSE.md`,
    `THIRD-PARTY-NOTICES.md`, `metadata/licenses.yml`,
-   `references/licensing.md`). Nothing references it.
+   `references/licensing.md`). **Correction (2026-09-07, found by the final
+   whole-branch review):** this was wrong — the tooling-hardening spec's own
+   scope paragraph cites it. That citation is now annotated instead, since
+   the file itself is unrecoverable (no git object, no filesystem copy).
 3. **Un-gitignore `docs/`**: remove the `docs/` line and the now-redundant
    force-add negations from `.gitignore`, then add and commit:
    - `docs/superpowers/specs/2026-09-06-reportkit-tooling-hardening-design.md`
