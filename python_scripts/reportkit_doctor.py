@@ -43,11 +43,12 @@ def check_executable(name: str) -> tuple[bool, str]:
 
 
 def check_pymupdf() -> tuple[bool, str]:
-    """Check the locked guide renderer environment before the host interpreter."""
-    candidates = [
-        (Path(sys.executable), "host Python"),
-        (ROOT.parent / "data_engineering_guide" / "build" / ".venv" / "bin" / "python", "guide venv"),
-    ]
+    """Check the host interpreter for the locked PDF-inspection dependency.
+
+    This checks only the engine's own environment. A consumer publication
+    project's build venv (created by publication_pipeline/scripts/setup.sh)
+    is that project's concern, not this repository's.
+    """
     code = (
         "try:\n"
         " import pymupdf\n"
@@ -56,16 +57,13 @@ def check_pymupdf() -> tuple[bool, str]:
         " import fitz\n"
         " print(getattr(fitz, 'VersionBind', 'installed'))\n"
     )
-    for python, label in candidates:
-        if not python.is_file():
-            continue
-        try:
-            proc = subprocess.run([str(python), "-c", code], capture_output=True, text=True, timeout=8)
-        except (OSError, subprocess.SubprocessError):
-            continue
-        if proc.returncode == 0 and proc.stdout.strip():
-            return True, f"{proc.stdout.strip().splitlines()[0]} ({label})"
-    return False, "not installed in host Python or guide venv"
+    try:
+        proc = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, timeout=8)
+    except (OSError, subprocess.SubprocessError):
+        return False, "not installed in host Python"
+    if proc.returncode == 0 and proc.stdout.strip():
+        return True, f"{proc.stdout.strip().splitlines()[0]} (host Python)"
+    return False, "not installed in host Python"
 
 
 def check_kpse(name: str) -> tuple[bool, str]:
@@ -139,7 +137,7 @@ def main() -> int:
 
     print()
     pandoc_ok = print_check("pandoc", check_executable("pandoc"))
-    pymupdf_ok = print_check("PyMuPDF (guide renderer)", check_pymupdf())
+    pymupdf_ok = print_check("PyMuPDF (publication pipeline renderer)", check_pymupdf())
 
     print()
     tex_ok = pdflatex_ok or lualatex_ok

@@ -1,0 +1,5 @@
+# Minimal publication.yaml — every consumer publication project needs one
+# of these at its root. See references/repository-boundary.md.
+title: Example Publication
+subtitle: A minimal fixture for the publication pipeline
+author: ReportKit

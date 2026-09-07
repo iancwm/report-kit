@@ -1,0 +1,50 @@
+# Publication pipeline
+
+Reusable build harness that turns a consumer publication project's
+`manuscript/` + `fragments/` into a compiled, QA'd PDF. It ships as part of
+the ReportKit engine and knows nothing about any specific publication — see
+[references/repository-boundary.md](../references/repository-boundary.md).
+
+The publication itself — its manuscript, figures, `publication.yaml`, build
+output, and final PDF — lives in a separate consumer project, not in this
+repository. Point the harness at that project with `--source-root`; build
+artefacts land there too, via `--output-root` (default:
+`<source-root>/build`), never inside this checkout.
+
+`example_publication/` is a small generic fixture used to exercise the
+pipeline in this repo's own tests and acceptance checks — it is not a
+publication to build on.
+
+## Commands
+
+```bash
+bash scripts/setup.sh
+python3 scripts/validate-publication.py --root <publication-project>
+bash scripts/build-section.sh manuscript/01-introduction.md --source-root <publication-project>
+bash scripts/combine.sh --source-root <publication-project> --output-root <publication-project>/build
+```
+
+`<publication-project>/publication.yaml` supplies the title, subtitle, author,
+and version; `--title`/`--author`/`--version` on the CLI override it. A
+missing title (in both the config and the CLI) fails the build with a message
+naming the file and the flag.
+
+`combine.sh` is the canonical full-document build and is driven by
+`manuscript/order.txt`. It validates the publication before Pandoc runs,
+compiles twice with `-file-line-error`, applies the strict log gate, renders
+pages into an atomic directory, writes `build/combined/build-report.json`,
+and — on a passing build — writes `reportkit.lock` at the project root,
+pinning the ReportKit ref/commit and toolchain versions the PDF was built
+against.
+
+The isolated section command is an author-feedback loop, not a release
+artifact. `requirements.txt` pins the one PDF-inspection dependency used by
+the harness: PyMuPDF.
+
+## If a publication needs something this pipeline doesn't do
+
+Propose the change here, as a generic capability (a new CLI flag, a new
+`publication.yaml` key, a new validation rule) — not as a one-off script or
+hard-coded value inside the publication project. See
+[references/repository-boundary.md](../references/repository-boundary.md)
+for the guardrails this follows.

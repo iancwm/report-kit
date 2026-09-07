@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Static validation for the guide's manuscript/fragment contract."""
+"""Static validation for a publication project's manuscript/fragment contract."""
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -24,7 +24,7 @@ class ValidationResult:
         return not self.errors
 
 
-def validate_guide(root: Path) -> ValidationResult:
+def validate_publication(root: Path) -> ValidationResult:
     root = root.resolve()
     result = ValidationResult()
     manuscript_dir, fragment_dir = root / "manuscript", root / "fragments"
