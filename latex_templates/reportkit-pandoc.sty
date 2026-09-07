@@ -20,9 +20,9 @@
 % them. This avoids longtable's footnote/microtype diagnostics in table-free
 % documents while keeping the generated Pandoc contract available.
 \makeatletter
-\@ifundefined{ifGuideUsesTables}{\newif\ifGuideUsesTables\GuideUsesTablesfalse}{}
+\@ifundefined{ifRKPubUsesTables}{\newif\ifRKPubUsesTables\RKPubUsesTablesfalse}{}
 \makeatother
-\ifGuideUsesTables
+\ifRKPubUsesTables
   \RequirePackage{longtable,booktabs,array,calc}
   \makeatletter
   \patchcmd\longtable{\par}{\if@noskipsec\mbox{}\fi\par}{}{}
