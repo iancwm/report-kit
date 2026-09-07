@@ -2,8 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Status:** In Progress — final whole-branch review complete, fix wave in
-progress. Flips to Done when this branch merges.
+**Status:** Done — merged to `main` via PR #7 (`965443b`) on 2026-09-07.
 **Last updated:** 2026-09-07
 
 **Goal:** Consolidate `references/`, `documentation/`, `docs/`, and `TODOS.md` into one tracked structure where specs/plans carry their own trustworthy status and `TODOS.md` is a cheap index instead of a from-scratch audit.
