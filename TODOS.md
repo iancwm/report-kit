@@ -15,7 +15,8 @@ for why.
 | Document | Status | Priority |
 |---|---|---|
 | [2026-09-06-reportkit-tooling-hardening-design.md](docs/superpowers/specs/2026-09-06-reportkit-tooling-hardening-design.md) | Approved, implementation slice landed; tooling follow-up remains | P1 |
-| [2026-09-06-reportkit-vnext-ai-publication-system-spec.md](docs/superpowers/specs/2026-09-06-reportkit-vnext-ai-publication-system-spec.md) | Draft / roadmap, not started | P3 |
+| [2026-09-06-reportkit-vnext-ai-publication-system-spec.md](docs/superpowers/specs/2026-09-06-reportkit-vnext-ai-publication-system-spec.md) | Draft / roadmap — reconciled; implement from the plan, not this | P3 |
+| [2026-09-07-reportkit-vnext-implementation-plan.md](docs/superpowers/plans/2026-09-07-reportkit-vnext-implementation-plan.md) | Draft, not started | P3 |
 | [2026-09-07-documentation-and-status-tracking-cleanup-design.md](docs/superpowers/specs/2026-09-07-documentation-and-status-tracking-cleanup-design.md) | Approved | Process |
 | [2026-09-07-documentation-and-status-tracking-cleanup.md](docs/superpowers/plans/2026-09-07-documentation-and-status-tracking-cleanup.md) | Done — merged via PR #7 (`965443b`) | Process |
 
@@ -23,7 +24,12 @@ for why.
 
 ### P0
 
-- **P0-1 — re-cut `tooling` from `main`.** It's significantly behind `main` (check with `git rev-list --left-right --count main...tooling` before relying on a specific count — the number drifts). Re-cut before the next tooling implementation slice.
+- **P0-1 — delete `tooling`, don't re-cut it.** `git rev-list --left-right
+  --count main...tooling` returns `34 0` (verified 2026-09-07): the branch has
+  no unique commits, so there is nothing to preserve, and
+  [references/migrating-content-branches.md](references/migrating-content-branches.md)
+  already dispositions it as "Superseded and stale… then delete". Branch the
+  next tooling slice fresh from `main`.
 
 ### P1
 
@@ -31,7 +37,14 @@ for why.
 
 ### P3
 
-- vNext roadmap (Typer CLI, `publication.yaml`, structured diagnostics, chapter builds, PDF inspection, build manifest, registries, a publication skill) — substantial overlap with the tooling spec; reconcile before starting Phase 1.
+- vNext — **reconciled 2026-09-07**; the overlap with the tooling spec is now
+  audited section by section in
+  [the implementation plan](docs/superpowers/plans/2026-09-07-reportkit-vnext-implementation-plan.md).
+  Six of seventeen sections are already implemented. The real Phase 1 is seven
+  work items: an importable package, a nested `publication.yaml`, typed
+  diagnostics carrying source locations and ownership, a generated capability
+  registry, a stdlib CLI facade, manifest history, and wiring up the
+  `publication_pipeline/tests/` suite that nothing currently runs.
 - Backlog: a Copier template for consumer projects — deliberately deferred until vNext §4 settles `publication.yaml`'s schema and there's more than one content repo to keep in sync.
 
 ## Environment notes
