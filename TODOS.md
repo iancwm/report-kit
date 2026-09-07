@@ -216,6 +216,34 @@ vNext §12 (visualization registry) is C2 plus `SKILL.md`'s primitive table.
 Do not implement twice. Reconcile the two documents before starting Phase 1,
 or fold vNext Phase 1–2 into the tooling spec.
 
+### Backlog: a Copier template for consumer projects — not yet, revisit after vNext §4
+
+`shell_scripts/bootstrap.sh` currently scaffolds a new consumer project
+imperatively (mkdir + heredocs). A [Copier](https://copier.readthedocs.io/)
+template would make that declarative and, unlike bootstrap.sh, support
+`copier update` — pushing a later structural change out to every
+already-generated content repo, not just new ones.
+
+Deliberately deferred, not rejected:
+
+- Its variable schema would substantially duplicate `publication.yaml`'s
+  schema, which vNext §4 has not yet formalized (Pydantic validation is
+  still unimplemented). Building a template now risks a second migration
+  once that schema lands.
+- It adds a `pip install copier` dependency. `bootstrap.sh` is deliberately
+  zero-dependency bash+python3 so it works in locked-down agent sandboxes
+  with no network — a constraint documented at length in its own comments
+  (font harvesting, avoiding `apt-get`, avoiding backgrounded processes).
+- Its real payoff — keeping a *fleet* of content repos in sync — is
+  speculative with only `data-engineering-guide` as a consumer repo so far.
+
+Revisit once vNext §4 settles `publication.yaml`'s schema and there is more
+than one content repo to keep in sync. The natural shape then: a
+`copier-template/` directory mirroring
+[references/repository-boundary.md](references/repository-boundary.md)'s
+recommended structure, with `bootstrap.sh`'s scaffolding step retired in
+favor of `copier copy`.
+
 ---
 
 ## Housekeeping

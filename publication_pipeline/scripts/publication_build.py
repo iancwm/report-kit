@@ -234,7 +234,15 @@ def build(args: argparse.Namespace) -> int:
         if pass_number == 2:
             shutil.copy2(pass_log, log)
     gate = SCRIPT_DIR / "check-build-log.py"
-    gate_result = subprocess.run([sys.executable, str(gate), str(log), "--json", str(output / "diagnostics.json")], text=True)
+    gate_command = [sys.executable, str(gate), str(log), "--json", str(output / "diagnostics.json")]
+    # Which diagnostics a publication has reviewed and accepted is that
+    # publication's call, not this engine's -- so prefer an allowlist that
+    # lives with the project. Falls back to the engine's own (empty) default
+    # when the project has not defined one.
+    project_allowlist = source_root / "build-log-allowlist.json"
+    if project_allowlist.is_file():
+        gate_command += ["--allowlist", str(project_allowlist)]
+    gate_result = subprocess.run(gate_command, text=True)
     report["exit_codes"].append({"command": f"{sys.executable} {gate} {log}", "code": gate_result.returncode})
     report["diagnostics"] = json.loads((output / "diagnostics.json").read_text(encoding="utf-8"))
     report["gate"] = "passed" if gate_result.returncode == 0 else "failed"
