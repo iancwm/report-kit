@@ -47,8 +47,7 @@ this repository. Full details: [references/repository-boundary.md](references/re
    real publication's manuscript, fragments, or assets to this repo (tracked
    or not), it belongs in a consumer project instead.
 2. **Do not create long-lived content branches in report-kit.** A branch that
-   exists to carry a publication's content (as `data-engineering-guide-content`
-   once did) should be its own repository. See
+   exists to carry a publication's content should be its own repository. See
    [references/migrating-content-branches.md](references/migrating-content-branches.md)
    for how to move one out.
 3. **Do not hard-code project titles, paths, assets, or manuscript structure

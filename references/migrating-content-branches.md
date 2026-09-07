@@ -11,8 +11,6 @@ extraction below is verified, not as a side effect of reading this file.
 
 | Branch | Carries | Disposition |
 |---|---|---|
-| `data-engineering-guide-content` | 13 manuscript files + 14 diagram fragments (3 commits ahead of `main`) | **Extract** to a new consumer repository — this is the one branch with real, unique publication content. |
-| `data-engineering-guide` | An earlier cut of the build harness, superseded by `publication_pipeline/` on `main` | Superseded. Diff against `main` to confirm no unique commits, then delete. |
 | `tooling` | An older script set, 19 commits behind `main` | Superseded and stale. Confirm no unique commits, then delete. |
 | `backup/pre-split` | A pre-split snapshot, 22 ahead / 30 behind `main` | A backup of a since-superseded state. Confirm nothing unique is needed, then delete. |
 | `origin/report/pwm-candidacy-verification` | A `reports/` directory with a single analysis PDF/report, 1 commit ahead of `main` | **Extract** the `reports/` content to a consumer repository (or discard, if the report is no longer wanted), then delete. |
@@ -22,7 +20,7 @@ before deleting anything — branch tips move, and this table is a snapshot.
 
 ## Extraction recipe
 
-For a branch that carries real content (`data-engineering-guide-content`,
+For a branch that carries real content (for example,
 `origin/report/pwm-candidacy-verification`):
 
 1. **Split the content out**, preserving history:
@@ -51,8 +49,8 @@ For a branch that carries real content (`data-engineering-guide-content`,
 6. **Delete the old branch** in report-kit, locally and on `origin`, once the
    new repository is confirmed working and the team has switched over.
 
-For a branch that is superseded tooling (`data-engineering-guide`, `tooling`,
-`backup/pre-split`), skip straight to confirming no unique commits remain
+For a branch that is superseded tooling (`tooling`, `backup/pre-split`), skip
+straight to confirming no unique commits remain
 (`git log --oneline main..<branch>`) and deleting it — there is nothing to
 extract.
 

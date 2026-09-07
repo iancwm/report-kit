@@ -14,10 +14,7 @@ for why.
 
 | Document | Status | Priority |
 |---|---|---|
-| [data-engineering-guide-publication-review.md](docs/data-engineering-guide-publication-review.md) | Evidence / release gate for the 56-page build | Gate |
-| [2026-09-06-reportkit-tooling-hardening-design.md](docs/superpowers/specs/2026-09-06-reportkit-tooling-hardening-design.md) | Approved, implementation slice landed; guide content still pending | P1 |
-| [2026-09-06-data-engineering-guide-content-design.md](docs/superpowers/specs/2026-09-06-data-engineering-guide-content-design.md) | Approved, ~60% implemented | P1 |
-| [2026-09-06-reportkit-visual-grammar.md](docs/superpowers/plans/2026-09-06-reportkit-visual-grammar.md) | Approved, unexecuted — blocked on P0-2 | P1 |
+| [2026-09-06-reportkit-tooling-hardening-design.md](docs/superpowers/specs/2026-09-06-reportkit-tooling-hardening-design.md) | Approved, implementation slice landed; tooling follow-up remains | P1 |
 | [2026-09-06-reportkit-vnext-ai-publication-system-spec.md](docs/superpowers/specs/2026-09-06-reportkit-vnext-ai-publication-system-spec.md) | Draft / roadmap, not started | P3 |
 | [2026-09-07-documentation-and-status-tracking-cleanup-design.md](docs/superpowers/specs/2026-09-07-documentation-and-status-tracking-cleanup-design.md) | Approved | Process |
 | [2026-09-07-documentation-and-status-tracking-cleanup.md](docs/superpowers/plans/2026-09-07-documentation-and-status-tracking-cleanup.md) | Done — merged via PR #7 (`965443b`) | Process |
@@ -26,20 +23,11 @@ for why.
 
 ### P0
 
-- **P0-1 — extract the guide content branch.** `data-engineering-guide-content` has the manuscript; no branch has both manuscript and builder. Extraction to a standalone consumer repo is complete — a sibling repo at `/home/iancwm/git/data-engineering-guide` contains the manuscript, fragments, `publication.yaml`, pinned build lockfile, and a built combined PDF. Only the final cleanup step remains: delete the now-superseded `data-engineering-guide-content` branch from report-kit (locally and on `origin`) per [references/migrating-content-branches.md](references/migrating-content-branches.md).
-- **P0-2 — re-cut `tooling` from `main`.** It's significantly behind `main` (check with `git rev-list --left-right --count main...tooling` before relying on a specific count — the number drifts) and blocks executing the visual-grammar plan. Re-cut before starting that plan's Task 1.
+- **P0-1 — re-cut `tooling` from `main`.** It's significantly behind `main` (check with `git rev-list --left-right --count main...tooling` before relying on a specific count — the number drifts). Re-cut before the next tooling implementation slice.
 
 ### P1
 
-- Content spec §D1, §D3 (3 remaining figures), §D4 (2 figures), §E2, §F — remaining manuscript work; the tooling to support it now exists.
-- Content follow-ups: retire the `\RKNode` workaround in `fig-sec01-lifecycle.tex` and the `text width=24mm` workaround in `fig-sec07-lineage.tex` — both live in the extracted `data-engineering-guide` repo's `fragments/` directory (not report-kit) — fixed upstream, workarounds now unnecessary.
-- Distribution: no A4 cover asset exists in any branch — produce one or drop the claim.
-
-### P2
-
-- B4 contrast audit (`reportkit.cls:44` Muted colour, syntax palette) — not started.
-- P2-01 page-rhythm rebalance, P1-06 keep short code listings together — not started.
-- F2 measure-before-optimising — not started.
+- Continue the tooling-hardening implementation slices and reconcile them with the vNext roadmap before starting new phases.
 
 ### P3
 
@@ -55,6 +43,6 @@ for why.
 
 ## History
 
-- 2026-09-07: docs-cleanup plan completed and merged to `main` via PR #7 (`965443b`); status flipped to Done per the plan's own completion rule (none of its 26 checklist items were ever checked off inline, but the doc's explicit "Flips to Done when this branch merges" criterion was satisfied). Data Engineering Guide extraction completed in a sibling repo at `/home/iancwm/git/data-engineering-guide`, with only the branch-deletion cleanup step outstanding in report-kit.
+- 2026-09-07: docs-cleanup plan completed and merged to `main` via PR #7 (`965443b`); status flipped to Done per the plan's own completion rule (none of its 26 checklist items were ever checked off inline, but the doc's explicit "Flips to Done when this branch merges" criterion was satisfied).
 - 2026-09-06: five stale spec/plan documents verified implemented and deleted (four untracked, one tracked — recoverable from git history at the parent of `49af053`).
 - `docs/tooling-improvement-spec-draft.md` was lost permanently in 2026-09-06 while `docs/` was gitignored and untracked — the reason specs/plans are tracked in git from 2026-09-07 onward.

@@ -106,18 +106,13 @@ work.
 3. **Un-gitignore `docs/`**: remove the `docs/` line and the now-redundant
    force-add negations from `.gitignore`, then add and commit:
    - `docs/superpowers/specs/2026-09-06-reportkit-tooling-hardening-design.md`
-   - `docs/superpowers/specs/2026-09-06-data-engineering-guide-content-design.md`
-   - `docs/superpowers/plans/2026-09-06-reportkit-visual-grammar.md`
-   - `docs/data-engineering-guide-publication-review.md` (evidence/release-gate doc — not spec/plan-shaped, stays loose in `docs/`)
+   - the active engine tooling and vNext specs
    - `ReportKit vNext — AI Publication System Minimal Implementation Spec.md`, renamed with a date prefix and moved into `docs/superpowers/specs/` for consistency
    - this spec itself
-4. **Add status headers** to the four existing specs/plans, using
+4. **Add status headers** to the active specs/plans, using
    `TODOS.md`'s own already-verified assessments (transcription, not a
    new audit):
    - tooling-hardening spec → `Approved, implementation slice landed`
-   - content design spec → `Approved, ~60% implemented`
-   - visual-grammar plan → `Approved, unexecuted` (note the P0-2
-     branch-staleness blocker)
    - vNext spec → `Draft / roadmap, not started`
 5. **Rewrite `TODOS.md`** as the thin index from section B, seeded from
    its current (already-correct) content.

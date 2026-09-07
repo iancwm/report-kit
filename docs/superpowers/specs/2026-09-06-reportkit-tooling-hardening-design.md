@@ -1,25 +1,14 @@
 # ReportKit Tooling Hardening
 
-**Status:** Approved, implementation slice landed on `main` (not the
-`tooling` branch named below — see `TODOS.md`'s P0-2 for why that branch is
-stale). Guide content work in the companion spec is still pending.
+**Status:** Approved, implementation slice landed on `main`; tooling follow-up
+remains.
 **Last updated:** 2026-09-07
 
 Amended 2026-09-06 — see Amendments below.
 
 **Branch:** `tooling` (off `main`). Everything in this spec lands here.
-`data-engineering-guide` rebases onto this branch to pick up new capability.
-
-**Companion spec:** `2026-09-06-data-engineering-guide-content-design.md`
-covers the manuscript half of the same review documents. Where an item is
-split between the two, both halves name each other.
-
-**Scope of this document:** All tooling work implied by three review
-documents — `docs/tooling-improvement-spec-draft.md` (11 findings),
-the tooling half of `docs/data-engineering-guide-publication-review.md`, and
-`docs/licensing.md` (a superseded task brief, deleted 2026-09-07 — see the
-[documentation-and-status-tracking-cleanup design
-spec](2026-09-07-documentation-and-status-tracking-cleanup-design.md)).
+**Scope of this document:** Build correctness, long-form publication support,
+visual grammar, reproducibility, observability, and licensing.
 It changes build scripts, `latex_templates/`,
 `python_scripts/`, and repository metadata. It changes **no** manuscript
 prose and **no** diagram fragment.
@@ -32,7 +21,7 @@ approved here was withdrawn.
 
 1. **B7 (new).** The `diagram` environment stores `description=` and never
    reads it, so every figure's alt text is discarded at build time. The
-   content spec's §D5 was written against the assumption that setting the key
+   prior publication guidance assumed that setting the key
    was sufficient. It is not, and no section owned that fix.
 2. **B8 (new), replacing one sentence in B3.** P1-03 previously read "pursue
    tagged-PDF structure where the engine supports it ... best-effort", which
@@ -56,42 +45,43 @@ approved here was withdrawn.
 
 ## The finding that shapes this spec
 
-Most of the publication review's "P0 release blockers" are not defects in the
-Data Engineering Guide. They are capabilities `reportkit.cls` does not have.
+Most long-form publication release blockers are capabilities
+`reportkit.cls` does not have.
 The class is `article`-based (`reportkit.cls:7`) with no table-of-contents
 styling, no front-matter/page-numbering model, no page-break-before-section,
 and no PDF metadata plumbing beyond the link colours at `reportkit.cls:62`.
 
 Two consequences follow, and they set the shape of the whole spec:
 
-1. Fixing these in the guide would produce guide-local LaTeX that every future
-   ReportKit long-form document has to reinvent. They belong in the class.
-2. The guide's build harness already hand-rolls what the class should
+1. Fixing these in a publication would produce publication-local LaTeX that
+   every future ReportKit long-form document has to reinvent. They belong in
+   the class.
+2. A consumer build harness can hand-roll what the class should
    provide. The ~90-line Pandoc compatibility preamble is duplicated verbatim
    in `build-section.sh:37-112` and `combine.sh:32-96` — a duplication the
    comments in both files openly acknowledge and justify only by the absence
    of a shared home for it.
 
-So: give ReportKit the long-form capability, and let the guide become an
-ordinary consumer of it.
+So: give ReportKit the long-form capability and let every publication become
+an ordinary consumer of it.
 
 ## Goals
 
 1. Make bad layout and incomplete builds fail the build, rather than being
-   discovered by a human reading a 56-page PDF.
-2. Give ReportKit the long-form document capability the publication review
-   requires, once, in `latex_templates/`.
+   discovered by a human reading a generated publication.
+2. Give ReportKit reusable long-form document capability once, in
+   `latex_templates/`.
 3. Remove the harness duplication and the undeclared local dependencies that
    make the build unreproducible.
-4. Fix the visual grammar defects the guide currently works around, and add
-   the primitives the content backlog needs but the grammar lacks.
+4. Fix visual grammar defects and add the primitives general publications
+   need but the grammar lacks.
 5. Establish the licensing model in machine-readable form and inject it into
    generated publications.
 
 ## Non-goals
 
-- Any change to `manuscript/`, `fragments/`, or `publication-guidelines.md`.
-  Those are the content spec's territory.
+- Any change to a consumer publication's manuscript, fragments, or editorial
+  guidelines.
 - Rewriting the build system, upgrading dependencies, or adding hosted CI as
   a precondition. CI is named as the eventual home for the strict gates, but
   every gate must also run locally.
@@ -108,12 +98,12 @@ every later phase.*
 The retained logs from the reviewed build contain **four overfull boxes and
 six `ignored error: Infinite glue shrinkage` events**, and the build reported
 success anyway, because `build-section.sh:107-114` checks only `pdflatex`'s
-exit status. One of those overfull boxes is the clipped S3 URI the
-publication review independently found by eye on page 16.
+exit status. One of those overfull boxes is a clipped technical path found by
+visual QA.
 
 ### A1. Strict log gate
 
-Add `data_engineering_guide/scripts/check-build-log.py`, run after TeX
+Add `publication_pipeline/scripts/check-build-log.py`, run after TeX
 compilation in both the section and combined builds. Non-zero exit for:
 
 - TeX fatal errors (any line beginning `!`);
@@ -127,16 +117,16 @@ location. Benign messages go in a committed allowlist with an expiry date and
 a reviewed justification — never silent suppression.
 
 **Expect this to fail on first run.** That is the point: it converts six
-known-but-invisible defects into a blocking result. The content spec's
-section B fixes the two clipped paths; the allowlist absorbs the rest only
-after each is individually reviewed.
+known-but-invisible defects into a blocking result. Source changes fix
+publication-specific paths; the allowlist absorbs the rest only after each is
+individually reviewed.
 
-### A2. Commit gate covers guide paths
+### A2. Commit gate covers publication pipeline paths
 
 `.githooks/pre-commit:9` matches only `latex_templates/` and
-`python_scripts/`. Guide scripts, manuscripts, and fragments pass through
-ungated. Add a `data_engineering_guide/{scripts,manuscript,fragments}/` arm
-that runs the fast static validator (D2) plus the affected section's build.
+`python_scripts/`. Publication-pipeline changes pass through ungated. Add a
+`publication_pipeline/` arm that runs the fast static validator plus the
+affected fixture's build.
 
 ### A3. One canonical full-document build
 
@@ -151,8 +141,8 @@ an author-feedback loop, not a release artifact.
 
 ## B. ReportKit long-form capability
 
-*Source: publication review P0-01, P0-02, P0-03, P1-01, P1-03, P1-05, P1-06,
-P2-01, P2-02, P2-03 — the capability half of each. Priority: P0.*
+*Source: long-form publication QA findings — the reusable capability half of
+each. Priority: P0.*
 
 Two new tracked files under `latex_templates/`, plus targeted class changes.
 
@@ -208,36 +198,32 @@ carried by hue alone.
 
 ### B5. Release identity out of the build script
 
-P0-04, capability half. `combine.sh`'s heredoc hardcodes
+Release identity support. `combine.sh`'s heredoc hardcodes
 `\setreportkitversion{draft}` and the title/author strings directly in the
 generated `.tex` (`combine.sh:26-31`) — there is no way to set a release
 version or cover without editing a tracked script. Add a config point
 (command-line argument, environment variable, or a small metadata file
 `combine.sh` reads) for version string, title, author, and an optional cover
-PDF path to prepend via `\includepdf` or equivalent. The content spec's
-section A supplies the actual values; this item supplies the place to put
-them without editing `combine.sh` per release.
+PDF path to prepend via `\includepdf` or equivalent, so each consumer can
+provide publication-specific values without editing `combine.sh` per release.
 
 ### B6. Diagram width and label-size defaults
 
-P1-02, capability half. `rk node`'s width (28mm) and per-primitive label
+Diagram width and label-size defaults. `rk node`'s width (28mm) and per-primitive label
 font sizes are hardcoded shared-style defaults in `reportkit-diagrams.sty`
 (e.g. `rk node/.style` at `reportkit-diagrams.sty:22-25`, `\RKLaneNode` at
 `:150`, `\RKCycleNode` at `:219`), not fragment-level options. This is why
-the guide's narrow vertical figures (review P1-02) can only be widened today
+Narrow vertical figures can only be widened today
 by a per-node override at each call site, the same class of workaround as
 the two C1 bugs. Add a diagram-level `width=` or `scale=` key to the
 `diagram` environment (`reportkit-diagrams.sty:65`) that authors can set once
 per figure to stretch a flow, cycle, or architecture diagram toward full text
-width, rather than overriding every node individually. The content spec's
-section D1 (recompose the nine existing figures) consumes this option; it
-does not need to invent per-node overrides once it exists.
+width, rather than overriding every node individually.
 
 ### B7. Figure alt text reaches the PDF
 
-*Added by amendment 2026-09-06 (see Amendments). P1-03, capability half.
-Priority: P0 for the accessibility claim — it invalidates an assumption the
-content spec is already written against.*
+*Added by amendment 2026-09-06 (see Amendments). Priority: P0 for the
+accessibility claim.*
 
 The `diagram` environment accepts a `description=` key and stores it in
 `\rk@diagramdescription` (`reportkit-diagrams.sty:54`, `:64`). Nothing ever
@@ -247,8 +233,7 @@ is stored and unread in the same way.
 
 The consequence is that **every alt text written so far has been discarded at
 build time.** All fourteen tracked fragments set `description=`, the
-guidelines mandate it (`publication-guidelines.md:377-390`), and content spec
-§D5 lists it as a per-figure requirement — and none of it reaches a reader
+publication guidelines can require it per figure, and none of it reaches a reader
 using a screen reader. This is not a gap in the manuscript; the manuscript is
 correct. The pipeline drops its input.
 
@@ -267,7 +252,7 @@ extractable text of everything it wraps. A probe wrapping a two-step
 `reportflow` extracted as `ZZALTTEXT a chain of two stages` with the node
 labels `Source` and `Ingest` no longer recoverable. So B7 buys screen-reader
 alt text at the cost of copy-paste and search of label text inside diagrams —
-which matters here because guide figures carry literal identifiers such as
+which matters here because publication figures may carry literal identifiers such as
 `\rkcode{event_date}`.
 
 That is the correct trade for a diagram (a reader hearing
@@ -284,7 +269,7 @@ should reuse that same box so the wrapper sits at a clean box boundary. B6 and
 B7 therefore share one structural change and should land together.
 
 Either way `description=` becomes load-bearing: an empty or missing
-`description` on a `diagram` must warn, and — once the guide's fragments are
+  `description` on a `diagram` must warn, and — once consumer fragments are
 known to be complete — fail the build under the strict mode of F1. Do the
 same for `type=` or delete the key; a stored-and-unread option is a trap for
 the next author.
@@ -299,15 +284,16 @@ produces a diagnostic.
 *Added by amendment 2026-09-06 (see Amendments). P1-03, the half B3 no longer
 promises. Priority: P1, time-boxed.*
 
-The review's P1-03 acceptance check asks for "tagged headings and reading
+The accessibility acceptance check asks for "tagged headings and reading
 order, figures expose alt text, links have meaningful labels". Three of those
 four are ordinary work and are already assigned: metadata and bookmarks to
-B3, alt text to B7, link labels to the content spec's §E1. Tagged structure
+B3, alt text to B7, and link labels to publication-specific source
+conventions. Tagged structure
 and reading order are the outstanding item, and they carry real risk that the
 original one-sentence treatment hid.
 
 Tagging in current LaTeX means `\DocumentMetadata{testphase=...}` on
-LuaLaTeX. This guide is TikZ-dense by construction — every one of its figures
+LuaLaTeX. A target publication may be TikZ-dense by construction — every one of its figures
 is a tikzpicture emitted by a ReportKit primitive — and the tagging phases
 have a documented history of interacting badly with heavy TikZ and with
 `tcolorbox`-style callouts, both of which this class uses
@@ -342,15 +328,13 @@ page renders as evidence, committed alongside this spec. Not "tagging works".
 
 ## C. Visual grammar fixes and new primitives
 
-*Source: draft finding 9, plus the two upstream bugs documented in
-`data_engineering_guide/README.md:53-77`, plus the primitive gap implied by
-publication review P1-07. Priority: P0 — **this section blocks the content
-spec's figure programme**.*
+*Source: upstream visual-grammar defects and the primitive gap implied by
+publication QA. Priority: P0.*
 
 ### C1. Fix the two documented defects
 
-Both are currently worked around inside guide fragments, which is exactly
-backwards — the guide's own README tells future maintainers not to fix them.
+Both were previously worked around inside consumer fragments, which is
+backwards: reusable defects belong in the engine.
 
 1. ~~**`reportflow`'s `direction=vertical` is silently ignored.**~~
    **Already fixed — do not re-fix.** *(Amendment 2026-09-06.)* The spec was
@@ -359,13 +343,11 @@ backwards — the guide's own README tells future maintainers not to fix them.
    to `\expandafter\ifstrequal\expandafter{\rk@flowdirection}{vertical}`,
    which resolves correctly. A probe on current `main` renders a three-step
    vertical flow at constant x (~285pt) with y stepping 84 → 170 → 257pt.
-   The remaining work is to **lock the fix in with a regression test**, and to
-   retire the now-unnecessary `\RKNode` workaround in
-   `fragments/fig-sec01-lifecycle.tex` (a content-branch change).
+   The remaining work is to **lock the fix in with a regression test**.
 2. **`reportnetwork`'s default grid spacing collides with `rk node`'s
    rendered width** on a horizontal chain, breaking pgf's border-clipping
-   maths and reversing arrowheads. Workaround in
-   `fragments/fig-sec07-lineage.tex` is a per-node `text width=24mm`.
+   maths and reversing arrowheads. The historical workaround was a per-node
+   width override in a consumer fragment.
 
    **Reproduced and quantified 2026-09-06.** `rk node` is
    `text width=28mm` + `inner xsep=5pt` either side =
@@ -380,17 +362,16 @@ backwards — the guide's own README tells future maintainers not to fix them.
    catch it, which is the argument for the geometry-assertion test layer this
    section's fix must introduce.
 
-**Method, per the draft's finding 9:** add the failing case to
+**Method:** add the failing case to
 `latex_templates/examples/visual_grammar_acceptance_test.tex` *first*,
 confirm it reproduces, then change the macro. The draft explicitly flags its
 own root-cause analysis as provisional ledger testimony rather than
-reproduced fact, so the regression test is what establishes it. Remove the
-guide-side workarounds only after the visual gate passes — and note that
-removal is a **content-branch** change, coordinated with the content spec.
+reproduced fact, so the regression test is what establishes it. Remove
+consumer-side workarounds only after the visual gate passes.
 
 ### C2. New primitives
 
-The publication review asks for varied visual grammar — "timelines for time,
+Publication QA asks for varied visual grammar — "timelines for time,
 state diagrams for retries and recovery, physical layouts for files and
 partitions, before/after diagrams for cardinality" — and explicitly warns:
 *"Do not turn every figure into a vertical box-and-arrow flow."*
@@ -401,7 +382,7 @@ The current inventory is `reportflow`, `reportswimlane`, `reportnetwork`,
 `maturitymodel`, `continuum`, `capabilitymap`, `reporttree`, `reportmatrix`,
 `riskheatmap`. Three required forms have no primitive:
 
-| Primitive | Needed by (content spec section D) | Requirement |
+| Primitive | Needed by semantic visual grammar | Requirement |
 |---|---|---|
 | **State machine** | Tier 1 task recovery | Self-loops (retry), terminal-state styling, labelled transitions |
 | **Before/after pair** | Tier 1 join cardinality; Tier 2 small-file compaction, row vs column | Two aligned panels with a transform arrow, per-panel captions |
@@ -431,7 +412,7 @@ coordinates, a case in the visual grammar acceptance test, and an entry in
 (`.gitignore:11`); its `pyvenv.cfg` records only Python 3.12.3; no dependency
 declaration or lockfile exists anywhere. A clean clone cannot build.
 
-Track a locked guide tooling environment (`requirements.txt` plus
+Track a locked publication tooling environment (`requirements.txt` plus
 constraints, or `pyproject.toml` plus lockfile) and a setup command that
 creates the venv. Print Python, PyMuPDF, Pandoc, and TeX versions at build
 start so every log identifies its own toolchain.
@@ -443,7 +424,7 @@ matches exactly, and only while rendering. It cannot report orphan fragments,
 duplicate labels or slugs, unsupported sentinel spellings, or a count
 mismatch.
 
-Add `validate-guide.py`: read `order.txt`, confirm every listed input exists,
+Add `validate-publication.py`: read `order.txt`, confirm every listed input exists,
 validate sentinel syntax, enforce a one-to-one sentinel ↔ fragment ↔ label
 mapping, and reject orphans and duplicates — all before TeX runs. This is the
 fast check A2 runs in the commit hook.
@@ -477,10 +458,8 @@ at them. Emit a contact sheet plus an index, record reviewed pages against a
 build ID, and add deterministic checks for non-empty output, expected page
 count, and expected figure labels.
 
-**Including the bounding-box check** the publication review's P0-03 acceptance
-criterion requires: no glyph outside the media box. The review found the two
-clipped paths with `pdfplumber`; that check belongs in the build, not in a
-reviewer's notebook.
+**Including the bounding-box check** long-form QA requires: no glyph outside
+the media box. That check belongs in the build, not in a reviewer's notebook.
 
 **PyMuPDF is the single PDF-inspection dependency** *(amendment 2026-09-06)*.
 The review's evidence method used `pdfinfo`, `pdffonts`, `pdftotext`, `pypdf`,
@@ -498,7 +477,7 @@ it in D1's lockfile.
 
 ## E. Licensing
 
-*Source: `docs/licensing.md` in full. Priority: P1.*
+*Source: the repository's licensing requirements. Priority: P1.*
 
 The repository is GPL-3.0-or-later for source. Generated publications need a
 separate content licence — CC BY 4.0 for original prose and diagrams — while
@@ -521,9 +500,8 @@ own terms.
 
 The existing root `LICENSE` is not replaced or modified.
 
-**Cross-reference:** the content spec's section A supplies the licence and
-disclaimer *copy* that appears in the book's front matter. This section
-supplies the metadata and the injection mechanism.
+This section supplies the metadata and injection mechanism; publication
+projects supply their own licence and disclaimer copy.
 
 ---
 
@@ -563,10 +541,10 @@ latex_templates/
     visual_grammar_acceptance_test.tex      (modified — C1 + C2 cases)
     longform_acceptance_test.tex            (new — B2 capability)
     accessibility_acceptance_test.tex       (new — B7 alt text, B8 spike input)
-data_engineering_guide/
+publication_pipeline/example_publication/
   scripts/
     check-build-log.py                      (new — A1)
-    validate-guide.py                       (new — D2)
+    validate-publication.py                 (new — D2)
     build-section.sh, combine.sh            (modified — B1, A1, A3, D3)
     render_pdf_pages.py                     (modified — D3)
   fixtures/                                 (new — D5 + a minimal manuscript)
@@ -579,10 +557,9 @@ scripts/acceptance_check.sh                 (modified — F1)
 python_scripts/reportkit_doctor.py          (modified — F1)
 ```
 
-`data_engineering_guide/fixtures/` matters more than its size suggests. The
-`tooling` branch has no manuscript — that is the whole point of the split — so
-without a minimal fixture manuscript, `build-all.sh` has no input on this
-branch and the A1 gate cannot be exercised where it is developed.
+`publication_pipeline/example_publication/` matters more than its size
+suggests. A minimal fixture manuscript gives the A1 gate an input on the
+engine branch where it is developed.
 
 ## Sequencing
 
@@ -592,15 +569,15 @@ B (longform class)    ──┼──> D (reproducibility) ──> F (scale)
 C (visual grammar)    ──┘
 E (licensing) — independent, any time after A
 
-C blocks content spec section D (the figure programme).
-B blocks content spec sections A and C.
-B7 blocks content spec section D5's alt-text acceptance.
+C blocks visual-grammar implementation.
+B blocks long-form publication support.
+B7 blocks figure alt-text acceptance.
 B8 runs after B6 + C2 land; its outcome gates nothing else.
 ```
 
 B7 is small but sits on the critical path for the accessibility claim: until
-it lands, content spec §D5 can be fully satisfied on paper while the built
-PDF exposes no alt text at all. Sequence it with B3 rather than after C.
+it lands, a publication can declare figure descriptions while the built PDF
+exposes no alt text. Sequence it with B3 rather than after C.
 
 ## Acceptance criteria
 
@@ -621,10 +598,10 @@ PDF exposes no alt text at all. Sequence it with B3 rather than after C.
   requiring an edit to the tracked script, and the `diagram` environment
   accepts a `width=`/`scale=` key that stretches a figure without a per-node
   override.
-- `validate-guide.py` rejects, in unit tests: a missing fragment, an orphan
+- `validate-publication.py` rejects, in unit tests: a missing fragment, an orphan
   fragment, a duplicate slug, a duplicate label, an invalid sentinel case, and
   a missing `order.txt` entry.
-- A clean clone with no pre-existing venv builds the guide end to end.
+- A clean clone with no pre-existing venv builds the publication end to end.
 - A deliberately shortened fixture rebuild leaves no stale PNG.
 - A long `s3://` fixture is rejected by the bounding-box check before the
   breakable-path macro is applied, and passes after.

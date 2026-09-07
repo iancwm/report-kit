@@ -58,9 +58,8 @@ the ReportKit clone.
    `/manuscript/`, `/fragments/`, `/assets/`, `/output/`, `/publication.yaml`,
    and `/reportkit.lock` at repo root for exactly this reason.
 2. **Do not create long-lived content branches in report-kit.** A branch that
-   exists to carry a publication's manuscript (as `data-engineering-guide-content`
-   once did) belongs in that publication's own repository instead. See
-   [migrating-content-branches.md](migrating-content-branches.md).
+   exists to carry a publication's manuscript belongs in that publication's
+   own repository instead. See [migrating-content-branches.md](migrating-content-branches.md).
 3. **Do not hard-code project titles, paths, assets, or manuscript structure
    into reusable tooling.** `publication_build.py` reads identity from the
    consumer project's `publication.yaml` (via `python_scripts/publication_config.py`)

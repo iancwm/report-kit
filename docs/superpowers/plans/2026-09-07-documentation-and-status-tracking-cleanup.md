@@ -183,9 +183,8 @@ Replace with:
 Run:
 ```bash
 test ! -f "docs/licensing.md" && echo "stray file gone"
-git check-ignore -v docs/superpowers/plans/2026-09-06-reportkit-visual-grammar.md; echo "exit=$?"
 ```
-Expected: `stray file gone`; the `check-ignore` call prints nothing and `exit=1` (no longer ignored).
+Expected: `stray file gone`.
 
 - [ ] **Step 5: Commit**
 
@@ -207,12 +206,9 @@ Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 
 **Files:**
 - Modify: `docs/superpowers/specs/2026-09-06-reportkit-tooling-hardening-design.md:1-5`
-- Modify: `docs/superpowers/specs/2026-09-06-data-engineering-guide-content-design.md:1-8`
-- Modify: `docs/superpowers/plans/2026-09-06-reportkit-visual-grammar.md:1-4`
 - Rename: `docs/ReportKit vNext — AI Publication System Minimal Implementation Spec.md` → `docs/superpowers/specs/2026-09-06-reportkit-vnext-ai-publication-system-spec.md`, then modify its header
 - (already tracked, no change needed) `docs/superpowers/specs/2026-09-07-documentation-and-status-tracking-cleanup-design.md`
 - (already tracked, no change needed) `docs/superpowers/plans/2026-09-07-documentation-and-status-tracking-cleanup.md` (this file)
-- Add as-is: `docs/data-engineering-guide-publication-review.md`
 
 **Interfaces:** N/A — documentation-only.
 
@@ -232,73 +228,21 @@ Replace with:
 
 **Status:** Approved, implementation slice landed on `main` (not the
 `tooling` branch named below — see `TODOS.md`'s P0-2 for why that branch is
-stale). Guide content work in the companion spec is still pending.
+stale).
 **Last updated:** 2026-09-07
 
 Amended 2026-09-06 — see Amendments below.
 ```
 (This drops the old "Not yet implemented" claim, which `git log main..tooling` being empty never actually disproved — the work landed on `main` directly, not on `tooling`. This is the exact kind of stale, unverified status line the cleanup spec exists to fix.)
 
-- [ ] **Step 2: Normalize the content-design spec's status header**
-
-In `docs/superpowers/specs/2026-09-06-data-engineering-guide-content-design.md`, find:
-```markdown
-# Data Engineering Guide — Content and Publication Design
-
-**Status:** Approved design (scope confirmed with user 2026-09-06); amended
-2026-09-06 in §D5 only — alt text set via `description=` is currently
-discarded by the `diagram` environment, so §D5's accessibility acceptance
-depends on the new tooling §B7. Sections A, B, C, D2, D3 (5 of 8 figures),
-and E1 are implemented on `data-engineering-guide-content`; the rest is
-blocked on the tooling spec, which has not been started.
-```
-Replace with:
-```markdown
-# Data Engineering Guide — Content and Publication Design
-
-**Status:** Approved, ~60% implemented. Sections A, B, C, D2, D3 (5 of 8
-figures), and E1 are implemented on `data-engineering-guide-content`. The
-rest was blocked on the tooling spec; that spec's implementation slice has
-now landed (see `2026-09-06-reportkit-tooling-hardening-design.md`), so
-remaining work is unblocked, just not yet done.
-**Last updated:** 2026-09-07
-
-Amended 2026-09-06 in §D5 only — alt text set via `description=` is now
-emitted as a PDF `/ActualText` span (tooling §B7); see that spec for the
-accessibility trade-off this introduces.
-```
-
-- [ ] **Step 3: Add a status header to the visual-grammar plan**
-
-In `docs/superpowers/plans/2026-09-06-reportkit-visual-grammar.md`, find:
-```markdown
-# ReportKit Visual Grammar Implementation Plan
-
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
-
-**Goal:**
-```
-Replace with:
-```markdown
-# ReportKit Visual Grammar Implementation Plan
-
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
-
-**Status:** Approved, unexecuted — blocked on re-cutting the `tooling`
-branch (P0-2 in `TODOS.md`).
-**Last updated:** 2026-09-07
-
-**Goal:**
-```
-
-- [ ] **Step 4: Move and rename the vNext spec**
+- [ ] **Step 2: Move and rename the vNext spec**
 
 ```bash
 mv "docs/ReportKit vNext — AI Publication System Minimal Implementation Spec.md" \
    "docs/superpowers/specs/2026-09-06-reportkit-vnext-ai-publication-system-spec.md"
 ```
 
-- [ ] **Step 5: Add a status header to the moved vNext spec**
+- [ ] **Step 3: Add a status header to the moved vNext spec**
 
 In `docs/superpowers/specs/2026-09-06-reportkit-vnext-ai-publication-system-spec.md`, find:
 ```markdown
@@ -319,35 +263,31 @@ starting Phase 1.
 ## Objective
 ```
 
-- [ ] **Step 6: Verify the header edits**
+- [ ] **Step 4: Verify the header edits**
 
 Run:
 ```bash
 grep -A1 "^\*\*Status:\*\*" \
   docs/superpowers/specs/2026-09-06-reportkit-tooling-hardening-design.md \
-  docs/superpowers/specs/2026-09-06-data-engineering-guide-content-design.md \
-  docs/superpowers/plans/2026-09-06-reportkit-visual-grammar.md \
   docs/superpowers/specs/2026-09-06-reportkit-vnext-ai-publication-system-spec.md
 ```
 Expected: each file prints a `**Status:**` line immediately followed by a `**Last updated:** 2026-09-07` line (or the line directly after it in the plan's case — confirm each visually).
 
-- [ ] **Step 7: Track everything under `docs/`**
+- [ ] **Step 5: Track everything under `docs/`**
 
 ```bash
 git add docs/
 git status --short
 ```
-Expected: every file under `docs/` shows as staged (`A`), including the renamed vNext spec (shown as a rename if git detects it) and `docs/data-engineering-guide-publication-review.md`. Nothing under `docs/` remains untracked.
+Expected: every active file under `docs/` shows as staged (`A`), including the renamed vNext spec (shown as a rename if git detects it). Nothing under `docs/` remains untracked.
 
-- [ ] **Step 8: Commit**
+- [ ] **Step 6: Commit**
 
 ```bash
 git commit -m "docs: normalize spec/plan status headers, track docs/ in git
 
 - Tooling-hardening spec: correct the 'not yet implemented' claim — the
   work landed on main, not the (stale) tooling branch.
-- Content-design spec: note the tooling blocker cleared.
-- Visual-grammar plan: add the status header it never had.
 - Move the vNext spec into docs/superpowers/specs/ for consistency and
   give it a status header.
 - git add docs/ now that it's no longer ignored (see previous commit).
@@ -385,26 +325,16 @@ for why.
 
 | Document | Status | Priority |
 |---|---|---|
-| [data-engineering-guide-publication-review.md](docs/data-engineering-guide-publication-review.md) | Evidence / release gate for the 56-page build | Gate |
-| [2026-09-06-reportkit-tooling-hardening-design.md](docs/superpowers/specs/2026-09-06-reportkit-tooling-hardening-design.md) | Approved, implementation slice landed; guide content still pending | P1 |
-| [2026-09-06-data-engineering-guide-content-design.md](docs/superpowers/specs/2026-09-06-data-engineering-guide-content-design.md) | Approved, ~60% implemented | P1 |
-| [2026-09-06-reportkit-visual-grammar.md](docs/superpowers/plans/2026-09-06-reportkit-visual-grammar.md) | Approved, unexecuted — blocked on P0-2 | P1 |
+| [2026-09-06-reportkit-tooling-hardening-design.md](docs/superpowers/specs/2026-09-06-reportkit-tooling-hardening-design.md) | Approved, implementation slice landed; tooling follow-up remains | P1 |
 | [2026-09-06-reportkit-vnext-ai-publication-system-spec.md](docs/superpowers/specs/2026-09-06-reportkit-vnext-ai-publication-system-spec.md) | Draft / roadmap, not started | P3 |
 
 ## Open work
 
 ### P0
 
-- **P0-1 — extract the guide content branch.** `data-engineering-guide-content` has the manuscript; no branch has both manuscript and builder. Resolution is to extract it into its own consumer repo per [references/migrating-content-branches.md](references/migrating-content-branches.md) — not yet done, branch still unextracted.
-- **P0-2 — re-cut `tooling` from `main`.** It's 0 ahead / 17 behind `main` and blocks executing the visual-grammar plan. Re-cut before starting that plan's Task 1.
+- **P0-1 — re-cut `tooling` from `main`.** It's 0 ahead / 17 behind `main`. Re-cut before the next tooling implementation slice.
 
 ### P1
-
-- Content spec §D1, §D3 (3 remaining figures), §D4 (2 figures), §E2, §F — remaining manuscript work; the tooling to support it now exists.
-- Content follow-ups: retire the `\RKNode` workaround in `fig-sec01-lifecycle.tex` and the `text width=24mm` workaround in `fig-sec07-lineage.tex` (both fixed upstream, workarounds now unnecessary).
-- Distribution: no A4 cover asset exists in any branch — produce one or drop the claim.
-
-### P2
 
 - B4 contrast audit (`reportkit.cls:44` Muted colour, syntax palette) — not started.
 - P2-01 page-rhythm rebalance, P1-06 keep short code listings together — not started.
