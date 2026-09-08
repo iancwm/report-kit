@@ -58,15 +58,13 @@ again; "Partial" means extend the named file; "Gap" means genuinely absent.
 | §8 | page rendering + contact sheet | **Done** | `publication_pipeline/scripts/render_pdf_pages.py` — atomic via tempdir + `os.replace`, 150 DPI, `index.html`, `pages.json` |
 | §9 | build manifest | **Done** | `build-report.json` schema v2 + `reportkit.lock` + unique history records |
 | §10 | source/manuscript model | **Done** | `python_scripts/reportkit/authoring.py` — consumer-side schema validation |
-| §11 | link registry | **Done** | `python_scripts/reportkit/authoring.py` + generated `links.tex` and `\\RKLink` |
+| §11 | link registry | **Done** | `python_scripts/reportkit/authoring.py` + generated `links.tex` and `\RKLink` |
 | §12 | visualization registry | **Done** | `python_scripts/reportkit/registry.py` — generated inventory with documented drift checks |
-| §13 | publication skill | **Partial** | `SKILL.md` exists and is good, but still prescribes banned `pdftoppm` at `:304` |
+| §13 | publication skill | **Done** | `SKILL.md` routes long-form builds through the CLI and its inspection workflow |
 | §14 | agent guardrails | **Done** | `references/repository-boundary.md` + `CONTRIBUTING.md` rules 1–4, enforced in three places |
 | §15 | build history | **Done** | `python_scripts/reportkit/analysis.py` + `reportkit analyse-history` |
 
-**Score:** 18 done, 1 partial, 0 gaps. The remaining partial is the direct
-short-report workflow in `SKILL.md`, which still documents manual rasterization;
-the long-form publication build is routed through the CLI.
+**Score:** 19 done, 0 partial, 0 gaps.
 
 ---
 

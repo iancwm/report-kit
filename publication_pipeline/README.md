@@ -28,7 +28,7 @@ The `reportkit` facade also exposes `doctor`, `context`, `diagnose`, `inspect`,
 `analyse-history`, and `package`. Add `--profile release` to resolve a release
 profile from a nested `publication.yaml`; `--engine` is an explicit TeX-engine
 override. Optional `sources.yaml` and `links.yaml` files are validated during
-`check` and `build`; the latter renders named `\\RKLink{key}` links into the
+`check` and `build`; the latter renders named `\RKLink{key}` links into the
 generated document. `inspect` reports page dimensions, bookmarks, fonts, blank
 pages, and near-margin content. The shell wrappers and direct
 `publication_build.py` invocation remain supported.

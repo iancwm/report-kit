@@ -42,7 +42,7 @@ for why.
   implemented on PR #9**. PR #9 intentionally inherits the Phase 1 package,
   config, diagnostics, registry, CLI, manifest, and test-wiring work from PR
   #10 rather than duplicating it. Its additive capabilities are deeper PDF QA,
-  source/manuscript and link-registry validation, `\\RKLink` rendering, and
+  source/manuscript and link-registry validation, `\RKLink` rendering, and
   `reportkit analyse-history`.
 - Plan record — **reconciled 2026-09-07**; the overlap with the tooling spec is
   audited section by section in
