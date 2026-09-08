@@ -296,12 +296,12 @@ rkv.save_figure(fig, "figures/performance")
 
 ## Build and inspect
 
-On a `FULL BUILD`, compile twice, then rasterize every page:
+On a `FULL BUILD`, use the CLI build so the standard compilation, diagnostic
+gate, page rendering, and build manifest are applied consistently:
 
 ```bash
-pdflatex -interaction=nonstopmode -halt-on-error report.tex
-pdflatex -interaction=nonstopmode -halt-on-error report.tex
-pdftoppm -png -r 150 report.pdf report_page
+./reportkit build --source-root <publication-project>
+./reportkit inspect --source-root <publication-project>
 ```
 
 Read the `.log` before retrying a failed compile. Inspect every rendered page for clipped text, overlapping labels, broken arrows, bad page breaks, missing figures, and meanings conveyed only by colour. A successful TeX exit code alone is not completion.

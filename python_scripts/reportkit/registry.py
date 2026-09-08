@@ -20,6 +20,7 @@ COMMANDS = {
     "diagnose": "reportkit diagnose",
     "inspect": "reportkit inspect",
     "package": "reportkit package",
+    "analyse-history": "reportkit analyse-history",
 }
 
 

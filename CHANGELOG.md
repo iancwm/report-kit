@@ -7,6 +7,12 @@ tags on this repository, not a published package registry.
 ## [Unreleased]
 
 ### Added
+- PDF inspection now reports bookmarks, font metadata, page dimensions,
+  blank pages, and near-margin content.
+- Publications can validate optional source/manuscript and link registries;
+  named links render through `\RKLink{key}` in generated documents.
+- `reportkit analyse-history` summarizes recurring diagnostics and repeated
+  allowlist entries from build history.
 - `\rkcode{...}` for rendering identifier-like technical tokens, such as
   `event_date`, safely in direct semantic-diagram labels.
 - Width-aware swimlanes: `columns=`, `node width=`, `column spacing=`, and

@@ -1,6 +1,6 @@
 # ReportKit — Outstanding Work
 
-**Last updated:** 2026-09-08
+**Last updated:** 2026-09-09
 
 This is an index, not an audit. Each spec/plan under `docs/superpowers/`
 carries its own `**Status:**` line, updated at the workflow checkpoint that
@@ -16,7 +16,7 @@ for why.
 |---|---|---|
 | [2026-09-06-reportkit-tooling-hardening-design.md](docs/superpowers/specs/2026-09-06-reportkit-tooling-hardening-design.md) | Approved, implementation slice landed; tooling follow-up remains | P1 |
 | [2026-09-06-reportkit-vnext-ai-publication-system-spec.md](docs/superpowers/specs/2026-09-06-reportkit-vnext-ai-publication-system-spec.md) | Draft / roadmap — reconciled; implement from the plan, not this | P3 |
-| [2026-09-07-reportkit-vnext-implementation-plan.md](docs/superpowers/plans/2026-09-07-reportkit-vnext-implementation-plan.md) | Phase 1 implemented; Phases 2–4 remain | P3 |
+| [2026-09-07-reportkit-vnext-implementation-plan.md](docs/superpowers/plans/2026-09-07-reportkit-vnext-implementation-plan.md) | Phase 1 in PR #10; additive Phases 2–4 in PR #9 | P3 |
 | [2026-09-07-documentation-and-status-tracking-cleanup-design.md](docs/superpowers/specs/2026-09-07-documentation-and-status-tracking-cleanup-design.md) | Approved | Process |
 | [2026-09-07-documentation-and-status-tracking-cleanup.md](docs/superpowers/plans/2026-09-07-documentation-and-status-tracking-cleanup.md) | Done — merged via PR #7 (`965443b`) | Process |
 
@@ -33,17 +33,17 @@ for why.
 
 ### P1
 
-- Continue the tooling-hardening follow-up slices and reconcile them with the vNext roadmap before starting Phases 2–4.
+- Continue the tooling-hardening follow-up slices and reconcile them with the
+  vNext roadmap; the vNext Phase 2–4 implementation slice is now complete.
 
 ### P3
 
-- vNext — **Phase 1 implemented 2026-09-08**; the overlap with the tooling spec
-  was reconciled on 2026-09-07, and the seven planned interface work items are
-  now shipped on the implementation branch:
-  importable package, nested `publication.yaml`, typed diagnostics carrying
-  source locations and ownership, generated capability registry, stdlib CLI
-  facade, manifest history, and wired pipeline tests. Phases 2–4 remain open
-  for PDF QA depth, authoring/link schemas, and history analysis.
+- vNext — **Phase 1 implemented 2026-09-08 in PR #10; additive Phases 2–4 are
+  implemented on PR #9**. PR #9 intentionally inherits the Phase 1 package,
+  config, diagnostics, registry, CLI, manifest, and test-wiring work from PR
+  #10 rather than duplicating it. Its additive capabilities are deeper PDF QA,
+  source/manuscript and link-registry validation, `\RKLink` rendering, and
+  `reportkit analyse-history`.
 - Plan record — **reconciled 2026-09-07**; the overlap with the tooling spec is
   audited section by section in
   [the implementation plan](docs/superpowers/plans/2026-09-07-reportkit-vnext-implementation-plan.md).
@@ -60,8 +60,11 @@ for why.
 
 - 2026-09-08: vNext Phase 1 implemented on `feat/reportkit-vnext-phase1` —
   W1–W7 delivered the package/CLI, nested config, diagnostics attribution,
-  capability registry, manifest history, and test wiring; Phases 2–4 remain
-  deferred.
+  capability registry, manifest history, and test wiring. Phases 2–4 were
+  deferred to the additive follow-up recorded below.
+- 2026-09-09: PR #9 was aligned with merged PR #10; duplicate Phase 1 files
+  were removed from its effective diff, and the additive Phase 2–4 capabilities
+  were completed on `vnext-release`.
 - 2026-09-07: docs-cleanup plan completed and merged to `main` via PR #7 (`965443b`); status flipped to Done per the plan's own completion rule (none of its 26 checklist items were ever checked off inline, but the doc's explicit "Flips to Done when this branch merges" criterion was satisfied).
 - 2026-09-06: five stale spec/plan documents verified implemented and deleted (four untracked, one tracked — recoverable from git history at the parent of `49af053`).
 - `docs/tooling-improvement-spec-draft.md` was lost permanently in 2026-09-06 while `docs/` was gitignored and untracked — the reason specs/plans are tracked in git from 2026-09-07 onward.

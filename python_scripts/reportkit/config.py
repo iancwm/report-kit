@@ -111,6 +111,101 @@ def _parse_yaml(path: Path) -> dict[str, Any]:
     return root
 
 
+def _parse_subset(path: Path) -> dict[str, Any]:
+    """Parse the same small YAML subset with list-of-mapping support.
+
+    Authoring manifests use lists of structured chapter records, while the
+    historical publication config parser above intentionally only handles
+    scalar lists. Keep this parser additive so legacy config behaviour stays
+    unchanged.
+    """
+    lines: list[tuple[int, int, str]] = []
+    for line_number, raw in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+        leading = raw[: len(raw) - len(raw.lstrip(" \t"))]
+        if "\t" in leading:
+            raise ValueError(f"{path}:{line_number}: tabs are not supported for indentation")
+        content = _strip_comment(raw.strip())
+        if not content:
+            continue
+        indent = len(raw) - len(raw.lstrip(" "))
+        if indent % 2:
+            raise ValueError(f"{path}:{line_number}: indentation must use multiples of two spaces")
+        lines.append((line_number, indent, content))
+
+    def block(position: int, indent: int) -> tuple[Any, int]:
+        if position >= len(lines) or lines[position][1] != indent:
+            line_number = lines[position][0] if position < len(lines) else 1
+            raise ValueError(f"{path}:{line_number}: invalid indentation")
+        is_list = lines[position][2] == "-" or lines[position][2].startswith("- ")
+        result: Any = [] if is_list else {}
+        while position < len(lines) and lines[position][1] == indent:
+            line_number, _, content = lines[position]
+            if is_list:
+                if content != "-" and not content.startswith("- "):
+                    raise ValueError(f"{path}:{line_number}: cannot mix list and mapping entries")
+                item = content[1:].strip()
+                if not item:
+                    if position + 1 < len(lines) and lines[position + 1][1] > indent:
+                        child, position = block(position + 1, lines[position + 1][1])
+                        result.append(child)
+                    else:
+                        result.append(None)
+                    continue
+                if ":" not in item or item.startswith(("'", '"')):
+                    result.append(_scalar(item, path, line_number))
+                    position += 1
+                    continue
+                key, raw_value = item.split(":", 1)
+                key = key.strip()
+                if not key or any(char.isspace() for char in key):
+                    raise ValueError(f"{path}:{line_number}: invalid list mapping key {key!r}")
+                mapping: dict[str, Any] = {
+                    key: _scalar(raw_value, path, line_number) if raw_value.strip() else None
+                }
+                position += 1
+                if position < len(lines) and lines[position][1] > indent:
+                    child, position = block(position, lines[position][1])
+                    if not isinstance(child, dict):
+                        raise ValueError(f"{path}:{line_number}: list mapping continuation must be a mapping")
+                    if mapping[key] is None and key in child:
+                        mapping[key] = child.pop(key)
+                    overlap = set(mapping) & set(child)
+                    if overlap:
+                        duplicate = sorted(overlap)[0]
+                        raise ValueError(f"{path}:{line_number}: duplicate list mapping key {duplicate!r}")
+                    mapping.update(child)
+                result.append(mapping)
+                continue
+            if content.startswith("- ") or ":" not in content:
+                raise ValueError(f"{path}:{line_number}: expected key: value")
+            key, raw_value = content.split(":", 1)
+            key = key.strip()
+            if not key or any(char.isspace() for char in key):
+                raise ValueError(f"{path}:{line_number}: invalid key {key!r}")
+            if key in result:
+                raise ValueError(f"{path}:{line_number}: duplicate key {key!r}")
+            if raw_value.strip():
+                result[key] = _scalar(raw_value, path, line_number)
+                position += 1
+            elif position + 1 < len(lines) and lines[position + 1][1] > indent:
+                child, position = block(position + 1, lines[position + 1][1])
+                result[key] = child
+            else:
+                result[key] = None
+                position += 1
+        return result, position
+
+    if not lines:
+        return {}
+    parsed, position = block(0, lines[0][1])
+    if position != len(lines) or not isinstance(parsed, dict):
+        line_number = lines[position][0] if position < len(lines) else lines[-1][0]
+        raise ValueError(f"{path}:{line_number}: invalid top-level mapping")
+    if lines[0][1] != 0:
+        raise ValueError(f"{path}:{lines[0][0]}: top-level keys must not be indented")
+    return parsed
+
+
 def _known_for(section: str) -> tuple[str, ...]:
     return {
         "publication": IDENTITY_KEYS,

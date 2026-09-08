@@ -42,7 +42,7 @@ Migrating an existing content branch out of this repo is covered in
 
 ## 2. python_scripts/
 - `reportkit` (from the repository root) — stdlib CLI facade for doctor,
-  context, check, build, diagnose, inspect, and package; its importable
+  context, check, build, diagnose, inspect, analyse-history, and package; its importable
   implementation lives under `python_scripts/reportkit/`.
 - `reportkit_viz.py` — Matplotlib analytical chart theme (palette synced with
   `reportkit.cls`, including treemap, waterfall, tornado, bubble-matrix, and

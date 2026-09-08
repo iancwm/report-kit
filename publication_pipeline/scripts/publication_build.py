@@ -58,6 +58,7 @@ def _load_module(name: str, path: Path):
 
 _load_reportkit_package()
 
+from reportkit.authoring import render_links_tex, validate_authoring  # noqa: E402
 from reportkit.config import (  # noqa: E402
     CONFIG_NAME,
     load_publication_config,
@@ -219,6 +220,11 @@ def build(args: argparse.Namespace) -> int:
         for error in validation.errors:
             print(f"publication validation: {error}", file=sys.stderr)
         return 1
+    authoring = validate_authoring(source_root)
+    if not authoring.ok:
+        for error in authoring.errors:
+            print(f"authoring validation: {error}", file=sys.stderr)
+        return 1
     try:
         license_values = load_license_metadata(LICENSE_FILE)
     except (OSError, ValueError) as exc:
@@ -277,6 +283,13 @@ def build(args: argparse.Namespace) -> int:
     uses_tables = any("|" in line and "---" in line for line in manuscript_text.splitlines())
     uses_code = "```" in manuscript_text or "~~~" in manuscript_text
     write_metadata(output / "metadata.tex", identity=identity, combined=args.mode == "combined", license_values=license_values, cover_name=cover_name, uses_tables=uses_tables, uses_code=uses_code)
+    links_file = source_root / "links.yaml"
+    if links_file.is_file():
+        try:
+            render_links_tex(links_file, output / "links.tex")
+        except (OSError, ValueError) as exc:
+            print(f"link registry: {exc}", file=sys.stderr)
+            return 2
     tex = output / TEMPLATE.name
     log = output / "publication.log"
     document = resolve_document(config, profile)

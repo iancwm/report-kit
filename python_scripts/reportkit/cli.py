@@ -12,6 +12,8 @@ import sys
 import tempfile
 from typing import Any
 
+from .analysis import analyse_history
+from .authoring import validate_authoring
 from .config import CONFIG_NAME, load_publication_config, resolve_identity
 from .context import build_context
 from .diagnostics import inspect_log, load_allowlist, load_maps
@@ -73,22 +75,27 @@ def _run_check(args: argparse.Namespace) -> int:
     root = _source_root(args)
     module = _load_module("reportkit_publication_validation", PIPELINE_ROOT / "scripts" / "publication_validation.py")
     result = module.validate_publication(root)
+    authoring = validate_authoring(root)
+    errors = result.errors + authoring.errors
     payload = {
-        "passed": result.ok,
-        "errors": result.errors,
+        "passed": not errors,
+        "errors": errors,
         "manuscript_files": result.manuscript_files,
         "visuals": result.slugs,
         "labels": result.labels,
+        "sources": authoring.sources,
+        "chapters": authoring.chapters,
+        "links": authoring.links,
     }
     if args.json:
         _json_or_print(payload, True)
-    elif result.ok:
+    elif not errors:
         print(f"PASS: publication validation ({len(result.manuscript_files)} manuscripts, {len(result.slugs)} visuals, {len(result.labels)} labels)")
     else:
         print("FAIL: publication validation", file=sys.stderr)
-        for error in result.errors:
+        for error in errors:
             print(f"- {error}", file=sys.stderr)
-    return 0 if result.ok else 1
+    return 0 if not errors else 1
 
 
 def _run_build(args: argparse.Namespace) -> int:
@@ -236,6 +243,18 @@ def _run_package(args: argparse.Namespace) -> int:
     return 0
 
 
+def _run_analysis(args: argparse.Namespace) -> int:
+    history = Path(args.history_dir).resolve() if args.history_dir else _source_root(args) / "build" / "history"
+    result = analyse_history(history)
+    if args.json:
+        _json_or_print(result, True)
+    else:
+        print(f"ReportKit history: {result['build_count']} builds, {len(result['recurring'])} recurring diagnostics")
+        for item in result["recurring"]:
+            print(f"- {item['type']}: {item['occurrences']} occurrences across {item['builds']} builds")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="reportkit", description="Deterministic ReportKit publication engine")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -287,6 +306,12 @@ def build_parser() -> argparse.ArgumentParser:
     package.add_argument("--destination")
     package.add_argument("--json", action="store_true")
     package.set_defaults(handler=_run_package)
+
+    history = sub.add_parser("analyse-history", help="summarize recurring diagnostics in build history")
+    history.add_argument("--source-root", help="consumer publication project")
+    history.add_argument("--history-dir", help="build history directory")
+    history.add_argument("--json", action="store_true")
+    history.set_defaults(handler=_run_analysis)
     return parser
 
 
