@@ -77,29 +77,35 @@ See [`publication_pipeline/README.md`](publication_pipeline/README.md).
   pdflatex path; see `references/font-setup.md` for the lualatex additions.
 
 ## 6. references/
-- `repository-boundary.md`, `migrating-content-branches.md` — the engine/
-  publication boundary and how to move existing content out of this repo.
-- `font-setup.md`, `known-fixes.md`, `troubleshooting.md` — split from the
-  former execution guide, and linked from `SKILL.md` on demand rather than
-  loaded up front, so a session's context only grows with the specific
-  problem it's actually hitting.
+- [`repository-boundary.md`](references/repository-boundary.md),
+  [`migrating-content-branches.md`](references/migrating-content-branches.md) —
+  the engine/publication boundary and how to move existing content out of this
+  repo.
+- [`font-setup.md`](references/font-setup.md),
+  [`known-fixes.md`](references/known-fixes.md),
+  [`troubleshooting.md`](references/troubleshooting.md),
+  [`accessibility-tagging.md`](references/accessibility-tagging.md), and
+  [`licensing.md`](references/licensing.md) — operational, accessibility, and
+  licensing guidance, linked from `SKILL.md` or the relevant entry points on
+  demand.
 
 ## Licensing scope
 
 | Scope | Default licence |
 |---|---|
 | Source code and build tooling | GPL-3.0-or-later (`LICENSE`) |
-| Original publication prose and diagrams | CC BY 4.0 (`CONTENT-LICENSE.md`) |
-| Code examples and third-party assets | Separately licensed; see `THIRD-PARTY-NOTICES.md` |
+| Original publication prose and diagrams | CC BY 4.0 ([`CONTENT-LICENSE.md`](CONTENT-LICENSE.md)) |
+| Code examples and third-party assets | Separately licensed; see [`THIRD-PARTY-NOTICES.md`](THIRD-PARTY-NOTICES.md) |
 
 The machine-readable defaults are in `metadata/licenses.yml`; contributor
-requirements are documented in `references/licensing.md`.
+requirements are documented in [`CONTRIBUTING.md`](CONTRIBUTING.md) and
+[`references/licensing.md`](references/licensing.md).
 
 ## 7. scripts/ and .githooks/
 - `scripts/acceptance_check.sh` — compiles the legacy and visual-grammar
   acceptance tests and checks for known failure signatures; run by hand, or
   automatically via `.githooks/pre-commit` once enabled (see
-  `CONTRIBUTING.md`).
+  [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 ## Setup
 
