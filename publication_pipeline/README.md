@@ -19,9 +19,16 @@ publication to build on.
 
 ```bash
 bash scripts/setup.sh
-python3 scripts/validate-publication.py --root <publication-project>
+<reportkit-clone>/reportkit check --source-root <publication-project>
 bash scripts/build-section.sh manuscript/01-introduction.md --source-root <publication-project>
 bash scripts/combine.sh --source-root <publication-project> --output-root <publication-project>/build
+```
+
+The same operations are available through the unified facade:
+
+```bash
+<reportkit-clone>/reportkit build --mode combined --source-root <publication-project>
+<reportkit-clone>/reportkit diagnose --source-root <publication-project> --json
 ```
 
 `<publication-project>/publication.yaml` supplies the title, subtitle, author,

@@ -2,11 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 import tempfile
-import unittest
 
-import sys
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
-from publication_validation import validate_publication
+from publication_pipeline.scripts.publication_validation import validate_publication
 
 
 def make_publication(manuscripts: dict[str, str], order: list[str], fragments: dict[str, str]) -> Path:
@@ -21,23 +18,18 @@ def make_publication(manuscripts: dict[str, str], order: list[str], fragments: d
     return root
 
 
-class PublicationValidationTests(unittest.TestCase):
-    def test_valid_tree_passes(self) -> None:
-        root = make_publication({"01-one.md": "[[REPORTKIT-VISUAL:fig:one]]\n"}, ["01-one.md"], {"one": "fig:one"})
-        self.assertTrue(validate_publication(root).ok)
+def test_valid_tree_passes() -> None:
+    root = make_publication({"01-one.md": "[[REPORTKIT-VISUAL:fig:one]]\n"}, ["01-one.md"], {"one": "fig:one"})
+    assert validate_publication(root).ok
 
-    def test_missing_and_orphan_fragments_fail(self) -> None:
-        root = make_publication({"01-one.md": "[[REPORTKIT-VISUAL:fig:missing]]\n"}, ["01-one.md"], {"orphan": "fig:orphan"})
-        result = validate_publication(root)
-        self.assertTrue(any("missing fragment" in error for error in result.errors))
-        self.assertTrue(any("orphan fragment" in error for error in result.errors))
+def test_missing_and_orphan_fragments_fail() -> None:
+    root = make_publication({"01-one.md": "[[REPORTKIT-VISUAL:fig:missing]]\n"}, ["01-one.md"], {"orphan": "fig:orphan"})
+    result = validate_publication(root)
+    assert any("missing fragment" in error for error in result.errors)
+    assert any("orphan fragment" in error for error in result.errors)
 
-    def test_invalid_sentinel_and_unordered_manuscript_fail(self) -> None:
-        root = make_publication({"01-one.md": "[[REPORTKIT-VISUAL:fig:Not-valid]]\n", "02-two.md": "# Two\n"}, ["01-one.md"], {})
-        result = validate_publication(root)
-        self.assertTrue(any("invalid visual sentinel" in error for error in result.errors))
-        self.assertTrue(any("not listed in order.txt" in error for error in result.errors))
-
-
-if __name__ == "__main__":
-    unittest.main()
+def test_invalid_sentinel_and_unordered_manuscript_fail() -> None:
+    root = make_publication({"01-one.md": "[[REPORTKIT-VISUAL:fig:Not-valid]]\n", "02-two.md": "# Two\n"}, ["01-one.md"], {})
+    result = validate_publication(root)
+    assert any("invalid visual sentinel" in error for error in result.errors)
+    assert any("not listed in order.txt" in error for error in result.errors)

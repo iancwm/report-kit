@@ -34,6 +34,7 @@
 \RequirePackage{needspace}
 \RequirePackage{caption}
 \RequirePackage{hyperref}
+\providecommand{\RKLink}[1]{\href{#1}{#1}}
 \RequirePackage{xparse}
 \RequirePackage{etoolbox}
 
