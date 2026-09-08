@@ -4,10 +4,12 @@ from __future__ import annotations
 import argparse
 import importlib.util
 import json
+import os
 from pathlib import Path
 import shutil
 import subprocess
 import sys
+import tempfile
 from typing import Any
 
 from .config import CONFIG_NAME, load_publication_config, resolve_identity
@@ -161,8 +163,30 @@ def _run_inspect(args: argparse.Namespace) -> int:
     if not pdf or not pdf.is_file():
         print("FAIL: no PDF found; pass a PDF path or build first", file=sys.stderr)
         return 1
-    module = _load_module("reportkit_inspect_pdf", PIPELINE_ROOT / "scripts" / "inspect_pdf.py")
-    result = module.inspect(pdf)
+    inspector = PIPELINE_ROOT / "scripts" / "inspect_pdf.py"
+    configured_python = os.environ.get("REPORTKIT_PDF_PYTHON")
+    candidate = Path(configured_python).expanduser() if configured_python else _output_root(args, source_root) / ".venv" / "bin" / "python"
+    if not candidate.is_absolute():
+        candidate = (Path.cwd() / candidate).absolute()
+    if candidate.is_file() and (configured_python or candidate != Path(sys.executable)):
+        if args.json:
+            with tempfile.TemporaryDirectory(prefix="reportkit-inspect-") as temp_dir:
+                json_path = Path(temp_dir) / "inspection.json"
+                proc = subprocess.run([str(candidate), str(inspector), str(pdf), "--json", str(json_path)], capture_output=True, text=True)
+                if proc.returncode and proc.stderr:
+                    print(proc.stderr, end="", file=sys.stderr)
+                if not json_path.is_file():
+                    return proc.returncode or 1
+                result = json.loads(json_path.read_text(encoding="utf-8"))
+        else:
+            return subprocess.run([str(candidate), str(inspector), str(pdf)]).returncode
+    else:
+        try:
+            module = _load_module("reportkit_inspect_pdf", inspector)
+            result = module.inspect(pdf)
+        except ModuleNotFoundError as exc:
+            print(f"FAIL: PDF inspection requires PyMuPDF; run publication_pipeline/scripts/setup.sh or set REPORTKIT_PDF_PYTHON ({exc})", file=sys.stderr)
+            return 1
     if args.json:
         _json_or_print(result, True)
     elif result["passed"]:
