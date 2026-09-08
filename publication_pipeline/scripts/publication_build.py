@@ -10,9 +10,11 @@ from __future__ import annotations
 import argparse
 from datetime import datetime, timezone
 import hashlib
+import importlib.util
 import json
 import os
 from pathlib import Path
+import re
 import shutil
 import subprocess
 import sys
@@ -29,9 +31,43 @@ LICENSE_FILE = REPO_ROOT / "metadata" / "licenses.yml"
 # invocation exercises the toolchain without assuming any real publication.
 DEFAULT_SOURCE_ROOT = PIPELINE_ROOT / "example_publication"
 
-sys.path.insert(0, str(REPO_ROOT / "python_scripts"))
-from license_metadata import load_license_metadata  # noqa: E402
-from publication_config import CONFIG_NAME, load_publication_config, resolve_identity  # noqa: E402
+
+def _load_reportkit_package() -> None:
+    if "reportkit" in sys.modules:
+        return
+    package = REPO_ROOT / "python_scripts" / "reportkit"
+    spec = importlib.util.spec_from_file_location(
+        "reportkit", package / "__init__.py", submodule_search_locations=[str(package)]
+    )
+    if not spec or not spec.loader:
+        raise ImportError(f"cannot load ReportKit package from {package}")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules["reportkit"] = module
+    spec.loader.exec_module(module)
+
+
+def _load_module(name: str, path: Path):
+    spec = importlib.util.spec_from_file_location(name, path)
+    if not spec or not spec.loader:
+        raise ImportError(f"cannot load {path}")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+_load_reportkit_package()
+
+from reportkit.config import (  # noqa: E402
+    CONFIG_NAME,
+    load_publication_config,
+    resolve_document,
+    resolve_identity,
+    resolve_validation,
+)
+from reportkit.manifest import unique_build_id, write_report  # noqa: E402
+
+load_license_metadata = _load_module("reportkit_license_metadata", REPO_ROOT / "python_scripts" / "license_metadata.py").load_license_metadata
 
 
 def sha256(path: Path) -> str:
@@ -58,12 +94,18 @@ def order_entries(root: Path) -> list[str]:
     return [line.strip() for line in (root / "manuscript" / "order.txt").read_text(encoding="utf-8").splitlines() if line.strip() and not line.strip().startswith("#")]
 
 
-def render_markdown(root: Path, manuscript: Path, output: Path) -> None:
+def render_markdown(root: Path, manuscript: Path, output: Path, map_path: Path | None = None) -> None:
     proc = subprocess.run(["pandoc", "-f", "markdown", "-t", "latex", str(manuscript)], cwd=root.parent, capture_output=True, text=True)
     if proc.returncode:
         raise RuntimeError(proc.stderr or f"Pandoc failed for {manuscript}")
-    import re
+    source_lines = manuscript.read_text(encoding="utf-8").splitlines()
+    source_locations = {
+        match.group(1): line_number
+        for line_number, raw in enumerate(source_lines, 1)
+        if (match := re.search(r"REPORTKIT-VISUAL:fig:([a-z0-9]+(?:-[a-z0-9]+)*)", raw))
+    }
     lines: list[str] = []
+    fragments: list[dict[str, object]] = []
     for line in proc.stdout.splitlines():
         match = re.fullmatch(
             r"\s*(?:\[\[|\{\[\}\{\[\})REPORTKIT-VISUAL:fig:"
@@ -75,10 +117,25 @@ def render_markdown(root: Path, manuscript: Path, output: Path) -> None:
             fragment = root / "fragments" / f"fig-{match.group(1)}.tex"
             if not fragment.is_file():
                 raise RuntimeError(f"missing fragment: {fragment}")
-            lines.append(fragment.read_text(encoding="utf-8"))
+            generated_start = len(lines) + 1
+            fragment_lines = fragment.read_text(encoding="utf-8").splitlines()
+            lines.extend(fragment_lines)
+            generated_end = generated_start + max(0, len(fragment_lines) - 1)
+            fragments.append({
+                "start": generated_start,
+                "end": generated_end,
+                "generated_start": generated_start,
+                "generated_end": generated_end,
+                "source_start": source_locations.get(match.group(1)),
+                "source_end": source_locations.get(match.group(1)),
+                "slug": match.group(1),
+                "path": str(fragment.relative_to(root)),
+            })
         else:
             lines.append(line)
     output.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    sidecar = map_path or output.with_name(f"{output.stem}.map.json")
+    sidecar.write_text(json.dumps({"source": str(manuscript.relative_to(root)), "fragments": fragments}, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
 def write_metadata(path: Path, *, identity: dict[str, str], combined: bool, license_values: dict[str, str], cover_name: str | None, uses_tables: bool, uses_code: bool) -> None:
@@ -156,6 +213,7 @@ def resolve_roots(args: argparse.Namespace) -> tuple[Path, Path]:
 
 def build(args: argparse.Namespace) -> int:
     source_root, output_root = resolve_roots(args)
+    profile = getattr(args, "profile", None)
     validation = validate_publication(source_root)
     if not validation.ok:
         for error in validation.errors:
@@ -167,17 +225,19 @@ def build(args: argparse.Namespace) -> int:
         print(f"licensing: {exc}", file=sys.stderr)
         return 1
     try:
+        config = load_publication_config(source_root / CONFIG_NAME)
         identity = resolve_identity(
-            load_publication_config(source_root / CONFIG_NAME),
-            {"title": args.title, "author": args.author, "version": args.version},
+            config,
+            {"title": getattr(args, "title", None), "author": getattr(args, "author", None), "version": getattr(args, "version", None)},
             source_root,
+            profile=profile,
         )
     except (OSError, ValueError) as exc:
         print(f"publication config: {exc}", file=sys.stderr)
         return 2
     entries = order_entries(source_root)
     if args.mode == "section":
-        chosen = args.section
+        chosen = getattr(args, "section", None)
         if not chosen:
             print("--section is required in section mode", file=sys.stderr)
             return 2
@@ -189,7 +249,11 @@ def build(args: argparse.Namespace) -> int:
             print(f"missing manuscript: {manuscript}", file=sys.stderr)
             return 1
     stamp = time.strftime("%Y%m%d-%H%M%S")
+    history_root = output_root / "history"
+    build_id = unique_build_id(args.mode, stamp, history_root)
     output = output_root / ("combined" if args.mode == "combined" else f"section-{Path(manuscripts[0]).stem}-{stamp}")
+    if output.exists() and args.mode != "combined":
+        output = output_root / build_id
     output.mkdir(parents=True, exist_ok=True)
     for path in list((REPO_ROOT / "latex_templates").glob("*.cls")) + list((REPO_ROOT / "latex_templates").glob("*.sty")):
         shutil.copy2(path, output / path.name)
@@ -215,8 +279,25 @@ def build(args: argparse.Namespace) -> int:
     write_metadata(output / "metadata.tex", identity=identity, combined=args.mode == "combined", license_values=license_values, cover_name=cover_name, uses_tables=uses_tables, uses_code=uses_code)
     tex = output / TEMPLATE.name
     log = output / "publication.log"
-    engine = os.environ.get("REPORTKIT_TEX_ENGINE", "pdflatex")
-    report = {"schema_version": 1, "build_id": f"{args.mode}-{stamp}", "mode": args.mode, "status": "running", "started_at": datetime.now(timezone.utc).isoformat(timespec="seconds"), "inputs": [{"path": str(path), "sha256": sha256(source_root / "manuscript" / path)} for path in manuscripts], "templates": [{"path": str(path.relative_to(REPO_ROOT)), "sha256": sha256(path)} for path in (list((REPO_ROOT / "latex_templates").glob("*.cls")) + list((REPO_ROOT / "latex_templates").glob("*.sty")) + [TEMPLATE, LICENSE_FILE])], "tool_versions": {"python": sys.version.split()[0], "pandoc": version_line("pandoc"), "tex": version_line(engine)}, "commands": [], "exit_codes": [], "diagnostics": {}}
+    document = resolve_document(config, profile)
+    validation_config = resolve_validation(config, profile)
+    engine = str(getattr(args, "engine", None) or os.environ.get("REPORTKIT_TEX_ENGINE") or document.get("engine", "pdflatex"))
+    figure_count = sum(len(re.findall(r"REPORTKIT-VISUAL:fig:[a-z0-9]+(?:-[a-z0-9]+)*", text)) for text in ((source_root / "manuscript" / path).read_text(encoding="utf-8") for path in manuscripts))
+    table_count = len(re.findall(r"(?m)^\s*\|.*\n\s*\|?\s*:?-{3,}", manuscript_text))
+    report = {
+        "schema_version": 2,
+        "build_id": build_id,
+        "mode": args.mode,
+        "profile": profile or "draft",
+        "version": identity["version"],
+        "commit": git_value(["rev-parse", "HEAD"]),
+        "status": "running",
+        "started_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "inputs": [{"path": str(path), "sha256": sha256(source_root / "manuscript" / path)} for path in manuscripts],
+        "templates": [{"path": str(path.relative_to(REPO_ROOT)), "sha256": sha256(path)} for path in (list((REPO_ROOT / "latex_templates").glob("*.cls")) + list((REPO_ROOT / "latex_templates").glob("*.sty")) + [TEMPLATE, LICENSE_FILE])],
+        "tool_versions": {"python": sys.version.split()[0], "pandoc": version_line("pandoc"), "tex": version_line(engine)},
+        "commands": [], "exit_codes": [], "diagnostics": {}, "figures": figure_count, "tables": table_count, "pdf_sha256": None,
+    }
     texinputs = f"{output}:{REPO_ROOT / 'latex_templates'}:"
     for pass_number in range(1, 3):
         command = [engine, "-file-line-error", "-interaction=nonstopmode", "-halt-on-error", tex.name]
@@ -229,12 +310,16 @@ def build(args: argparse.Namespace) -> int:
         report["exit_codes"].append({"command": " ".join(command), "code": proc.returncode})
         if proc.returncode:
             report["status"] = "failed"
-            (output / "build-report.json").write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+            report["finished_at"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
+            write_report(report, output / "build-report.json", history_root)
             return proc.returncode
         if pass_number == 2:
             shutil.copy2(pass_log, log)
-    gate = SCRIPT_DIR / "check-build-log.py"
-    gate_command = [sys.executable, str(gate), str(log), "--json", str(output / "diagnostics.json")]
+    gate = SCRIPT_DIR / "check_build_log.py"
+    gate_command = [sys.executable, str(gate), str(log), "--json", str(output / "diagnostics.json"), "--map-dir", str(output), "--source-root", str(source_root)]
+    threshold = validation_config.get("underfull_badness_threshold")
+    if threshold is not None:
+        gate_command += ["--underfull-badness", str(int(threshold))]
     # Which diagnostics a publication has reviewed and accepted is that
     # publication's call, not this engine's -- so prefer an allowlist that
     # lives with the project. Falls back to the engine's own (empty) default
@@ -252,9 +337,14 @@ def build(args: argparse.Namespace) -> int:
         shutil.copy2(compiled_pdf, pdf)
     if gate_result.returncode or not pdf.is_file():
         report["status"] = "failed"
-        (output / "build-report.json").write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        report["finished_at"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
+        write_report(report, output / "build-report.json", history_root)
         return 1
-    renderer = output_root / ".venv" / "bin" / "python"
+    report["pdf"] = pdf.name
+    report["pdf_sha256"] = sha256(pdf)
+    renderer = Path(os.environ["REPORTKIT_PDF_PYTHON"]).expanduser() if os.environ.get("REPORTKIT_PDF_PYTHON") else output_root / ".venv" / "bin" / "python"
+    if not renderer.is_absolute():
+        renderer = (Path.cwd() / renderer).absolute()
     if not renderer.is_file():
         renderer = Path(sys.executable)
     pages = output / "pages"
@@ -268,7 +358,7 @@ def build(args: argparse.Namespace) -> int:
     report["commands"].append(f"{renderer} {SCRIPT_DIR / 'inspect_pdf.py'} {pdf}")
     report["finished_at"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
     report["status"] = "passed" if render.returncode == 0 and inspection.returncode == 0 else "failed"
-    (output / "build-report.json").write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    write_report(report, output / "build-report.json", history_root)
     if report["status"] == "passed":
         write_lock(source_root / "reportkit.lock", engine=engine, tool_versions=report["tool_versions"])
     return render.returncode or inspection.returncode
@@ -281,6 +371,8 @@ def main() -> int:
     parser.add_argument("--workers", type=int, default=1)
     parser.add_argument("--source-root", help=f"consumer publication project (default: {DEFAULT_SOURCE_ROOT})")
     parser.add_argument("--output-root", help="where build artefacts go (default: <source-root>/build)")
+    parser.add_argument("--profile", default=os.environ.get("REPORTKIT_PROFILE"), help="publication config profile")
+    parser.add_argument("--engine", default=os.environ.get("REPORTKIT_TEX_ENGINE"), help="TeX engine (default: publication config or pdflatex)")
     parser.add_argument("--version", default=os.environ.get("REPORTKIT_VERSION"), help=f"overrides version in {CONFIG_NAME}")
     parser.add_argument("--title", default=os.environ.get("REPORTKIT_TITLE"), help=f"overrides title in {CONFIG_NAME}")
     parser.add_argument("--author", default=os.environ.get("REPORTKIT_AUTHOR"), help=f"overrides author in {CONFIG_NAME}")
