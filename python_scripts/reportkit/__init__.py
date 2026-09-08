@@ -1,3 +1,4 @@
-"""The dependency-free ReportKit machine interface."""
+"""Importable ReportKit engine interfaces."""
 
-__version__ = "1.0"
+__all__ = ["__version__"]
+__version__ = "1.5.0"

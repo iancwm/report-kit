@@ -3,7 +3,9 @@ from __future__ import annotations
 from pathlib import Path
 import tempfile
 
-from publication_pipeline.scripts.publication_validation import validate_publication
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
+from publication_validation import validate_publication
 
 
 def make_publication(manuscripts: dict[str, str], order: list[str], fragments: dict[str, str]) -> Path:

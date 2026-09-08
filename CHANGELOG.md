@@ -7,13 +7,12 @@ tags on this repository, not a published package registry.
 ## [Unreleased]
 
 ### Added
-- A unified `reportkit` command now exposes doctor, context, validation,
-  builds, diagnostics, PDF inspection, packaging, and build-history analysis.
-- Nested `publication.yaml` profiles, source-aware TeX diagnostics, generated
-  capability context, source/manuscript validation, and centralized link
-  rendering are available to publication projects.
-- Build manifests now include provenance, PDF hashes, figure/table counts, and
-  history snapshots for repeatable release inspection.
+- PDF inspection now reports bookmarks, font metadata, page dimensions,
+  blank pages, and near-margin content.
+- Publications can validate optional source/manuscript and link registries;
+  named links render through `\\RKLink{key}` in generated documents.
+- `reportkit analyse-history` summarizes recurring diagnostics and repeated
+  allowlist entries from build history.
 - `\rkcode{...}` for rendering identifier-like technical tokens, such as
   `event_date`, safely in direct semantic-diagram labels.
 - Width-aware swimlanes: `columns=`, `node width=`, `column spacing=`, and
@@ -24,13 +23,28 @@ tags on this repository, not a published package registry.
 - `reportarchitecture` annotations at the top or bottom of the measured
   diagram, and positioned, width-constrained timeline watermark labels.
 
-### Changed
-- Publication builds now map generated Markdown and fragment diagnostics back
-  to authored files and use PyMuPDF-backed PDF QA checks for release output.
-
 ### Fixed
 - The ReportKit acceptance fixture now exercises vertical `reportflow`
   layout.
+
+## [1.5.0] - 2026-09-08
+
+### Added
+- `reportkit` now provides one stdlib command interface for environment
+  checks, publication context, validation, builds, diagnostics, PDF inspection,
+  and release packaging.
+- Publication projects can use nested `publication.yaml` sections and named
+  profiles while retaining the legacy flat format.
+- Build diagnostics now report typed, severity-aware issues with ownership and
+  authored-fragment locations, including wrapped TeX messages.
+- Passing builds emit schema-v2 manifests with PDF hashes, provenance,
+  figure/table counts, and unique history records.
+
+### Changed
+- The publication test suite is part of the acceptance gate, and the
+  compatibility shell wrappers route through the CLI facade.
+- Capability inventories are generated from the LaTeX primitives and checked
+  against the documented visual and callout lists.
 
 ## [1.4.0] - 2026-09-04
 ### Added

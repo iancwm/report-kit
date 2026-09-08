@@ -41,11 +41,15 @@ Migrating an existing content branch out of this repo is covered in
   (lualatex; see `references/font-setup.md` for the extra setup this needs).
 
 ## 2. python_scripts/
+- `reportkit` (from the repository root) — stdlib CLI facade for doctor,
+  context, check, build, diagnose, inspect, analyse-history, and package; its importable
+  implementation lives under `python_scripts/reportkit/`.
 - `reportkit_viz.py` — Matplotlib analytical chart theme (palette synced with
   `reportkit.cls`, including treemap, waterfall, tornado, bubble-matrix, and
   dated timeline figures alongside standard analytical charts).
 - `reportkit_doctor.py` — environment check (FULL BUILD / SOURCE BUILD detection).
-- `publication_config.py` — reads a consumer project's `publication.yaml`;
+- `publication_config.py` — compatibility import for the nested or legacy
+  consumer `publication.yaml` loader;
   `license_metadata.py` — reads this repo's own `metadata/licenses.yml`.
 - `career_guide_en_make_figures.py` — example figure generator using `reportkit_viz`.
 
@@ -53,8 +57,9 @@ Migrating an existing content branch out of this repo is covered in
 Reusable build/validate/inspect harness for a consumer publication project —
 Pandoc → LaTeX compilation, the strict diagnostic gate, page rendering, and
 PDF inspection. Takes no fixed publication as input: point it at any project
-with `--source-root`/`--output-root`. `example_publication/` is a small
-generic fixture used only by this repo's own tests, not a real publication.
+  with `--source-root`/`--output-root`. Use `./reportkit` as the stable command
+  interface; `example_publication/` is a small generic fixture used only by
+  this repo's own tests, not a real publication.
 See [`publication_pipeline/README.md`](publication_pipeline/README.md).
 
 ## 4. font_data/
@@ -72,29 +77,35 @@ See [`publication_pipeline/README.md`](publication_pipeline/README.md).
   pdflatex path; see `references/font-setup.md` for the lualatex additions.
 
 ## 6. references/
-- `repository-boundary.md`, `migrating-content-branches.md` — the engine/
-  publication boundary and how to move existing content out of this repo.
-- `font-setup.md`, `known-fixes.md`, `troubleshooting.md` — split from the
-  former execution guide, and linked from `SKILL.md` on demand rather than
-  loaded up front, so a session's context only grows with the specific
-  problem it's actually hitting.
+- [`repository-boundary.md`](references/repository-boundary.md),
+  [`migrating-content-branches.md`](references/migrating-content-branches.md) —
+  the engine/publication boundary and how to move existing content out of this
+  repo.
+- [`font-setup.md`](references/font-setup.md),
+  [`known-fixes.md`](references/known-fixes.md),
+  [`troubleshooting.md`](references/troubleshooting.md),
+  [`accessibility-tagging.md`](references/accessibility-tagging.md), and
+  [`licensing.md`](references/licensing.md) — operational, accessibility, and
+  licensing guidance, linked from `SKILL.md` or the relevant entry points on
+  demand.
 
 ## Licensing scope
 
 | Scope | Default licence |
 |---|---|
 | Source code and build tooling | GPL-3.0-or-later (`LICENSE`) |
-| Original publication prose and diagrams | CC BY 4.0 (`CONTENT-LICENSE.md`) |
-| Code examples and third-party assets | Separately licensed; see `THIRD-PARTY-NOTICES.md` |
+| Original publication prose and diagrams | CC BY 4.0 ([`CONTENT-LICENSE.md`](CONTENT-LICENSE.md)) |
+| Code examples and third-party assets | Separately licensed; see [`THIRD-PARTY-NOTICES.md`](THIRD-PARTY-NOTICES.md) |
 
 The machine-readable defaults are in `metadata/licenses.yml`; contributor
-requirements are documented in `references/licensing.md`.
+requirements are documented in [`CONTRIBUTING.md`](CONTRIBUTING.md) and
+[`references/licensing.md`](references/licensing.md).
 
 ## 7. scripts/ and .githooks/
 - `scripts/acceptance_check.sh` — compiles the legacy and visual-grammar
   acceptance tests and checks for known failure signatures; run by hand, or
   automatically via `.githooks/pre-commit` once enabled (see
-  `CONTRIBUTING.md`).
+  [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 ## Setup
 

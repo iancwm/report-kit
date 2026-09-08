@@ -34,10 +34,10 @@ For a single short report, copy `latex_templates/REPORT_TEMPLATE.tex` to `<repor
 
 ### Long-form publications
 
-For a multi-chapter publication (a guide, book, or report assembled from several manuscript files), write Markdown into `<report-directory>/manuscript/` (listed in `manuscript/order.txt`), place diagram fragments in `fragments/`, and fill in `<report-directory>/publication.yaml` with at least a `title`. Then build with the pipeline instead of compiling `report.tex` directly:
+For a multi-chapter publication (a guide, book, or report assembled from several manuscript files), write Markdown into `<report-directory>/manuscript/` (listed in `manuscript/order.txt`), place diagram fragments in `fragments/`, and fill in `<report-directory>/publication.yaml` with at least a `title`. Then build with the pipeline facade instead of compiling `report.tex` directly:
 
 ```bash
-<skill-directory>/reportkit build --mode combined \
+<skill-directory>/reportkit build \
   --source-root <report-directory> --output-root <report-directory>/build
 ```
 
@@ -296,13 +296,12 @@ rkv.save_figure(fig, "figures/performance")
 
 ## Build and inspect
 
-On a `FULL BUILD`, compile twice, then rasterize every page:
+On a `FULL BUILD`, use the CLI build so the standard compilation, diagnostic
+gate, page rendering, and build manifest are applied consistently:
 
 ```bash
-<skill-directory>/reportkit build --mode combined \
-  --source-root <report-directory> --output-root <report-directory>/build
-<skill-directory>/reportkit inspect \
-  <report-directory>/build/combined/<publication-slug>.pdf --json
+./reportkit build --source-root <publication-project>
+./reportkit inspect --source-root <publication-project>
 ```
 
 Read the `.log` before retrying a failed compile. Inspect every rendered page for clipped text, overlapping labels, broken arrows, bad page breaks, missing figures, and meanings conveyed only by colour. A successful TeX exit code alone is not completion.

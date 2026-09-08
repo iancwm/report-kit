@@ -1,21 +1,29 @@
-"""Structured, source-aware diagnostics for ReportKit TeX logs."""
+"""Structured diagnostics for TeX build logs."""
 from __future__ import annotations
 
+from collections import Counter
 from datetime import date
-import argparse
 import json
 from pathlib import Path
 import re
-import sys
-from typing import Any
+from typing import Any, Iterable
 
 DEFAULT_UNDERFULL_BADNESS = 4000
+
 DIAGNOSTIC_TYPES = (
     "latex_error", "undefined_reference", "undefined_citation", "duplicate_label",
     "missing_asset", "missing_font", "missing_glyph", "overfull_hbox",
     "underfull_hbox", "bibliography_warning", "package_warning", "ignored_error",
 )
-LEGACY_TYPES = ("fatal", "undefined", "duplicate_label", "overfull", "underfull", "ignored_error", "allowlist")
+
+_FILE_LINE = re.compile(r"(?P<file>(?:\./|[^()\s]*[/\\])?[^()\s]+\.tex):(?P<line>\d+):")
+_STACK_FILE = re.compile(r"\((?P<file>(?:\./|/)[^()\s]+\.[A-Za-z0-9]+)(?=\s|\)|$)")
+_OVERFULL = re.compile(
+    r"Overfull\s+\\hbox\s*\((?P<amount>[0-9]+(?:\.[0-9]+)?)pt\s+too\s+wide\)"
+    r"(?:\s+in\s+paragraph\s+at\s+lines\s+(?P<line>\d+)(?:--(?P<line_end>\d+))?)?",
+    re.IGNORECASE,
+)
+_UNDERFULL = re.compile(r"Underfull\s+\\hbox(?:\s*\(badness\s+(?P<badness>\d+)\))?", re.IGNORECASE)
 
 
 def load_allowlist(path: Path) -> list[dict[str, str]]:
@@ -29,234 +37,222 @@ def load_allowlist(path: Path) -> list[dict[str, str]]:
     for index, entry in enumerate(entries):
         if not isinstance(entry, dict) or not all(key in entry for key in ("pattern", "reason", "expires")):
             raise ValueError(f"allowlist entry {index} needs pattern, reason, and expires")
-        re.compile(str(entry["pattern"]))
+        pattern = str(entry["pattern"])
+        re.compile(pattern)
         result.append({key: str(entry[key]) for key in ("pattern", "reason", "expires")})
     return result
 
 
-def _logical_lines(text: str) -> list[tuple[int, str]]:
-    """Return log lines plus the short wrapped windows TeX uses for messages."""
-    raw = text.splitlines()
-    records: list[tuple[int, str]] = []
-    for index, line in enumerate(raw):
-        stripped = line.strip()
-        records.append((index + 1, line))
-        if not stripped:
+def load_maps(map_dir: Path | None) -> dict[str, dict[str, Any]]:
+    if not map_dir or not map_dir.is_dir():
+        return {}
+    maps: dict[str, dict[str, Any]] = {}
+    for path in map_dir.glob("body-*.map.json"):
+        try:
+            value = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
             continue
-        if re.search(r"Overfull \\hbox|Underfull \\hbox", line):
-            combined = line
-            for continuation in raw[index + 1:index + 4]:
-                if re.match(r"\s*(?:Overfull|Underfull|ignored error:|!\s|LaTeX Warning:|Package .* Warning:)", continuation):
-                    break
-                combined += " " + continuation.strip()
-                if "too wide)" in combined or "badness " in combined or " in paragraph" in combined:
-                    break
-            if combined != line:
-                records.append((index + 1, combined))
-        elif re.search(r"(?:LaTeX Error|Package .* Warning|Reference .* undefined|Citation .* undefined)", line):
-            combined = line
-            for continuation in raw[index + 1:index + 3]:
-                if continuation.startswith((" ", "l.", " ")):
-                    combined += " " + continuation.strip()
-            if combined != line:
-                records.append((index + 1, combined))
-    return records
+        if isinstance(value, dict):
+            maps[path.name.removesuffix(".map.json") + ".tex"] = value
+            maps[path.stem.removesuffix(".map") + ".tex"] = value
+    return maps
 
 
-def _file_stack(text: str) -> dict[int, str | None]:
-    stack: list[str] = []
-    locations: dict[int, str | None] = {}
-    for line_number, line in enumerate(text.splitlines(), 1):
-        locations[line_number] = stack[-1] if stack else None
-        opens = re.findall(r"\((?:\./)?([^\s()]+\.(?:tex|sty|cls|def|fd|cfg|bib|md))", line)
-        closes = line.count(")")
-        for filename in opens:
-            stack.append(filename)
-        for _ in range(min(closes, len(stack))):
-            stack.pop()
-    return locations
+def _normalise_file(value: str | None) -> str | None:
+    if not value:
+        return None
+    return value.replace("\\", "/").removeprefix("./")
 
 
-def _owner(kind: str, filename: str | None) -> str:
-    lowered = (filename or "").lower()
-    if kind == "package_warning":
-        return "TOOLCHAIN"
+def _map_location(file_name: str | None, line: int | None, maps: dict[str, dict[str, Any]]) -> tuple[str | None, int | None, int | None]:
+    normalised = _normalise_file(file_name)
+    if not normalised or line is None:
+        return normalised, None, None
+    mapping = maps.get(normalised) or maps.get(Path(normalised).name)
+    if not mapping:
+        return normalised, line, None
+    for fragment in mapping.get("fragments", []):
+        if not isinstance(fragment, dict):
+            continue
+        start = fragment.get("generated_start", fragment.get("start"))
+        end = fragment.get("generated_end", fragment.get("end"))
+        if isinstance(start, int) and isinstance(end, int) and start <= line <= end:
+            fragment_start = fragment.get("fragment_start", 1)
+            if not isinstance(fragment_start, int):
+                fragment_start = 1
+            return str(fragment.get("path")), fragment_start + line - start, None
+    return str(mapping.get("source", normalised)), None, None
+
+
+def _owner(kind: str, file_name: str | None) -> str:
+    file_value = (file_name or "").replace("\\", "/")
     if kind in {"missing_asset", "missing_font", "missing_glyph"}:
         return "ASSET"
-    if kind in {"undefined_reference", "undefined_citation", "duplicate_label"}:
-        return "CONTENT"
-    if filename is None or lowered.startswith("body-") or "manuscript/" in lowered or "fragments/" in lowered or lowered.endswith(".md"):
-        return "CONTENT"
-    if re.search(r"(?:^|/)(?:reportkit[^/]*)\.(?:sty|cls)$", lowered):
-        return "STYLE"
     if kind in {"latex_error", "ignored_error"}:
         return "BUILD"
-    return "TOOLCHAIN"
+    if kind in {"undefined_reference", "undefined_citation", "duplicate_label", "overfull_hbox", "underfull_hbox"}:
+        return "CONTENT" if (not file_value or file_value.startswith("body-") or "manuscript/" in file_value or "fragments/" in file_value) else "STYLE"
+    if file_value.endswith((".cls", ".sty")) or "/reportkit" in file_value:
+        return "STYLE"
+    if kind in {"package_warning", "bibliography_warning"}:
+        return "TOOLCHAIN"
+    return "BUILD"
 
 
-def _relative_file(filename: str | None) -> str | None:
-    if not filename:
-        return None
-    return filename.lstrip("./")
+def _legacy_kind(kind: str) -> str:
+    return {
+        "latex_error": "fatal", "undefined_reference": "undefined", "undefined_citation": "undefined",
+        "duplicate_label": "duplicate_label", "overfull_hbox": "overfull", "underfull_hbox": "underfull",
+    }.get(kind, kind)
 
 
-def _map_generated(filename: str | None, line: int | None, build_dir: Path | None) -> tuple[str | None, int | None]:
-    if not filename or line is None or build_dir is None:
-        return _relative_file(filename), line
-    basename = Path(filename).name
-    if not re.fullmatch(r"body-\d+\.tex", basename):
-        return _relative_file(filename), line
-    sidecar = build_dir / f"{Path(basename).stem}.map.json"
-    if not sidecar.is_file():
-        return _relative_file(filename), line
-    try:
-        mapping = json.loads(sidecar.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
-        return _relative_file(filename), line
-    for fragment in mapping.get("fragments", []):
-        start = int(fragment.get("generated_start", fragment.get("start", 0)))
-        end = int(fragment.get("generated_end", fragment.get("end", 0)))
-        if start <= line <= end:
-            source_start = int(fragment.get("source_start", 1))
-            return str(fragment.get("path", "fragments/" + fragment.get("slug", "fragment") + ".tex")), source_start + line - start
-    source = mapping.get("source")
-    return (str(source) if source else _relative_file(filename)), None
+def _new_counts() -> Counter[str]:
+    return Counter({name: 0 for name in (
+        "fatal", "undefined", "duplicate_label", "overfull", "underfull", "ignored_error", "allowlist",
+        *DIAGNOSTIC_TYPES,
+    )})
 
 
-def _classify(message: str, underfull_badness: int) -> tuple[str | None, dict[str, Any]]:
-    details: dict[str, Any] = {}
-    if re.search(r"ignored error:", message, re.I):
-        return "ignored_error", details
-    if re.search(r"Missing character:", message):
-        return "missing_glyph", details
-    if re.search(r"(?:I can't find file|File .* not found|cannot be found)", message, re.I):
-        if re.search(r"(?:font|\.tfm|\.pk|\.pfb)", message, re.I):
-            return "missing_font", details
-        return "missing_asset", details
-    if re.search(r"(?:font .* not found|Font .* not loadable|\.tfm.*not found)", message, re.I):
-        return "missing_font", details
-    if re.search(r"Citation .* undefined|undefined citations", message, re.I):
-        return "undefined_citation", details
-    if re.search(r"Reference .* undefined|undefined references", message, re.I):
-        return "undefined_reference", details
-    if re.search(r"Label .* multiply defined|multiply defined", message, re.I):
-        return "duplicate_label", details
-    overfull = re.search(r"Overfull \\hbox \(([-+0-9.]+)pt too wide\)", message)
-    if overfull:
-        details["amount_pt"] = float(overfull.group(1))
-        lines = re.search(r"at lines (\d+)(?:--(\d+))?", message)
-        if lines:
-            details["source_line"] = int(lines.group(1))
-            if lines.group(2):
-                details["line_end"] = int(lines.group(2))
-        return "overfull_hbox", details
-    underfull = re.search(r"Underfull \\hbox(?: \(badness (\d+)\))?", message)
-    if underfull and int(underfull.group(1) or "10000") > underfull_badness:
-        details["badness"] = int(underfull.group(1) or "10000")
-        return "underfull_hbox", details
-    if re.search(r"(?:biblatex|biber|bibtex|bibliography).*(?:Warning|undefined|please run)", message, re.I):
-        return "bibliography_warning", details
-    if re.search(r"^!\s|Emergency stop|Fatal error|Undefined control sequence|LaTeX Error:", message):
-        return "latex_error", details
-    if re.search(r"(?:Package .* Warning|LaTeX .* Warning:)", message):
-        return "package_warning", details
-    return None, details
+def _line_for_offset(offset: int, starts: list[int]) -> int:
+    line = 1
+    for index, start in enumerate(starts):
+        if start > offset:
+            break
+        line = index + 1
+    return line
+
+
+def _physical_context(lines: list[str]) -> list[str | None]:
+    stack: list[str] = []
+    result: list[str | None] = []
+    for raw in lines:
+        result.append(stack[-1] if stack else None)
+        opens = list(_STACK_FILE.finditer(raw))
+        for match in opens:
+            stack.append(_normalise_file(match.group("file")) or match.group("file"))
+        close_count = 0
+        if opens:
+            close_count = max(0, raw.count(")") - raw.count("\\)"))
+        elif raw.strip().startswith(")"):
+            close_count = max(0, raw.count(")") - raw.count("\\)"))
+        for _ in range(min(close_count, len(stack))):
+            stack.pop()
+    return result
+
+
+def _message(text: str) -> str:
+    return re.sub(r"\s+", " ", text).strip()
 
 
 def inspect_log(
     text: str,
     *,
     underfull_badness: int = DEFAULT_UNDERFULL_BADNESS,
-    allowlist: list[dict[str, str]],
-    source_root: Path | None = None,
-    build_dir: Path | None = None,
+    allowlist: list[dict[str, str]] | None = None,
+    maps: dict[str, dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
-    counts: dict[str, int] = {key: 0 for key in DIAGNOSTIC_TYPES}
-    counts.update({key: 0 for key in LEGACY_TYPES})
+    """Return deterministic, source-aware diagnostics for a TeX log."""
+    lines = text.splitlines()
+    contexts = _physical_context(lines)
+    starts: list[int] = []
+    flat_parts: list[str] = []
+    cursor = 0
+    for line in lines:
+        starts.append(cursor)
+        flat_parts.append(line)
+        cursor += len(line) + 1
+    flat = " ".join(flat_parts)
+    allowlist = allowlist or []
+    maps = maps or {}
+    counts = _new_counts()
     issues: list[dict[str, Any]] = []
-    stack = _file_stack(text)
-    seen: set[tuple[int, str]] = set()
-    legacy = {"latex_error": "fatal", "undefined_reference": "undefined", "undefined_citation": "undefined", "overfull_hbox": "overfull", "underfull_hbox": "underfull"}
-    explicit = re.compile(r"(?:^|\s)([^\s:()]+\.(?:tex|sty|cls)):(\d+):")
-    for log_line, message in _logical_lines(text):
-        matched_allowlist = next((entry for entry in allowlist if re.search(entry["pattern"], message)), None)
-        if matched_allowlist:
-            if matched_allowlist["expires"] < date.today().isoformat():
-                counts["allowlist"] += 1
-                issues.append({"severity": "error", "type": "allowlist", "owner": "BUILD", "log_line": log_line, "message": f"expired allowlist entry: {message}"})
-            continue
-        kind, details = _classify(message, underfull_badness)
-        if not kind or (log_line, kind) in seen:
-            continue
-        seen.add((log_line, kind))
-        match = explicit.search(message)
-        filename = match.group(1) if match else stack.get(log_line)
-        source_line = int(match.group(2)) if match else details.pop("source_line", None)
-        mapped_file, mapped_line = _map_generated(filename, source_line, build_dir)
-        issue: dict[str, Any] = {
+    seen: set[tuple[str, int]] = set()
+
+    def add(kind: str, offset: int, raw_message: str, *, line: int | None = None, line_end: int | None = None, amount_pt: float | None = None) -> None:
+        physical_line = _line_for_offset(offset, starts) if starts else 1
+        key = (kind, physical_line)
+        if key in seen:
+            return
+        seen.add(key)
+        file_name = contexts[physical_line - 1] if contexts and physical_line <= len(contexts) else None
+        file_match = _FILE_LINE.search(raw_message)
+        if file_match:
+            file_name = _normalise_file(file_match.group("file"))
+            if line is None:
+                line = int(file_match.group("line"))
+        mapped_file, mapped_line, mapped_end = _map_location(file_name, line, maps)
+        if mapped_file and mapped_file.startswith("body-") and line is None:
+            mapped_file = (maps.get(mapped_file) or {}).get("source", mapped_file)
+        legacy = _legacy_kind(kind)
+        counts[kind] += 1
+        if legacy != kind:
+            counts[legacy] += 1
+        item: dict[str, Any] = {
             "severity": "error" if kind in {"latex_error", "missing_asset", "missing_font", "missing_glyph", "ignored_error"} else "warning",
             "type": kind,
-            "owner": _owner(kind, mapped_file or filename),
+            "kind": legacy,
             "file": mapped_file,
-            "log_line": log_line,
-            "message": message.strip(),
+            "log_line": physical_line,
+            "owner": _owner(kind, mapped_file),
+            "message": _message(raw_message),
+            "blocking": kind != "package_warning",
         }
-        if kind == "package_warning":
-            issue["blocking"] = False
         if mapped_line is not None:
-            issue["line"] = mapped_line
-        issue.update(details)
-        if source_root and issue.get("file"):
-            candidate = Path(str(issue["file"]))
-            if candidate.is_absolute():
-                try:
-                    issue["file"] = str(candidate.relative_to(source_root))
-                except ValueError:
-                    pass
-        counts[kind] += 1
-        if kind in legacy and legacy[kind] != kind:
-            counts[legacy[kind]] += 1
-        issues.append(issue)
+            item["line"] = mapped_line
+        if line_end is not None and mapped_line is not None:
+            item["line_end"] = line_end if mapped_file == file_name else mapped_line + (line_end - (line or line_end))
+        if amount_pt is not None:
+            item["amount_pt"] = amount_pt
+        issues.append(item)
+
+    allowlisted_lines: set[int] = set()
+    for physical_line, raw in enumerate(lines, 1):
+        match = next((entry for entry in allowlist if re.search(entry["pattern"], raw)), None)
+        if not match:
+            continue
+        allowlisted_lines.add(physical_line)
+        if match["expires"] < date.today().isoformat():
+            add("allowlist", starts[physical_line - 1], f"expired: {raw}")
+
+    for match in _OVERFULL.finditer(flat):
+        start_line = int(match.group("line")) if match.group("line") else None
+        end_line = int(match.group("line_end")) if match.group("line_end") else None
+        physical_line = _line_for_offset(match.start(), starts) if starts else 1
+        if physical_line not in allowlisted_lines:
+            raw_line = lines[physical_line - 1] if lines else match.group(0)
+            explicit = _FILE_LINE.search(raw_line)
+            if explicit and start_line is None:
+                start_line = int(explicit.group("line"))
+            add("overfull_hbox", match.start(), raw_line if explicit else match.group(0), line=start_line, line_end=end_line, amount_pt=float(match.group("amount")))
+    for match in _UNDERFULL.finditer(flat):
+        badness = int(match.group("badness") or "10000")
+        physical_line = _line_for_offset(match.start(), starts) if starts else 1
+        if badness > underfull_badness and physical_line not in allowlisted_lines:
+            add("underfull_hbox", match.start(), match.group(0))
+
+    line_patterns: Iterable[tuple[str, re.Pattern[str]]] = (
+        ("ignored_error", re.compile(r"ignored error:", re.IGNORECASE)),
+        ("undefined_reference", re.compile(r"Reference .*? undefined|There were undefined references", re.IGNORECASE)),
+        ("undefined_citation", re.compile(r"Citation .*? undefined|There were undefined citations", re.IGNORECASE)),
+        ("duplicate_label", re.compile(r"Label .*? multiply defined", re.IGNORECASE)),
+        ("missing_font", re.compile(r"(?:font|Font|metric) .*?(?:not found|not loadable)|libertinus.*?not found", re.IGNORECASE)),
+        ("missing_glyph", re.compile(r"Missing character:", re.IGNORECASE)),
+        ("missing_asset", re.compile(r"(?:File .*? not found|cannot be found|I can't find file|missing asset)", re.IGNORECASE)),
+        ("bibliography_warning", re.compile(r"No file .*?\.bbl|BibTeX|biber", re.IGNORECASE)),
+        ("latex_error", re.compile(r"^!\s|Emergency stop|Fatal error|Undefined control sequence|LaTeX Error:", re.IGNORECASE)),
+        ("package_warning", re.compile(r"Package .*? Warning:", re.IGNORECASE)),
+    )
+    for physical_line, raw in enumerate(lines, 1):
+        if physical_line in allowlisted_lines:
+            continue
+        for kind, pattern in line_patterns:
+            if pattern.search(raw):
+                add(kind, starts[physical_line - 1], raw)
+                break
+    issues.sort(key=lambda issue: (issue["log_line"], issue["type"]))
     return {
-        "passed": not any(issue.get("blocking", True) for issue in issues),
+        "passed": not any(issue["blocking"] for issue in issues),
         "underfull_badness_threshold": underfull_badness,
-        "counts": counts,
+        "counts": dict(counts),
         "issues": issues,
     }
-
-
-def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("log", type=Path)
-    parser.add_argument("--allowlist", type=Path, default=Path(__file__).resolve().parents[2] / "publication_pipeline/config/build-log-allowlist.json")
-    parser.add_argument("--underfull-badness", type=int, default=DEFAULT_UNDERFULL_BADNESS)
-    parser.add_argument("--source-root", type=Path)
-    parser.add_argument("--build-dir", type=Path)
-    parser.add_argument("--json", dest="json_path", nargs="?", const=Path("-"), type=Path)
-    args = parser.parse_args(argv)
-    try:
-        result = inspect_log(
-            args.log.read_text(encoding="utf-8", errors="replace"),
-            underfull_badness=args.underfull_badness,
-            allowlist=load_allowlist(args.allowlist),
-            source_root=args.source_root,
-            build_dir=args.build_dir or args.log.parent,
-        )
-    except (OSError, ValueError, json.JSONDecodeError) as exc:
-        print(f"FAIL: unable to inspect build log: {exc}", file=sys.stderr)
-        return 1
-    if args.json_path:
-        serialized = json.dumps(result, indent=2, sort_keys=True) + "\n"
-        if str(args.json_path) == "-":
-            print(serialized, end="")
-        else:
-            args.json_path.parent.mkdir(parents=True, exist_ok=True)
-            args.json_path.write_text(serialized, encoding="utf-8")
-    if result["passed"]:
-        print("PASS: final TeX log passed the strict diagnostic gate")
-        return 0
-    print("FAIL: final TeX log contains actionable diagnostics", file=sys.stderr)
-    for issue in result["issues"]:
-        location = f"{issue.get('file') or '<unattributed>'}:{issue.get('line', issue.get('log_line'))}"
-        print(f"- {location} [{issue['type']} / {issue['owner']}]: {issue['message']}", file=sys.stderr)
-    return 1

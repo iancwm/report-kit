@@ -6,10 +6,7 @@ import argparse
 from pathlib import Path
 import sys
 
-try:
-    from publication_pipeline.scripts.publication_validation import validate_publication
-except ModuleNotFoundError:
-    from publication_validation import validate_publication
+from publication_validation import validate_publication
 
 
 def main() -> int:

@@ -1,10 +1,9 @@
 # ReportKit vNext — Implementation Plan
 
-**Status:** Implementation in progress. Phase 1 machine interface and the
-authoring/QA extensions below are landed locally; supersedes the sequencing and priorities in the
-vNext spec; that document remains the source of *intent*, this one the source of
-*work*.
-**Last updated:** 2026-09-07
+**Status:** Phase 1 complete in PR #10; additive Phases 2–4 complete in PR #9. Supersedes the
+sequencing and priorities in the vNext spec; that document remains the source
+of *intent*, this one the source of *work*.
+**Last updated:** 2026-09-09
 
 **Plans:** [2026-09-06-reportkit-vnext-ai-publication-system-spec.md](../specs/2026-09-06-reportkit-vnext-ai-publication-system-spec.md)
 **Reconciles with:** [2026-09-06-reportkit-tooling-hardening-design.md](../specs/2026-09-06-reportkit-tooling-hardening-design.md)
@@ -48,25 +47,26 @@ again; "Partial" means extend the named file; "Gap" means genuinely absent.
 | §2 | `reportkit doctor` | **Done** | `python_scripts/reportkit_doctor.py` — three modes, `--require full-build` |
 | §2 | `reportkit build` | **Done** | `publication_pipeline/scripts/publication_build.py --mode section\|combined\|sections` |
 | §2 | `reportkit check` | **Done** | `publication_pipeline/scripts/publication_validation.py` — 15 checks over order/sentinels/fragments/labels |
-| §2 | `reportkit inspect` | **Partial** | `publication_pipeline/scripts/inspect_pdf.py` — media-box overflow, page count, link count, metadata |
-| §2 | **unified CLI** | **Gap** | Seven entry points, three incompatible import styles, two unimportable filenames |
-| §2 | `reportkit package` | **Gap** | No release-packaging step exists |
-| §3 | `reportkit context` | **Gap** | Does not exist in any form |
-| §4 | `publication.yaml` | **Partial** | `python_scripts/publication_config.py` — flat strings, 10 known keys, `title` required |
-| §5 | structured diagnostics | **Partial** | `publication_pipeline/scripts/check-build-log.py` — 7 coarse kinds, **log**-line numbers, no severity, no ownership |
+| §2 | `reportkit inspect` | **Done** | `publication_pipeline/scripts/inspect_pdf.py` — media-box overflow, blank pages, near-margin content, dimensions, bookmarks, fonts, metadata |
+| §2 | **unified CLI** | **Done** | `python_scripts/reportkit/cli.py` — eight stable subcommands including `analyse-history` |
+| §2 | `reportkit package` | **Done** | `python_scripts/reportkit/cli.py` — assembles a passing combined build |
+| §3 | `reportkit context` | **Done** | `python_scripts/reportkit/context.py` — resolved config and generated capability inventory |
+| §4 | `publication.yaml` | **Done** | `python_scripts/reportkit/config.py` — nested and legacy-flat schemas, profiles, typed values |
+| §5 | structured diagnostics | **Done** | `python_scripts/reportkit/diagnostics.py` — typed, source-aware, severity/ownership-attributed issues |
 | §6 | chapter builds | **Done** (renamed) | `--mode section`; the class has no `\chapter` — see §2.3 |
-| §7 | PDF inspection | **Partial** | As §2 above; no bookmarks, fonts, dimensions, or blank-page checks |
+| §7 | PDF inspection | **Done** | `publication_pipeline/scripts/inspect_pdf.py` — bookmarks, fonts, dimensions, blank pages, near-margin content |
 | §8 | page rendering + contact sheet | **Done** | `publication_pipeline/scripts/render_pdf_pages.py` — atomic via tempdir + `os.replace`, 150 DPI, `index.html`, `pages.json` |
-| §9 | build manifest | **Partial** | `build-report.json` (`schema_version: 1`) + `reportkit.lock`; missing `pdf_sha256`, `profile`, `commit`, figure/table counts |
-| §10 | source/manuscript model | **Gap** | Publication-side; not started |
-| §11 | link registry | **Gap** | Not started |
-| §12 | visualization registry | **Partial** | Prose table at `SKILL.md:58-78`; not machine-readable, and duplicated against the `.sty` files by hand |
+| §9 | build manifest | **Done** | `build-report.json` schema v2 + `reportkit.lock` + unique history records |
+| §10 | source/manuscript model | **Done** | `python_scripts/reportkit/authoring.py` — consumer-side schema validation |
+| §11 | link registry | **Done** | `python_scripts/reportkit/authoring.py` + generated `links.tex` and `\\RKLink` |
+| §12 | visualization registry | **Done** | `python_scripts/reportkit/registry.py` — generated inventory with documented drift checks |
 | §13 | publication skill | **Partial** | `SKILL.md` exists and is good, but still prescribes banned `pdftoppm` at `:304` |
 | §14 | agent guardrails | **Done** | `references/repository-boundary.md` + `CONTRIBUTING.md` rules 1–4, enforced in three places |
-| §15 | build history | **Gap** | `build_id` is computed and then discarded |
+| §15 | build history | **Done** | `python_scripts/reportkit/analysis.py` + `reportkit analyse-history` |
 
-**Score:** 6 done, 6 partial, 6 gaps. The spec's four-phase sequencing does not
-survive this; Section 4 re-sequences around what is actually missing.
+**Score:** 18 done, 1 partial, 0 gaps. The remaining partial is the direct
+short-report workflow in `SKILL.md`, which still documents manual rasterization;
+the long-form publication build is routed through the CLI.
 
 ---
 
@@ -414,7 +414,7 @@ the suite skips cleanly with no pandoc installed.
 
 ## 5. Phases 2–4
 
-**Phase 2 — QA depth.** Extend `inspect_pdf.py` with the checks vNext §7 lists
+**Phase 2 — QA depth — implemented in PR #9.** Extend `inspect_pdf.py` with the checks vNext §7 lists
 and the tooling spec's D6 already authorised on PyMuPDF: bookmarks, font
 metadata, page dimensions, blank-page detection, and near-margin content. Reuse
 `tests/geometry.py`'s `word_boxes`, `node_rects`, and `stream_contains` rather
@@ -422,13 +422,13 @@ than writing new PDF-probing helpers. Keep the heuristics simple — vNext §8 s
 so explicitly, and the tooling spec rules out pixel-diff regression testing
 because font rendering varies by platform.
 
-**Phase 3 — Authoring.** Engine-side schema and validator for the
+**Phase 3 — Authoring — implemented in PR #9.** Engine-side schema and validator for the
 source/manuscript model (§10) and link registry (§11), plus an `\RKLink{key}`
 macro rendering by link class; the data files live in the consumer project per
 D4. Update `SKILL.md`'s build section to route through the CLI, which also
 retires the `pdftoppm` instruction at `:304`.
 
-**Phase 4 — Self-improvement.** `reportkit analyse-history` over W6's history
+**Phase 4 — Self-improvement — implemented in PR #9.** `reportkit analyse-history` over W6's history
 directory: recurring diagnostic types, repeated allowlist entries, and
 candidates for promotion into primitives. Cheap once W6 exists, worthless before.
 
@@ -457,6 +457,7 @@ python3 -m pytest tests publication_pipeline/tests -q
 ./reportkit context --json
 ./reportkit build --source-root publication_pipeline/example_publication
 ./reportkit diagnose --json
+./reportkit analyse-history --source-root publication_pipeline/example_publication --json
 ```
 
 The end-to-end proof is the last one run against a deliberately broken fixture:

@@ -49,7 +49,6 @@ import sys
 sys.path.insert(0, '$ROOT/python_scripts')
 import reportkit_viz
 import reportkit_doctor
-import reportkit.cli
 " > "$WORKDIR/python-check.log" 2>&1; then
     echo "FAIL: python_scripts/ failed to import cleanly:" >&2
     cat "$WORKDIR/python-check.log" >&2
@@ -70,7 +69,7 @@ if [[ -z "$TEST_PYTHON" && -x "$ROOT/build/.venv-tests/bin/python" ]]; then
 fi
 if [[ -n "$TEST_PYTHON" ]]; then
   if ! "$TEST_PYTHON" -m pytest "$ROOT/tests" "$ROOT/publication_pipeline/tests" -q > "$WORKDIR/pytest.log" 2>&1; then
-    echo "FAIL: rendered-geometry tests failed:" >&2
+    echo "FAIL: rendered-geometry or publication-pipeline tests failed:" >&2
     tail -40 "$WORKDIR/pytest.log" >&2
     hit=1
   else

@@ -1,97 +1,104 @@
-"""Build the machine-readable ReportKit component registry from source files."""
+"""Machine-readable inventory of ReportKit's public visual primitives."""
 from __future__ import annotations
 
 import ast
 from pathlib import Path
 import re
-import subprocess
 from typing import Any
 
-DIAGRAM_FILES = (
-    "reportkit-diagrams.sty", "reportkit-spatial.sty", "reportkit-process.sty",
-    "reportkit-structure.sty", "reportkit-grammar.sty",
-)
-PUBLIC_CHARTS = {
-    "timeseries", "bar_chart", "distribution", "scatter_plot", "heatmap",
-    "drawdown_chart", "waterfall_chart", "treemap_chart", "tornado_chart",
-    "bubble_matrix", "timeline_chart",
+CALLOUT_ALIASES = {"evidence": "evidencenote", "limitation": "limitationnote", "tip": "tipnote"}
+NON_FIGURE_ENVIRONMENTS = {"diagram", "RKShortListing", "outputblock"}
+PUBLIC_CHART_NAMES = {
+    "timeseries", "bar_chart", "distribution", "scatter_plot", "heatmap", "drawdown_chart",
+    "waterfall_chart", "treemap_chart", "tornado_chart", "bubble_matrix", "timeline_chart",
+}
+COMMANDS = {
+    "doctor": "reportkit doctor",
+    "context": "reportkit context",
+    "check": "reportkit check",
+    "build": "reportkit build",
+    "diagnose": "reportkit diagnose",
+    "inspect": "reportkit inspect",
+    "package": "reportkit package",
+    "analyse-history": "reportkit analyse-history",
 }
 
 
-def _environment_names(path: Path) -> list[str]:
+def _environments(path: Path) -> set[str]:
     text = path.read_text(encoding="utf-8")
-    return re.findall(r"\\NewDocumentEnvironment\{([^}]+)\}", text) + re.findall(r"\\newenvironment\{([^}]+)\}", text)
+    return set(re.findall(r"\\NewDocumentEnvironment\{([^}]+)\}", text))
 
 
-def _callouts(path: Path) -> tuple[list[str], dict[str, str]]:
-    text = path.read_text(encoding="utf-8")
-    names = re.findall(r"\\NewDocumentEnvironment\{([^}]+)\}", text)
-    aliases: dict[str, str] = {}
-    for alias, target in re.findall(r"\\NewDocumentEnvironment\{([^}]+)\}\{m\}.*?\\begin\{([^}]+)\}", text, re.S):
-        if alias in {"evidence", "limitation", "tip"}:
-            aliases[alias] = target
-    public = [name for name in names if name not in aliases and name != "rk@callout"]
-    return public, aliases
+def _figure_environments(template_root: Path) -> list[str]:
+    found: set[str] = set()
+    for path in template_root.glob("reportkit*.sty"):
+        if path.name == "reportkit-boxes.sty":
+            continue
+        found.update(_environments(path))
+    return sorted(found - NON_FIGURE_ENVIRONMENTS)
 
 
-def _charts(path: Path) -> list[str]:
-    tree = ast.parse(path.read_text(encoding="utf-8"))
+def _callouts(template_root: Path) -> dict[str, Any]:
+    boxes = template_root / "reportkit-boxes.sty"
+    found = _environments(boxes)
+    primary = sorted(found - set(CALLOUT_ALIASES))
+    return {
+        "public": primary,
+        "aliases": {name: target for name, target in CALLOUT_ALIASES.items() if name in found},
+    }
+
+
+def _charts(python_path: Path) -> list[str]:
+    tree = ast.parse(python_path.read_text(encoding="utf-8"))
     return sorted(
         node.name for node in ast.walk(tree)
-        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name in PUBLIC_CHARTS
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name in PUBLIC_CHART_NAMES
     )
-
-
-def _git(repo_root: Path, *args: str) -> str:
-    try:
-        result = subprocess.run(["git", "-C", str(repo_root), *args], capture_output=True, text=True, timeout=10)
-    except (OSError, subprocess.SubprocessError):
-        return "unknown"
-    return result.stdout.strip() if result.returncode == 0 else "unknown"
-
-
-def _class_version(path: Path) -> str:
-    match = re.search(r"\\ProvidesClass\{reportkit\}\[[^]]*?v([0-9][^ ]*)", path.read_text(encoding="utf-8"))
-    return match.group(1) if match else "unknown"
 
 
 def skill_inventory(skill_path: Path) -> dict[str, set[str]]:
     text = skill_path.read_text(encoding="utf-8")
-    visual_table = text.split("| Reader question", 1)[1].split("The distinction", 1)[0] if "| Reader question" in text else ""
-    diagrams = set(re.findall(r"`([a-z][a-z0-9]+)`", visual_table))
-    callout_line = next((line for line in text.splitlines() if "Use semantic callouts" in line), "")
-    callouts = set(re.findall(r"`([a-z][a-z0-9]+)`", callout_line))
-    return {"figures": diagrams, "callouts": callouts}
+    figures: set[str] = set()
+    for line in text.splitlines():
+        if "|" in line and "Use" not in line and "---" not in line:
+            cells = [cell.strip() for cell in line.split("|")]
+            if len(cells) >= 3:
+                figures.update(name for name in re.findall(r"`([^`]+)`", cells[2]) if name != "reportkit_viz.py")
+    callout_match = re.search(r"Use semantic callouts only when their meaning matters:\s*([^\.]+)", text)
+    callouts = set(re.findall(r"`([^`]+)`", callout_match.group(1))) if callout_match else set()
+    return {"figures": figures, "callouts": callouts}
 
 
-def generate_registry(repo_root: Path) -> dict[str, Any]:
-    template_root = repo_root / "latex_templates"
-    figures: list[str] = []
-    for name in DIAGRAM_FILES:
-        figures.extend(_environment_names(template_root / name))
-    figures = sorted(set(figures) - {"diagram"})
-    callouts, aliases = _callouts(template_root / "reportkit-boxes.sty")
-    charts = _charts(repo_root / "python_scripts" / "reportkit_viz.py")
-    git_version = _git(repo_root, "describe", "--tags", "--always")
-    class_version = _class_version(template_root / "reportkit.cls")
-    try:
-        from .cli import build_parser
-        parser = build_parser()
-        commands = sorted(next(action for action in parser._actions if getattr(action, "choices", None) is not None).choices)
-    except (AttributeError, ImportError):
-        commands = ["doctor", "context", "check", "build", "diagnose", "inspect", "package", "analyse-history"]
+def generate_registry(repo_root: Path | None = None) -> dict[str, Any]:
+    repo_root = (repo_root or Path(__file__).resolve().parents[2]).resolve()
+    templates = repo_root / "latex_templates"
+    class_text = (templates / "reportkit.cls").read_text(encoding="utf-8")
+    class_match = re.search(r"\\ProvidesClass\{[^}]+\}\[[^]]+\s+v([^\s]+)", class_text)
+    class_version = class_match.group(1) if class_match else "unknown"
     return {
-        "version": git_version,
+        "figures": _figure_environments(templates),
+        "callouts": _callouts(templates),
+        "charts": _charts(repo_root / "python_scripts" / "reportkit_viz.py"),
+        "commands": dict(COMMANDS),
         "class_version": class_version,
-        "version_check": {
-            "git_describe": git_version,
-            "class_version": class_version,
-            "matches": git_version == class_version or git_version.startswith("v" + class_version),
+        "sources": {
+            "figures": "latex_templates/reportkit*.sty",
+            "callouts": "latex_templates/reportkit-boxes.sty",
+            "charts": "python_scripts/reportkit_viz.py",
+            "commands": "python_scripts/reportkit/registry.py",
         },
-        "components": {
-            "figures": figures,
-            "callouts": {"names": sorted(callouts), "aliases": dict(sorted(aliases.items()))},
-            "charts": charts,
-        },
-        "commands": commands,
     }
+
+
+def check_skill_drift(repo_root: Path | None = None) -> list[str]:
+    repo_root = (repo_root or Path(__file__).resolve().parents[2]).resolve()
+    registry = generate_registry(repo_root)
+    inventory = skill_inventory(repo_root / "SKILL.md")
+    errors: list[str] = []
+    actual_figures = set(registry["figures"])
+    if actual_figures != inventory["figures"]:
+        errors.append(f"figure inventory drift: registry={sorted(actual_figures)}, SKILL.md={sorted(inventory['figures'])}")
+    actual_callouts = set(registry["callouts"]["public"])
+    if actual_callouts != inventory["callouts"]:
+        errors.append(f"callout inventory drift: registry={sorted(actual_callouts)}, SKILL.md={sorted(inventory['callouts'])}")
+    return errors

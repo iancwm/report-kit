@@ -1,30 +1,24 @@
-"""Dependency-free parsing and resolution for consumer ``publication.yaml`` files."""
+"""Dependency-free publication configuration loading and resolution."""
 from __future__ import annotations
 
-from copy import deepcopy
 from pathlib import Path
-import os
 import re
 from typing import Any
 
 CONFIG_NAME = "publication.yaml"
 REQUIRED = ("title",)
-
-PUBLICATION_KEYS = (
+IDENTITY_KEYS = (
     "title", "subtitle", "author", "language", "version", "left_header",
     "footer", "subject", "keywords", "disclaimer", "project_url",
 )
 DOCUMENT_KEYS = ("main", "class", "engine")
 VALIDATION_KEYS = (
-    "fail_on_undefined_refs", "fail_on_missing_assets", "overfull_hbox_threshold",
-    "underfull_badness_threshold",
+    "fail_on_undefined_refs", "fail_on_missing_assets",
+    "overfull_hbox_threshold", "underfull_badness_threshold",
 )
 OUTPUT_KEYS = ("directory",)
-ROOT_KEYS = ("publication", "document", "profiles", "validation", "output")
-FLAT_KNOWN = PUBLICATION_KEYS
-
-_BOOLS = {"true": True, "false": False}
-_INT_RE = re.compile(r"^-?(?:0|[1-9][0-9]*)$")
+KNOWN = IDENTITY_KEYS + DOCUMENT_KEYS + VALIDATION_KEYS + OUTPUT_KEYS
+SECTIONS = ("publication", "document", "profiles", "validation", "output")
 
 
 def _strip_comment(value: str) -> str:
@@ -34,62 +28,120 @@ def _strip_comment(value: str) -> str:
         if escaped:
             escaped = False
             continue
-        if char == "\\" and quote == '"':
+        if char == "\\" and quote:
             escaped = True
             continue
         if char in "'\"":
-            if quote is None:
-                quote = char
-            elif quote == char:
-                quote = None
-        elif char == "#" and quote is None and (index == 0 or value[index - 1].isspace()):
+            quote = None if quote == char else (char if quote is None else quote)
+            continue
+        if char == "#" and quote is None and (index == 0 or value[index - 1].isspace()):
             return value[:index].rstrip()
     return value.rstrip()
 
 
-def _scalar(value: str, path: Path, line_number: int) -> Any:
-    value = _strip_comment(value.strip())
+def _scalar(raw: str, path: Path, line_number: int) -> Any:
+    value = raw.strip()
     if not value:
         return None
-    if value.startswith(("[", "{")) or value.endswith(("]", "}")):
-        raise ValueError(f"{path}:{line_number}: flow-style values are not supported")
-    if value[0:1] in ("'", '"'):
-        quote = value[0]
-        if len(value) < 2 or value[-1] != quote:
+    if (value.startswith("'") and value.endswith("'")) or (value.startswith('"') and value.endswith('"')):
+        if len(value) < 2:
             raise ValueError(f"{path}:{line_number}: unterminated quoted value")
-        if quote == "'":
-            return value[1:-1].replace("''", "'")
-        escaped = value[1:-1]
-        return re.sub(r"\\([\\\"nrt])", lambda match: {"\\": "\\", '"': '"', "n": "\n", "r": "\r", "t": "\t"}[match.group(1)], escaped)
-    if value.lower() in _BOOLS:
-        return _BOOLS[value.lower()]
-    if _INT_RE.fullmatch(value):
+        return value[1:-1]
+    if value.lower() == "true":
+        return True
+    if value.lower() == "false":
+        return False
+    if re.fullmatch(r"[-+]?\d+", value):
         return int(value)
-    if value.startswith(("&", "*", "!")):
-        raise ValueError(f"{path}:{line_number}: anchors, aliases, and tags are not supported")
+    if re.fullmatch(r"[-+]?(?:\d+\.\d*|\d*\.\d+)", value):
+        return float(value)
+    if value.startswith("[") or value.startswith("{"):
+        raise ValueError(f"{path}:{line_number}: flow-style values are not supported")
     return value
 
 
-def _parse_subset(path: Path) -> dict[str, Any]:
-    lines: list[tuple[int, int, str]] = []
-    for line_number, raw in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
-        if "\t" in raw[: len(raw) - len(raw.lstrip())]:
-            raise ValueError(f"{path}:{line_number}: tabs are not allowed for indentation")
+def _next_content(lines: list[str], index: int) -> tuple[int, str] | None:
+    for next_index in range(index + 1, len(lines)):
+        content = _strip_comment(lines[next_index].strip())
+        if content:
+            indent = len(lines[next_index]) - len(lines[next_index].lstrip(" "))
+            return indent, content
+    return None
+
+
+def _parse_yaml(path: Path) -> dict[str, Any]:
+    """Parse the deliberately small YAML subset supported by ReportKit."""
+    lines = path.read_text(encoding="utf-8").splitlines()
+    root: dict[str, Any] = {}
+    stack: list[tuple[int, dict[str, Any] | list[Any]]] = [(-1, root)]
+    for index, raw in enumerate(lines):
+        line_number = index + 1
+        leading = raw[: len(raw) - len(raw.lstrip(" \t"))]
+        if "\t" in leading:
+            raise ValueError(f"{path}:{line_number}: tabs are not supported for indentation")
         content = _strip_comment(raw.strip())
         if not content:
             continue
         indent = len(raw) - len(raw.lstrip(" "))
+        if indent % 2:
+            raise ValueError(f"{path}:{line_number}: indentation must use multiples of two spaces")
+        while stack[-1][0] >= indent:
+            stack.pop()
+        parent = stack[-1][1]
+        if content.startswith("- "):
+            if not isinstance(parent, list):
+                raise ValueError(f"{path}:{line_number}: list item has no list parent")
+            parent.append(_scalar(content[2:], path, line_number))
+            continue
+        if ":" not in content:
+            raise ValueError(f"{path}:{line_number}: expected key: value")
+        key, raw_value = content.split(":", 1)
+        key = key.strip()
+        if not key:
+            raise ValueError(f"{path}:{line_number}: empty key")
+        if not isinstance(parent, dict):
+            raise ValueError(f"{path}:{line_number}: mapping entry has no mapping parent")
+        if raw_value.strip():
+            parent[key] = _scalar(raw_value, path, line_number)
+        else:
+            next_content = _next_content(lines, index)
+            child: dict[str, Any] | list[Any] = [] if next_content and next_content[0] > indent and next_content[1].startswith("- ") else {}
+            parent[key] = child
+            stack.append((indent, child))
+    return root
+
+
+def _parse_subset(path: Path) -> dict[str, Any]:
+    """Parse the same small YAML subset with list-of-mapping support.
+
+    Authoring manifests use lists of structured chapter records, while the
+    historical publication config parser above intentionally only handles
+    scalar lists. Keep this parser additive so legacy config behaviour stays
+    unchanged.
+    """
+    lines: list[tuple[int, int, str]] = []
+    for line_number, raw in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+        leading = raw[: len(raw) - len(raw.lstrip(" \t"))]
+        if "\t" in leading:
+            raise ValueError(f"{path}:{line_number}: tabs are not supported for indentation")
+        content = _strip_comment(raw.strip())
+        if not content:
+            continue
+        indent = len(raw) - len(raw.lstrip(" "))
+        if indent % 2:
+            raise ValueError(f"{path}:{line_number}: indentation must use multiples of two spaces")
         lines.append((line_number, indent, content))
 
     def block(position: int, indent: int) -> tuple[Any, int]:
         if position >= len(lines) or lines[position][1] != indent:
-            raise ValueError(f"{path}:{lines[position][0] if position < len(lines) else 1}: invalid indentation")
-        is_list = lines[position][2].startswith("- ") or lines[position][2] == "-"
+            line_number = lines[position][0] if position < len(lines) else 1
+            raise ValueError(f"{path}:{line_number}: invalid indentation")
+        is_list = lines[position][2] == "-" or lines[position][2].startswith("- ")
         result: Any = [] if is_list else {}
         while position < len(lines) and lines[position][1] == indent:
             line_number, _, content = lines[position]
             if is_list:
-                if not (content == "-" or content.startswith("- ")):
+                if content != "-" and not content.startswith("- "):
                     raise ValueError(f"{path}:{line_number}: cannot mix list and mapping entries")
                 item = content[1:].strip()
                 if not item:
@@ -98,28 +150,31 @@ def _parse_subset(path: Path) -> dict[str, Any]:
                         result.append(child)
                     else:
                         result.append(None)
-                else:
-                    if ":" not in item or item.startswith(("'", '"')):
-                        result.append(_scalar(item, path, line_number))
-                        position += 1
-                    else:
-                        key, raw_value = item.split(":", 1)
-                        key = key.strip()
-                        if not key or any(char.isspace() for char in key):
-                            raise ValueError(f"{path}:{line_number}: invalid list mapping key {key!r}")
-                        mapping: dict[str, Any] = {key: _scalar(raw_value, path, line_number) if raw_value.strip() else None}
-                        position += 1
-                        if position < len(lines) and lines[position][1] > indent:
-                            child, position = block(position, lines[position][1])
-                            if not isinstance(child, dict):
-                                raise ValueError(f"{path}:{line_number}: list mapping continuation must be a mapping")
-                            if mapping[key] is None and key in child:
-                                mapping[key] = child.pop(key)
-                            overlap = set(mapping) & set(child)
-                            if overlap:
-                                raise ValueError(f"{path}:{line_number}: duplicate list mapping key {sorted(overlap)[0]!r}")
-                            mapping.update(child)
-                        result.append(mapping)
+                    continue
+                if ":" not in item or item.startswith(("'", '"')):
+                    result.append(_scalar(item, path, line_number))
+                    position += 1
+                    continue
+                key, raw_value = item.split(":", 1)
+                key = key.strip()
+                if not key or any(char.isspace() for char in key):
+                    raise ValueError(f"{path}:{line_number}: invalid list mapping key {key!r}")
+                mapping: dict[str, Any] = {
+                    key: _scalar(raw_value, path, line_number) if raw_value.strip() else None
+                }
+                position += 1
+                if position < len(lines) and lines[position][1] > indent:
+                    child, position = block(position, lines[position][1])
+                    if not isinstance(child, dict):
+                        raise ValueError(f"{path}:{line_number}: list mapping continuation must be a mapping")
+                    if mapping[key] is None and key in child:
+                        mapping[key] = child.pop(key)
+                    overlap = set(mapping) & set(child)
+                    if overlap:
+                        duplicate = sorted(overlap)[0]
+                        raise ValueError(f"{path}:{line_number}: duplicate list mapping key {duplicate!r}")
+                    mapping.update(child)
+                result.append(mapping)
                 continue
             if content.startswith("- ") or ":" not in content:
                 raise ValueError(f"{path}:{line_number}: expected key: value")
@@ -151,121 +206,128 @@ def _parse_subset(path: Path) -> dict[str, Any]:
     return parsed
 
 
-def _check_keys(values: dict[str, Any], allowed: tuple[str, ...], path: str) -> None:
+def _known_for(section: str) -> tuple[str, ...]:
+    return {
+        "publication": IDENTITY_KEYS,
+        "document": DOCUMENT_KEYS,
+        "validation": VALIDATION_KEYS,
+        "output": OUTPUT_KEYS,
+    }.get(section, KNOWN)
+
+
+def _validate_mapping(values: dict[str, Any], path: str, allowed: tuple[str, ...], source: Path) -> None:
     for key in values:
         if key not in allowed:
-            known = ", ".join(allowed)
-            raise ValueError(f"unknown key {path}.{key}; known keys: {known}")
+            dotted = f"{path}.{key}" if path else key
+            raise ValueError(f"{source}: unknown key {dotted}; known keys: {', '.join(allowed)}")
 
 
-def _validate_schema(values: dict[str, Any], path: Path) -> dict[str, Any]:
-    nested = any(key in values for key in ROOT_KEYS)
-    if not nested:
-        _check_keys(values, FLAT_KNOWN, "publication")
-        return values
-    _check_keys(values, ROOT_KEYS, "root")
-    if "publication" in values:
-        if not isinstance(values["publication"], dict):
-            raise ValueError(f"{path}: publication must be a mapping")
-        _check_keys(values["publication"], PUBLICATION_KEYS, "publication")
-    for section, allowed in (("document", DOCUMENT_KEYS), ("validation", VALIDATION_KEYS), ("output", OUTPUT_KEYS)):
-        if section in values:
-            if not isinstance(values[section], dict):
-                raise ValueError(f"{path}: {section} must be a mapping")
-            _check_keys(values[section], allowed, section)
-    profiles = values.get("profiles", {})
-    if profiles is not None:
-        if not isinstance(profiles, dict):
-            raise ValueError(f"{path}: profiles must be a mapping")
-        for name, profile in profiles.items():
-            if not isinstance(profile, dict):
-                raise ValueError(f"unknown profile {name!r}: expected a mapping")
-            if any(key in profile for key in ROOT_KEYS):
-                _check_keys(profile, ROOT_KEYS, f"profiles.{name}")
-                for section, allowed in (("publication", PUBLICATION_KEYS), ("document", DOCUMENT_KEYS), ("validation", VALIDATION_KEYS), ("output", OUTPUT_KEYS)):
-                    if section in profile:
-                        if not isinstance(profile[section], dict):
-                            raise ValueError(f"profiles.{name}.{section} must be a mapping")
-                        _check_keys(profile[section], allowed, f"profiles.{name}.{section}")
-            else:
-                _check_keys(profile, tuple(ROOT_KEYS) + FLAT_KNOWN + DOCUMENT_KEYS + VALIDATION_KEYS + OUTPUT_KEYS, f"profiles.{name}")
-    return values
+def _validate_and_normalize(raw: dict[str, Any], source: Path) -> dict[str, Any]:
+    if not set(raw) & set(SECTIONS):
+        _validate_mapping(raw, "", KNOWN, source)
+        return raw
+    unknown_top = set(raw) - set(SECTIONS)
+    if unknown_top:
+        key = sorted(unknown_top)[0]
+        raise ValueError(f"{source}: unknown key {key}; known keys: {', '.join(SECTIONS)}")
+    for section in ("publication", "document", "validation", "output"):
+        value = raw.get(section)
+        if value is not None and not isinstance(value, dict):
+            raise ValueError(f"{source}: {section} must be a mapping")
+        if isinstance(value, dict):
+            _validate_mapping(value, section, _known_for(section), source)
+    profiles = raw.get("profiles")
+    if profiles is not None and not isinstance(profiles, dict):
+        raise ValueError(f"{source}: profiles must be a mapping")
+    if isinstance(profiles, dict):
+        for profile, values in profiles.items():
+            if not isinstance(values, dict):
+                raise ValueError(f"{source}: profiles.{profile} must be a mapping")
+            for key, value in values.items():
+                if key in SECTIONS:
+                    if not isinstance(value, dict):
+                        raise ValueError(f"{source}: profiles.{profile}.{key} must be a mapping")
+                    _validate_mapping(value, f"profiles.{profile}.{key}", _known_for(key), source)
+                elif key not in KNOWN:
+                    raise ValueError(f"{source}: unknown key profiles.{profile}.{key}; known keys: {', '.join(KNOWN)}")
+    return raw
 
 
 def load_publication_config(path: Path) -> dict[str, Any]:
-    """Load the supported YAML subset; absent config remains an empty mapping."""
+    """Load a flat legacy or nested publication.yaml file."""
     if not path.is_file():
         return {}
-    return _validate_schema(_parse_subset(path), path)
+    return _validate_and_normalize(_parse_yaml(path), path)
 
 
 def slugify(value: str) -> str:
+    """Filename-safe slug for the output PDF, derived from the title."""
     slug = re.sub(r"[^a-z0-9]+", "-", value.lower()).strip("-")
     return slug or "publication"
 
 
-def resolve_settings(config: dict[str, Any], profile: str | None = None) -> dict[str, dict[str, Any]]:
-    """Return normalized publication/document/validation/output sections."""
-    if any(key in config for key in ROOT_KEYS):
-        settings: dict[str, dict[str, Any]] = {
-            section: deepcopy(config.get(section, {}) or {})
-            for section in ("publication", "document", "validation", "output")
-        }
-        settings["profiles"] = deepcopy(config.get("profiles", {}) or {})
-    else:
-        settings = {"publication": deepcopy(config), "document": {}, "validation": {}, "output": {}, "profiles": {}}
-    if profile:
-        profiles = settings.get("profiles", {})
-        if profile not in profiles:
-            raise ValueError(f"unknown publication profile {profile!r}; known profiles: {', '.join(sorted(profiles)) or 'none'}")
-        selected = profiles[profile] or {}
-        if any(key in selected for key in ROOT_KEYS):
-            for section in ("publication", "document", "validation", "output"):
-                if isinstance(selected.get(section), dict):
-                    settings[section].update(deepcopy(selected[section]))
-        else:
-            for key, value in selected.items():
-                if key in PUBLICATION_KEYS:
-                    settings["publication"][key] = deepcopy(value)
-                elif key in DOCUMENT_KEYS:
-                    settings["document"][key] = deepcopy(value)
-                elif key in VALIDATION_KEYS:
-                    settings["validation"][key] = deepcopy(value)
-                elif key in OUTPUT_KEYS:
-                    settings["output"][key] = deepcopy(value)
-    return settings
+def _profile_values(config: dict[str, Any], profile: str | None) -> dict[str, Any]:
+    if "publication" not in config:
+        return dict(config)
+    values = dict(config.get("publication") or {})
+    selected = profile or "draft"
+    profile_values = (config.get("profiles") or {}).get(selected, {})
+    if isinstance(profile_values, dict):
+        values.update({key: value for key, value in profile_values.items() if key not in SECTIONS})
+        values.update(profile_values.get("publication") or {})
+    return values
 
 
-def resolve_identity(config: dict[str, Any], overrides: dict[str, str | None], source_root: Path, profile: str | None = None) -> dict[str, str]:
-    settings = resolve_settings(config, profile)
-    values = {key: str(value) for key, value in settings["publication"].items() if value is not None}
-    for key in PUBLICATION_KEYS:
-        env_name = f"REPORTKIT_{key.upper()}"
-        if os.environ.get(env_name):
-            values[key] = os.environ[env_name]
+def resolve_identity(config: dict[str, Any], overrides: dict[str, Any], source_root: Path, profile: str | None = None) -> dict[str, str]:
+    """Merge publication config, selected profile, and CLI/environment overrides."""
+    values = _profile_values(config, profile)
     for key, value in overrides.items():
-        if value:
+        if value not in (None, "") and key in IDENTITY_KEYS:
             values[key] = value
     missing = [key for key in REQUIRED if not values.get(key)]
     if missing:
-        raise ValueError(f"missing publication identity: {', '.join(missing)}. Set it in {source_root / CONFIG_NAME} or pass --{missing[0]}." )
-    title = values["title"]
-    values.setdefault("subtitle", title)
-    values.setdefault("author", "")
-    values.setdefault("version", "draft")
-    values.setdefault("left_header", f"REPORTKIT / {title.upper()}")
-    values.setdefault("footer", title)
-    values.setdefault("subject", "")
-    values.setdefault("keywords", "")
-    values.setdefault("disclaimer", "")
-    values.setdefault("project_url", "")
+        raise ValueError(
+            f"missing publication identity: {', '.join(missing)}. "
+            f"Set it in {source_root / CONFIG_NAME} or pass --{missing[0]}.")
+    title = str(values["title"])
+    defaults = {
+        "subtitle": title, "author": "", "version": "draft",
+        "left_header": f"REPORTKIT / {title.upper()}", "footer": title,
+        "subject": "", "keywords": "", "disclaimer": "", "project_url": "",
+    }
+    for key, default in defaults.items():
+        values.setdefault(key, default)
     values["slug"] = slugify(title)
+    return {key: str(value) for key, value in values.items()}
+
+
+def _profile_section(config: dict[str, Any], name: str, profile: str | None) -> dict[str, Any]:
+    values = dict(config.get(name) or {}) if "publication" in config else {}
+    selected = profile or "draft"
+    profile_values = (config.get("profiles") or {}).get(selected, {}) if "publication" in config else {}
+    if isinstance(profile_values, dict):
+        values.update(profile_values.get(name) or {})
+        allowed = {
+            "document": DOCUMENT_KEYS,
+            "validation": VALIDATION_KEYS,
+            "output": OUTPUT_KEYS,
+        }.get(name, ())
+        values.update({key: value for key, value in profile_values.items() if key in allowed})
     return values
 
 
 def resolve_document(config: dict[str, Any], profile: str | None = None) -> dict[str, Any]:
-    document = resolve_settings(config, profile)["document"]
-    return {"main": document.get("main", "publication-template.tex"), "class": document.get("class", "reportkit"), "engine": document.get("engine") or os.environ.get("REPORTKIT_TEX_ENGINE", "pdflatex")}
+    document = _profile_section(config, "document", profile)
+    document.setdefault("main", "report.tex")
+    document.setdefault("class", "reportkit")
+    document.setdefault("engine", "pdflatex")
+    return document
 
 
-KNOWN = FLAT_KNOWN
+def resolve_validation(config: dict[str, Any], profile: str | None = None) -> dict[str, Any]:
+    return _profile_section(config, "validation", profile)
+
+
+def resolve_output(config: dict[str, Any], source_root: Path, profile: str | None = None) -> Path | None:
+    directory = _profile_section(config, "output", profile).get("directory")
+    return (source_root / str(directory)).resolve() if directory else None

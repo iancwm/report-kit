@@ -1,83 +1,94 @@
-"""Unified ReportKit command-line facade."""
+"""The stable ReportKit command-line facade."""
 from __future__ import annotations
 
 import argparse
 import importlib.util
 import json
+import os
 from pathlib import Path
 import shutil
+import subprocess
 import sys
-from types import ModuleType
+import tempfile
+from typing import Any
 
-from .config import CONFIG_NAME, load_publication_config, resolve_settings
-from .context import build_context
-from .diagnostics import main as diagnostics_main
-from .authoring import validate_authoring
 from .analysis import analyse_history
+from .authoring import validate_authoring
+from .config import CONFIG_NAME, load_publication_config, resolve_identity
+from .context import build_context
+from .diagnostics import inspect_log, load_allowlist, load_maps
+from .registry import COMMANDS
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_SOURCE_ROOT = REPO_ROOT / "publication_pipeline" / "example_publication"
+PACKAGE_ROOT = Path(__file__).resolve().parent
+PYTHON_ROOT = PACKAGE_ROOT.parent
+REPO_ROOT = PYTHON_ROOT.parent
+PIPELINE_ROOT = REPO_ROOT / "publication_pipeline"
+DEFAULT_SOURCE_ROOT = PIPELINE_ROOT / "example_publication"
 
 
-def _module(name: str, path: Path) -> ModuleType:
+def _json_or_print(payload: Any, as_json: bool) -> None:
+    if as_json:
+        print(json.dumps(payload, indent=2, sort_keys=True))
+    elif isinstance(payload, str):
+        print(payload)
+
+
+def _load_module(name: str, path: Path) -> Any:
     spec = importlib.util.spec_from_file_location(name, path)
     if not spec or not spec.loader:
-        raise ImportError(f"unable to load {path}")
+        raise ImportError(f"cannot load {path}")
     module = importlib.util.module_from_spec(spec)
     sys.modules[name] = module
     spec.loader.exec_module(module)
     return module
 
 
-def _source_root(value: str | None) -> Path:
-    return Path(value).resolve() if value else DEFAULT_SOURCE_ROOT.resolve()
+def _source_root(args: argparse.Namespace) -> Path:
+    return Path(args.source_root).resolve() if args.source_root else DEFAULT_SOURCE_ROOT.resolve()
 
 
-def _output_root(source: Path, explicit: str | None, profile: str | None = None) -> Path:
-    if explicit:
-        return Path(explicit).resolve()
-    try:
-        directory = resolve_settings(load_publication_config(source / CONFIG_NAME), profile)["output"].get("directory")
-    except (OSError, ValueError):
-        directory = None
-    return (source / str(directory)).resolve() if directory else source / "build"
+def _output_root(args: argparse.Namespace, source_root: Path) -> Path:
+    return Path(args.output_root).resolve() if args.output_root else source_root / "build"
 
 
-def _build_args(args: argparse.Namespace) -> argparse.Namespace:
-    return argparse.Namespace(
-        mode=args.mode,
-        section=args.section,
-        workers=args.workers,
-        source_root=str(_source_root(args.source_root)),
-        output_root=args.output_root,
-        version=args.version,
-        title=args.title,
-        author=args.author,
-        cover=args.cover,
-        profile=args.profile,
-        engine=args.engine,
-    )
+def _add_publication_paths(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument("--source-root", help="consumer publication project")
+    parser.add_argument("--output-root", help="where publication build artefacts live")
+    parser.add_argument("--profile", default=None, help="publication config profile (for example, release)")
 
 
 def _run_doctor(args: argparse.Namespace) -> int:
-    doctor = _module("reportkit_doctor", REPO_ROOT / "python_scripts" / "reportkit_doctor.py")
-    original = sys.argv
-    try:
-        sys.argv = ["reportkit doctor"] + (["--require", args.require] if args.require else [])
-        return doctor.main()
-    finally:
-        sys.argv = original
+    command = [sys.executable, str(REPO_ROOT / "python_scripts" / "reportkit_doctor.py")]
+    if args.require:
+        command += ["--require", args.require]
+    proc = subprocess.run(command, text=True, capture_output=True)
+    if args.json:
+        _json_or_print({"passed": proc.returncode == 0, "output": proc.stdout, "error": proc.stderr}, True)
+    else:
+        print(proc.stdout, end="")
+        if proc.stderr:
+            print(proc.stderr, end="", file=sys.stderr)
+    return proc.returncode
 
 
 def _run_check(args: argparse.Namespace) -> int:
-    validation = _module("publication_validation", REPO_ROOT / "publication_pipeline" / "scripts" / "publication_validation.py")
-    root = _source_root(args.source_root)
-    result = validation.validate_publication(root)
+    root = _source_root(args)
+    module = _load_module("reportkit_publication_validation", PIPELINE_ROOT / "scripts" / "publication_validation.py")
+    result = module.validate_publication(root)
     authoring = validate_authoring(root)
     errors = result.errors + authoring.errors
-    payload = {"passed": not errors, "manuscript_files": result.manuscript_files, "visuals": result.slugs, "labels": result.labels, "sources": authoring.sources, "chapters": authoring.chapters, "links": authoring.links, "errors": errors}
+    payload = {
+        "passed": not errors,
+        "errors": errors,
+        "manuscript_files": result.manuscript_files,
+        "visuals": result.slugs,
+        "labels": result.labels,
+        "sources": authoring.sources,
+        "chapters": authoring.chapters,
+        "links": authoring.links,
+    }
     if args.json:
-        print(json.dumps(payload, indent=2, sort_keys=True))
+        _json_or_print(payload, True)
     elif not errors:
         print(f"PASS: publication validation ({len(result.manuscript_files)} manuscripts, {len(result.slugs)} visuals, {len(result.labels)} labels)")
     else:
@@ -88,88 +99,155 @@ def _run_check(args: argparse.Namespace) -> int:
 
 
 def _run_build(args: argparse.Namespace) -> int:
-    build_module = _module("publication_build", REPO_ROOT / "publication_pipeline" / "scripts" / "publication_build.py")
-    if args.mode != "sections":
-        result = build_module.build(_build_args(args))
-    else:
-        root = _source_root(args.source_root)
-        result = 0
-        for entry in build_module.order_entries(root):
-            if entry.startswith("00-"):
-                continue
-            section_args = _build_args(args)
-            section_args.mode = "section"
-            section_args.section = entry
-            result |= build_module.build(section_args)
+    command = [sys.executable, str(PIPELINE_ROOT / "scripts" / "publication_build.py"), "--mode", args.mode]
+    for name in ("source_root", "output_root", "profile", "engine", "title", "author", "version", "cover"):
+        value = getattr(args, name, None)
+        if value:
+            command += [f"--{name.replace('_', '-')}", str(value)]
+    section = args.section or args.chapter
+    if section:
+        command += ["--section", section]
+    return subprocess.run(command).returncode
+
+
+def _find_log(args: argparse.Namespace, source_root: Path) -> Path | None:
+    if args.log:
+        return Path(args.log).resolve()
+    output = _output_root(args, source_root)
+    candidates = [output / "combined" / "publication.log"]
+    candidates.extend(sorted(output.glob("section-*/publication.log"), reverse=True))
+    return next((path for path in candidates if path.is_file()), None)
+
+
+def _run_diagnose(args: argparse.Namespace) -> int:
+    source_root = _source_root(args)
+    log = _find_log(args, source_root)
+    if not log:
+        print("FAIL: no publication.log found; pass a log path or build first", file=sys.stderr)
+        return 1
+    allowlist_path = Path(args.allowlist).resolve() if args.allowlist else source_root / "build-log-allowlist.json"
+    if not allowlist_path.is_file():
+        allowlist_path = REPO_ROOT / "publication_pipeline" / "config" / "build-log-allowlist.json"
+    result = inspect_log(
+        log.read_text(encoding="utf-8", errors="replace"),
+        underfull_badness=args.underfull_badness,
+        allowlist=load_allowlist(allowlist_path),
+        maps=load_maps(log.parent),
+    )
+    result["log"] = str(log)
     if args.json:
-        source = _source_root(args.source_root)
-        output_root = _output_root(source, args.output_root, args.profile)
-        report = output_root / "combined" / "build-report.json"
-        if report.is_file():
-            print(report.read_text(encoding="utf-8"))
-    return result
+        _json_or_print(result, True)
+    else:
+        if result["passed"]:
+            print(f"PASS: {log} contains no actionable diagnostics")
+        else:
+            print(f"FAIL: {log} contains actionable diagnostics", file=sys.stderr)
+            for issue in result["issues"]:
+                location = issue.get("file") or "unknown source"
+                if issue.get("line"):
+                    location += f":{issue['line']}"
+                print(f"- {location} [{issue['type']} / {issue['owner']}]: {issue['message']}", file=sys.stderr)
+    return 0 if result["passed"] else 1
+
+
+def _find_pdf(build_dir: Path) -> Path | None:
+    report = build_dir / "build-report.json"
+    if report.is_file():
+        try:
+            value = json.loads(report.read_text(encoding="utf-8"))
+            if value.get("pdf"):
+                candidate = build_dir / value["pdf"]
+                if candidate.is_file():
+                    return candidate
+        except json.JSONDecodeError:
+            pass
+    return next((path for path in sorted(build_dir.glob("*.pdf")) if path.name != "publication-template.pdf"), None)
 
 
 def _run_inspect(args: argparse.Namespace) -> int:
-    inspect_module = _module("inspect_pdf", REPO_ROOT / "publication_pipeline" / "scripts" / "inspect_pdf.py")
-    pdf = Path(args.pdf) if args.pdf else None
-    if pdf is None:
-        source = _source_root(args.source_root)
-        candidates = sorted((source / "build" / "combined").glob("*.pdf"))
-        if not candidates:
-            print("inspect: pass a PDF or build the combined publication first", file=sys.stderr)
-            return 1
-        pdf = candidates[0]
-    result = inspect_module.inspect(pdf)
-    if args.json:
-        print(json.dumps(result, indent=2, sort_keys=True))
+    source_root = _source_root(args)
+    pdf = Path(args.pdf).resolve() if args.pdf else _find_pdf(_output_root(args, source_root) / "combined")
+    if not pdf or not pdf.is_file():
+        print("FAIL: no PDF found; pass a PDF path or build first", file=sys.stderr)
+        return 1
+    inspector = PIPELINE_ROOT / "scripts" / "inspect_pdf.py"
+    configured_python = os.environ.get("REPORTKIT_PDF_PYTHON")
+    candidate = Path(configured_python).expanduser() if configured_python else _output_root(args, source_root) / ".venv" / "bin" / "python"
+    if not candidate.is_absolute():
+        candidate = (Path.cwd() / candidate).absolute()
+    if candidate.is_file() and (configured_python or candidate != Path(sys.executable)):
+        if args.json:
+            with tempfile.TemporaryDirectory(prefix="reportkit-inspect-") as temp_dir:
+                json_path = Path(temp_dir) / "inspection.json"
+                proc = subprocess.run([str(candidate), str(inspector), str(pdf), "--json", str(json_path)], capture_output=True, text=True)
+                if proc.returncode and proc.stderr:
+                    print(proc.stderr, end="", file=sys.stderr)
+                if not json_path.is_file():
+                    return proc.returncode or 1
+                result = json.loads(json_path.read_text(encoding="utf-8"))
+        else:
+            return subprocess.run([str(candidate), str(inspector), str(pdf)]).returncode
     else:
-        status = "PASS" if result["passed"] else "FAIL"
-        print(f"{status}: PDF inspection ({result['page_count']} pages, {result['link_count']} links)")
+        try:
+            module = _load_module("reportkit_inspect_pdf", inspector)
+            result = module.inspect(pdf)
+        except ModuleNotFoundError as exc:
+            print(f"FAIL: PDF inspection requires PyMuPDF; run publication_pipeline/scripts/setup.sh or set REPORTKIT_PDF_PYTHON ({exc})", file=sys.stderr)
+            return 1
+    if args.json:
+        _json_or_print(result, True)
+    elif result["passed"]:
+        print(f"PASS: PDF inspection ({result['page_count']} pages, {result['link_count']} links)")
+    else:
+        print(f"FAIL: {len(result['outside_media_box'])} glyph boxes fall outside the media box", file=sys.stderr)
     return 0 if result["passed"] else 1
 
 
 def _run_package(args: argparse.Namespace) -> int:
-    source = _source_root(args.source_root)
-    build_root = _output_root(source, args.output_root)
-    combined = build_root / "combined"
-    report_path = combined / "build-report.json"
+    source_root = _source_root(args)
+    build_dir = Path(args.build_dir).resolve() if args.build_dir else _output_root(args, source_root) / "combined"
+    report_path = build_dir / "build-report.json"
     if not report_path.is_file():
-        print(f"package: missing combined build report: {report_path}", file=sys.stderr)
+        print(f"FAIL: missing combined build manifest: {report_path}", file=sys.stderr)
         return 1
     report = json.loads(report_path.read_text(encoding="utf-8"))
     if report.get("status") != "passed":
-        print("package: combined build is not passing", file=sys.stderr)
+        print("FAIL: package requires a passing combined build", file=sys.stderr)
         return 1
-    pdfs = sorted(combined.glob("*.pdf"))
-    if not pdfs:
-        print(f"package: no PDF in {combined}", file=sys.stderr)
+    pdf = _find_pdf(build_dir)
+    if not pdf:
+        print("FAIL: passing build has no PDF", file=sys.stderr)
         return 1
-    release = Path(args.release_root).resolve() if args.release_root else build_root.parent / "output"
-    release.mkdir(parents=True, exist_ok=True)
-    shutil.copy2(pdfs[0], release / pdfs[0].name)
-    shutil.copy2(report_path, release / "build-report.json")
-    shutil.copy2(report_path, release / "manifest.json")
-    lock = source / "reportkit.lock"
-    if lock.is_file():
-        shutil.copy2(lock, release / lock.name)
-    pages = release / "pages"
-    if pages.exists():
-        shutil.rmtree(pages)
-    shutil.copytree(combined / "pages", pages)
-    payload = {"passed": True, "directory": str(release), "pdf": pdfs[0].name, "manifest": "manifest.json", "build_report": "build-report.json", "pages": "pages"}
+    destination = Path(args.destination).resolve() if args.destination else source_root / "output"
+    destination.mkdir(parents=True, exist_ok=True)
+    copied: list[str] = []
+    for path in (pdf, report_path, build_dir / "reportkit.lock", source_root / "reportkit.lock"):
+        if path.is_file():
+            target = destination / path.name
+            shutil.copy2(path, target)
+            copied.append(str(target))
+    pages = build_dir / "pages"
+    if pages.is_dir():
+        target = destination / "pages"
+        if target.exists():
+            shutil.rmtree(target)
+        shutil.copytree(pages, target)
+        copied.append(str(target))
+    payload = {"passed": True, "destination": str(destination), "files": copied}
     if args.json:
-        print(json.dumps(payload, indent=2, sort_keys=True))
+        _json_or_print(payload, True)
     else:
-        print(f"PASS: package assembled at {release}")
+        print(f"PASS: packaged release in {destination}")
+        for path in copied:
+            print(f"- {path}")
     return 0
 
 
 def _run_analysis(args: argparse.Namespace) -> int:
-    history = Path(args.history_dir).resolve() if args.history_dir else _source_root(args.source_root) / "build" / "history"
+    history = Path(args.history_dir).resolve() if args.history_dir else _source_root(args) / "build" / "history"
     result = analyse_history(history)
     if args.json:
-        print(json.dumps(result, indent=2, sort_keys=True))
+        _json_or_print(result, True)
     else:
         print(f"ReportKit history: {result['build_count']} builds, {len(result['recurring'])} recurring diagnostics")
         for item in result["recurring"]:
@@ -178,100 +256,70 @@ def _run_analysis(args: argparse.Namespace) -> int:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="reportkit", description=__doc__)
+    parser = argparse.ArgumentParser(prog="reportkit", description="Deterministic ReportKit publication engine")
     sub = parser.add_subparsers(dest="command", required=True)
 
-    doctor = sub.add_parser("doctor", help="delegate to the environment doctor")
+    doctor = sub.add_parser("doctor", help="delegate environment checks to reportkit_doctor.py")
     doctor.add_argument("--require", choices=("full-build",))
+    doctor.add_argument("--json", action="store_true")
     doctor.set_defaults(handler=_run_doctor)
 
-    context = sub.add_parser("context", help="generate the source-derived component registry")
-    context.add_argument("--source-root", help="consumer publication project")
-    context.add_argument("--profile")
+    context = sub.add_parser("context", help="generate the capability registry from templates and CLI")
+    _add_publication_paths(context)
     context.add_argument("--json", action="store_true")
-    context.set_defaults(handler=lambda args: _context_command(args))
+    context.set_defaults(handler=lambda args: (_json_or_print(build_context(REPO_ROOT, _source_root(args), args.profile), True) or 0))
 
-    check = sub.add_parser("check", help="delegate to static publication validation")
-    check.add_argument("--source-root", help="consumer publication project")
+    check = sub.add_parser("check", help="delegate manuscript validation to publication_validation.py")
+    _add_publication_paths(check)
     check.add_argument("--json", action="store_true")
     check.set_defaults(handler=_run_check)
 
-    build = sub.add_parser("build", help="delegate to the Pandoc and TeX publication build")
-    build.add_argument("--mode", choices=("section", "combined", "sections"), default="combined")
+    build = sub.add_parser("build", help="delegate compilation to publication_build.py")
+    _add_publication_paths(build)
+    build.add_argument("--mode", choices=("combined", "section", "sections"), default="combined")
     build.add_argument("--section")
-    build.add_argument("--workers", type=int, default=1)
-    build.add_argument("--source-root")
-    build.add_argument("--output-root")
-    build.add_argument("--profile")
+    build.add_argument("--chapter", help="compatibility alias for --section")
     build.add_argument("--engine")
-    build.add_argument("--version")
     build.add_argument("--title")
     build.add_argument("--author")
+    build.add_argument("--version")
     build.add_argument("--cover")
-    build.add_argument("--json", action="store_true")
     build.set_defaults(handler=_run_build)
 
-    diagnose = sub.add_parser("diagnose", help="parse a TeX build log into structured diagnostics")
-    diagnose.add_argument("log", nargs="?", type=Path)
-    diagnose.add_argument("--source-root", type=Path)
-    diagnose.add_argument("--build-dir", type=Path)
-    diagnose.add_argument("--allowlist", type=Path)
+    diagnose = sub.add_parser("diagnose", help="parse a TeX log into source-aware diagnostics")
+    _add_publication_paths(diagnose)
+    diagnose.add_argument("log", nargs="?")
+    diagnose.add_argument("--allowlist")
     diagnose.add_argument("--underfull-badness", type=int, default=4000)
     diagnose.add_argument("--json", action="store_true")
-    diagnose.set_defaults(handler=lambda args: _diagnose_command(args))
+    diagnose.set_defaults(handler=_run_diagnose)
 
-    inspect = sub.add_parser("inspect", help="delegate to PyMuPDF PDF inspection")
-    inspect.add_argument("pdf", type=Path, nargs="?")
-    inspect.add_argument("--source-root")
+    inspect = sub.add_parser("inspect", help="delegate PDF geometry and metadata checks to inspect_pdf.py")
+    _add_publication_paths(inspect)
+    inspect.add_argument("pdf", nargs="?")
     inspect.add_argument("--json", action="store_true")
     inspect.set_defaults(handler=_run_inspect)
 
-    package = sub.add_parser("package", help="assemble a passing combined build into a release directory")
-    package.add_argument("--source-root")
-    package.add_argument("--output-root")
-    package.add_argument("--release-root")
+    package = sub.add_parser("package", help="assemble a passing combined build into output/")
+    _add_publication_paths(package)
+    package.add_argument("--build-dir")
+    package.add_argument("--destination")
     package.add_argument("--json", action="store_true")
     package.set_defaults(handler=_run_package)
 
     history = sub.add_parser("analyse-history", help="summarize recurring diagnostics in build history")
-    history.add_argument("--source-root")
-    history.add_argument("--history-dir")
+    history.add_argument("--source-root", help="consumer publication project")
+    history.add_argument("--history-dir", help="build history directory")
     history.add_argument("--json", action="store_true")
     history.set_defaults(handler=_run_analysis)
     return parser
 
 
-def _context_command(args: argparse.Namespace) -> int:
-    try:
-        result = build_context(REPO_ROOT, _source_root(args.source_root) if args.source_root else None, args.profile)
-    except (OSError, ValueError) as exc:
-        print(f"context: {exc}", file=sys.stderr)
-        return 1
-    if args.json:
-        print(json.dumps(result, indent=2, sort_keys=True))
-    else:
-        print(f"ReportKit {result['version']} ({result['document']['engine']})")
-        print(f"figures: {len(result['components']['figures'])}; callouts: {len(result['components']['callouts']['names'])}; charts: {len(result['components']['charts'])}")
-    return 0
-
-
-def _diagnose_command(args: argparse.Namespace) -> int:
-    log = args.log
-    if log is None:
-        source = _source_root(str(args.source_root) if args.source_root else None)
-        log = _output_root(source, None) / "combined" / "publication.log"
-    argv = [str(log), "--underfull-badness", str(args.underfull_badness)]
-    if args.json:
-        argv += ["--json"]
-    if args.source_root:
-        argv += ["--source-root", str(args.source_root)]
-    if args.build_dir:
-        argv += ["--build-dir", str(args.build_dir)]
-    if args.allowlist:
-        argv += ["--allowlist", str(args.allowlist)]
-    return diagnostics_main(argv)
-
-
 def main(argv: list[str] | None = None) -> int:
-    args = build_parser().parse_args(argv)
-    return args.handler(args)
+    parser = build_parser()
+    args = parser.parse_args(argv)
+    return int(args.handler(args))
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

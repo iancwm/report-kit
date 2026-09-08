@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-exec python3 "$ROOT/scripts/publication_build.py" --mode combined "$@"
+exec "$(cd "$ROOT/.." && pwd)/reportkit" build --mode combined "$@"

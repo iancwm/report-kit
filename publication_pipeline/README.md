@@ -19,17 +19,19 @@ publication to build on.
 
 ```bash
 bash scripts/setup.sh
-<reportkit-clone>/reportkit check --source-root <publication-project>
-bash scripts/build-section.sh manuscript/01-introduction.md --source-root <publication-project>
-bash scripts/combine.sh --source-root <publication-project> --output-root <publication-project>/build
+<report-kit-clone>/reportkit check --source-root <publication-project>
+<report-kit-clone>/reportkit build --mode section --section manuscript/01-introduction.md --source-root <publication-project>
+<report-kit-clone>/reportkit build --source-root <publication-project> --output-root <publication-project>/build
 ```
 
-The same operations are available through the unified facade:
-
-```bash
-<reportkit-clone>/reportkit build --mode combined --source-root <publication-project>
-<reportkit-clone>/reportkit diagnose --source-root <publication-project> --json
-```
+The `reportkit` facade also exposes `doctor`, `context`, `diagnose`, `inspect`,
+`analyse-history`, and `package`. Add `--profile release` to resolve a release
+profile from a nested `publication.yaml`; `--engine` is an explicit TeX-engine
+override. Optional `sources.yaml` and `links.yaml` files are validated during
+`check` and `build`; the latter renders named `\\RKLink{key}` links into the
+generated document. `inspect` reports page dimensions, bookmarks, fonts, blank
+pages, and near-margin content. The shell wrappers and direct
+`publication_build.py` invocation remain supported.
 
 `<publication-project>/publication.yaml` supplies the title, subtitle, author,
 and version; `--title`/`--author`/`--version` on the CLI override it. A
