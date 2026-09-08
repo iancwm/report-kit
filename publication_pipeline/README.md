@@ -19,10 +19,15 @@ publication to build on.
 
 ```bash
 bash scripts/setup.sh
-python3 scripts/validate-publication.py --root <publication-project>
-bash scripts/build-section.sh manuscript/01-introduction.md --source-root <publication-project>
-bash scripts/combine.sh --source-root <publication-project> --output-root <publication-project>/build
+<report-kit-clone>/reportkit check --source-root <publication-project>
+<report-kit-clone>/reportkit build --mode section --section manuscript/01-introduction.md --source-root <publication-project>
+<report-kit-clone>/reportkit build --source-root <publication-project> --output-root <publication-project>/build
 ```
+
+The `reportkit` facade also exposes `doctor`, `context`, `diagnose`, `inspect`,
+and `package`. Add `--profile release` to resolve a release profile from a
+nested `publication.yaml`; `--engine` is an explicit TeX-engine override. The
+shell wrappers and direct `publication_build.py` invocation remain supported.
 
 `<publication-project>/publication.yaml` supplies the title, subtitle, author,
 and version; `--title`/`--author`/`--version` on the CLI override it. A

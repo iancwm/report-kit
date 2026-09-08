@@ -34,11 +34,11 @@ For a single short report, copy `latex_templates/REPORT_TEMPLATE.tex` to `<repor
 
 ### Long-form publications
 
-For a multi-chapter publication (a guide, book, or report assembled from several manuscript files), write Markdown into `<report-directory>/manuscript/` (listed in `manuscript/order.txt`), place diagram fragments in `fragments/`, and fill in `<report-directory>/publication.yaml` with at least a `title`. Then build with the pipeline instead of compiling `report.tex` directly:
+For a multi-chapter publication (a guide, book, or report assembled from several manuscript files), write Markdown into `<report-directory>/manuscript/` (listed in `manuscript/order.txt`), place diagram fragments in `fragments/`, and fill in `<report-directory>/publication.yaml` with at least a `title`. Then build with the pipeline facade instead of compiling `report.tex` directly:
 
 ```bash
-python3 <skill-directory>/publication_pipeline/scripts/publication_build.py \
-  --mode combined --source-root <report-directory> --output-root <report-directory>/build
+<skill-directory>/reportkit build \
+  --source-root <report-directory> --output-root <report-directory>/build
 ```
 
 This never writes into `<skill-directory>` — every build artefact, including `reportkit.lock` (the pinned ReportKit ref and toolchain versions), lands under `<report-directory>`. See [`publication_pipeline/README.md`](publication_pipeline/README.md) for the section-build and validation commands.

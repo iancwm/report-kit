@@ -41,11 +41,15 @@ Migrating an existing content branch out of this repo is covered in
   (lualatex; see `references/font-setup.md` for the extra setup this needs).
 
 ## 2. python_scripts/
+- `reportkit` (from the repository root) — stdlib CLI facade for doctor,
+  context, check, build, diagnose, inspect, and package; its importable
+  implementation lives under `python_scripts/reportkit/`.
 - `reportkit_viz.py` — Matplotlib analytical chart theme (palette synced with
   `reportkit.cls`, including treemap, waterfall, tornado, bubble-matrix, and
   dated timeline figures alongside standard analytical charts).
 - `reportkit_doctor.py` — environment check (FULL BUILD / SOURCE BUILD detection).
-- `publication_config.py` — reads a consumer project's `publication.yaml`;
+- `publication_config.py` — compatibility import for the nested or legacy
+  consumer `publication.yaml` loader;
   `license_metadata.py` — reads this repo's own `metadata/licenses.yml`.
 - `career_guide_en_make_figures.py` — example figure generator using `reportkit_viz`.
 
@@ -53,8 +57,9 @@ Migrating an existing content branch out of this repo is covered in
 Reusable build/validate/inspect harness for a consumer publication project —
 Pandoc → LaTeX compilation, the strict diagnostic gate, page rendering, and
 PDF inspection. Takes no fixed publication as input: point it at any project
-with `--source-root`/`--output-root`. `example_publication/` is a small
-generic fixture used only by this repo's own tests, not a real publication.
+  with `--source-root`/`--output-root`. Use `./reportkit` as the stable command
+  interface; `example_publication/` is a small generic fixture used only by
+  this repo's own tests, not a real publication.
 See [`publication_pipeline/README.md`](publication_pipeline/README.md).
 
 ## 4. font_data/
