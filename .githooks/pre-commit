@@ -16,7 +16,7 @@ fi
 if echo "$changed" | grep -qE '^publication_pipeline/(scripts|example_publication)/'; then
   pipeline_root="$ROOT/publication_pipeline"
   echo "pre-commit: publication pipeline changed -- validating the bundled example"
-  if ! python3 "$pipeline_root/scripts/validate-publication.py" --root "$pipeline_root/example_publication"; then
+  if ! "$ROOT/reportkit" check --source-root "$pipeline_root/example_publication"; then
     status=1
   fi
 fi

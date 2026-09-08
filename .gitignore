@@ -237,3 +237,4 @@ __marimo__/
 /output/
 /publication.yaml
 /reportkit.lock
+/publication_pipeline/example_publication/reportkit.lock

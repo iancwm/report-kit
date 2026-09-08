@@ -21,6 +21,25 @@ tags on this repository, not a published package registry.
 - The ReportKit acceptance fixture now exercises vertical `reportflow`
   layout.
 
+## [1.5.0] - 2026-09-08
+
+### Added
+- `reportkit` now provides one stdlib command interface for environment
+  checks, publication context, validation, builds, diagnostics, PDF inspection,
+  and release packaging.
+- Publication projects can use nested `publication.yaml` sections and named
+  profiles while retaining the legacy flat format.
+- Build diagnostics now report typed, severity-aware issues with ownership and
+  authored-fragment locations, including wrapped TeX messages.
+- Passing builds emit schema-v2 manifests with PDF hashes, provenance,
+  figure/table counts, and unique history records.
+
+### Changed
+- The publication test suite is part of the acceptance gate, and the
+  compatibility shell wrappers route through the CLI facade.
+- Capability inventories are generated from the LaTeX primitives and checked
+  against the documented visual and callout lists.
+
 ## [1.4.0] - 2026-09-04
 ### Added
 - Semantic visual grammar over the existing native TikZ primitives:

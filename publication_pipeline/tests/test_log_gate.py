@@ -1,19 +1,17 @@
 from pathlib import Path
-import importlib.util
+import sys
 
-spec = importlib.util.spec_from_file_location("check_build_log", Path(__file__).resolve().parents[1] / "scripts" / "check-build-log.py")
-assert spec and spec.loader
-module = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(module)
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "python_scripts"))
+from reportkit.diagnostics import inspect_log as inspect_diagnostics
 
 
 def test_clean_log_passes():
-    result = module.inspect_log("Output written on guide.pdf (1 page).\n", underfull_badness=4000, allowlist=[])
+    result = inspect_diagnostics("Output written on guide.pdf (1 page).\n", underfull_badness=4000, allowlist=[])
     assert result["passed"]
 
 
 def test_actionable_diagnostics_fail():
-    result = module.inspect_log(
+    result = inspect_diagnostics(
         "\n".join(
             [
                 "Overfull \\hbox (402.1pt too wide)",

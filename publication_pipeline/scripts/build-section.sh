@@ -5,4 +5,4 @@ if [[ $# -lt 1 || $# -gt 2 ]]; then
   exit 1
 fi
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-exec python3 "$ROOT/scripts/publication_build.py" --mode section --section "$1" "${@:2}"
+exec "$(cd "$ROOT/.." && pwd)/reportkit" build --mode section --section "$1" "${@:2}"

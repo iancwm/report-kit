@@ -1,9 +1,9 @@
 # ReportKit vNext — Implementation Plan
 
-**Status:** Draft, not started. Supersedes the sequencing and priorities in the
-vNext spec; that document remains the source of *intent*, this one the source of
-*work*.
-**Last updated:** 2026-09-07
+**Status:** Phase 1 complete (W1–W7); Phases 2–4 deferred. Supersedes the
+sequencing and priorities in the vNext spec; that document remains the source
+of *intent*, this one the source of *work*.
+**Last updated:** 2026-09-08
 
 **Plans:** [2026-09-06-reportkit-vnext-ai-publication-system-spec.md](../specs/2026-09-06-reportkit-vnext-ai-publication-system-spec.md)
 **Reconciles with:** [2026-09-06-reportkit-tooling-hardening-design.md](../specs/2026-09-06-reportkit-tooling-hardening-design.md)
