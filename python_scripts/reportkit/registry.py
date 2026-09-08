@@ -6,17 +6,8 @@ from pathlib import Path
 import re
 from typing import Any
 
-PUBLIC_FIGURE_NAMES = {
-    "reportmatrix", "riskheatmap", "reportflow", "reportswimlane", "reportarchitecture",
-    "reportroadmap", "capabilitymap", "strategicpillars", "maturitymodel", "continuum",
-    "reporttree", "reportnetwork", "causalloop", "evidencestack", "reportcycle",
-    "reportfunnel", "reportstate", "reportcompare", "reporttimeline",
-}
-PUBLIC_CALLOUT_NAMES = {
-    "principle", "decisionpoint", "researchproblem", "assumption", "redflag",
-    "evidencenote", "limitationnote", "tipnote", "deliverablenote", "metric",
-}
 CALLOUT_ALIASES = {"evidence": "evidencenote", "limitation": "limitationnote", "tip": "tipnote"}
+NON_FIGURE_ENVIRONMENTS = {"diagram", "RKShortListing", "outputblock"}
 PUBLIC_CHART_NAMES = {
     "timeseries", "bar_chart", "distribution", "scatter_plot", "heatmap", "drawdown_chart",
     "waterfall_chart", "treemap_chart", "tornado_chart", "bubble_matrix", "timeline_chart",
@@ -40,14 +31,16 @@ def _environments(path: Path) -> set[str]:
 def _figure_environments(template_root: Path) -> list[str]:
     found: set[str] = set()
     for path in template_root.glob("reportkit*.sty"):
+        if path.name == "reportkit-boxes.sty":
+            continue
         found.update(_environments(path))
-    return sorted(found & PUBLIC_FIGURE_NAMES)
+    return sorted(found - NON_FIGURE_ENVIRONMENTS)
 
 
 def _callouts(template_root: Path) -> dict[str, Any]:
     boxes = template_root / "reportkit-boxes.sty"
     found = _environments(boxes)
-    primary = sorted(found & PUBLIC_CALLOUT_NAMES)
+    primary = sorted(found - set(CALLOUT_ALIASES))
     return {
         "public": primary,
         "aliases": {name: target for name, target in CALLOUT_ALIASES.items() if name in found},
@@ -67,9 +60,9 @@ def skill_inventory(skill_path: Path) -> dict[str, set[str]]:
     figures: set[str] = set()
     for line in text.splitlines():
         if "|" in line and "Use" not in line and "---" not in line:
-            cells = [cell.strip().strip("`") for cell in line.split("|")]
+            cells = [cell.strip() for cell in line.split("|")]
             if len(cells) >= 3:
-                figures.update(re.findall(r"\b(?:reportmatrix|riskheatmap|reportflow|reportswimlane|reportarchitecture|reportroadmap|capabilitymap|strategicpillars|maturitymodel|continuum|reporttree|reportnetwork|causalloop|evidencestack|reportcycle|reportfunnel|reportstate|reportcompare|reporttimeline)\b", cells[2]))
+                figures.update(name for name in re.findall(r"`([^`]+)`", cells[2]) if name != "reportkit_viz.py")
     callout_match = re.search(r"Use semantic callouts only when their meaning matters:\s*([^\.]+)", text)
     callouts = set(re.findall(r"`([^`]+)`", callout_match.group(1))) if callout_match else set()
     return {"figures": figures, "callouts": callouts}
