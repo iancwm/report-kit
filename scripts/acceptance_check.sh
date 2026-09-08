@@ -68,8 +68,8 @@ if [[ -z "$TEST_PYTHON" && -x "$ROOT/build/.venv-tests/bin/python" ]]; then
   TEST_PYTHON="$ROOT/build/.venv-tests/bin/python"
 fi
 if [[ -n "$TEST_PYTHON" ]]; then
-  if ! "$TEST_PYTHON" -m pytest "$ROOT/tests" -q > "$WORKDIR/pytest.log" 2>&1; then
-    echo "FAIL: rendered-geometry tests failed:" >&2
+  if ! "$TEST_PYTHON" -m pytest "$ROOT/tests" "$ROOT/publication_pipeline/tests" -q > "$WORKDIR/pytest.log" 2>&1; then
+    echo "FAIL: rendered-geometry or publication-pipeline tests failed:" >&2
     tail -40 "$WORKDIR/pytest.log" >&2
     hit=1
   else

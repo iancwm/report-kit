@@ -1,5 +1,12 @@
 from pathlib import Path
+import shutil
 import subprocess
+
+import pytest
+
+
+if shutil.which("pandoc") is None:
+    pytest.skip("pandoc is not installed", allow_module_level=True)
 
 
 def test_pandoc_feature_fixture_emits_supported_constructs():
