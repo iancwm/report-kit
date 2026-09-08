@@ -1,6 +1,7 @@
 # ReportKit vNext — Implementation Plan
 
-**Status:** Draft, not started. Supersedes the sequencing and priorities in the
+**Status:** Implementation in progress. Phase 1 machine interface and the
+authoring/QA extensions below are landed locally; supersedes the sequencing and priorities in the
 vNext spec; that document remains the source of *intent*, this one the source of
 *work*.
 **Last updated:** 2026-09-07

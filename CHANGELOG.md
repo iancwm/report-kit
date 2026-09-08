@@ -7,6 +7,13 @@ tags on this repository, not a published package registry.
 ## [Unreleased]
 
 ### Added
+- A unified `reportkit` command now exposes doctor, context, validation,
+  builds, diagnostics, PDF inspection, packaging, and build-history analysis.
+- Nested `publication.yaml` profiles, source-aware TeX diagnostics, generated
+  capability context, source/manuscript validation, and centralized link
+  rendering are available to publication projects.
+- Build manifests now include provenance, PDF hashes, figure/table counts, and
+  history snapshots for repeatable release inspection.
 - `\rkcode{...}` for rendering identifier-like technical tokens, such as
   `event_date`, safely in direct semantic-diagram labels.
 - Width-aware swimlanes: `columns=`, `node width=`, `column spacing=`, and
@@ -16,6 +23,10 @@ tags on this repository, not a published package registry.
   placement controls.
 - `reportarchitecture` annotations at the top or bottom of the measured
   diagram, and positioned, width-constrained timeline watermark labels.
+
+### Changed
+- Publication builds now map generated Markdown and fragment diagnostics back
+  to authored files and use PyMuPDF-backed PDF QA checks for release output.
 
 ### Fixed
 - The ReportKit acceptance fixture now exercises vertical `reportflow`
