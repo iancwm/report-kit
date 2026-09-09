@@ -127,4 +127,12 @@ fig, ax = rkv.risk_reward_chart(
 )
 rkv.save_figure(fig, FIGURES / "risk_reward", formats=("pdf",))
 
+# Business mix sidebar chart (per spec §29.3, proportional data in sidebar)
+data = {
+    "Consulting": 52,
+    "Managed Services": 48,
+}
+fig, ax = rkv.donut_chart(data, size="sidebar")
+rkv.save_figure(fig, FIGURES / "business_mix", formats=("pdf",))
+
 print(f"wrote {len(list(FIGURES.glob('*.pdf')))} figures to {FIGURES}")
