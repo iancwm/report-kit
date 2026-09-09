@@ -11,6 +11,12 @@ same reason the `.sty` file keeps them the same as
 `reportkit-theme-default.sty`'s: spec §21 asks the theme to quiet the
 callout *chrome*, not recolor each category -- see that `.sty` file's
 palette comment for the longer version of this decision.
+
+FONT LICENSING NOTICE: This theme specifies Google Sans as the primary
+typeface. The Google Sans font files included in font_data/ are licensed
+under Apache License 2.0 (sourced from Google Fonts). Publications built
+with this theme must preserve the font attribution and license notice.
+See font_data/GOOGLE_SANS_LICENSE.md for full licensing details.
 """
 from __future__ import annotations
 
@@ -94,6 +100,12 @@ THEME = Theme(
         "square": (5.842, 5.240),
         "half": (3.588, 1.490),
     },
+    # Google Sans is the primary typeface for this theme. It is licensed under
+    # Apache License 2.0 and sourced from Google Fonts. The static-weight
+    # instantiations (Regular/Medium/Bold) are in font_data/. Font fallbacks
+    # (Inter, Noto Sans, Arial, DejaVu Sans) are provided for systems where
+    # Google Sans is unavailable. See THIRD-PARTY-NOTICES.md and
+    # font_data/GOOGLE_SANS_LICENSE.md for full licensing information.
     sans_candidates=("Google Sans", "Inter", "Noto Sans", "Arial", "DejaVu Sans"),
     # Spec §14: eliminate serif leakage entirely under this theme -- serif
     # and mono candidates resolve to the same sans chain rather than a
