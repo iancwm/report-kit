@@ -1,9 +1,9 @@
 # ReportKit Institutional Theme + Equity Profile — Implementation Plan
 
 **Status:** In progress. Step 1 (theme infrastructure) implemented on
-`claude/vnext-spec-execution-wppmkl`. Steps 2–3 (institutional theme, equity
-publication profile) implemented on `claude/institutional-template-spec-m6imf7`.
-Steps 4–5 not started.
+`claude/vnext-spec-execution-wppmkl`. Steps 2–4 (institutional theme, equity
+publication profile, visualization integration) implemented on
+`claude/institutional-template-spec-m6imf7`. Step 5 not started.
 **Last updated:** 2026-09-09
 
 **Spec:** [2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md](../specs/2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md)
@@ -614,26 +614,205 @@ way `theme:`'s `font_family`/`font_path`/`font_policy` did in Step 2.
   `\ratingitem`, which this plan is reasoning about from documented TeX
   semantics rather than an observed render.
 
+## Step 4 — Visualization integration (this change)
+
+Scope per spec §27: "make `reportkit_viz.py` theme-aware, remove A4
+hardcoding, add Google Sans registration and eliminate serif leakage from
+numeric axes/mathtext." Unlike Steps 1–3, this step's code is pure Python
+with `matplotlib`/`numpy`/`pandas` installed in this session — **it is
+actually executed and tested, not just pattern-matched.** Every claim below
+that isn't explicitly flagged "not performed" was run and observed to
+behave as described, including rendering real figures under both themes
+and inspecting their resolved fonts/colors programmatically. Two sample
+renders (`risk_reward_chart` under each theme) were sent to the user
+directly during this step so there was something to actually look at, not
+just described.
+
+### What was added
+
+**`python_scripts/reportkit/themes/` (new package, OQ8).** Resolves open
+question 8 (theme-token import direction): `__init__.py` defines a frozen
+`Theme` dataclass and `get_theme(name)`/`available_themes()`; `default.py`
+and `institutional_research.py` each build and export a module-level
+`THEME` constant. The dependency is one-directional
+(`reportkit_viz.py → reportkit.themes`, verified — nothing in the new
+package imports `reportkit_viz`) and lazy (`get_theme()` uses
+`importlib.import_module()`, not an eager top-level import of both
+submodules in `__init__.py`, so there's no risk of the circular-import
+shape that eager submodule imports inside a package's own `__init__.py`
+would create).
+
+- `default.py` moves every one of `reportkit_viz.py`'s pre-Step-4 hardcoded
+  values into a `Theme` **verbatim, not recomputed** — same hex colors,
+  same `TEXT_WIDTH_IN = 156/25.4`, same absolute `FIGURE_SIZES` heights.
+  Verified: `apply_theme("default")` reproduces `INK`, `TEXT_WIDTH_IN`,
+  every existing `FIGURE_SIZES` entry, `mathtext.fontset`, `font.size`,
+  `axes.titlesize`, and `xtick.labelsize` exactly (test
+  `test_apply_theme_default_matches_pre_step4_values`).
+- `institutional_research.py` builds the institutional theme's tokens:
+  `latex_colors` copied 1:1 from
+  `themes/reportkit-theme-institutional-research.sty`'s actual
+  `\definecolor` values (not re-derived — read directly off that file,
+  same as Step 2 wrote it); `TEXT_WIDTH_IN` derived from that theme's own
+  geometry (215.9mm US Letter − 14mm − 14mm = 187.9mm), not an embedded
+  constant unrelated to the page (spec §15's explicit ask); `sans_candidates
+  = ("Google Sans", "Inter", "Noto Sans", "Arial", "DejaVu Sans")` mirroring
+  the LaTeX theme's own fallback chain; `mathtext_fontset = "custom"`.
+- **OQ3 (keep `wide`).** Both theme modules keep `wide` and add `dominant`
+  as an alias with the identical tuple value, plus a new `half` size (sized
+  for `reportkit-equity-research.sty`'s `exhibitpair`, 0.485× the theme's
+  text width) — verified present and `dominant == wide` for both themes
+  (`test_figure_sizes_keep_wide_and_add_dominant_and_half`).
+- **OQ4 (ratio-derived heights).** `institutional_research.py`'s
+  `FIGURE_SIZES` heights are computed by applying `default.py`'s own
+  width:height ratios (full 0.578, wide/dominant 0.497, compact 0.415,
+  square 0.790×/0.897) to the institutional theme's different text width —
+  documented in that module's comments with the derivation, so a future
+  theme can reuse the same ratios without recomputing them. `default.py`
+  itself keeps literal absolute numbers rather than going through this
+  formula, so there is zero floating-point risk to its guaranteed-stable
+  output.
+
+**`reportkit_viz.py`: `apply_theme(theme: str = "default")`.** This is the
+spec §13 entry point (`rkv.apply_theme("institutional-research")`),
+verified by actually calling it and inspecting the result. The
+implementation choice worth recording: rather than threading a `Theme`
+argument through every one of the ~20 existing chart functions (a much
+larger, riskier rewrite), `apply_theme()` reassigns the same module-level
+globals (`INK`, `MUTED`, `FIGURE_SIZES`, ...) those functions already read
+as plain names, via `global` declarations. Because Python looks up a bare
+global name at call time, not at function-definition time, every existing
+chart function became theme-aware "for free" — verified by rendering a
+`bar_chart` under `institutional-research` and confirming its colors match
+that theme, and by round-tripping `apply_theme("institutional-research")`
+→ `apply_theme("default")` and confirming state fully reverts.
+
+**Bug found and fixed by this mechanism, not by inspection.** Actually
+testing theme-switching surfaced a real latent defect:
+`annotate_point(..., accent: str = PRIMARY)` and
+`shade_period(..., color: str = EVIDENCE)` bound their color defaults
+directly to the module globals *in the function signature*, which Python
+evaluates once at function-definition (import) time — so those two
+functions' default colors would have silently stayed frozen at whichever
+theme was active when `reportkit_viz.py` was first imported, forever,
+regardless of any later `apply_theme()` call. Fixed to resolve the default
+inside the function body (`accent: str | None = None`, then
+`if accent is None: accent = PRIMARY`). Grepped the rest of the file for
+the same pattern (`: str = <THEME_GLOBAL>` in a signature) and found no
+other instances. Regression test:
+`test_annotate_point_and_shade_period_follow_theme_switches`.
+
+**Spec §14 (mathtext serif leakage).** `apply_theme()` only sets
+`mathtext.rm`/`mathtext.it`/`mathtext.bf` when the resolved theme's
+`mathtext_fontset == "custom"` (institutional's) — verified both that
+those keys get set to the theme's own resolved sans font under
+institutional, and that switching back to `default` leaves
+`mathtext.fontset == "stix"` untouched (spec's explicit ask: fix the
+institutional theme's leakage without silently restyling the default
+theme's existing chart output). The **mandatory regression** spec §14
+lists — numeric y-ticks, categorical x-ticks, percentages, negative
+values, legend, annotation, axis title, all resolving to the same font
+family — is implemented as an executable pytest test
+(`test_font_consistency_regression_matches_spec_section_14_checklist`),
+not just a demo figure to eyeball: it renders exactly that combination and
+asserts every element's `get_fontfamily()` matches. What it can't verify
+is the literal rendered glyph (matplotlib's font-family config can be
+correct while an actual font file still substitutes unexpectedly at
+render time) — that needs Step 5's pixel-level visual regression.
+
+**`check-theme` becomes genuinely theme-aware (closes OQ2).** Step 1
+predicted, and Steps 2–3 pinned via
+`test_check_theme_institutional_honestly_fails_until_step4` (deleted this
+step, per its own docstring's instruction), that `check-theme --theme
+institutional-research` would report every color mismatched until a real
+Python-side institutional palette existed. It now does:
+`validate_palette_against_latex()` gained an optional `colors` parameter
+(defaulting to the current `LATEX_THEME_COLORS` global, preserving the
+exact pre-Step-4 one-argument call shape for backward compatibility), and
+the CLI's `check-theme` command now passes
+`reportkit.themes.get_theme(args.theme).latex_colors` explicitly. Verified
+end-to-end: `python3 reportkit_viz.py check-theme --theme
+institutional-research` now prints "ReportKit palette synchronized" and
+exits 0 (previously — and still, for any theme name with no
+`reportkit.themes` module — it fails loudly with a clear message, per
+OQ2's "honest failure, not a false pass" principle, extended here to
+`reportkit.themes.get_theme()`'s own `ValueError` for an unregistered
+theme name).
+
+**`risk_reward_chart()` (spec §18, new function).** Spec §18 itself
+prefers the risk/reward chart be "generate[d] through reportkit_viz.py"
+rather than drawn as a LaTeX-side `\riskrewardchart` macro in raw
+TikZ/pgfplots — Step 3's `\bullcase`/`\basecase`/`\bearcase` primitives
+were written expecting exactly this. Plots a price history with three
+dashed bear/base/bull reference levels, each labeled at the right edge
+(matching Appendix A's exhibit exactly), reusing each theme's existing
+`DATA_NEGATIVE`/`METRIC`/`DATA_WARM` color roles rather than adding
+bear/base/bull-specific `Theme` fields — those three already line up with
+Appendix A's actual bear=red/base=teal/bull=gold convention for the
+institutional theme (verified: rendered and inspected line colors and
+annotation text under both themes; added to `build_demo()`'s regression
+set; two renders sent to the user directly).
+
+### Verification actually performed
+
+Unlike Steps 1–3, everything below was actually executed, not just
+statically checked:
+
+- `python3 -m pytest tests publication_pipeline/tests -q`: 54 passed
+  (23 new to this step, across a new `tests/test_reportkit_viz_themes.py`
+  and one replaced test in `test_reportkit_vnext.py`), 18 skipped
+  (TeX/PyMuPDF-adjacent fixtures unrelated to this step).
+- `apply_theme("default")` reproduces every pre-Step-4 hardcoded value
+  exactly (colors, `TEXT_WIDTH_IN`, `FIGURE_SIZES`, `mathtext.fontset`,
+  font-size rcParams) — checked by direct equality, not approximation.
+- `apply_theme("institutional-research")` then `apply_theme("default")`
+  round-trips correctly; an unknown theme name raises `ValueError` naming
+  the two theme names that do exist.
+- Rendered a `bar_chart` under both themes with numeric+categorical ticks,
+  a title, a legend, and an annotation; confirmed x-tick/y-tick/title/
+  legend font families all match under the institutional theme
+  (spec §14's regression), and that `mathtext.rm/it/bf` equal the theme's
+  resolved sans font only when `mathtext_fontset == "custom"`.
+- `python3 reportkit_viz.py check-theme --theme default`,
+  `--theme institutional-research`, and `--theme nonexistent` (exit 0, 0,
+  2 respectively) run from the command line, not just called as functions.
+- `python3 reportkit_viz.py demo --out-dir ...` runs end-to-end and
+  produces a `risk_reward.{pdf,png}` pair alongside the existing demo
+  figures.
+- `reportkit_doctor.py`, `reportkit context --json` (`class_version`
+  correctly reads `1.8.0`), and `scripts/acceptance_check.sh`'s no-TeX
+  warn-and-exit-0 path all still run cleanly with the new import added to
+  `reportkit_viz.py`.
+- **Not performed, and cannot be from this environment:** confirming
+  `sans_candidates = ("Google Sans", ...)` actually resolves to Google Sans
+  on a system that has it installed (this sandbox has none of Google
+  Sans/Inter/Noto Sans/Arial, so every theme's font resolution falls back
+  to `DejaVu Sans` here — the fallback *mechanism* is exercised and correct,
+  but not the specific font); and anything that needs an actual printed or
+  rendered LaTeX page to judge (whether the institutional theme's chart
+  `base_font_size` — left at the default theme's 9.0, deliberately not
+  re-tuned — reads right alongside 10.7pt LaTeX body text; whether
+  `risk_reward_chart`'s proportions suit a real `exhibit`-embedded width).
+  Both are Step 5 fixture-and-eyeball work.
+
 ## Remaining sequence
 
-Steps 4–5 are not started. Per spec §27:
+Step 5 is not started. Per spec §27:
 
-4. **Visualization integration** — `reportkit.themes` package (OQ8),
-   `FIGURE_SIZES`/aspect-ratio policy (OQ3/OQ4), Google Sans in Matplotlib,
-   `check-theme`'s per-theme Python palette (closes the honest failure
-   pinned by `test_check_theme_institutional_honestly_fails_until_step4`),
-   and the risk/reward chart this step's `\bullcase`/`\basecase`/`\bearcase`
-   and `researchmain`/`researchsidebar` composition are waiting to embed.
 5. **Fixtures + QA + skill guidance** — the four-page equity-research
    example (needs OQ6 resolved first), visual regression fixtures, `SKILL.md`
    updates (including the front-page-minipage-adjacency and
-   `exhibitgrid` column-count caveats this step's `.sty` comments carry but
-   `SKILL.md` doesn't yet), and a lualatex-based acceptance fixture for the
-   institutional theme and equity-research publication type (the current
+   `exhibitgrid` column-count caveats Step 3's `.sty` comments carry but
+   `SKILL.md` doesn't yet, and Step 4's `apply_theme(name)`/`risk_reward_chart`
+   usage), and a lualatex-based acceptance fixture for the institutional
+   theme and equity-research publication type (the current
    `scripts/acceptance_check.sh` is pdflatex-only and doesn't exercise
-   either).
+   either). This is also where the LaTeX side of Steps 1–3 finally gets a
+   real compile — see each of those steps' "Not performed" notes for what
+   specifically to check first.
 
-Each remaining step should get its own review-and-verify pass on a machine
-with TeX Live before the next one starts — this plan deliberately did not
-attempt more than one step per pass given that constraint, and Step 3
-carries the same unverified-by-compilation caveat Steps 1–2 did.
+Step 5 should get its own review-and-verify pass on a machine with TeX
+Live — this plan deliberately did not attempt it in the same pass as
+Step 4, and unlike Step 4, it cannot avoid the unverified-by-compilation
+caveat Steps 1–3 carried: fixtures are exactly where that finally has to be
+resolved.

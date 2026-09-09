@@ -210,26 +210,26 @@ def test_check_theme_resolves_default_theme_file() -> None:
     assert reportkit_viz.validate_palette_against_latex(path) == []
 
 
-def test_check_theme_institutional_honestly_fails_until_step4() -> None:
-    """OQ2's resolution (Step 1 plan): check-theme becomes theme-parameterized
-    immediately, but a per-theme Python palette (reportkit.themes.*) is Step 4
-    work. Until that lands, --theme institutional-research compares the
-    institutional LaTeX palette against the *default* Python palette and
-    should fail -- an honest failure, not a false pass. This test pins that
-    expectation so it fails loudly (and gets deleted) the moment Step 4 adds
-    a real institutional-research Python palette."""
+def test_check_theme_institutional_now_synchronized_step4() -> None:
+    """Supersedes test_check_theme_institutional_honestly_fails_until_step4
+    (deleted here), which pinned OQ2's pre-Step-4 honest-failure expectation
+    for exactly this call and said, in its own docstring, to delete it once
+    Step 4 added a real institutional-research Python palette. It now
+    exists (reportkit.themes.institutional_research) -- see
+    tests/test_reportkit_viz_themes.py for the fuller Step 4 coverage,
+    including the theme-parameterized check-theme path this repo's CLI
+    actually uses (get_theme(name).latex_colors, not this single-argument
+    call, which still compares against whichever theme is currently
+    applied -- see validate_palette_against_latex's own docstring)."""
     pytest.importorskip("matplotlib")
     pytest.importorskip("numpy")
     pytest.importorskip("pandas")
     import reportkit_viz  # noqa: PLC0415
+    from reportkit.themes import get_theme  # noqa: PLC0415
 
     path = reportkit_viz.theme_file_for("institutional-research", REPO)
     assert path == REPO / "latex_templates" / "themes" / "reportkit-theme-institutional-research.sty"
-    assert reportkit_viz.validate_palette_against_latex(path) != []
-    # reportkit.cls itself no longer carries the palette, so checking it
-    # directly (the pre-v1.6 default) must report every color missing.
-    old_default = REPO / "latex_templates" / "reportkit.cls"
-    assert reportkit_viz.validate_palette_against_latex(old_default) != []
+    assert reportkit_viz.validate_palette_against_latex(path, get_theme("institutional-research").latex_colors) == []
 
 
 # -----------------------------------------------------------------------------

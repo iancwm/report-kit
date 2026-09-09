@@ -59,10 +59,15 @@ Migrating an existing content branch out of this repo is covered in
 ## 2. python_scripts/
 - `reportkit` (from the repository root) — stdlib CLI facade for doctor,
   context, check, build, diagnose, inspect, analyse-history, and package; its importable
-  implementation lives under `python_scripts/reportkit/`.
-- `reportkit_viz.py` — Matplotlib analytical chart theme (palette synced with
-  `reportkit.cls`, including treemap, waterfall, tornado, bubble-matrix, and
-  dated timeline figures alongside standard analytical charts).
+  implementation lives under `python_scripts/reportkit/`, including
+  `reportkit/themes/` — per-theme Python tokens (`default`,
+  `institutional-research`) that `reportkit_viz.py` resolves by name.
+- `reportkit_viz.py` — Matplotlib analytical chart theme, switchable at
+  runtime via `apply_theme(name)` (palette/geometry/fonts synced with the
+  matching `latex_templates/themes/*.sty` file; `check-theme --theme <name>`
+  verifies the sync), including treemap, waterfall, tornado, bubble-matrix,
+  risk/reward, and dated timeline figures alongside standard analytical
+  charts.
 - `reportkit_doctor.py` — environment check (FULL BUILD / SOURCE BUILD detection).
 - `publication_config.py` — compatibility import for the nested or legacy
   consumer `publication.yaml` loader;

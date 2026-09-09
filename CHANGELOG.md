@@ -7,6 +7,19 @@ tags on this repository, not a published package registry.
 ## [Unreleased]
 
 ### Added
+- Theme-aware visualization layer: `reportkit_viz.apply_theme(name)` now
+  actually switches theme at runtime (colors, `TEXT_WIDTH_IN`,
+  `FIGURE_SIZES`, fonts, mathtext) via a new `reportkit.themes` Python
+  package (`default`/`institutional-research`, mirroring the LaTeX theme
+  names); `check-theme --theme institutional-research` is now genuinely
+  synchronized instead of honestly failing against the wrong palette; new
+  `risk_reward_chart()` for the bear/base/bull exhibit
+  (`reportkit-equity-research.sty`'s `\bullcase`/`\basecase`/`\bearcase`
+  expect its output). `FIGURE_SIZES` gains `dominant` (alias of `wide`,
+  which stays) and `half` (sized for a half-width exhibit pane) for both
+  themes. Fourth step of the institutional-research theme + equity-research
+  publication-type work; see
+  `docs/superpowers/plans/2026-09-09-reportkit-institutional-theme-implementation-plan.md`.
 - Equity-research publication type (v1.8.0):
   `publication-type=equity-research`
   (`latex_templates/publication_types/reportkit-equity-research.sty`) adds

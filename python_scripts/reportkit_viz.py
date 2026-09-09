@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import argparse
 import re
+import sys
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
@@ -38,71 +39,29 @@ from matplotlib.ticker import FuncFormatter, MaxNLocator
 import numpy as np
 import pandas as pd
 
+# reportkit_viz.py sits outside the `reportkit` package
+# (python_scripts/reportkit_viz.py, next to python_scripts/reportkit/), so
+# this import only resolves once python_scripts/ is on sys.path -- which is
+# already required to import reportkit_viz itself, so nothing new is asked
+# of callers. See reportkit/themes/__init__.py's module docstring for why
+# the dependency runs this direction and not the reverse (open question 8).
+from reportkit.themes import get_theme
+
 __version__ = "1.0.0"
 
 # -----------------------------------------------------------------------------
 # ReportKit color system
 # -----------------------------------------------------------------------------
-INK = "#24272D"
-MUTED = "#687386"
-HAIRLINE = "#D9DEE5"
-PRIMARY = "#2C5E78"       # LinkBlue / Principle
-DECISION = "#68558A"
-RESEARCH = "#2B7074"
-TIP = "#3F6D54"
-RED_FLAG = "#A14B45"
-ASSUMPTION = "#8A6A24"
-EVIDENCE = "#4B6472"
-LIMITATION = "#6E6A67"
-METRIC = "#315E86"
-DELIVERABLE = "#2C6E49"  # v1.2 addition, paired with \deliverablenote
-SURFACE = "#F7F8FA"
-WHITE = "#FFFFFF"
-
-# Analytical colors use the same visual family but are not semantic callout
-# labels.  Cool categorical colors avoid accidental good/bad encoding.
-DATA_COLORS = (
-    PRIMARY,
-    RESEARCH,
-    DECISION,
-    EVIDENCE,
-    "#728192",
-    "#7B6F88",
-)
-BENCHMARK = "#8B949E"
-DATA_WARM = "#8A6658"      # sign / diverging endpoint; not "bad"
-DATA_POSITIVE = TIP        # use only when positive direction is meaningful
-DATA_NEGATIVE = RED_FLAG   # use only when negative direction is meaningful
-
-
-LATEX_THEME_COLORS = {
-    "Ink": INK,
-    "Muted": MUTED,
-    "Hairline": HAIRLINE,
-    "LinkBlue": PRIMARY,
-    "Principle": PRIMARY,
-    "Decision": DECISION,
-    "Research": RESEARCH,
-    "Tip": TIP,
-    "RedFlag": RED_FLAG,
-    "Assumption": ASSUMPTION,
-    "Evidence": EVIDENCE,
-    "Limitation": LIMITATION,
-    "MetricAccent": METRIC,
-    "Deliverable": DELIVERABLE,
-}
-
+# Every name below is theme-owned (reportkit.themes.*) and reassigned by
+# apply_theme(), not a fixed constant -- initialized here from the default
+# theme purely so importing reportkit_viz without calling apply_theme()
+# first still has sane values (matching this module's pre-Step-4 behavior,
+# where these actually were fixed constants). See apply_theme()'s docstring
+# for why reassigning module globals, rather than threading a theme object
+# through every chart function, is how theme-switching reaches the ~20
+# chart functions below that read these as plain names.
 LINE_STYLES = ("-", "--", "-.", ":", (0, (5, 1.5)), (0, (3, 1, 1, 1)))
 MARKERS = (None, None, "o", "s", "D", "^")
-
-# A4 ReportKit text width: 210mm - 2*27mm = 156mm.
-TEXT_WIDTH_IN = 156 / 25.4
-FIGURE_SIZES = {
-    "full": (TEXT_WIDTH_IN, 3.55),
-    "wide": (TEXT_WIDTH_IN, 3.05),
-    "compact": (TEXT_WIDTH_IN, 2.55),
-    "square": (4.85, 4.35),
-}
 
 
 def _available_font(candidates: Sequence[str], fallback: str = "DejaVu Sans") -> str:
@@ -116,75 +75,137 @@ def _available_font(candidates: Sequence[str], fallback: str = "DejaVu Sans") ->
     return fallback
 
 
-SANS_FONT = _available_font(
-    ["Libertinus Sans", "Linux Biolinum O", "Linux Biolinum", "Arial", "DejaVu Sans"]
-)
-SERIF_FONT = _available_font(
-    ["Libertinus Serif", "Linux Libertine O", "Linux Libertine", "DejaVu Serif"]
-)
-MONO_FONT = _available_font(
-    ["Libertinus Mono", "Linux Libertine Mono O", "DejaVu Sans Mono"]
-)
+def apply_theme(theme: str = "default") -> None:
+    """Apply a ReportKit Matplotlib theme globally, by name.
 
+    This is the Step 4 (visualization integration) entry point spec §13
+    describes as `rkv.apply_theme("institutional-research")`. Resolving
+    `theme` to its `reportkit.themes.Theme` token set and pushing every
+    field into `matplotlib.rcParams` is only half the job: this module's
+    ~20 chart functions (bar_chart, heatmap, waterfall_chart, ...) were
+    written against plain module-level globals (INK, MUTED, FIGURE_SIZES,
+    ...) rather than an explicit theme parameter, because that's how the
+    module looked before this theme architecture existed. Reassigning those
+    same globals here -- rather than rewriting every chart function to
+    accept and thread through a Theme argument -- is what makes every
+    existing function theme-aware for free: Python looks up a bare name in
+    the enclosing module's namespace at *call* time, not at the time the
+    function was defined, so a chart drawn after `apply_theme("institutional-
+    research")` automatically uses that theme's INK/MUTED/... without any
+    other function in this file changing.
 
-def apply_theme() -> None:
-    """Apply the ReportKit Matplotlib theme globally.
-
-    This function is idempotent.  It is intentionally conservative: white
-    canvas, restrained grid, open top/right spines, embedded TrueType text in
-    PDF, and no dependency on seaborn or external style sheets.
+    Idempotent and safe to call repeatedly, including to switch themes mid-
+    session -- every figure created after a given apply_theme() call uses
+    that call's palette/geometry/fonts. Called once at import time with no
+    argument (i.e. theme="default"), matching this module's behavior before
+    this function took a `theme` argument at all.
     """
-    mpl.rcParams.update(
-        {
-            "figure.facecolor": WHITE,
-            "figure.edgecolor": WHITE,
-            "figure.dpi": 130,
-            "savefig.facecolor": WHITE,
-            "savefig.edgecolor": WHITE,
-            "savefig.dpi": 320,
-            "savefig.bbox": "tight",
-            "savefig.pad_inches": 0.04,
-            "font.family": "sans-serif",
-            "font.sans-serif": [SANS_FONT, "DejaVu Sans"],
-            "font.serif": [SERIF_FONT, "DejaVu Serif"],
-            "font.monospace": [MONO_FONT, "DejaVu Sans Mono"],
-            "font.size": 9.0,
-            "text.color": INK,
-            "axes.facecolor": WHITE,
-            "axes.edgecolor": HAIRLINE,
-            "axes.labelcolor": INK,
-            "axes.labelsize": 9.0,
-            "axes.titlesize": 10.0,
-            "axes.titleweight": "semibold",
-            "axes.titlelocation": "left",
-            "axes.linewidth": 0.7,
-            "axes.axisbelow": True,
-            "axes.grid": False,
-            "grid.color": HAIRLINE,
-            "grid.linewidth": 0.62,
-            "grid.alpha": 0.72,
-            "xtick.color": MUTED,
-            "ytick.color": MUTED,
-            "xtick.labelsize": 8.1,
-            "ytick.labelsize": 8.1,
-            "xtick.major.size": 3.0,
-            "ytick.major.size": 3.0,
-            "xtick.major.width": 0.6,
-            "ytick.major.width": 0.6,
-            "legend.frameon": False,
-            "legend.fontsize": 8.1,
-            "legend.labelcolor": INK,
-            "lines.linewidth": 1.7,
-            "lines.markersize": 4.2,
-            "patch.edgecolor": WHITE,
-            "patch.linewidth": 0.5,
-            "pdf.fonttype": 42,
-            "ps.fonttype": 42,
-            "svg.fonttype": "none",
-            "mathtext.fontset": "stix",
-            "axes.unicode_minus": True,
-        }
-    )
+    global INK, MUTED, HAIRLINE, PRIMARY, DECISION, RESEARCH, TIP, RED_FLAG
+    global ASSUMPTION, EVIDENCE, LIMITATION, METRIC, DELIVERABLE, SURFACE, WHITE
+    global DATA_COLORS, BENCHMARK, DATA_WARM, DATA_POSITIVE, DATA_NEGATIVE
+    global LATEX_THEME_COLORS, TEXT_WIDTH_IN, FIGURE_SIZES
+    global SANS_FONT, SERIF_FONT, MONO_FONT
+
+    resolved = get_theme(theme)
+
+    INK = resolved.latex_colors["Ink"]
+    MUTED = resolved.latex_colors["Muted"]
+    HAIRLINE = resolved.latex_colors["Hairline"]
+    PRIMARY = resolved.latex_colors["LinkBlue"]  # LinkBlue / Principle
+    DECISION = resolved.latex_colors["Decision"]
+    RESEARCH = resolved.latex_colors["Research"]
+    TIP = resolved.latex_colors["Tip"]
+    RED_FLAG = resolved.latex_colors["RedFlag"]
+    ASSUMPTION = resolved.latex_colors["Assumption"]
+    EVIDENCE = resolved.latex_colors["Evidence"]
+    LIMITATION = resolved.latex_colors["Limitation"]
+    METRIC = resolved.latex_colors["MetricAccent"]
+    DELIVERABLE = resolved.latex_colors["Deliverable"]
+    SURFACE = resolved.surface
+    WHITE = resolved.white
+
+    # Analytical colors use the same visual family but are not semantic
+    # callout labels. Cool categorical colors avoid accidental good/bad
+    # encoding -- see each theme module for its own data_colors rationale.
+    DATA_COLORS = resolved.data_colors
+    BENCHMARK = resolved.benchmark
+    DATA_WARM = resolved.data_warm  # sign / diverging endpoint; not "bad"
+    DATA_POSITIVE = resolved.data_positive  # use only when positive direction is meaningful
+    DATA_NEGATIVE = resolved.data_negative  # use only when negative direction is meaningful
+
+    # A plain dict copy, not a reference to resolved.latex_colors: callers
+    # (check-theme's CLI, tests) sometimes rebind LATEX_THEME_COLORS-shaped
+    # values; a copy keeps that from ever mutating the Theme object itself.
+    LATEX_THEME_COLORS = dict(resolved.latex_colors)
+    TEXT_WIDTH_IN = resolved.text_width_in
+    FIGURE_SIZES = dict(resolved.figure_sizes)
+
+    sans_font = _available_font(resolved.sans_candidates)
+    serif_font = _available_font(resolved.serif_candidates)
+    mono_font = _available_font(resolved.mono_candidates)
+    SANS_FONT, SERIF_FONT, MONO_FONT = sans_font, serif_font, mono_font
+
+    base = resolved.base_font_size
+    rcparams: dict[str, Any] = {
+        "figure.facecolor": WHITE,
+        "figure.edgecolor": WHITE,
+        "figure.dpi": 130,
+        "savefig.facecolor": WHITE,
+        "savefig.edgecolor": WHITE,
+        "savefig.dpi": 320,
+        "savefig.bbox": "tight",
+        "savefig.pad_inches": 0.04,
+        "font.family": "sans-serif",
+        "font.sans-serif": [sans_font, "DejaVu Sans"],
+        "font.serif": [serif_font, "DejaVu Serif"],
+        "font.monospace": [mono_font, "DejaVu Sans Mono"],
+        "font.size": base,
+        "text.color": INK,
+        "axes.facecolor": WHITE,
+        "axes.edgecolor": HAIRLINE,
+        "axes.labelcolor": INK,
+        "axes.labelsize": base,
+        "axes.titlesize": base + 1.0,
+        "axes.titleweight": "semibold",
+        "axes.titlelocation": "left",
+        "axes.linewidth": 0.7,
+        "axes.axisbelow": True,
+        "axes.grid": False,
+        "grid.color": HAIRLINE,
+        "grid.linewidth": 0.62,
+        "grid.alpha": 0.72,
+        "xtick.color": MUTED,
+        "ytick.color": MUTED,
+        "xtick.labelsize": base - 0.9,
+        "ytick.labelsize": base - 0.9,
+        "xtick.major.size": 3.0,
+        "ytick.major.size": 3.0,
+        "xtick.major.width": 0.6,
+        "ytick.major.width": 0.6,
+        "legend.frameon": False,
+        "legend.fontsize": base - 0.9,
+        "legend.labelcolor": INK,
+        "lines.linewidth": 1.7,
+        "lines.markersize": 4.2,
+        "patch.edgecolor": WHITE,
+        "patch.linewidth": 0.5,
+        "pdf.fonttype": 42,
+        "ps.fonttype": 42,
+        "svg.fonttype": "none",
+        "mathtext.fontset": resolved.mathtext_fontset,
+        "axes.unicode_minus": True,
+    }
+    if resolved.mathtext_fontset == "custom":
+        # Spec §14: point every mathtext style at the same resolved sans
+        # font used everywhere else, so a numeric tick label rendered
+        # through mathtext (scientific notation, some unicode-minus paths)
+        # can't pick up a serif glyph the way STIX -- the default theme's
+        # mathtext.fontset, left unchanged above -- is documented to.  This
+        # is specifically the bug spec §14 cites as already observed:
+        # numeric y-ticks rendering serif while categorical x-labels stayed
+        # sans.
+        rcparams.update({"mathtext.rm": sans_font, "mathtext.it": sans_font, "mathtext.bf": sans_font})
+    mpl.rcParams.update(rcparams)
 
 
 apply_theme()
@@ -638,6 +659,77 @@ def drawdown_chart(
     ax.axhline(0, color=HAIRLINE, linewidth=0.9)
     ax.set_ylabel(ylabel)
     _apply_formatter(ax.yaxis, y_formatter)
+    _title(ax, title)
+    return fig, ax
+
+
+def risk_reward_chart(
+    price_history: pd.Series,
+    *,
+    bear: float,
+    base: float,
+    bull: float,
+    current: float | None = None,
+    bear_label: str = "Bear",
+    base_label: str = "Base",
+    bull_label: str = "Bull",
+    value_formatter: FuncFormatter | str | None = None,
+    ylabel: str = "Share price ($)",
+    xlabel: str | None = None,
+    size: str | tuple[float, float] = "full",
+    title: str | None = None,
+) -> tuple[mpl.figure.Figure, mpl.axes.Axes]:
+    """Plot a price history with bear/base/bull reference levels.
+
+    This is the risk/reward primitive spec §18 asks for, generated "through
+    reportkit_viz.py" as that section itself prefers, rather than as a
+    LaTeX-side `\\riskrewardchart` macro drawn in raw TikZ/pgfplots --
+    `reportkit-equity-research.sty`'s own risk/reward primitives
+    (`\\bullcase`/`\\basecase`/`\\bearcase`) intentionally stop at the page's
+    surrounding text and expect the chart itself, via this function, to
+    arrive as an ordinary `\\includegraphics` inside an `exhibit`. Matches
+    Appendix A's risk/reward exhibit: a historical price line with three
+    horizontal dashed levels, each labeled with its case name and value at
+    the right edge; `current`, if given, marks the series' most recent
+    point (useful when it differs slightly from `price_history`'s own last
+    value, e.g. an intraday quote newer than the daily series).
+
+    Colors reuse each theme's existing negative/warm/accent roles
+    (DATA_NEGATIVE/DATA_WARM/METRIC) rather than adding bear/base/bull-
+    specific theme fields -- see
+    `reportkit.themes.institutional_research`'s module docstring for why
+    those three already line up with Appendix A's actual bear=red/
+    bull=gold/base=teal convention for that theme.
+    """
+    s = pd.Series(price_history).dropna()
+    fig, ax = new_figure(size)
+    ax.plot(s.index, s.values, color=PRIMARY, linewidth=1.5, zorder=3)
+    if current is not None:
+        ax.scatter([s.index[-1]], [current], color=PRIMARY, s=26, zorder=4)
+
+    for label, value, color in (
+        (bear_label, bear, DATA_NEGATIVE),
+        (base_label, base, METRIC),
+        (bull_label, bull, DATA_WARM),
+    ):
+        ax.axhline(value, color=color, linewidth=1.1, linestyle="--", zorder=2)
+        ax.annotate(
+            f"{label} {_format_chart_value(value, value_formatter)}",
+            xy=(s.index[-1], value),
+            xytext=(6, 0),
+            textcoords="offset points",
+            fontsize=7.6,
+            color=color,
+            va="center",
+            ha="left",
+        )
+
+    style_axes(ax, grid="y")
+    _format_datetime_axis(ax, s.index)
+    if xlabel:
+        ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+    _apply_formatter(ax.yaxis, value_formatter)
     _title(ax, title)
     return fig, ax
 
@@ -1252,9 +1344,23 @@ def annotate_point(
     text: str,
     *,
     xytext: tuple[float, float] = (8, 8),
-    accent: str = PRIMARY,
+    accent: str | None = None,
 ) -> None:
-    """Add one restrained evidence annotation; avoid annotating every point."""
+    """Add one restrained evidence annotation; avoid annotating every point.
+
+    ``accent`` defaults to the *currently applied* theme's PRIMARY color,
+    looked up inside the function body rather than as `accent: str =
+    PRIMARY` in the signature -- a keyword default is bound once, at
+    function-definition (i.e. module-import) time, so binding it directly
+    to the PRIMARY global would freeze every call at whichever theme was
+    active when reportkit_viz.py was first imported, never following a
+    later apply_theme() switch. Found while making apply_theme() genuinely
+    support runtime theme-switching (Step 4 of the institutional-theme
+    spec); fixed here rather than left as a latent trap now that switching
+    themes mid-session is a real, documented capability.
+    """
+    if accent is None:
+        accent = PRIMARY
     ax.annotate(
         text,
         xy=(x, y),
@@ -1275,10 +1381,17 @@ def shade_period(
     end,
     *,
     label: str | None = None,
-    color: str = EVIDENCE,
+    color: str | None = None,
     alpha: float = 0.08,
 ) -> None:
-    """Shade a known period such as a regime or event window."""
+    """Shade a known period such as a regime or event window.
+
+    ``color`` defaults to the currently applied theme's EVIDENCE color,
+    resolved at call time -- see annotate_point()'s docstring for why that
+    can't be a plain `color: str = EVIDENCE` keyword default.
+    """
+    if color is None:
+        color = EVIDENCE
     ax.axvspan(start, end, color=color, alpha=alpha, linewidth=0, label=label)
 
 
@@ -1297,15 +1410,21 @@ def theme_file_for(theme: str, repo_root: str | Path | None = None) -> Path:
     return root / "latex_templates" / "themes" / f"reportkit-theme-{theme}.sty"
 
 
-def validate_palette_against_latex(class_path: str | Path) -> list[str]:
+def validate_palette_against_latex(class_path: str | Path, colors: Mapping[str, str] | None = None) -> list[str]:
     """Return human-readable mismatches between Python and a ReportKit theme's LaTeX colors.
 
-    Currently validates against the single, shared LATEX_THEME_COLORS dict --
-    the default theme's Python-side palette. A per-theme Python token module
-    (reportkit.themes.*) arrives with the visualization-integration step of
-    the institutional-theme work; until then, checking a non-default theme
-    here is expected to report mismatches rather than false-pass.
+    `colors` defaults to LATEX_THEME_COLORS -- the currently-applied theme's
+    Python-side palette (default theme's, unless apply_theme() switched it)
+    -- for backward compatibility with callers that don't specify one.  Pass
+    `reportkit.themes.get_theme(name).latex_colors` explicitly to check a
+    *specific* theme regardless of which one is currently applied; this
+    module's own `check-theme` CLI command does exactly that (open question
+    2's resolution: the Python-side check is theme-parameterized, closing
+    the honest-failure gap the institutional theme had here from Step 1
+    through Step 3, before reportkit.themes.institutional_research existed).
     """
+    if colors is None:
+        colors = LATEX_THEME_COLORS
     class_path = Path(class_path)
     text = class_path.read_text(encoding="utf-8")
     found = {
@@ -1313,7 +1432,7 @@ def validate_palette_against_latex(class_path: str | Path) -> list[str]:
         for name, value in re.findall(r"\\definecolor\{([^}]+)\}\{HTML\}\{([0-9A-Fa-f]{6})\}", text)
     }
     mismatches: list[str] = []
-    for name, expected in LATEX_THEME_COLORS.items():
+    for name, expected in colors.items():
         actual = found.get(name)
         if actual is None:
             mismatches.append(f"missing LaTeX color: {name}")
@@ -1346,6 +1465,13 @@ def build_demo(out_dir: str | Path) -> list[Path]:
     dd = wealth / wealth.cummax() - 1
     fig, _ = drawdown_chart(dd, y_formatter=percent_formatter(0))
     outputs += save_figure(fig, out_dir / "drawdown")
+
+    price = 182.50 * wealth / wealth.iloc[-1]
+    fig, _ = risk_reward_chart(
+        price, bear=135, base=245, bull=310, current=182.50,
+        value_formatter=currency_formatter(),
+    )
+    outputs += save_figure(fig, out_dir / "risk_reward")
 
     exposures = pd.Series(
         {"Value": 0.34, "Quality": 0.18, "Momentum": -0.12, "Size": 0.07, "Low beta": -0.21}
@@ -1447,7 +1573,15 @@ def _cli() -> None:
             print(path)
     elif args.command == "check-theme":
         class_path = Path(args.class_path) if args.class_path else theme_file_for(args.theme)
-        mismatches = validate_palette_against_latex(class_path)
+        try:
+            theme_colors = get_theme(args.theme).latex_colors
+        except ValueError as exc:
+            # No reportkit.themes module for this name (open question 2:
+            # "honest failure, not a false pass" -- comparing against the
+            # wrong theme's Python palette would be exactly that).
+            print(f"check-theme: {exc}", file=sys.stderr)
+            raise SystemExit(2)
+        mismatches = validate_palette_against_latex(class_path, theme_colors)
         if mismatches:
             for item in mismatches:
                 print(item)

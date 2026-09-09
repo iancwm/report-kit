@@ -20,7 +20,7 @@ for why.
 | [2026-09-07-documentation-and-status-tracking-cleanup-design.md](docs/superpowers/specs/2026-09-07-documentation-and-status-tracking-cleanup-design.md) | Approved | Process |
 | [2026-09-07-documentation-and-status-tracking-cleanup.md](docs/superpowers/plans/2026-09-07-documentation-and-status-tracking-cleanup.md) | Done — merged via PR #7 (`965443b`) | Process |
 | [2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md](docs/superpowers/specs/2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md) | Draft; open questions resolved in the plan below | P2 |
-| [2026-09-09-reportkit-institutional-theme-implementation-plan.md](docs/superpowers/plans/2026-09-09-reportkit-institutional-theme-implementation-plan.md) | Steps 1–3 of 5 implemented (theme infrastructure, institutional theme, equity publication profile); Steps 4–5 not started | P2 |
+| [2026-09-09-reportkit-institutional-theme-implementation-plan.md](docs/superpowers/plans/2026-09-09-reportkit-institutional-theme-implementation-plan.md) | Steps 1–4 of 5 implemented (theme infrastructure, institutional theme, equity publication profile, visualization integration); Step 5 not started | P2 |
 
 ## Open work
 
@@ -60,17 +60,27 @@ for why.
   rating strip, sidebar blocks, what's-changed, the exhibit system
   (`exhibit`/`fullwidthexhibit`/`exhibitgrid`/`exhibitpair`), table grammar,
   a dense financial-model-page mode, and bull/base/bear risk-reward
-  primitives (the chart itself is deferred to Step 4's `reportkit_viz.py`
-  integration, per the spec's own preference). **All three steps remain
+  primitives. **Step 4 (visualization integration) implemented
+  2026-09-09**: new `python_scripts/reportkit/themes/` package
+  (`default.py`/`institutional_research.py`); `reportkit_viz.apply_theme
+  (name)` now genuinely switches theme (colors, `TEXT_WIDTH_IN`,
+  `FIGURE_SIZES`, fonts, mathtext) at runtime; `check-theme` is now
+  correctly theme-aware end-to-end (`--theme institutional-research`
+  passes); new `risk_reward_chart()`; fixed a latent theme-switching bug in
+  `annotate_point`/`shade_period`. **Unlike Steps 1–3, Step 4's Python code
+  was actually executed and tested in this session** (matplotlib/numpy/
+  pandas are installed here) — not just statically checked; see the plan's
+  Step 4 section for what was run. **Steps 1–3 (the LaTeX-side work) remain
   unverified by compilation** — no session so far has had a TeX Live
   install. Run `bash scripts/acceptance_check.sh --require-tex`, diff
   `latex_templates/examples/career_guide_en/report.tex`'s compiled output
   against its pre-Step-1 PDF, and compile a minimal
   `\documentclass[theme=institutional-research,
   publication-type=equity-research]{reportkit}` smoke document exercising
-  every Step 3 primitive with `lualatex` before trusting any of the three
-  on a machine with TeX. Steps 4–5 (visualization integration and
-  fixtures/QA) are not started. See
+  every Step 3 primitive with `lualatex` before trusting any of them on a
+  machine with TeX. Step 5 (fixtures/QA/skill guidance -- including the
+  four-page equity-research example, which is also where Steps 1–3 finally
+  get a real compile) is not started. See
   [the implementation plan](docs/superpowers/plans/2026-09-09-reportkit-institutional-theme-implementation-plan.md).
 
 ### P3
@@ -95,6 +105,13 @@ for why.
 
 ## History
 
+- 2026-09-09: institutional-theme spec's Step 4 (visualization integration)
+  implemented on `claude/institutional-template-spec-m6imf7` -- a new
+  `reportkit.themes` Python package, a genuinely theme-switching
+  `reportkit_viz.apply_theme(name)`, a theme-aware `check-theme` CLI, and a
+  new `risk_reward_chart()`. Actually executed and tested in this session
+  (matplotlib/numpy/pandas installed) -- unlike Steps 1-3, not blind. See
+  the plan's own Step 4 section for what was run.
 - 2026-09-09: institutional-theme spec's Step 3 (equity publication profile)
   implemented on `claude/institutional-template-spec-m6imf7` -- front page,
   rating strip, sidebar, what's-changed, exhibit system, table grammar,
