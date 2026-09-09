@@ -458,6 +458,7 @@ Subsection           12 pt / 15
 Body                 10.7 pt / 14.6
 Exhibit headline      9.5 pt / 12
 Sidebar               7.6 pt / 9.5
+Sidebar subheading    6.6-6.8 pt / 8-8.2
 Table body            8.0 pt / 10
 Source / footnote     7.0 pt / 8.5
 Disclosure            6.5–7 pt
@@ -588,6 +589,16 @@ Styling:
 - accent only for important state.
 
 Sidebar should visually recede.
+
+## Sidebar compositions
+
+Sidebar data showing relative proportions (a two-way segment split, a
+geographic or channel mix, a business-line breakdown) should render as a
+small themed pie or donut chart, not as five `\sidebarrow` text pairs that
+require mental arithmetic to parse the composition visually. The chart
+function will be available in Step 4 (reportkit_viz.py's donut_chart);
+`figure_sizes` will include a `sidebar` preset sized for the ~28%-wide
+sidebar column (Task 5).
 
 ---
 
@@ -1089,6 +1100,13 @@ Add rules such as:
 
 > Do not force a visual onto every section. A page may contain deliberate
 > whitespace.
+
+> A sidebar composition of 2-4 values that are parts of a whole (a segment
+> split, a geographic mix, a channel mix, a revenue composition) is a chart,
+> not a `\sidebarrow` list — render it as a small pie or donut chart sized
+> for the sidebar column, with underlying values available in the source or
+> caption. Reserve `\sidebarrow` for point metrics and estimates that are
+> not proportions of a common whole.
 
 > Avoid dashboard layouts composed of repeated equally weighted cards.
 
