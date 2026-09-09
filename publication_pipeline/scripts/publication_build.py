@@ -32,6 +32,20 @@ LICENSE_FILE = REPO_ROOT / "metadata" / "licenses.yml"
 DEFAULT_SOURCE_ROOT = PIPELINE_ROOT / "example_publication"
 
 
+def template_files() -> list[Path]:
+    """Every .cls/.sty ReportKit ships, flattened for TEXINPUTS by filename.
+
+    Themes live in latex_templates/themes/ (see reportkit.cls's theme
+    architecture), one directory deeper than the rest of latex_templates/, so
+    a plain top-level glob misses them. Flattening by filename here -- not
+    preserving the themes/ subdirectory -- matches how reportkit.cls finds
+    them: `\\RequirePackage{reportkit-theme-<name>}` resolves by filename on
+    TEXINPUTS, not by path.
+    """
+    templates = REPO_ROOT / "latex_templates"
+    return sorted(templates.glob("*.cls")) + sorted(templates.glob("*.sty")) + sorted(templates.glob("themes/*.sty"))
+
+
 def _load_reportkit_package() -> None:
     if "reportkit" in sys.modules:
         return
@@ -65,6 +79,7 @@ from reportkit.config import (  # noqa: E402
     resolve_document,
     resolve_identity,
     resolve_validation,
+    theme_engine_conflict,
 )
 from reportkit.manifest import unique_build_id, write_report  # noqa: E402
 
@@ -241,6 +256,12 @@ def build(args: argparse.Namespace) -> int:
     except (OSError, ValueError) as exc:
         print(f"publication config: {exc}", file=sys.stderr)
         return 2
+    document = resolve_document(config, profile)
+    engine = str(getattr(args, "engine", None) or os.environ.get("REPORTKIT_TEX_ENGINE") or document.get("engine", "pdflatex"))
+    conflict = theme_engine_conflict({**document, "engine": engine})
+    if conflict:
+        print(f"publication config: {conflict}", file=sys.stderr)
+        return 2
     entries = order_entries(source_root)
     if args.mode == "section":
         chosen = getattr(args, "section", None)
@@ -261,7 +282,7 @@ def build(args: argparse.Namespace) -> int:
     if output.exists() and args.mode != "combined":
         output = output_root / build_id
     output.mkdir(parents=True, exist_ok=True)
-    for path in list((REPO_ROOT / "latex_templates").glob("*.cls")) + list((REPO_ROOT / "latex_templates").glob("*.sty")):
+    for path in template_files():
         shutil.copy2(path, output / path.name)
     shutil.copy2(TEMPLATE, output / TEMPLATE.name)
     cover_name = None
@@ -292,9 +313,7 @@ def build(args: argparse.Namespace) -> int:
             return 2
     tex = output / TEMPLATE.name
     log = output / "publication.log"
-    document = resolve_document(config, profile)
     validation_config = resolve_validation(config, profile)
-    engine = str(getattr(args, "engine", None) or os.environ.get("REPORTKIT_TEX_ENGINE") or document.get("engine", "pdflatex"))
     figure_count = sum(len(re.findall(r"REPORTKIT-VISUAL:fig:[a-z0-9]+(?:-[a-z0-9]+)*", text)) for text in ((source_root / "manuscript" / path).read_text(encoding="utf-8") for path in manuscripts))
     table_count = len(re.findall(r"(?m)^\s*\|.*\n\s*\|?\s*:?-{3,}", manuscript_text))
     report = {
@@ -307,7 +326,7 @@ def build(args: argparse.Namespace) -> int:
         "status": "running",
         "started_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "inputs": [{"path": str(path), "sha256": sha256(source_root / "manuscript" / path)} for path in manuscripts],
-        "templates": [{"path": str(path.relative_to(REPO_ROOT)), "sha256": sha256(path)} for path in (list((REPO_ROOT / "latex_templates").glob("*.cls")) + list((REPO_ROOT / "latex_templates").glob("*.sty")) + [TEMPLATE, LICENSE_FILE])],
+        "templates": [{"path": str(path.relative_to(REPO_ROOT)), "sha256": sha256(path)} for path in (template_files() + [TEMPLATE, LICENSE_FILE])],
         "tool_versions": {"python": sys.version.split()[0], "pandoc": version_line("pandoc"), "tex": version_line(engine)},
         "commands": [], "exit_codes": [], "diagnostics": {}, "figures": figure_count, "tables": table_count, "pdf_sha256": None,
     }

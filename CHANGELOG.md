@@ -7,6 +7,16 @@ tags on this repository, not a published package registry.
 ## [Unreleased]
 
 ### Added
+- Theme architecture (v1.6.0): typography, geometry, palette, and running
+  furniture moved out of `reportkit.cls` into a selected theme file under
+  `latex_templates/themes/`. `\documentclass{reportkit}` (or
+  `theme=default`) reproduces the pre-v1.6 design unchanged. `publication.yaml`'s
+  `document` section gains `theme`, `publication_type`, and `paper`;
+  `reportkit context`/`reportkit check`/`reportkit build` all resolve and
+  validate them, refusing to build a theme against an engine that can't
+  render it. First step of the institutional-research theme + equity-research
+  publication-type work; see
+  `docs/superpowers/plans/2026-09-09-reportkit-institutional-theme-implementation-plan.md`.
 - PDF inspection now reports bookmarks, font metadata, page dimensions,
   blank pages, and near-margin content.
 - Publications can validate optional source/manuscript and link registries;

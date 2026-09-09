@@ -1285,8 +1285,27 @@ def shade_period(
 # -----------------------------------------------------------------------------
 # Theme synchronization
 # -----------------------------------------------------------------------------
+def theme_file_for(theme: str, repo_root: str | Path | None = None) -> Path:
+    """Resolve a theme name to its LaTeX file, e.g. "default" -> themes/reportkit-theme-default.sty.
+
+    Since v1.6.0, ReportKit's palette lives in a theme file under
+    latex_templates/themes/, not in reportkit.cls itself -- see
+    docs/superpowers/specs/2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md,
+    open question 2.
+    """
+    root = Path(repo_root) if repo_root is not None else Path(__file__).resolve().parents[1]
+    return root / "latex_templates" / "themes" / f"reportkit-theme-{theme}.sty"
+
+
 def validate_palette_against_latex(class_path: str | Path) -> list[str]:
-    """Return human-readable mismatches between Python and reportkit.cls colors."""
+    """Return human-readable mismatches between Python and a ReportKit theme's LaTeX colors.
+
+    Currently validates against the single, shared LATEX_THEME_COLORS dict --
+    the default theme's Python-side palette. A per-theme Python token module
+    (reportkit.themes.*) arrives with the visualization-integration step of
+    the institutional-theme work; until then, checking a non-default theme
+    here is expected to report mismatches rather than false-pass.
+    """
     class_path = Path(class_path)
     text = class_path.read_text(encoding="utf-8")
     found = {
@@ -1417,8 +1436,9 @@ def _cli() -> None:
     demo_parser = sub.add_parser("demo", help="generate deterministic visual-regression figures")
     demo_parser.add_argument("--out-dir", default="figures", help="output directory for demo figures")
 
-    check_parser = sub.add_parser("check-theme", help="verify Python colors match reportkit.cls")
-    check_parser.add_argument("--class", dest="class_path", default="reportkit.cls", help="path to reportkit.cls")
+    check_parser = sub.add_parser("check-theme", help="verify Python colors match a ReportKit theme's LaTeX palette")
+    check_parser.add_argument("--theme", default="default", help="theme name to check (resolves to latex_templates/themes/reportkit-theme-<name>.sty)")
+    check_parser.add_argument("--class", dest="class_path", default=None, help="explicit path override; takes precedence over --theme")
 
     args = parser.parse_args()
     if args.command == "demo":
@@ -1426,12 +1446,13 @@ def _cli() -> None:
         for path in paths:
             print(path)
     elif args.command == "check-theme":
-        mismatches = validate_palette_against_latex(args.class_path)
+        class_path = Path(args.class_path) if args.class_path else theme_file_for(args.theme)
+        mismatches = validate_palette_against_latex(class_path)
         if mismatches:
             for item in mismatches:
                 print(item)
             raise SystemExit(1)
-        print(f"ReportKit palette synchronized: {args.class_path}")
+        print(f"ReportKit palette synchronized: {class_path}")
 
 
 if __name__ == "__main__":

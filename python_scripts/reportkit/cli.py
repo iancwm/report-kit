@@ -14,7 +14,7 @@ from typing import Any
 
 from .analysis import analyse_history
 from .authoring import validate_authoring
-from .config import CONFIG_NAME, load_publication_config, resolve_identity
+from .config import CONFIG_NAME, load_publication_config, resolve_document, resolve_identity, theme_engine_conflict
 from .context import build_context
 from .diagnostics import inspect_log, load_allowlist, load_maps
 from .registry import COMMANDS
@@ -77,6 +77,14 @@ def _run_check(args: argparse.Namespace) -> int:
     result = module.validate_publication(root)
     authoring = validate_authoring(root)
     errors = result.errors + authoring.errors
+    config = load_publication_config(root / CONFIG_NAME)
+    document = resolve_document(config, args.profile)
+    engine_override = getattr(args, "engine", None) or os.environ.get("REPORTKIT_TEX_ENGINE")
+    if engine_override:
+        document = {**document, "engine": engine_override}
+    conflict = theme_engine_conflict(document)
+    if conflict:
+        errors.append(conflict)
     payload = {
         "passed": not errors,
         "errors": errors,

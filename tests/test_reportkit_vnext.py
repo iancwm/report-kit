@@ -5,7 +5,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "python_scripts"))
 
-from reportkit.config import load_publication_config, resolve_document, resolve_identity
+from reportkit.config import load_publication_config, resolve_document, resolve_identity, theme_engine_conflict
 from reportkit.diagnostics import inspect_log
 from reportkit.registry import check_skill_drift, generate_registry
 
@@ -72,3 +72,54 @@ def test_registry_matches_skill_inventories() -> None:
     assert len(registry["callouts"]["public"]) == 10
     assert registry["callouts"]["aliases"]["evidence"] == "evidencenote"
     assert check_skill_drift(REPO) == []
+
+
+def test_resolve_document_defaults_theme_and_publication_type() -> None:
+    document = resolve_document({})
+    assert document["theme"] == "default"
+    assert document["publication_type"] == "technical-report"
+    assert document["paper"] == "a4"
+
+
+def test_theme_engine_conflict_none_for_default_theme() -> None:
+    assert theme_engine_conflict(resolve_document({})) is None
+
+
+def test_theme_engine_conflict_flags_institutional_without_lualatex() -> None:
+    document = resolve_document({"publication": {"title": "T"}, "document": {"theme": "institutional-research"}})
+    message = theme_engine_conflict(document)
+    assert message is not None
+    assert "institutional-research" in message
+    assert "lualatex" in message
+
+
+def test_theme_engine_conflict_satisfied_with_lualatex() -> None:
+    document = resolve_document(
+        {"publication": {"title": "T"}, "document": {"theme": "institutional-research", "engine": "lualatex"}}
+    )
+    assert theme_engine_conflict(document) is None
+
+
+def test_theme_files_moved_out_of_reportkit_cls() -> None:
+    """The theme split (institutional-theme spec, Step 1) must not leave any
+    palette color behind in reportkit.cls -- it should live only in the
+    selected theme file."""
+    cls_text = (REPO / "latex_templates" / "reportkit.cls").read_text(encoding="utf-8")
+    assert "\\definecolor" not in cls_text
+    theme_text = (REPO / "latex_templates" / "themes" / "reportkit-theme-default.sty").read_text(encoding="utf-8")
+    assert "\\definecolor{Ink}" in theme_text
+
+
+def test_check_theme_resolves_default_theme_file() -> None:
+    pytest.importorskip("matplotlib")
+    pytest.importorskip("numpy")
+    pytest.importorskip("pandas")
+    import reportkit_viz  # noqa: PLC0415
+
+    path = reportkit_viz.theme_file_for("default", REPO)
+    assert path == REPO / "latex_templates" / "themes" / "reportkit-theme-default.sty"
+    assert reportkit_viz.validate_palette_against_latex(path) == []
+    # reportkit.cls itself no longer carries the palette, so checking it
+    # directly (the pre-v1.6 default) must report every color missing.
+    old_default = REPO / "latex_templates" / "reportkit.cls"
+    assert reportkit_viz.validate_palette_against_latex(old_default) != []

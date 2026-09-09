@@ -29,7 +29,9 @@ def compile_doc(latex_engine: str, tmp_path: Path):
         # LuaTeX exits before writing a log when it inherits an unavailable
         # locale such as en_US.UTF-8 from a GUI Git client. Keep the renderer
         # environment deterministic for tests.
-        env = dict(os.environ, LC_ALL="C", TEXINPUTS=f"{TEMPLATES}:")
+        # Themes live one directory deeper (latex_templates/themes/); include
+        # it explicitly so \documentclass{reportkit} can find its theme file.
+        env = dict(os.environ, LC_ALL="C", TEXINPUTS=f"{TEMPLATES}:{TEMPLATES / 'themes'}:")
         proc = subprocess.run(
             [latex_engine, "-file-line-error", "-interaction=nonstopmode", "-halt-on-error", tex.name],
             cwd=tmp_path,
