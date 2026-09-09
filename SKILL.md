@@ -294,6 +294,10 @@ rkv.save_figure(fig, "figures/performance")
 
 `save_figure` produces a vector PDF for LaTeX and a PNG for QA. Keep the figure-generation script and input/provenance alongside the report. Prefer a bar chart or treemap for more than four categories; pie charts are not a ReportKit standard. Keep analytical titles in the LaTeX caption unless the figure must stand alone.
 
+## Institutional-research theme (equity research)
+
+For an equity-research, investment-strategy, or other institutional analytical publication, use `\documentclass[theme=institutional-research,publication-type=equity-research]{reportkit}` instead of the default theme. It is exhibit-led (prefer an analytical exhibit over a decorative callout when quantitative evidence exists; exhibit titles state the finding, not just the metric) and requires `lualatex`, not `pdflatex`, since it loads Google Sans via `fontspec`. See [references/institutional-research-theme.md](references/institutional-research-theme.md) for the full primitive reference (`researchfrontpage`, `ratingstrip`, `whatschanged`, `exhibit`, `exhibitpair`/`exhibitgrid`, `financialtable`, `financialmodelpage`, `bullcase`/`basecase`/`bearcase`), the `researchmain`/`researchsidebar` minipage-adjacency requirement, the `exhibitgrid` column-count limit, and `rkv.apply_theme("institutional-research")`/`rkv.risk_reward_chart()` usage. [latex_templates/examples/equity-research/](latex_templates/examples/equity-research/) is a complete worked example.
+
 ## Build and inspect
 
 On a `FULL BUILD`, use the CLI build so the standard compilation, diagnostic
@@ -312,4 +316,4 @@ When modifying ReportKit itself, run its regression suite:
 bash scripts/acceptance_check.sh
 ```
 
-The suite compiles both the backwards-compatibility and visual-grammar fixtures and checks Python imports. For a known failure or a surprising diagnostic result, consult [references/known-fixes.md](references/known-fixes.md) before changing implementation.
+The suite compiles the backwards-compatibility and visual-grammar fixtures with `pdflatex`, the institutional-research/equity-research fixture with `lualatex`, and checks Python imports; each engine check warns and skips (not blocking) if that engine is not installed. For a known failure or a surprising diagnostic result, consult [references/known-fixes.md](references/known-fixes.md) before changing implementation.

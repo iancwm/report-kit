@@ -104,6 +104,44 @@ done
 
 echo "-- compile exit status: $status --"
 
+# The institutional-research theme requires lualatex (spec section 4 /
+# open question 1) -- it cannot be added to TEST_TEXES above, which
+# compiles everything with pdflatex and would hit that theme's own
+# \ifPDFTeX engine guard immediately, a correct failure that would look
+# indistinguishable from a real regression. Compile it separately, with
+# lualatex, same non-blocking-when-the-engine-is-missing convention as the
+# pdflatex block above. latex_templates/examples/equity-research/ (the
+# full four-page fictional publication) is deliberately not compiled
+# here -- see scripts/visual_qa_equity_research.py, which also renders and
+# pixel-diffs it against a checked-in baseline; this block only covers the
+# fast primitive-smoke-test fixture.
+LUALATEX_TEST_TEXES=(
+  "latex_templates/examples/institutional_equity_acceptance_test.tex"
+)
+lua_status=0
+if command -v lualatex >/dev/null 2>&1; then
+  : > "$WORKDIR/lualatex-compile.log"
+  for test_tex in "${LUALATEX_TEST_TEXES[@]}"; do
+    cp "$ROOT/$test_tex" "$WORKDIR"/
+    test_name="$(basename "$test_tex")"
+    if ! (
+      cd "$WORKDIR"
+      lualatex -interaction=nonstopmode -halt-on-error "$test_name"
+      lualatex -interaction=nonstopmode -halt-on-error "$test_name"
+    ) >> "$WORKDIR/lualatex-compile.log" 2>&1; then
+      lua_status=1
+    fi
+  done
+  echo "-- lualatex compile exit status: $lua_status --"
+  cat "$WORKDIR/lualatex-compile.log" >> "$WORKDIR/compile.log"
+else
+  echo "WARN: lualatex not found on PATH -- skipping institutional-research/equity-research acceptance check (not blocking)." >&2
+  if [[ "$require_tex" -eq 1 ]]; then
+    echo "FAIL: --require-tex was requested but lualatex is unavailable." >&2
+    lua_status=1
+  fi
+fi
+
 # Known failure signatures -- see references/known-fixes.md for the defects
 # these correspond to.
 SIGNATURES=(
@@ -120,11 +158,11 @@ for sig in "${SIGNATURES[@]}"; do
   fi
 done
 
-if [ "$status" -ne 0 ] || [ "$hit" -ne 0 ]; then
+if [ "$status" -ne 0 ] || [ "$lua_status" -ne 0 ] || [ "$hit" -ne 0 ]; then
   echo "FAIL: acceptance check did not pass. Full log:" >&2
   cat "$WORKDIR/compile.log" >&2
   exit 1
 fi
 
-echo "PASS: legacy and visual-grammar acceptance tests compiled cleanly."
+echo "PASS: legacy, visual-grammar, and institutional-research/equity-research acceptance tests compiled cleanly."
 exit 0

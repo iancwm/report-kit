@@ -1,0 +1,128 @@
+% Acceptance test for the institutional-research theme + equity-research
+% publication type (Steps 2-3 of
+% docs/superpowers/specs/2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md).
+% Deliberately compact -- a fast lualatex smoke test that exercises every
+% primitive at least once, distinct from
+% latex_templates/examples/equity-research/ (the full four-page fictional
+% publication, which is the visual-regression fixture, not the acceptance
+% smoke test). Requires lualatex; scripts/acceptance_check.sh's
+% pdflatex-only TEST_TEXES list must never include this file -- the
+% institutional-research theme's own \ifPDFTeX guard would fail it
+% immediately under pdflatex, which is the correct behavior (spec open
+% question 1), not a bug in this fixture.
+\documentclass[theme=institutional-research,publication-type=equity-research]{reportkit}
+
+\setreportkitleftheader{REPORTKIT / INSTITUTIONAL-EQUITY ACCEPTANCE TEST}
+\setreportkitfooter{Institutional-research theme + equity-research acceptance test}
+\setreportkitversion{v1.8.0}
+
+\title{Institutional-research theme acceptance test}
+\author{Test build}
+\date{9 September 2026}
+
+\begin{document}
+
+\begin{researchfrontpage}
+\researchkicker{Acceptance Testing / Fixture}
+\researchheadline{Every equity-research primitive renders once, in one compact document}
+\researchdeck{This document is not meant to be read as research -- it exists to give
+lualatex one document that touches every primitive Steps 2 and 3 shipped, so a
+compile failure here points straight at the theme or publication-type file, not
+at a four-page fixture.}
+
+\begin{ratingstrip}
+\ratingitem{Stock Rating}{\color{Accent}Overweight}
+\ratingitem{Industry View}{Attractive}
+\ratingitem{Price Target}{\$100}
+\end{ratingstrip}
+
+\begin{whatschanged}
+\change{Test Metric}{Old}{New}
+\end{whatschanged}
+
+\begin{researchmain}
+Main-column body text uses the institutional theme's 10.7pt/14.6pt normal size,
+never the sidebar's smaller \texttt{\textbackslash rksidebarsize}.
+
+\begin{principle}{Quieter callouts}
+Semantic callouts (spec section 21) restyle quietly under this theme: a thin
+left rule and a small uppercase label, not a colored box.
+\end{principle}
+\end{researchmain}\begin{researchsidebar}
+\begin{analystblock}
+\sidebarvalue{Test Analyst}\\
+\textcolor{Muted}{Fixture Author}
+\end{analystblock}
+
+\begin{marketdatablock}
+\sidebarrow{Share Price}{\$74.00}
+\sidebarrow{Market Cap (\$M)}{1,000}
+\end{marketdatablock}
+
+\begin{estimatesblock}
+\begin{tabularx}{\linewidth}{@{}Yr@{}}
+& \textbf{FY1E}\\
+\midrule
+EPS (\$) & 1.00\\
+\end{tabularx}
+\end{estimatesblock}
+\end{researchsidebar}
+\end{researchfrontpage}
+
+\newpage
+\section{Exhibit compositions}
+
+\begin{fullwidthexhibit}
+\begin{exhibit}[title={A full-width exhibit contains a financial table}, source={Fixture data.}, label={tab:full}]
+\begin{financialtable}
+\begin{tabularx}{\linewidth}{@{}Yrr@{}}
+\toprule
+\textbf{Metric} & \textbf{FY1E} & \textbf{FY2E}\\
+\midrule
+Revenue (\$M) & 100 & 120\\
+\bottomrule
+\end{tabularx}
+\end{financialtable}
+\end{exhibit}
+\end{fullwidthexhibit}
+
+\begin{exhibitpair}
+\exhibitpane{
+\begin{exhibit}[title={Left pane of an exhibit pair}, source={Fixture data.}]
+Left pane content.
+\end{exhibit}
+}
+\exhibitpane{
+\begin{exhibit}[title={Right pane of an exhibit pair}, source={Fixture data.}]
+Right pane content.
+\end{exhibit}
+}
+\end{exhibitpair}
+
+\begin{exhibitgrid}[columns=3]
+\exhibitpane{\begin{exhibit}[title={Grid pane one}]Pane one.\end{exhibit}}
+\exhibitpane{\begin{exhibit}[title={Grid pane two}]Pane two.\end{exhibit}}
+\exhibitpane{\begin{exhibit}[title={Grid pane three}]Pane three.\end{exhibit}}
+\end{exhibitgrid}
+
+\newpage
+\section{Financial model and risk/reward}
+
+\begin{exhibit}[title={Dense model-page type}, source={Fixture data.}]
+\begin{financialmodelpage}
+\begin{tabular}{@{}lrr@{}}
+\toprule
+\textbf{\$M} & \textbf{1Q} & \textbf{2Q}\\
+\midrule
+Revenue & 25 & 27\\
+\bottomrule
+\end{tabular}
+\end{financialmodelpage}
+\end{exhibit}
+
+\rksubheading{Scenarios}
+\bullcase{\$130}{Bull case body text.}
+\basecase{\$100}{Base case body text.}
+\bearcase{\$70}{Bear case body text.}
+
+\end{document}

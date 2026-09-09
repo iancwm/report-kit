@@ -716,11 +716,18 @@ def risk_reward_chart(
         ax.annotate(
             f"{label} {_format_chart_value(value, value_formatter)}",
             xy=(s.index[-1], value),
-            xytext=(6, 0),
+            # Offset up and to the right of the line's own value, not
+            # centered on it (va="center" would sit the text baseline
+            # directly on the dashed rule, so the rule visually strikes
+            # through the label -- found by actually rendering this
+            # fixture's risk/reward exhibit in Step 5, matching how
+            # Appendix A's own pgfplots \node placed its bear/base/bull
+            # labels 2 units above the reference line rather than on it).
+            xytext=(6, 4),
             textcoords="offset points",
             fontsize=7.6,
             color=color,
-            va="center",
+            va="bottom",
             ha="left",
         )
 
