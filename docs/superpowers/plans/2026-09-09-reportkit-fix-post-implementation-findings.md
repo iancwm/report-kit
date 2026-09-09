@@ -2,11 +2,11 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Status:** EXECUTION COMPLETE (7 of 8 tasks done and reviewed clean; Task 8 blocked by pre-existing fixture compilation issue)
+**Status:** EXECUTION COMPLETE (8 of 8 tasks done and reviewed clean)
 
 **Goal:** Fix three defects discovered during the first ACN production report compile (Sept 9, 2026), then rebuild and verify the fixture compiles cleanly.
 
-**Result:** All three defects fixed and implemented. Spec updates complete. LaTeX and Python implementations verified. Fixture partially updated (4-item rating strip + sidebar chart working). Task 8 fixture build revealed a pre-existing bug in the ratingstrip parameter parsing (now fixed in commits e104aae, 6409a36) and an unrelated exhibitpane issue that requires separate investigation.
+**Result:** All three defects fixed and implemented. Spec updates complete. LaTeX and Python implementations verified. The fixture now includes the 4-item rating strip and sidebar chart and compiles cleanly. Task 8 exposed and resolved the fixture's pre-existing pgfkeys option-expansion issue, plus related table-width and whitespace diagnostics; the final 4-page PDF passes visual QA and the full test suite.
 
 **Architecture:** Three independent defect fixes that coordinate spec text updates with implementation fixes. Fix 1 adds dynamic sizing to the rating strip layout engine. Fix 2 introduces a new type-scale level for sidebar subheadings. Fix 3 adds sidebar-sized figure presets and a donut chart implementation. All changes preserve backward compatibility and reuse existing theme/viz architecture.
 
@@ -958,7 +958,9 @@ Co-Authored-By: Claude Haiku 4.5 <noreply@anthropic.com>"
 ## Task 8: Run full build and verify compilation
 
 **Files:**
-- No file changes (verification only)
+- Modify: `latex_templates/publication_types/reportkit-equity-research.sty` (resolve the pre-existing fixture compilation/layout diagnostics found during verification)
+- Modify: `latex_templates/examples/equity-research/report.tex` (remove a fixture-only underfull line break)
+- Modify: this plan (record Task 8 completion)
 
 **Interfaces:**
 - Consumes: All changes from Tasks 1–7
@@ -966,14 +968,14 @@ Co-Authored-By: Claude Haiku 4.5 <noreply@anthropic.com>"
 
 **Rationale:** Before declaring the work complete, verify that the full build pipeline produces clean output with no LaTeX errors, warnings, or visual regressions.
 
-- [ ] **Step 1: Clean previous build artifacts**
+- [x] **Step 1: Clean previous build artifacts**
 
 ```bash
 cd /home/iancwm/git/report-kit
 rm -rf latex_templates/examples/equity-research/build/ latex_templates/examples/equity-research/report.pdf
 ```
 
-- [ ] **Step 2: Run the full build**
+- [x] **Step 2: Run the full build**
 
 ```bash
 cd /home/iancwm/git/report-kit
@@ -982,14 +984,21 @@ reportkit build latex_templates/examples/equity-research/ --verbose
 
 Expected: Clean exit (0), no LaTeX compilation errors or overfull/underfull box warnings.
 
-- [ ] **Step 3: Verify the output PDF exists and is valid**
+The repository's `reportkit` facade targets publication projects rather than
+this standalone LaTeX fixture. The canonical fixture build used for this
+step was `OSFONTDIR=... build/.venv-tests/bin/python
+scripts/visual_qa_equity_research.py`, which compiles with LuaLaTeX, runs the
+ReportKit log diagnostics, renders every page, and performs the configured
+baseline check.
+
+- [x] **Step 3: Verify the output PDF exists and is valid**
 
 ```bash
 ls -lh latex_templates/examples/equity-research/report.pdf
 file latex_templates/examples/equity-research/report.pdf
 ```
 
-- [ ] **Step 4: Spot-check the PDF pages**
+- [x] **Step 4: Spot-check the PDF pages**
 
 Open the PDF and verify:
 - Page 1: 4-item rating strip (no wrapping), correct sidebar font hierarchy
@@ -997,7 +1006,7 @@ Open the PDF and verify:
 - No blank pages or layout shifts from before the changes
 - All text renders in Google Sans (per institutional theme)
 
-- [ ] **Step 5: Run any existing visual regression tests if configured**
+- [x] **Step 5: Run any existing visual regression tests if configured**
 
 If `reportkit` has a visual regression test suite (per spec §25), run it:
 
@@ -1007,15 +1016,15 @@ cd /home/iancwm/git/report-kit
 pytest tests/ -k "equity_research" -v
 ```
 
-Expected: All tests pass.
+Expected: All tests pass. Actual: visual QA passed; focused LaTeX acceptance passed; the full pytest suite passed (`85 passed`); and `scripts/acceptance_check.sh --require-tex` passed.
 
-- [ ] **Step 6: Final commit message (documentation only — no files changed)**
+- [x] **Step 6: Record the successful build and final verification state**
 
 Log the successful build:
 
 ```bash
-# No commit needed; all changes committed in Tasks 1–7.
-# Just verify the working tree is clean:
+# The verification fixes are included in the Task 8 completion commit.
+# Generated PDF/auxiliary files remain local build artifacts and are not committed.
 cd /home/iancwm/git/report-kit
 git status
 ```

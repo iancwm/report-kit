@@ -46,7 +46,7 @@
 % expandable columns for tabularx, matching Appendix A's Y/Z/C convention.
 % -----------------------------------------------------------------------------
 \newcolumntype{Y}{>{\RaggedRight\arraybackslash}X}
-\newcolumntype{Z}{>{\RaggedLeft\arraybackslash}X}
+\newcolumntype{Z}{>{\raggedleft\arraybackslash}X}
 \newcolumntype{C}{>{\centering\arraybackslash}X}
 
 % Institutional table grammar (spec §16): no vertical borders (use booktabs
@@ -70,6 +70,7 @@
   \par\Needspace{5\baselineskip}\noindent
   \sffamily\rktablebodysize\color{Ink}
   \renewcommand{\arraystretch}{1.05}
+  \addtolength{\linewidth}{-2pt}% Reserve a small gutter for wide tabularx tables.
   \sisetup{table-format=-3.2}%
   \ignorespaces
 }{%
@@ -87,7 +88,7 @@
 }
 
 \newcommand{\researchkicker}[1]{{\sffamily\bfseries\rksectorkickersize\color{Accent}#1\par}\vspace{5pt}}
-\newcommand{\researchheadline}[1]{{\sffamily\bfseries\rkheadlinesize\color{Ink}#1\par}\vspace{6pt}}
+\newcommand{\researchheadline}[1]{{\sffamily\bfseries\rkheadlinesize\color{Ink}\RaggedRight #1\par}\vspace{6pt}}
 \newcommand{\researchdeck}[1]{{\rkdecksize\color{Ink}\RaggedRight #1\par}\vspace{7pt}}
 
 % -----------------------------------------------------------------------------
@@ -103,6 +104,8 @@
 % 1/itemcount × \linewidth, supporting 3–4 items without overflow.
 \newcounter{rkratingitem}
 \newcounter{rk@ratingitemcount}
+\newlength{\rk@ratingitemwidth}
+\newlength{\rk@ratingseparatorwidth}
 
 \NewDocumentEnvironment{ratingstrip}{o}{%
   \par\Needspace{4\baselineskip}\noindent
@@ -116,30 +119,46 @@
     % If it does, extract the number after the '='; otherwise use it as-is.
     \expandafter\@ratingstrip@parsecount#1=\relax
   }%
-  {\color{Hairline}\hrule height 0.4pt}\par\vspace{5pt}\noindent
+  {\color{Hairline}\hrule height 0.4pt}\par\vspace{5pt}\noindent\ignorespaces
 }{%
   \par\vspace{3pt}{\color{Hairline}\hrule height 0.4pt}\par\vspace{6pt}%
 }
 
 \def\@ratingstrip@parsecount#1=#2\relax{%
-  \ifx\relax#2\relax
+  \def\@ratingstrip@value{#2}%
+  \ifx\@ratingstrip@value\@empty
     % No '=' found, #1 is the number directly
     \setcounter{rk@ratingitemcount}{#1}%
   \else
-    % '=' found, #2 is the part after '='
-    \setcounter{rk@ratingitemcount}{#2}%
+    % '=' found, strip the sentinel '=' appended by the caller.
+    \edef\@ratingstrip@value{\expandafter\@ratingstrip@striptrailingeq#2\@nil}%
+    \setcounter{rk@ratingitemcount}{\@ratingstrip@value}%
   \fi
 }
+\def\@ratingstrip@striptrailingeq#1=\@nil{#1}
 
 \NewDocumentCommand{\ratingitem}{m m}{%
   \stepcounter{rkratingitem}%
   \ifnum\value{rkratingitem}>1\quad{\color{Hairline}\vrule width 0.4pt}\quad\fi
-  % Dynamically compute width: 1 / itemcount \linewidth
-  \pgfmathsetmacro{\rk@itemwidth}{1 / \value{rk@ratingitemcount}}%
-  \begin{minipage}[t]{\rk@itemwidth\linewidth}%
+  % Compute the item width after reserving space for every separator. The
+  % separator is two \quad spaces plus a 0.4pt rule, so N items occupy the
+  % full line without adding the separators on top of N equal-width boxes.
+  \settowidth{\rk@ratingseparatorwidth}{\quad}%
+  \addtolength{\rk@ratingseparatorwidth}{\rk@ratingseparatorwidth}%
+  \addtolength{\rk@ratingseparatorwidth}{0.4pt}%
+  \setlength{\rk@ratingitemwidth}{\linewidth}%
+  \@tempcnta=\value{rk@ratingitemcount}%
+  \advance\@tempcnta by -1
+  \@whilenum\@tempcnta>0\do{%
+    \addtolength{\rk@ratingitemwidth}{-\rk@ratingseparatorwidth}%
+    \advance\@tempcnta by -1
+  }%
+  \@tempcnta=\value{rk@ratingitemcount}%
+  \divide\rk@ratingitemwidth by \@tempcnta
+  \begin{minipage}[t]{\rk@ratingitemwidth}%
     {\sffamily\rksidebarsize\color{Muted}\MakeUppercase{#1}\par}%
     \vspace{1pt}{\sffamily\bfseries\rkratingvaluesize\color{Ink}#2\par}%
-  \end{minipage}%
+  \end{minipage}\ignorespaces%
 }
 
 % -----------------------------------------------------------------------------
@@ -155,12 +174,12 @@
 % \linewidth) rather than a hard-coded gutter width.
 % -----------------------------------------------------------------------------
 \NewDocumentEnvironment{researchmain}{}{%
-  \par\noindent\begin{minipage}[t]{0.68\linewidth}%
+  \par\noindent\begin{minipage}[t]{0.68\linewidth}\RaggedRight%
 }{%
   \end{minipage}%
 }
 \NewDocumentEnvironment{researchsidebar}{}{%
-  \hfill\begin{minipage}[t]{0.28\linewidth}%
+  \hfill\begin{minipage}[t]{0.28\linewidth}\RaggedRight%
 }{%
   \end{minipage}\par\vspace{8pt}%
 }
@@ -189,7 +208,8 @@
   \par\vspace{6pt}%
 }
 \NewDocumentEnvironment{estimatesblock}{}{%
-  \sidebarrule\noindent\sffamily\rksidebarsize\color{Ink}\ignorespaces
+  \sidebarrule\noindent\sffamily\rksidebarsize\color{Ink}%
+  \setlength{\tabcolsep}{2pt}\ignorespaces
 }{%
   \par\vspace{6pt}%
 }
@@ -230,18 +250,18 @@
 }
 \NewDocumentEnvironment{exhibit}{O{}}{%
   \pgfkeys{/reportkit/exhibit,number={},title={},source={},label={},#1}%
-  \ifstrempty{\rk@exhibittitle}{%
+  \expandafter\ifstrempty\expandafter{\rk@exhibittitle}{%
     \PackageWarningNoLine{reportkit-equity-research}{exhibit used without title= -- spec section 11 requires one}%
   }{}%
   \par\Needspace{9\baselineskip}%
   \refstepcounter{rkexhibit}%
   \noindent{\sffamily\bfseries\rkexhibitheadlinesize\color{Ink}%
-    Exhibit \ifstrempty{\rk@exhibitnumber}{\therkexhibit}{\rk@exhibitnumber}: \rk@exhibittitle\par}%
-  \ifstrempty{\rk@exhibitlabel}{}{\label{\rk@exhibitlabel}}%
-  \vspace{3pt}\noindent
+    Exhibit \expandafter\ifstrempty\expandafter{\rk@exhibitnumber}{\therkexhibit}{\rk@exhibitnumber}: \rk@exhibittitle\par}%
+  \expandafter\ifstrempty\expandafter{\rk@exhibitlabel}{}{\label{\rk@exhibitlabel}}%
+  \vspace{3pt}\noindent\ignorespaces
 }{%
   \par
-  \ifstrempty{\rk@exhibitsource}{}{\source{\rk@exhibitsource}}%
+  \expandafter\ifstrempty\expandafter{\rk@exhibitsource}{}{\source{\rk@exhibitsource}}%
   \vspace{6pt}%
 }
 
@@ -268,7 +288,7 @@
 % is left as-is, not redistributed.
 % -----------------------------------------------------------------------------
 \NewDocumentEnvironment{fullwidthexhibit}{}{%
-  \par\noindent\begin{minipage}[t]{\linewidth}%
+  \par\noindent\begin{minipage}[t]{\linewidth}\ignorespaces%
 }{%
   \end{minipage}\par\vspace{8pt}%
 }
@@ -315,7 +335,7 @@
   \stepcounter{rkexhibitpane}%
   \pgfkeys{/reportkit/exhibitpane,width={},#1}%
   \ifnum\value{rkexhibitpane}>1\hfill\fi
-  \ifstrempty{\rk@exhibitpanewidth}{%
+  \expandafter\ifstrempty\expandafter{\rk@exhibitpanewidth}{%
     \ifcase\rk@exhibitpanecols\relax
       \PackageError{reportkit-equity-research}{exhibitgrid columns=0 is not usable}{Use columns=1, 2, or 3, or pass width=<fraction>\string\linewidth on every \string\exhibitpane.}%
     \or % columns=1
@@ -331,7 +351,7 @@
     \def\rk@exhibitpanew{\rk@exhibitpanewidth}%
   }%
   \begin{minipage}[t]{\rk@exhibitpanew}%
-  #2%
+  \ignorespaces#2%
   \end{minipage}%
 }
 
