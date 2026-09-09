@@ -99,6 +99,7 @@ THEME = Theme(
         "compact": (TEXT_WIDTH_IN, 3.071),
         "square": (5.842, 5.240),
         "half": (3.588, 1.490),
+        "sidebar": (1.95, 1.95),  # ~2in square for proportional data (pie/donut) in sidebar
     },
     # Google Sans is the primary typeface for this theme. It is licensed under
     # Apache License 2.0 and sourced from Google Fonts. The static-weight
