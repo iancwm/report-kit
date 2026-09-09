@@ -75,6 +75,7 @@ THEME = Theme(
         # 0.485\linewidth per pane). Doesn't exist pre-Step-4, so adding it
         # here doesn't touch any existing publication's output.
         "half": (TEXT_WIDTH_IN * 0.485, 1.237),
+        "sidebar": (1.65, 1.65),  # ~1.7in square for proportional data in sidebar (default A4 theme)
     },
     sans_candidates=("Libertinus Sans", "Linux Biolinum O", "Linux Biolinum", "Arial", "DejaVu Sans"),
     serif_candidates=("Libertinus Serif", "Linux Libertine O", "Linux Libertine", "DejaVu Serif"),

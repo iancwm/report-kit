@@ -20,6 +20,7 @@ mpl = pytest.importorskip("matplotlib")
 pytest.importorskip("numpy")
 pytest.importorskip("pandas")
 
+import matplotlib.pyplot as plt  # noqa: E402
 import pandas as pd  # noqa: E402
 
 import reportkit_viz as rkv  # noqa: E402
@@ -238,3 +239,57 @@ def test_risk_reward_chart_renders_and_labels_bear_base_bull() -> None:
     assert len(hlines) == 3
     line_colors = {mpl.colors.to_hex(line.get_color()) for line in hlines}
     assert line_colors == {rkv.DATA_NEGATIVE.lower(), rkv.METRIC.lower(), rkv.DATA_WARM.lower()}
+
+
+def test_figure_sizes_add_sidebar_square_preset() -> None:
+    """§29.3 post-implementation finding: a "sidebar" figure preset (~2in
+    square) sized for proportional-data charts (pie/donut) in the ~28%-wide
+    sidebar column, present on both themes with a 1:1 aspect ratio."""
+    for name in available_themes():
+        sizes = get_theme(name).figure_sizes
+        assert "sidebar" in sizes
+        width, height = sizes["sidebar"]
+        assert width == pytest.approx(height)  # square
+
+
+def test_donut_chart() -> None:
+    """Test donut_chart renders without error and produces correct figure."""
+    data = {
+        "Consulting": 52,
+        "Managed Services": 48,
+    }
+    fig, ax = rkv.donut_chart(
+        data,
+        title="Revenue Mix",
+        size="sidebar",
+    )
+    assert fig is not None
+    assert ax is not None
+    # Verify the chart has pie wedges
+    assert len(ax.patches) > 0
+    plt.close(fig)
+
+
+def test_donut_chart_with_custom_colors() -> None:
+    """Test donut_chart accepts custom colors."""
+    data = {"A": 30, "B": 40, "C": 30}
+    colors = ["#FF0000", "#00FF00", "#0000FF"]
+    fig, ax = rkv.donut_chart(data, colors=colors, size="sidebar")
+    assert fig is not None
+    assert len(ax.patches) == 3
+    plt.close(fig)
+
+
+def test_donut_chart_color_cycling() -> None:
+    """Test donut_chart cycles colors when more slices than colors."""
+    data = {f"Slice {i}": i + 1 for i in range(6)}  # 6 slices
+    colors = ["#FF0000", "#00FF00"]  # Only 2 colors
+    fig, ax = rkv.donut_chart(data, colors=colors, size="sidebar")
+    assert len(ax.patches) == 6
+    plt.close(fig)
+
+
+def test_donut_chart_empty_data_raises() -> None:
+    """Test donut_chart rejects empty data."""
+    with pytest.raises(ValueError, match="data must be non-empty"):
+        rkv.donut_chart({})

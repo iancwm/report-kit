@@ -12,6 +12,10 @@ session had a TeX Live install with `lualatex`, so the LaTeX-level
 compile of Steps 1-3 and the visual-regression baseline Step 5 sets up
 are both still genuinely unverified by compilation — see the plan's Step
 5 section, "Not performed", before treating this as compile-clean.
+**This gap is not hypothetical:** the first real compile against this spec
+(the ACN initiation-of-coverage report, 9 September 2026) surfaced three
+defects that only show up when `lualatex` actually runs the templates —
+see [§29, Post-implementation findings](#29-post-implementation-findings-first-production-report-2026-09-09).
 **Last updated:** 2026-09-09
 **Visual reference:** Appendix A — the `meridian_equity_research_mockup_v3`
 prototype, embedded verbatim. The prototype is a hand-coded proof of the target
@@ -454,6 +458,7 @@ Subsection           12 pt / 15
 Body                 10.7 pt / 14.6
 Exhibit headline      9.5 pt / 12
 Sidebar               7.6 pt / 9.5
+Sidebar subheading    6.6-6.8 pt / 8-8.2
 Table body            8.0 pt / 10
 Source / footnote     7.0 pt / 8.5
 Disclosure            6.5–7 pt
@@ -585,6 +590,16 @@ Styling:
 
 Sidebar should visually recede.
 
+## Sidebar compositions
+
+Sidebar data showing relative proportions (a two-way segment split, a
+geographic or channel mix, a business-line breakdown) should render as a
+small themed pie or donut chart, not as five `\sidebarrow` text pairs that
+require mental arithmetic to parse the composition visually. The chart
+function will be available in Step 4 (reportkit_viz.py's donut_chart);
+`figure_sizes` will include a `sidebar` preset sized for the ~28%-wide
+sidebar column (Task 5).
+
 ---
 
 # 9. Rating strip
@@ -608,6 +623,13 @@ Characteristics:
 - maximum one accent color;
 - recommendation text may use accent;
 - price target should not be rendered as a giant KPI.
+
+## Supported item count
+
+A rating strip must render correctly with 3 or 4 items without any item
+wrapping to a second line. Item width must therefore be computed from
+the actual item count, not fixed at a constant sized for one specific
+count.
 
 ---
 
@@ -1079,6 +1101,13 @@ Add rules such as:
 > Do not force a visual onto every section. A page may contain deliberate
 > whitespace.
 
+> A sidebar composition of 2-4 values that are parts of a whole (a segment
+> split, a geographic mix, a channel mix, a revenue composition) is a chart,
+> not a `\sidebarrow` list — render it as a small pie or donut chart sized
+> for the sidebar column, with underlying values available in the source or
+> caption. Reserve `\sidebarrow` for point metrics and estimates that are
+> not proportions of a common whole.
+
 > Avoid dashboard layouts composed of repeated equally weighted cards.
 
 > Main narrative prose should be visually more prominent than metadata.
@@ -1250,6 +1279,179 @@ page-specific coordinates, local font patches, bespoke chart styling, or raw
 `minipage` layouts**.
 
 That is the architectural bar for vNext.
+
+---
+
+# 29. Post-implementation findings (first production report, 2026-09-09)
+
+Steps 1-5 were verified by inspection, not by compilation (no implementing
+session had `lualatex` available — see the Status line above). The first
+real document built against this spec — an equity-research initiation
+report for Accenture (ACN), compiled the same day — surfaced three defects
+that inspection missed because each one only manifests once real content
+(a 4-item rating strip, categorical mix data, a populated sidebar) runs
+through the templates. All three are traced to specific files/lines below.
+They are implementation bugs, not disagreements with the design in §1-§28,
+but two of them expose gaps in the spec itself (§9 and §5) that let the bug
+happen in the first place, so both the spec text and the implementation
+need a fix.
+
+## 29.1 Rating strip has no defined item count, and the shipped width overflows at 4
+
+**Symptom:** On the front page, the fourth `\ratingitem` ("Implied Upside")
+wraps to a second line instead of sitting on the same horizontal strip as
+the other three, breaking the "strong baseline alignment" characteristic
+§9 requires.
+
+**Root cause:** §9's examples only ever show **three** items (`STOCK
+RATING / INDUSTRY VIEW / PRICE TARGET`), and the spec never states how many
+items a rating strip must support. The implementation
+(`latex_templates/publication_types/reportkit-equity-research.sty:113`)
+picked a fixed width sized for exactly three:
+
+```latex
+\begin{minipage}[t]{0.29\linewidth}%
+```
+
+The ACN report uses four (`Stock Rating`, `Price Target`, `Reference
+Price`, `Implied Upside` — a natural set for an initiation report, which
+needs to show the reference price and the resulting upside alongside the
+rating and target). Four fixed-width items plus three inter-item rules
+exceed 100% of the line:
+
+```text
+4 × 0.29\linewidth = 1.16\linewidth   (before separators)
+```
+
+**Suggested spec fix:** §9 should state a supported item-count range (3-4
+is enough for every archetype in §23) rather than illustrating only the
+one count that happens to fit the hardcoded width. Add to §9:
+
+> A rating strip must render correctly with 3 or 4 items without any item
+> wrapping to a second line. Item width must therefore be computed from
+> the actual item count, not fixed at a constant sized for one specific
+> count.
+
+**Suggested implementation fix:** in `\ratingitem`
+(`reportkit-equity-research.sty:110-117`), replace the hardcoded
+`0.29\linewidth` with a width derived at `\end{ratingstrip}` time from a
+counted first pass (mirroring the two-pass counting `reportkit-structure.sty`
+already uses for `reportarchitecture`/`capabilitymap`), or — more simply,
+since `ratingstrip` items are homogeneous single-line boxes — replace the
+minipage-per-item layout with a `tabularx` row of `C` columns sized
+`1/N\linewidth` each. Either way, add a 4-item case to the visual
+regression fixture (§25) alongside the existing 3-item case so this
+class of regression cannot ship silently again.
+
+## 29.2 Sidebar has one type-scale step, so subheadings cannot outrank body text by size
+
+**Symptom:** In the sidebar, `\rksubheading{Near-term read-through}` reads
+at the same size as the "Supportive:" / "Concerning:" body text beneath
+it. The only things distinguishing it are weight and color, not size —
+which directly contradicts §5's closing instruction: *"Use weight and size
+before color or boxes to establish hierarchy."*
+
+**Root cause:** §5's recommended scale (the table under "Recommended
+scale") has exactly **one** sidebar-family entry — `Sidebar 7.6 pt / 9.5`
+— covering labels, values, and prose uniformly. It has no separate,
+smaller step for a sidebar-internal subheading the way the main column has
+one (`Section heading 15pt` vs. `Subsection 12pt` vs. `Body 10.7pt` are
+three distinct steps; the sidebar has zero). The implementation inherited
+this gap faithfully:
+
+- `\rksidebarsize` is defined once, at `7.6pt/9.5pt`
+  (`latex_templates/themes/reportkit-theme-institutional-research.sty:223`).
+- `\rksubheading` (`reportkit-equity-research.sty:349`) sets `\bfseries`
+  and `\color{Accent}` but reuses that same `\rksidebarsize` — there is no
+  smaller size for it to use even if the author wanted one.
+
+Every sidebar subheading in the ACN report (`Business mix`,
+`Near-term read-through`, `Catalysts`, `Key falsifier`, `Risks`, `View
+change`) inherits the same flat hierarchy, not just the one flagged in the
+example.
+
+**Suggested spec fix:** add a fourth sidebar-family row to §5's scale
+table, below `Sidebar`:
+
+```text
+Sidebar subheading    6.6-6.8 pt / 8-8.2
+```
+
+and add a sentence to §8 (Sidebar primitives) noting that sidebar
+subheadings are a distinct, smaller type step from sidebar body text —
+the same size-establishes-hierarchy principle §5 already states for the
+main column, applied to the sidebar's own internal hierarchy.
+
+**Suggested implementation fix:** add
+`\rksidebarsubheadingsize` (`\fontsize{6.7pt}{8.1pt}\selectfont`) next to
+`\rksidebarsize` in the theme file, and change
+`reportkit-equity-research.sty:349`'s `\rksubheading` to use it instead of
+`\rksidebarsize`. One macro, one call site — every sidebar subheading in
+every existing and future document picks up the fix automatically.
+
+## 29.3 No sanctioned way to render small proportional/categorical data in a sidebar
+
+**Symptom:** The ACN report's "Business mix" sidebar block renders five
+`\sidebarrow` label/value pairs — two dollar figures (Consulting vs.
+Managed Services revenue) and three percentages that sum to 100%
+(Americas/EMEA/Asia-Pacific revenue split). Both groups are proportional
+compositions of a whole, which is exactly the data shape a small pie or
+donut chart communicates at a glance and five stacked text rows do not —
+the reader has to do the arithmetic in their head to see that Consulting
+and Managed Services are roughly balanced, or that Americas is barely
+half of revenue.
+
+**Root cause:** this is not a one-off authoring miss; the toolchain gives
+an author no better option today:
+
+- §22's authoring guidance tells the agent to "prefer an analytical
+  exhibit over a decorative callout when quantitative evidence exists,"
+  but every example of an exhibit in §11/§12 assumes the ~68%-wide main
+  column. Nothing in §22 or §8 tells the author what to do when the
+  quantitative evidence belongs in the ~28%-wide sidebar instead — so the
+  fallback is `\sidebarrow` text, every time.
+- Even an author who wanted to embed a chart in the sidebar has no sized
+  figure preset to put it in: `figure_sizes`
+  (`python_scripts/reportkit/themes/institutional_research.py:95-102`)
+  defines `full` / `wide` / `dominant` / `compact` / `square` / `half`,
+  and the narrowest of those (`half`, 3.588in) is sized for a two-up
+  `exhibitpair` pane at 0.485\linewidth of the ~7.2in main-column text
+  width — nearly double the sidebar's own ~0.28\linewidth (≈2.0in on
+  Letter). Every existing preset overflows the sidebar.
+- `reportkit_viz.py` has no pie or donut chart function at all (its chart
+  functions are `timeseries`, `bar_chart`, `distribution`, `scatter_plot`,
+  `heatmap`, `drawdown_chart`, `risk_reward_chart`, `waterfall_chart`,
+  `treemap_chart`, `tornado_chart`, `bubble_matrix`, `timeline_chart`).
+  Even with a correctly sized figure preset, there is no themed primitive
+  to render a 2-3-slice composition, which is exactly what would push an
+  author toward hand-rolled matplotlib — the "bespoke chart styling" §28's
+  Definition of Done rules out.
+
+**Suggested spec fix:** add to §22 (AI authoring guidance):
+
+> A sidebar composition of 2-4 values (a segment split, a geographic mix,
+> a channel mix) is a chart, not a `\sidebarrow` list — render it as a
+> small themed donut or pie chart sized for the sidebar column, with the
+> underlying values still available in the source as a caption or
+> `\source{}` line. Reserve `\sidebarrow` for point metrics and estimates
+> that are not proportions of a common whole.
+
+and add a `sidebar` entry to §15's figure-sizing discussion sized for the
+~0.28\linewidth sidebar column (≈2.0in on Letter, vs. `half`'s 3.588in),
+plus a new pie/donut chart function to §13's chart-theme scope, using the
+same restrained-teal/blue/gold/muted palette §13 already specifies for
+every other chart type.
+
+**Suggested implementation fix:**
+1. Add `"sidebar": (2.05, 2.05)` (or similar, ratio-derived per the
+   existing convention) to `figure_sizes` in both theme modules.
+2. Add a `donut_chart()` (or `pie_chart()`) function to `reportkit_viz.py`
+   following the existing function signature convention (`size=`, themed
+   colors via `series_style()`, `save_figure()`).
+3. Add a 4th QA fixture page (or extend an existing sidebar) to §24/§25's
+   example deliverable exercising this primitive, so "sidebar chart
+   overflows its column" joins the checklist in §25 the same way "table
+   overflow" already does.
 
 ---
 

@@ -741,6 +741,71 @@ def risk_reward_chart(
     return fig, ax
 
 
+def donut_chart(
+    data: dict[str, float],
+    *,
+    title: str | None = None,
+    size: str | tuple[float, float] = "sidebar",
+    colors: list[str] | None = None,
+) -> tuple[mpl.figure.Figure, mpl.axes.Axes]:
+    """Plot proportional data as a donut chart for sidebar embeds.
+
+    Renders 2–4 slices (segment split, geographic/channel mix, revenue
+    composition) as a small square donut chart sized for the sidebar column
+    (~2in). Per spec §29.3, reserve this for proportional compositions;
+    use bar charts for other data shapes.
+
+    Args:
+        data: {label: value} dict of slice labels and their values
+        title: optional chart title (typically None for sidebar charts)
+        size: figure preset ("sidebar" default) or (width_in, height_in) tuple
+        colors: list of hex colors for slices; cycles if fewer than slices.
+                If None, uses theme data_colors.
+
+    Returns:
+        (fig, ax) for further styling or save_figure() integration
+    """
+    if not data:
+        raise ValueError("data must be non-empty")
+
+    if colors is None:
+        colors = list(DATA_COLORS)
+
+    # Ensure enough colors for all slices
+    colors_cycle = (colors * ((len(data) // len(colors)) + 1))[: len(data)]
+
+    fig, ax = new_figure(size)
+
+    labels = list(data.keys())
+    values = list(data.values())
+
+    # Draw donut (pie with hole) with theme styling
+    wedges, texts, autotexts = ax.pie(
+        values,
+        labels=labels,
+        colors=colors_cycle,
+        autopct="%1.0f%%",
+        startangle=90,
+        textprops={"fontsize": 7.0},
+        wedgeprops={"edgecolor": SURFACE, "linewidth": 1.2, "width": 0.4},
+    )
+
+    # Style percentage text inside slices
+    for autotext in autotexts:
+        autotext.set_color(SURFACE)
+        autotext.set_fontsize(6.5)
+        autotext.set_weight("bold")
+
+    # Style slice labels
+    for text in texts:
+        text.set_fontsize(7.0)
+        text.set_color(INK)
+
+    ax.axis("off")
+    _title(ax, title)
+    return fig, ax
+
+
 def waterfall_chart(
     contributions: pd.Series | Mapping[str, float],
     *,
