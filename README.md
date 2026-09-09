@@ -26,12 +26,19 @@ Migrating an existing content branch out of this repo is covered in
 [`references/migrating-content-branches.md`](references/migrating-content-branches.md).
 
 ## 1. latex_templates/
-- `reportkit.cls` (v1.5.0), `reportkit-boxes.sty`, `reportkit-code.sty`,
-  `reportkit-diagrams.sty`, `reportkit-grammar.sty`, `reportkit-pandoc.sty`,
-  and `reportkit-longform.sty` — the core document class and style files. The
-  public diagram DSL covers positioning, risk, process, architecture,
-  hierarchy, planning, strategy, state, comparison, and timeline visuals;
-  existing low-level primitives remain available for custom composition.
+- `reportkit.cls` (v1.6.0), `reportkit-core.sty`, `reportkit-boxes.sty`,
+  `reportkit-code.sty`, `reportkit-diagrams.sty`, `reportkit-grammar.sty`,
+  `reportkit-pandoc.sty`, and `reportkit-longform.sty` — the core document
+  class and style files. The public diagram DSL covers positioning, risk,
+  process, architecture, hierarchy, planning, strategy, state, comparison,
+  and timeline visuals; existing low-level primitives remain available for
+  custom composition.
+- `themes/` — visual identity (typography, geometry, palette, running
+  furniture), selected via `\documentclass[theme=<name>]{reportkit}`.
+  `reportkit-theme-default.sty` is today's only theme and reproduces
+  ReportKit's original design exactly; see
+  `docs/superpowers/specs/2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md`
+  for the architecture and the theme in progress.
 - `REPORT_TEMPLATE.tex` — minimal report skeleton.
 - `examples/{primitive_acceptance_test,visual_grammar_acceptance_test}.tex` —
   compile the legacy and v1.4 public APIs respectively; use the acceptance

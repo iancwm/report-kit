@@ -25,9 +25,15 @@ def build_context(repo_root: Path | None = None, source_root: Path | None = None
     registry = generate_registry(repo_root)
     version = _git(repo_root, "describe", "--tags", "--always")
     class_version = registry.pop("class_version")
+    document = resolve_document(config, profile)
     result: dict[str, Any] = {
         "version": version,
-        "document": {"engine": resolve_document(config, profile).get("engine", "pdflatex")},
+        "document": {
+            "engine": document.get("engine", "pdflatex"),
+            "theme": document.get("theme", "default"),
+            "publication_type": document.get("publication_type", "technical-report"),
+            "paper": document.get("paper", "a4"),
+        },
         "components": {
             "figures": registry.pop("figures"),
             "callouts": registry["callouts"]["public"],

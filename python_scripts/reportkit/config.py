@@ -11,7 +11,15 @@ IDENTITY_KEYS = (
     "title", "subtitle", "author", "language", "version", "left_header",
     "footer", "subject", "keywords", "disclaimer", "project_url",
 )
-DOCUMENT_KEYS = ("main", "class", "engine")
+DOCUMENT_KEYS = ("main", "class", "engine", "theme", "publication_type", "paper")
+# Themes that require a specific engine. Selecting the theme without
+# configuring that engine must fail validation rather than silently degrade
+# the PDF (for example, falling back off Google Sans under pdfTeX). See
+# docs/superpowers/specs/2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md,
+# open question 1.
+THEME_ENGINE_REQUIREMENTS: dict[str, str] = {
+    "institutional-research": "lualatex",
+}
 VALIDATION_KEYS = (
     "fail_on_undefined_refs", "fail_on_missing_assets",
     "overfull_hbox_threshold", "underfull_badness_threshold",
@@ -321,7 +329,33 @@ def resolve_document(config: dict[str, Any], profile: str | None = None) -> dict
     document.setdefault("main", "report.tex")
     document.setdefault("class", "reportkit")
     document.setdefault("engine", "pdflatex")
+    document.setdefault("theme", "default")
+    document.setdefault("publication_type", "technical-report")
+    document.setdefault("paper", "a4")
     return document
+
+
+def theme_engine_conflict(document: dict[str, Any]) -> str | None:
+    """Return an error message if the resolved theme needs an engine the
+    resolved configuration doesn't provide, or None if there's no conflict.
+
+    Call this against the fully resolved document (i.e. after any CLI
+    ``--engine``/``REPORTKIT_TEX_ENGINE`` override has already been folded
+    into ``document["engine"]``) so an explicit override is honoured the
+    same way a config-file value would be.
+    """
+    theme = str(document.get("theme") or "default")
+    required = THEME_ENGINE_REQUIREMENTS.get(theme)
+    if required is None:
+        return None
+    engine = str(document.get("engine") or "pdflatex")
+    if engine == required:
+        return None
+    return (
+        f"theme {theme!r} requires engine {required!r}, but the resolved engine is "
+        f"{engine!r}. Set document.engine: {required} in publication.yaml, or pass "
+        f"--engine {required}."
+    )
 
 
 def resolve_validation(config: dict[str, Any], profile: str | None = None) -> dict[str, Any]:

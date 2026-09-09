@@ -1,0 +1,85 @@
+% ReportKit Core -- engine-neutral packages and structural mechanism shared by
+% every theme. Extracted from reportkit.cls v1.5.0 by the theme architecture
+% in docs/superpowers/specs/2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md.
+% Visual identity -- typography, geometry, palette, running furniture, and
+% title layout -- is theme-owned; see latex_templates/themes/. Nothing in
+% this file may reference a theme color or length: reportkit.cls loads this
+% before it loads the selected theme.
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{reportkit-core}[2026/09/09 v1.6.0 ReportKit engine-neutral core]
+
+\RequirePackage{iftex}
+\RequirePackage{microtype}
+\RequirePackage{xcolor}
+\RequirePackage{graphicx}
+\RequirePackage{booktabs}
+\RequirePackage{siunitx}
+\RequirePackage{enumitem}
+\RequirePackage{titlesec}
+\RequirePackage{fancyhdr}
+\RequirePackage{needspace}
+\RequirePackage{caption}
+\RequirePackage{geometry}
+\RequirePackage{hyperref}
+\providecommand{\RKLink}[1]{\href{#1}{#1}}
+\RequirePackage{xparse}
+\RequirePackage{etoolbox}
+
+% -----------------------------------------------------------------------------
+% Metadata and running furniture (mechanism; visual values live in the theme)
+% -----------------------------------------------------------------------------
+\newcommand{\rk@leftheader}{REPORTKIT}
+\newcommand{\rk@footer}{Technical report}
+\newcommand{\rk@version}{v1.0}
+\newcommand{\rk@subject}{Technical report}
+\newcommand{\rk@keywords}{ReportKit, technical report}
+\newcommand{\rk@language}{en-US}
+\newcommand{\setreportkitleftheader}[1]{\renewcommand{\rk@leftheader}{#1}}
+\newcommand{\setreportkitfooter}[1]{\renewcommand{\rk@footer}{#1}}
+\newcommand{\setreportkitversion}[1]{\renewcommand{\rk@version}{#1}}
+\newcommand{\setreportkitsubject}[1]{\renewcommand{\rk@subject}{#1}}
+\newcommand{\setreportkitkeywords}[1]{\renewcommand{\rk@keywords}{#1}}
+\newcommand{\setreportkitlanguage}[1]{\renewcommand{\rk@language}{#1}}
+
+% Keep PDF metadata coupled to the document's normal title and author fields.
+% hyperref performs the necessary PDF-string sanitisation for bookmarks and
+% metadata, so callers can continue using ordinary LaTeX in \title/\author.
+\AtBeginDocument{%
+  \hypersetup{
+    pdftitle={\@title},
+    pdfauthor={\@author},
+    pdfsubject={\rk@subject},
+    pdfkeywords={\rk@keywords},
+    pdfdisplaydoctitle=true
+  }%
+  % Write the catalog language directly; pdflang support varies by hyperref
+  % engine, while the PDF catalog requirement is stable.
+  \ifPDFTeX
+    \pdfcatalog{/Lang (\rk@language)}%
+  \else
+    \pdfextension catalog {/Lang (\rk@language)}%
+  \fi
+}
+
+% -----------------------------------------------------------------------------
+% Anti-stranding page-break mechanism (structural, not visual -- every theme
+% shares the same heuristic fractions of \textheight)
+% -----------------------------------------------------------------------------
+% Use this when a section opens with a conceptual diagram after a short setup
+% paragraph. It reserves the whole reading unit: heading + setup + compact
+% diagram/caption. If insufficient space remains, the section starts next page.
+\NewDocumentCommand{\RKDiagramSection}{m}{%
+  \par\Needspace{0.46\textheight}%
+  \section{#1}%
+}
+
+% Smaller variant for a subsection that opens with a diagram.
+\NewDocumentCommand{\RKDiagramSubsection}{m}{%
+  \par\Needspace{0.38\textheight}%
+  \subsection{#1}%
+}
+
+% Inline code helper; full code blocks live in reportkit-code.sty.
+\newcommand{\code}[1]{\texttt{#1}}
+
+\endinput

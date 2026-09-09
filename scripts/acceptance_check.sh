@@ -83,7 +83,9 @@ else
   echo "WARN: no geometry-test environment -- skipping rendered-geometry tests (not blocking)." >&2
 fi
 
-cp "$ROOT"/latex_templates/*.cls "$ROOT"/latex_templates/*.sty "$WORKDIR"/
+# Themes live one directory deeper (latex_templates/themes/); flatten them
+# into WORKDIR too so \documentclass{reportkit} can find its theme file.
+cp "$ROOT"/latex_templates/*.cls "$ROOT"/latex_templates/*.sty "$ROOT"/latex_templates/themes/*.sty "$WORKDIR"/
 status=0
 : > "$WORKDIR/compile.log"
 for test_tex in "${TEST_TEXES[@]}"; do

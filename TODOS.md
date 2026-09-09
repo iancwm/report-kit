@@ -19,6 +19,8 @@ for why.
 | [2026-09-07-reportkit-vnext-implementation-plan.md](docs/superpowers/plans/2026-09-07-reportkit-vnext-implementation-plan.md) | Phase 1 in PR #10; additive Phases 2–4 in PR #9 | P3 |
 | [2026-09-07-documentation-and-status-tracking-cleanup-design.md](docs/superpowers/specs/2026-09-07-documentation-and-status-tracking-cleanup-design.md) | Approved | Process |
 | [2026-09-07-documentation-and-status-tracking-cleanup.md](docs/superpowers/plans/2026-09-07-documentation-and-status-tracking-cleanup.md) | Done — merged via PR #7 (`965443b`) | Process |
+| [2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md](docs/superpowers/specs/2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md) | Draft; open questions resolved in the plan below | P2 |
+| [2026-09-09-reportkit-institutional-theme-implementation-plan.md](docs/superpowers/plans/2026-09-09-reportkit-institutional-theme-implementation-plan.md) | Step 1 of 5 implemented (theme infrastructure); Steps 2–5 not started | P2 |
 
 ## Open work
 
@@ -35,6 +37,22 @@ for why.
 
 - Continue the tooling-hardening follow-up slices and reconcile them with the
   vNext roadmap; the vNext Phase 2–4 implementation slice is now complete.
+
+### P2
+
+- Institutional theme + equity-research profile — **Step 1 (theme
+  infrastructure) implemented 2026-09-09**: `reportkit.cls` now delegates
+  typography/geometry/palette/furniture to a selected theme file under
+  `latex_templates/themes/`; `publication.yaml` gains `document.theme`,
+  `.publication_type`, `.paper`; `reportkit check`/`build` refuse to build a
+  theme against an engine that can't render it. **Unverified by
+  compilation** — the implementing session had no TeX Live install. Run
+  `bash scripts/acceptance_check.sh --require-tex` and diff
+  `latex_templates/examples/career_guide_en/report.tex`'s compiled output
+  against its pre-change PDF before trusting this on a machine with TeX.
+  Steps 2–5 (the institutional theme itself, the equity-research profile,
+  visualization integration, and fixtures/QA) are not started. See
+  [the implementation plan](docs/superpowers/plans/2026-09-09-reportkit-institutional-theme-implementation-plan.md).
 
 ### P3
 
@@ -58,6 +76,11 @@ for why.
 
 ## History
 
+- 2026-09-09: institutional-theme spec's Step 1 (theme infrastructure)
+  implemented on `claude/vnext-spec-execution-wppmkl`, with the spec's eight
+  open questions resolved in a companion implementation plan first, as the
+  spec itself required. Not compiled — no TeX Live in the implementing
+  session; see the P2 entry above.
 - 2026-09-08: vNext Phase 1 implemented on `feat/reportkit-vnext-phase1` —
   W1–W7 delivered the package/CLI, nested config, diagnostics attribution,
   capability registry, manifest history, and test wiring. Phases 2–4 were

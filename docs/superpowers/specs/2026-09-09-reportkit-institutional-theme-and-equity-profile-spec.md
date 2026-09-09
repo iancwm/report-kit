@@ -1,10 +1,12 @@
 # ReportKit — Institutional Research Theme + Equity Research Profile
 
-**Status:** Draft / awaiting approval. Current-state claims verified against the
-working tree on 2026-09-09 (see [Current state](#current-state-verified-2026-09-09)).
-Eight issues the source draft did not cover are recorded in
-[Open questions](#open-questions-and-discrepancies) and must be resolved before
-implementation, not during it.
+**Status:** Draft. Current-state claims verified against the working tree on
+2026-09-09 (see [Current state](#current-state-verified-2026-09-09)). The
+eight open questions below are now resolved — see
+[2026-09-09-reportkit-institutional-theme-implementation-plan.md](../plans/2026-09-09-reportkit-institutional-theme-implementation-plan.md),
+which also tracks execution. That plan's Step 1 (theme infrastructure) is
+implemented; Steps 2–5 (the institutional theme itself, the equity-research
+profile, visualization integration, and fixtures/QA) are not.
 **Last updated:** 2026-09-09
 **Visual reference:** Appendix A — the `meridian_equity_research_mockup_v3`
 prototype, embedded verbatim. The prototype is a hand-coded proof of the target
