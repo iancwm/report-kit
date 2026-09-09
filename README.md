@@ -26,7 +26,7 @@ Migrating an existing content branch out of this repo is covered in
 [`references/migrating-content-branches.md`](references/migrating-content-branches.md).
 
 ## 1. latex_templates/
-- `reportkit.cls` (v1.6.0), `reportkit-core.sty`, `reportkit-boxes.sty`,
+- `reportkit.cls` (v1.8.0), `reportkit-core.sty`, `reportkit-boxes.sty`,
   `reportkit-code.sty`, `reportkit-diagrams.sty`, `reportkit-grammar.sty`,
   `reportkit-pandoc.sty`, and `reportkit-longform.sty` — the core document
   class and style files. The public diagram DSL covers positioning, risk,
@@ -35,10 +35,19 @@ Migrating an existing content branch out of this repo is covered in
   custom composition.
 - `themes/` — visual identity (typography, geometry, palette, running
   furniture), selected via `\documentclass[theme=<name>]{reportkit}`.
-  `reportkit-theme-default.sty` is today's only theme and reproduces
-  ReportKit's original design exactly; see
+  `reportkit-theme-default.sty` reproduces ReportKit's original design
+  exactly. `reportkit-theme-institutional-research.sty`
+  (`theme=institutional-research`, requires `lualatex`) is a Letter-geometry,
+  Google-Sans institutional research theme.
+- `publication_types/` — structural primitives layered on top of a theme,
+  selected via `\documentclass[publication-type=<name>]{reportkit}`.
+  `reportkit-equity-research.sty` (`publication-type=equity-research`,
+  currently requires `theme=institutional-research`) adds a research front
+  page, rating strip, sidebar blocks, an exhibit system, table grammar, a
+  dense financial-model mode, and risk/reward primitives; see
   `docs/superpowers/specs/2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md`
-  for the architecture and the theme in progress.
+  for the architecture and the visualization-integration/fixtures work still
+  in progress on top of it.
 - `REPORT_TEMPLATE.tex` — minimal report skeleton.
 - `examples/{primitive_acceptance_test,visual_grammar_acceptance_test}.tex` —
   compile the legacy and v1.4 public APIs respectively; use the acceptance
@@ -50,10 +59,15 @@ Migrating an existing content branch out of this repo is covered in
 ## 2. python_scripts/
 - `reportkit` (from the repository root) — stdlib CLI facade for doctor,
   context, check, build, diagnose, inspect, analyse-history, and package; its importable
-  implementation lives under `python_scripts/reportkit/`.
-- `reportkit_viz.py` — Matplotlib analytical chart theme (palette synced with
-  `reportkit.cls`, including treemap, waterfall, tornado, bubble-matrix, and
-  dated timeline figures alongside standard analytical charts).
+  implementation lives under `python_scripts/reportkit/`, including
+  `reportkit/themes/` — per-theme Python tokens (`default`,
+  `institutional-research`) that `reportkit_viz.py` resolves by name.
+- `reportkit_viz.py` — Matplotlib analytical chart theme, switchable at
+  runtime via `apply_theme(name)` (palette/geometry/fonts synced with the
+  matching `latex_templates/themes/*.sty` file; `check-theme --theme <name>`
+  verifies the sync), including treemap, waterfall, tornado, bubble-matrix,
+  risk/reward, and dated timeline figures alongside standard analytical
+  charts.
 - `reportkit_doctor.py` — environment check (FULL BUILD / SOURCE BUILD detection).
 - `publication_config.py` — compatibility import for the nested or legacy
   consumer `publication.yaml` loader;

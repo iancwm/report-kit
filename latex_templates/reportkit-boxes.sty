@@ -1,27 +1,65 @@
-% ReportKit v1.1.0 -- semantic callouts and metric object
+% ReportKit v1.3.0 -- semantic callouts and metric object
 \NeedsTeXFormat{LaTeX2e}
-\ProvidesPackage{reportkit-boxes}[2026/09/04 v1.2.0 ReportKit semantic boxes]
+\ProvidesPackage{reportkit-boxes}[2026/09/09 v1.3.0 ReportKit semantic boxes]
 \RequirePackage[most]{tcolorbox}
 \RequirePackage{xparse}
 \RequirePackage{needspace}
+\RequirePackage{etoolbox}
 
-\newtcolorbox{rk@callout}[3][]{%
-  enhanced,
-  breakable,
-  colback=Surface,
-  colframe=Hairline,
-  boxrule=.45pt,
-  leftrule=2.2pt,
-  arc=0pt,
-  outer arc=0pt,
-  left=8pt,right=8pt,top=6pt,bottom=6pt,
-  before skip=6pt,after skip=7pt,
-  borderline west={2.2pt}{0pt}{#2},
-  title={\sffamily\fontsize{7.3}{8.5}\selectfont\bfseries\color{#2}\MakeUppercase{#3}},
-  fonttitle=\sffamily,
-  coltitle=#2,
-  attach title to upper={\quad},
-  #1
+% \rk@theme is set by reportkit.cls before any semantic module loads (see
+% reportkit.cls's theme-selection block), so it is safe to branch on here.
+% This is a deliberate, narrow exception to "themes don't touch semantic
+% modules": the institutional-research theme spec (§21) asks specifically for
+% quieter callout chrome -- "thin left rule, small uppercase semantic label,
+% minimal background or none" -- and \newtcolorbox bakes its options in at
+% definition time, after the theme file has already loaded, so there is no
+% later hook a theme file could use to restyle this itself. Branching once,
+% here, keeps that restyling out of reportkit.cls/reportkit-core.sty (which
+% must stay theme-agnostic) without forking the whole module per theme. The
+% default branch below is byte-for-byte the pre-v1.3.0 definition.
+\ifdefstring{\rk@theme}{institutional-research}{%
+  % Quiet variant: no fill, no frame -- only the thin left rule and the
+  % small uppercase label carry the semantic marker. Category colors
+  % (Principle, Decision, RedFlag, ...) still come from the theme's palette;
+  % only the box chrome changes. See
+  % themes/reportkit-theme-institutional-research.sty's palette comment.
+  \newtcolorbox{rk@callout}[3][]{%
+    enhanced,
+    breakable,
+    colback=white,
+    colframe=white,
+    boxrule=0pt,
+    leftrule=1.1pt,
+    arc=0pt,
+    outer arc=0pt,
+    left=9pt,right=0pt,top=3pt,bottom=3pt,
+    before skip=6pt,after skip=7pt,
+    borderline west={1.1pt}{0pt}{#2},
+    title={\sffamily\fontsize{7}{8.4}\selectfont\bfseries\color{#2}\MakeUppercase{#3}},
+    fonttitle=\sffamily,
+    coltitle=#2,
+    attach title to upper={\quad},
+    #1
+  }
+}{%
+  \newtcolorbox{rk@callout}[3][]{%
+    enhanced,
+    breakable,
+    colback=Surface,
+    colframe=Hairline,
+    boxrule=.45pt,
+    leftrule=2.2pt,
+    arc=0pt,
+    outer arc=0pt,
+    left=8pt,right=8pt,top=6pt,bottom=6pt,
+    before skip=6pt,after skip=7pt,
+    borderline west={2.2pt}{0pt}{#2},
+    title={\sffamily\fontsize{7.3}{8.5}\selectfont\bfseries\color{#2}\MakeUppercase{#3}},
+    fonttitle=\sffamily,
+    coltitle=#2,
+    attach title to upper={\quad},
+    #1
+  }
 }
 
 \NewDocumentEnvironment{principle}{m}{\Needspace{6\baselineskip}\begin{rk@callout}{Principle}{PRINCIPLE\quad #1}}{\end{rk@callout}}

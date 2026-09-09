@@ -1,0 +1,286 @@
+% ReportKit theme: institutional-research -- Step 2 of the institutional
+% research theme + equity-research profile spec
+% (docs/superpowers/specs/2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md).
+% Owns typography, geometry, palette, and running furniture for the
+% institutional-research theme, per the theme/publication-type split
+% established in Step 1 (reportkit-core.sty + themes/reportkit-theme-default.sty).
+%
+% Selected via `\documentclass[theme=institutional-research]{reportkit}`.
+% This file does NOT implement the equity-research publication-type
+% primitives (researchfrontpage, exhibit, ratingstrip, etc.) -- those are
+% Step 3. A document that loads this theme alone (e.g.
+% publication-type=strategy-report, once that exists) gets institutional
+% typography/geometry/palette/furniture and plain \maketitle/\section/
+% \execsummary, exactly as theme=default gives today.
+%
+% Filename note: the spec's §2 target tree lists this file as
+% "reportkit-theme-institutional.sty", but reportkit.cls (Step 1) resolves
+% `theme=NAME` to package `reportkit-theme-NAME` by literal, regular
+% substitution (`\edef\rk@themepackage{reportkit-theme-\rk@theme}`), and
+% reportkit_viz.py's `check-theme --theme NAME` does the same
+% (`theme_file_for`). The theme identifier used everywhere else in the spec
+% and in Step 1 is `institutional-research`, not `institutional`. Special-
+% casing one theme's filename against that regular mapping would need a
+% carve-out in reportkit.cls, reportkit_viz.py, and (Step 3) the
+% publication-type loader -- three places -- to save one word in a file
+% name. This file is therefore named reportkit-theme-institutional-research.sty
+% to keep the identifier-to-filename mapping regular for every theme,
+% present and future. Recorded here, not just in the plan, because the
+% mismatch is easy to "fix" by accident later.
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{reportkit-theme-institutional-research}[2026/09/09 v1.7.0 ReportKit institutional-research theme]
+
+% -----------------------------------------------------------------------------
+% Engine guard (spec §4 / open question 1)
+% -----------------------------------------------------------------------------
+% config.py's theme_engine_conflict() already refuses to build this theme
+% under an engine other than lualatex (checked by `reportkit check` and
+% `reportkit build` before any compiler runs). This is the same rule
+% enforced a second time, at the TeX level, for anyone who invokes lualatex/
+% pdflatex directly on a document without going through the reportkit CLI.
+% Defense in depth, not a substitute for the Python-side check: see the
+% institutional-theme implementation plan, Step 1, OQ1.
+\RequirePackage{iftex}
+\RequirePackage{etoolbox}
+\ifPDFTeX
+  \PackageError{reportkit-theme-institutional-research}%
+    {The institutional-research theme requires LuaLaTeX (Google Sans is loaded via fontspec)}%
+    {Compile with lualatex, or set document.engine: lualatex in publication.yaml.}
+\fi
+
+% -----------------------------------------------------------------------------
+% Fonts (spec §4) -- Google Sans via fontspec, with a configurable local path
+% and fallback policy.
+% -----------------------------------------------------------------------------
+\RequirePackage{fontspec}
+
+% theme.font_family / theme.font_path / theme.font_policy from publication.yaml
+% (spec §3). These are ordinary macros, not class options, because they are
+% free-form strings/paths rather than an enumerated set, and because a
+% \documentclass option cannot carry a directory path cleanly. Set them with
+% the setter commands below, in the preamble, before \begin{document}: font
+% resolution runs in \AtBeginDocument (the same deferral reportkit-core.sty
+% already uses for hyperref's PDF-metadata block), so any setter call anywhere
+% in the preamble -- including one written by a future publication_build.py
+% integration -- takes effect no matter where in the preamble it runs.
+\newcommand{\rk@fontfamily}{Google Sans}
+\newcommand{\rk@fontpath}{}
+\newcommand{\rk@fontpolicy}{fallback}
+\newcommand{\setreportkitfontfamily}[1]{\renewcommand{\rk@fontfamily}{#1}}
+% font_path is a directory containing static Google Sans faces named
+% GoogleSans-Regular.ttf / GoogleSans-Bold.ttf, matching Appendix A's
+% \GoogleSansPath convention -- not an arbitrary single font file. Include
+% the trailing slash, e.g. \setreportkitfontpath{assets/fonts/}.
+\newcommand{\setreportkitfontpath}[1]{\renewcommand{\rk@fontpath}{#1}}
+% font_policy: strict (fail if Google Sans cannot be resolved) or fallback
+% (use the Inter / Noto Sans / TeX Gyre Heros chain and warn). See spec §4.
+\newcommand{\setreportkitfontpolicy}[1]{\renewcommand{\rk@fontpolicy}{#1}}
+
+\newcommand{\rk@installfont}[1]{\setmainfont{#1}\setsansfont{#1}}
+
+\newcommand{\rk@institutionalfontfallback}{%
+  \ifdefstring{\rk@fontpolicy}{strict}{%
+    \PackageError{reportkit-theme-institutional-research}%
+      {FAIL institutional-research requires \rk@fontfamily}%
+      {Install \rk@fontfamily\space system-wide, set theme.font_path to a directory containing it, or set theme.font_policy: fallback.}%
+  }{%
+    \IfFontExistsTF{Inter}{%
+      \rk@installfont{Inter}%
+      \PackageWarningNoLine{reportkit-theme-institutional-research}{WARN \rk@fontfamily\space unavailable; using Inter}%
+    }{%
+      \IfFontExistsTF{Noto Sans}{%
+        \rk@installfont{Noto Sans}%
+        \PackageWarningNoLine{reportkit-theme-institutional-research}{WARN \rk@fontfamily\space unavailable; using Noto Sans}%
+      }{%
+        \IfFontExistsTF{TeX Gyre Heros}{%
+          \rk@installfont{TeX Gyre Heros}%
+          \PackageWarningNoLine{reportkit-theme-institutional-research}{WARN \rk@fontfamily\space unavailable; using TeX Gyre Heros}%
+        }{%
+          \PackageError{reportkit-theme-institutional-research}%
+            {No usable font found (\rk@fontfamily\space and every fallback -- Inter, Noto Sans, TeX Gyre Heros -- are all unavailable)}%
+            {Install Google Sans, Inter, Noto Sans, or TeX Gyre Heros, or set theme.font_path.}%
+        }%
+      }%
+    }%
+  }%
+}
+
+\newcommand{\rk@resolveinstitutionalfont}{%
+  \edef\rk@fontpathval{\rk@fontpath}%
+  \ifx\rk@fontpathval\@empty
+    \IfFontExistsTF{\rk@fontfamily}{%
+      \rk@installfont{\rk@fontfamily}%
+      \PackageInfo{reportkit-theme-institutional-research}{PASS institutional-research font: \rk@fontfamily}%
+    }{%
+      \rk@institutionalfontfallback
+    }%
+  \else
+    \IfFileExists{\rk@fontpath GoogleSans-Regular.ttf}{%
+      \setmainfont{GoogleSans}[
+        Path=\rk@fontpath,Extension=.ttf,UprightFont=*-Regular,BoldFont=*-Bold,
+      ]%
+      \setsansfont{GoogleSans}[
+        Path=\rk@fontpath,Extension=.ttf,UprightFont=*-Regular,BoldFont=*-Bold,
+      ]%
+      \PackageInfo{reportkit-theme-institutional-research}{PASS institutional-research font: \rk@fontfamily\space (local path \rk@fontpath)}%
+    }{%
+      \PackageError{reportkit-theme-institutional-research}%
+        {theme.font_path \rk@fontpath\space does not contain GoogleSans-Regular.ttf}%
+        {Check theme.font_path in publication.yaml, or clear it to resolve \rk@fontfamily\space by name instead.}%
+    }%
+  \fi
+}
+\AtBeginDocument{\rk@resolveinstitutionalfont}
+
+% -----------------------------------------------------------------------------
+% Geometry (spec §6) -- US Letter, noticeably tighter than the default
+% theme's 27mm A4 margins, but looser than Appendix A's 0.42-0.48in prototype
+% margins (open question 5: §6 governs, not the prototype).
+% -----------------------------------------------------------------------------
+% The `a4paper` option passed to \LoadClass in reportkit.cls (Step 1's base-
+% size problem, deliberately unsolved for the base-size case -- see the
+% implementation plan) is irrelevant here: geometry's own paper option
+% recomputes \paperwidth/\paperheight and the PDF page size regardless of
+% what \LoadClass set, exactly as the default theme's late \geometry{a4paper,...}
+% call already relies on. No \LoadClass change is needed to get Letter paper.
+\geometry{letterpaper,left=14mm,right=14mm,top=14mm,bottom=15mm,headsep=6mm,footskip=8mm}
+
+% -----------------------------------------------------------------------------
+% Palette (spec §20) -- deliberately different hex values from the default
+% theme's palette (Ink #24272D / Muted #687386 / Hairline #D9DEE5 /
+% Surface #F7F8FA); both must coexist per-theme, which is why check-theme
+% became theme-parameterized in Step 1 (open question 2).
+% -----------------------------------------------------------------------------
+\definecolor{Ink}{HTML}{202124}
+\definecolor{Muted}{HTML}{6B7075}
+\definecolor{Hairline}{HTML}{D9DDE1}
+\definecolor{LightHairline}{HTML}{E6E8EA}
+\definecolor{Surface}{HTML}{F7F8F8}
+\definecolor{Accent}{HTML}{18A999}
+\definecolor{AccentPale}{HTML}{E8F7F4}
+% Secondary chart/exhibit series colors, named after Appendix A so the Step 4
+% Python chart theme and Step 3 risk/reward primitive can share these names.
+\definecolor{SeriesBlue}{HTML}{2477A7}
+\definecolor{SeriesGold}{HTML}{D6A84B}
+\definecolor{BullGreen}{HTML}{2C6E49}
+\definecolor{BearRed}{HTML}{A94343}
+\definecolor{LinkBlue}{HTML}{2477A7}
+
+% Semantic callout and metric colors (reportkit-boxes.sty). Kept at the same
+% hex values as the default theme deliberately: §21 asks the institutional
+% theme to restyle the *box chrome* (background, frame, rule weight) more
+% quietly, not to recolor each callout category -- the category colors are
+% still what a reader scans for once the box background is gone. See
+% reportkit-boxes.sty's \ifdefstring{\rk@theme}{institutional-research}
+% branch for the chrome change itself.
+\definecolor{Principle}{HTML}{2C5E78}
+\definecolor{Decision}{HTML}{68558A}
+\definecolor{Research}{HTML}{2B7074}
+\definecolor{Tip}{HTML}{3F6D54}
+\definecolor{RedFlag}{HTML}{A14B45}
+\definecolor{Assumption}{HTML}{8A6A24}
+\definecolor{Evidence}{HTML}{4B6472}
+\definecolor{Limitation}{HTML}{6E6A67}
+\definecolor{Deliverable}{HTML}{2C6E49}
+\definecolor{MetricAccent}{HTML}{18A999}
+
+\color{Ink}
+\hypersetup{colorlinks=true,linkcolor=LinkBlue,urlcolor=LinkBlue,citecolor=LinkBlue,pdfborder={0 0 0},pdfdisplaydoctitle=true}
+
+% -----------------------------------------------------------------------------
+% Type scale (spec §5)
+% -----------------------------------------------------------------------------
+% Base font size: article's `10pt` \LoadClass option (Step 1 left this
+% unsolved for institutional use -- see the implementation plan's "base
+% font size" deferred item) is overridden directly here rather than by
+% redirecting \LoadClass options, per the plan's recommendation: every other
+% element below already sets an explicit \fontsize, so \normalsize is the
+% only class-relative size institutional body text actually depends on.
+\renewcommand{\normalsize}{\@setfontsize{\normalsize}{10.7pt}{14.6pt}}
+\normalsize
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{5.5pt plus 1pt minus .5pt}
+\setlist{nosep,leftmargin=1.3em,topsep=3pt}
+\sisetup{detect-all=true,group-separator={,}}
+\captionsetup{font=small,labelfont=bf,labelsep=period,singlelinecheck=false,skip=4pt}
+\renewcommand{\arraystretch}{1.05}
+
+% Named size commands for the full §5 scale. Main-narrative body text never
+% inherits sidebar sizing (and vice versa) because every consumer -- Step 3's
+% equity-research primitives, in particular -- selects one of these
+% explicitly rather than relying on \normalsize/\small/\footnotesize, whose
+% relative-to-10pt scaling from the \LoadClass option above was not
+% individually re-tuned for this theme.
+\newcommand{\rkmastheadsize}{\fontsize{8pt}{10pt}\selectfont}
+\newcommand{\rksectorkickersize}{\fontsize{9pt}{11pt}\selectfont}
+\newcommand{\rkheadlinesize}{\fontsize{23pt}{26pt}\selectfont}
+\newcommand{\rkdecksize}{\fontsize{11.5pt}{15pt}\selectfont}
+\newcommand{\rkratingvaluesize}{\fontsize{12pt}{14pt}\selectfont}
+\newcommand{\rksectionheadingsize}{\fontsize{15pt}{18pt}\selectfont}
+\newcommand{\rksubsectionsize}{\fontsize{12pt}{15pt}\selectfont}
+\newcommand{\rkbodysize}{\fontsize{10.7pt}{14.6pt}\selectfont}
+\newcommand{\rkexhibitheadlinesize}{\fontsize{9.5pt}{12pt}\selectfont}
+\newcommand{\rksidebarsize}{\fontsize{7.6pt}{9.5pt}\selectfont}
+\newcommand{\rktablebodysize}{\fontsize{8pt}{10pt}\selectfont}
+\newcommand{\rksourcesize}{\fontsize{7pt}{8.5pt}\selectfont}
+\newcommand{\rkdisclosuresize}{\fontsize{6.75pt}{8.2pt}\selectfont}
+
+% -----------------------------------------------------------------------------
+% Running furniture (spec §19) -- hairlines, no boxed regions.
+% -----------------------------------------------------------------------------
+\setlength{\headheight}{16pt}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\sffamily\fontsize{7.4}{9}\selectfont\bfseries\color{Muted}\MakeUppercase{\rk@leftheader}}
+\fancyhead[R]{\sffamily\fontsize{7.4}{9}\selectfont\color{Muted}\nouppercase{\leftmark}}
+\fancyfoot[L]{\sffamily\fontsize{7pt}{8.5pt}\selectfont\color{Muted}\rk@footer\ \textperiodcentered\ \rk@version}
+\fancyfoot[R]{\sffamily\fontsize{7pt}{8.5pt}\selectfont\color{Muted}\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0pt}
+\renewcommand{\headrule}{\hbox to\headwidth{\color{Hairline}\leaders\hrule height \headrulewidth\hfill}}
+
+% -----------------------------------------------------------------------------
+% Section hierarchy (spec §5, §20) -- weight and size establish hierarchy,
+% not color: unlike the default theme, section numbers are not accent-colored
+% ("Do not use accent on every section heading", §20).
+% -----------------------------------------------------------------------------
+\newcommand{\RKSectionNeed}{13\baselineskip}
+\newcommand{\RKSubsectionNeed}{6\baselineskip}
+
+\titleformat{\section}{\Needspace{\RKSectionNeed}\sffamily\bfseries\rksectionheadingsize\color{Ink}}{\thesection}{0.7em}{}
+\titlespacing*{\section}{0pt}{14pt plus 3pt minus 2pt}{6pt}
+\titleformat{\subsection}{\Needspace{\RKSubsectionNeed}\sffamily\bfseries\rksubsectionsize\color{Ink}}{\thesubsection}{0.6em}{}
+\titlespacing*{\subsection}{0pt}{11pt plus 2pt minus 2pt}{4pt}
+
+% -----------------------------------------------------------------------------
+% Title and executive summary -- generic (non-equity-research) entry points.
+% Step 3's researchfrontpage/researchheadline/etc. are the equity-research
+% publication-type's own front matter; this \maketitle is what a plain
+% institutional-research document (e.g. a future strategy-report
+% publication-type) gets instead.
+% -----------------------------------------------------------------------------
+\renewcommand{\maketitle}{%
+  \thispagestyle{fancy}%
+  \vspace*{2mm}%
+  {\sffamily\rkmastheadsize\bfseries\color{Accent}\MakeUppercase{\rk@leftheader}\par}%
+  \vspace{5mm}%
+  {\sffamily\bfseries\rkheadlinesize\color{Ink}\@title\par}%
+  \vspace{3mm}%
+  \ifx\@author\@empty\else{\sffamily\rksidebarsize\color{Muted}\@author}\fi
+  \ifx\@date\@empty\else{\sffamily\rksidebarsize\color{Muted}\quad\textperiodcentered\quad\@date}\fi
+  \par\vspace{6mm}\color{Hairline}\hrule\color{Ink}\vspace{6mm}%
+}
+
+\NewDocumentEnvironment{execsummary}{}{%
+  \par\Needspace{7\baselineskip}%
+  \begin{list}{}{\setlength{\leftmargin}{0pt}\setlength{\rightmargin}{0pt}}\item\relax
+  \color{Ink}\sffamily\rksubsectionsize\textbf{EXECUTIVE SUMMARY}\par\vspace{2pt}\rmfamily\rkbodysize
+}{%
+  \end{list}\vspace{3pt}
+}
+
+% Figure/table provenance helper -- quieter than the default theme's, per
+% §16's "muted source line" table rule (applies equally to figures).
+\newcommand{\source}[1]{\par\vspace{1pt}{\sffamily\rksourcesize\color{Muted}Source: #1}\par}
+
+\endinput

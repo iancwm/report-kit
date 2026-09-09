@@ -20,13 +20,24 @@ DOCUMENT_KEYS = ("main", "class", "engine", "theme", "publication_type", "paper"
 THEME_ENGINE_REQUIREMENTS: dict[str, str] = {
     "institutional-research": "lualatex",
 }
+# Optional theme-level knobs (spec §3). These are validated and resolved
+# here so `reportkit check`/`reportkit context` know about them, but nothing
+# yet writes them out as LaTeX macros the way document identity fields are
+# written by publication_build.py's write_metadata(): every existing
+# latex_templates/examples/*/report.tex sets \setreportkitfontfamily etc.
+# directly in the .tex source (the same way it sets \setreportkitleftheader),
+# not through the publication_pipeline's markdown pipeline. Wiring
+# theme.font_* into that pipeline's generated metadata.tex, if ever needed,
+# is unstarted follow-up, not a Step 2 requirement -- see the
+# institutional-theme implementation plan.
+THEME_KEYS = ("font_family", "font_path", "font_policy")
 VALIDATION_KEYS = (
     "fail_on_undefined_refs", "fail_on_missing_assets",
     "overfull_hbox_threshold", "underfull_badness_threshold",
 )
 OUTPUT_KEYS = ("directory",)
-KNOWN = IDENTITY_KEYS + DOCUMENT_KEYS + VALIDATION_KEYS + OUTPUT_KEYS
-SECTIONS = ("publication", "document", "profiles", "validation", "output")
+KNOWN = IDENTITY_KEYS + DOCUMENT_KEYS + VALIDATION_KEYS + OUTPUT_KEYS + THEME_KEYS
+SECTIONS = ("publication", "document", "theme", "profiles", "validation", "output")
 
 
 def _strip_comment(value: str) -> str:
@@ -218,6 +229,7 @@ def _known_for(section: str) -> tuple[str, ...]:
     return {
         "publication": IDENTITY_KEYS,
         "document": DOCUMENT_KEYS,
+        "theme": THEME_KEYS,
         "validation": VALIDATION_KEYS,
         "output": OUTPUT_KEYS,
     }.get(section, KNOWN)
@@ -238,7 +250,7 @@ def _validate_and_normalize(raw: dict[str, Any], source: Path) -> dict[str, Any]
     if unknown_top:
         key = sorted(unknown_top)[0]
         raise ValueError(f"{source}: unknown key {key}; known keys: {', '.join(SECTIONS)}")
-    for section in ("publication", "document", "validation", "output"):
+    for section in ("publication", "document", "theme", "validation", "output"):
         value = raw.get(section)
         if value is not None and not isinstance(value, dict):
             raise ValueError(f"{source}: {section} must be a mapping")
@@ -317,6 +329,7 @@ def _profile_section(config: dict[str, Any], name: str, profile: str | None) -> 
         values.update(profile_values.get(name) or {})
         allowed = {
             "document": DOCUMENT_KEYS,
+            "theme": THEME_KEYS,
             "validation": VALIDATION_KEYS,
             "output": OUTPUT_KEYS,
         }.get(name, ())
@@ -356,6 +369,32 @@ def theme_engine_conflict(document: dict[str, Any]) -> str | None:
         f"{engine!r}. Set document.engine: {required} in publication.yaml, or pass "
         f"--engine {required}."
     )
+
+
+def resolve_theme(config: dict[str, Any], profile: str | None = None) -> dict[str, Any]:
+    """Resolve the optional `theme:` section (spec §3): font_family/font_path/
+    font_policy. Distinct from `document.theme` (the theme *name*, resolved
+    by resolve_document) -- this is that theme's own optional configuration.
+    """
+    theme = _profile_section(config, "theme", profile)
+    theme.setdefault("font_family", "Google Sans")
+    theme.setdefault("font_path", "")
+    theme.setdefault("font_policy", "fallback")
+    return theme
+
+
+def theme_font_policy_conflict(theme: dict[str, Any]) -> str | None:
+    """Return an error message if the resolved theme.font_policy (spec §3)
+    isn't one of the two values ReportKit's LaTeX theme files understand
+    (strict/fallback), or None if it's fine. Mirrors theme_engine_conflict's
+    "validate and fail rather than silently degrade" approach, since an
+    unrecognized policy would otherwise reach \\ifdefstring in the .sty file
+    and silently take the fallback branch regardless of what was requested.
+    """
+    policy = str(theme.get("font_policy") or "fallback")
+    if policy not in ("strict", "fallback"):
+        return f"theme.font_policy {policy!r} is not recognized; use 'strict' or 'fallback'."
+    return None
 
 
 def resolve_validation(config: dict[str, Any], profile: str | None = None) -> dict[str, Any]:

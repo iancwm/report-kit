@@ -20,7 +20,7 @@ for why.
 | [2026-09-07-documentation-and-status-tracking-cleanup-design.md](docs/superpowers/specs/2026-09-07-documentation-and-status-tracking-cleanup-design.md) | Approved | Process |
 | [2026-09-07-documentation-and-status-tracking-cleanup.md](docs/superpowers/plans/2026-09-07-documentation-and-status-tracking-cleanup.md) | Done — merged via PR #7 (`965443b`) | Process |
 | [2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md](docs/superpowers/specs/2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md) | Draft; open questions resolved in the plan below | P2 |
-| [2026-09-09-reportkit-institutional-theme-implementation-plan.md](docs/superpowers/plans/2026-09-09-reportkit-institutional-theme-implementation-plan.md) | Step 1 of 5 implemented (theme infrastructure); Steps 2–5 not started | P2 |
+| [2026-09-09-reportkit-institutional-theme-implementation-plan.md](docs/superpowers/plans/2026-09-09-reportkit-institutional-theme-implementation-plan.md) | Steps 1–4 of 5 implemented (theme infrastructure, institutional theme, equity publication profile, visualization integration); Step 5 not started | P2 |
 
 ## Open work
 
@@ -45,13 +45,42 @@ for why.
   typography/geometry/palette/furniture to a selected theme file under
   `latex_templates/themes/`; `publication.yaml` gains `document.theme`,
   `.publication_type`, `.paper`; `reportkit check`/`build` refuse to build a
-  theme against an engine that can't render it. **Unverified by
-  compilation** — the implementing session had no TeX Live install. Run
-  `bash scripts/acceptance_check.sh --require-tex` and diff
+  theme against an engine that can't render it. **Step 2 (institutional
+  theme) implemented 2026-09-09**: new
+  `themes/reportkit-theme-institutional-research.sty` — Letter geometry,
+  Google Sans via fontspec with `font_policy: strict`/`fallback`, the
+  spec's full §5 type scale, and quieter semantic callouts
+  (`reportkit-boxes.sty` now branches its box chrome on `\rk@theme`).
+  `publication.yaml` gains an optional top-level `theme:` section
+  (`font_family`/`font_path`/`font_policy`). **Step 3 (equity publication
+  profile) implemented 2026-09-09**: new
+  `publication_types/reportkit-equity-research.sty`, loaded via
+  `publication-type=equity-research` — front page
+  (`researchfrontpage`/`researchkicker`/`researchheadline`/`researchdeck`),
+  rating strip, sidebar blocks, what's-changed, the exhibit system
+  (`exhibit`/`fullwidthexhibit`/`exhibitgrid`/`exhibitpair`), table grammar,
+  a dense financial-model-page mode, and bull/base/bear risk-reward
+  primitives. **Step 4 (visualization integration) implemented
+  2026-09-09**: new `python_scripts/reportkit/themes/` package
+  (`default.py`/`institutional_research.py`); `reportkit_viz.apply_theme
+  (name)` now genuinely switches theme (colors, `TEXT_WIDTH_IN`,
+  `FIGURE_SIZES`, fonts, mathtext) at runtime; `check-theme` is now
+  correctly theme-aware end-to-end (`--theme institutional-research`
+  passes); new `risk_reward_chart()`; fixed a latent theme-switching bug in
+  `annotate_point`/`shade_period`. **Unlike Steps 1–3, Step 4's Python code
+  was actually executed and tested in this session** (matplotlib/numpy/
+  pandas are installed here) — not just statically checked; see the plan's
+  Step 4 section for what was run. **Steps 1–3 (the LaTeX-side work) remain
+  unverified by compilation** — no session so far has had a TeX Live
+  install. Run `bash scripts/acceptance_check.sh --require-tex`, diff
   `latex_templates/examples/career_guide_en/report.tex`'s compiled output
-  against its pre-change PDF before trusting this on a machine with TeX.
-  Steps 2–5 (the institutional theme itself, the equity-research profile,
-  visualization integration, and fixtures/QA) are not started. See
+  against its pre-Step-1 PDF, and compile a minimal
+  `\documentclass[theme=institutional-research,
+  publication-type=equity-research]{reportkit}` smoke document exercising
+  every Step 3 primitive with `lualatex` before trusting any of them on a
+  machine with TeX. Step 5 (fixtures/QA/skill guidance -- including the
+  four-page equity-research example, which is also where Steps 1–3 finally
+  get a real compile) is not started. See
   [the implementation plan](docs/superpowers/plans/2026-09-09-reportkit-institutional-theme-implementation-plan.md).
 
 ### P3
@@ -76,6 +105,25 @@ for why.
 
 ## History
 
+- 2026-09-09: institutional-theme spec's Step 4 (visualization integration)
+  implemented on `claude/institutional-template-spec-m6imf7` -- a new
+  `reportkit.themes` Python package, a genuinely theme-switching
+  `reportkit_viz.apply_theme(name)`, a theme-aware `check-theme` CLI, and a
+  new `risk_reward_chart()`. Actually executed and tested in this session
+  (matplotlib/numpy/pandas installed) -- unlike Steps 1-3, not blind. See
+  the plan's own Step 4 section for what was run.
+- 2026-09-09: institutional-theme spec's Step 3 (equity publication profile)
+  implemented on `claude/institutional-template-spec-m6imf7` -- front page,
+  rating strip, sidebar, what's-changed, exhibit system, table grammar,
+  dense financial-model mode, and bull/base/bear risk-reward primitives.
+  Not compiled -- no TeX Live in the implementing session; see the P2 entry
+  above and the plan's own verification section.
+- 2026-09-09: institutional-theme spec's Step 2 (institutional theme)
+  implemented on `claude/institutional-template-spec-m6imf7` -- Letter
+  geometry, Google Sans resolution, the spec's §5 type scale, and quieter
+  semantic callouts. Not compiled -- no TeX Live in the implementing
+  session either; see the P2 entry above and the plan's own verification
+  section.
 - 2026-09-09: institutional-theme spec's Step 1 (theme infrastructure)
   implemented on `claude/vnext-spec-execution-wppmkl`, with the spec's eight
   open questions resolved in a companion implementation plan first, as the

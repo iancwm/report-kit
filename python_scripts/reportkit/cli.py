@@ -14,7 +14,15 @@ from typing import Any
 
 from .analysis import analyse_history
 from .authoring import validate_authoring
-from .config import CONFIG_NAME, load_publication_config, resolve_document, resolve_identity, theme_engine_conflict
+from .config import (
+    CONFIG_NAME,
+    load_publication_config,
+    resolve_document,
+    resolve_identity,
+    resolve_theme,
+    theme_engine_conflict,
+    theme_font_policy_conflict,
+)
 from .context import build_context
 from .diagnostics import inspect_log, load_allowlist, load_maps
 from .registry import COMMANDS
@@ -85,6 +93,9 @@ def _run_check(args: argparse.Namespace) -> int:
     conflict = theme_engine_conflict(document)
     if conflict:
         errors.append(conflict)
+    font_policy_conflict = theme_font_policy_conflict(resolve_theme(config, args.profile))
+    if font_policy_conflict:
+        errors.append(font_policy_conflict)
     payload = {
         "passed": not errors,
         "errors": errors,

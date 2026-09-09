@@ -7,6 +7,44 @@ tags on this repository, not a published package registry.
 ## [Unreleased]
 
 ### Added
+- Theme-aware visualization layer: `reportkit_viz.apply_theme(name)` now
+  actually switches theme at runtime (colors, `TEXT_WIDTH_IN`,
+  `FIGURE_SIZES`, fonts, mathtext) via a new `reportkit.themes` Python
+  package (`default`/`institutional-research`, mirroring the LaTeX theme
+  names); `check-theme --theme institutional-research` is now genuinely
+  synchronized instead of honestly failing against the wrong palette; new
+  `risk_reward_chart()` for the bear/base/bull exhibit
+  (`reportkit-equity-research.sty`'s `\bullcase`/`\basecase`/`\bearcase`
+  expect its output). `FIGURE_SIZES` gains `dominant` (alias of `wide`,
+  which stays) and `half` (sized for a half-width exhibit pane) for both
+  themes. Fourth step of the institutional-research theme + equity-research
+  publication-type work; see
+  `docs/superpowers/plans/2026-09-09-reportkit-institutional-theme-implementation-plan.md`.
+- Equity-research publication type (v1.8.0):
+  `publication-type=equity-research`
+  (`latex_templates/publication_types/reportkit-equity-research.sty`) adds
+  the research front page (`researchfrontpage`/`researchkicker`/
+  `researchheadline`/`researchdeck`), a rating strip, sidebar blocks
+  (`analystblock`/`marketdatablock`/`estimatesblock`), a `whatschanged`
+  primitive, the `exhibit` system with `fullwidthexhibit`/`exhibitgrid`/
+  `exhibitpair` compositions, an institutional `financialtable` grammar, a
+  dense `financialmodelpage` mode, and `\bullcase`/`\basecase`/`\bearcase`
+  risk-reward primitives. Currently requires
+  `theme=institutional-research` (checked at load time with a clear error).
+  Third step of the institutional-research theme + equity-research
+  publication-type work; see
+  `docs/superpowers/plans/2026-09-09-reportkit-institutional-theme-implementation-plan.md`.
+- Institutional-research theme (v1.7.0): `theme=institutional-research`
+  (`latex_templates/themes/reportkit-theme-institutional-research.sty`) adds
+  US Letter geometry, Google Sans resolution via `fontspec`
+  (`theme.font_family`/`font_path`/`font_policy: strict`/`fallback` in
+  `publication.yaml`, with an Inter → Noto Sans → TeX Gyre Heros fallback
+  chain), the spec's full type scale, and quieter semantic callouts
+  (`reportkit-boxes.sty` now themes its callout chrome). Requires
+  `lualatex`; `reportkit check`/`build` and the theme file itself both
+  refuse to build it under any other engine. Second step of the
+  institutional-research theme + equity-research publication-type work; see
+  `docs/superpowers/plans/2026-09-09-reportkit-institutional-theme-implementation-plan.md`.
 - Theme architecture (v1.6.0): typography, geometry, palette, and running
   furniture moved out of `reportkit.cls` into a selected theme file under
   `latex_templates/themes/`. `\documentclass{reportkit}` (or

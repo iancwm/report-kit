@@ -5,7 +5,7 @@ from pathlib import Path
 import subprocess
 from typing import Any
 
-from .config import load_publication_config, resolve_document
+from .config import load_publication_config, resolve_document, resolve_theme
 from .registry import COMMANDS, generate_registry
 
 
@@ -26,6 +26,7 @@ def build_context(repo_root: Path | None = None, source_root: Path | None = None
     version = _git(repo_root, "describe", "--tags", "--always")
     class_version = registry.pop("class_version")
     document = resolve_document(config, profile)
+    theme_config = resolve_theme(config, profile)
     result: dict[str, Any] = {
         "version": version,
         "document": {
@@ -33,6 +34,11 @@ def build_context(repo_root: Path | None = None, source_root: Path | None = None
             "theme": document.get("theme", "default"),
             "publication_type": document.get("publication_type", "technical-report"),
             "paper": document.get("paper", "a4"),
+        },
+        "theme_config": {
+            "font_family": theme_config.get("font_family", "Google Sans"),
+            "font_path": theme_config.get("font_path", ""),
+            "font_policy": theme_config.get("font_policy", "fallback"),
         },
         "components": {
             "figures": registry.pop("figures"),
