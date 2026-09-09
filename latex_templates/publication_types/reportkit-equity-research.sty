@@ -112,11 +112,23 @@
   \IfNoValueTF{#1}{%
     \setcounter{rk@ratingitemcount}{3}%
   }{%
-    \setcounter{rk@ratingitemcount}{#1}%
+    % Parse itemcount=N format by checking if the parameter contains '='
+    % If it does, extract the number after the '='; otherwise use it as-is.
+    \expandafter\@ratingstrip@parsecount#1=\relax
   }%
   {\color{Hairline}\hrule height 0.4pt}\par\vspace{5pt}\noindent
 }{%
   \par\vspace{3pt}{\color{Hairline}\hrule height 0.4pt}\par\vspace{6pt}%
+}
+
+\def\@ratingstrip@parsecount#1=#2\relax{%
+  \ifx\relax#2\relax
+    % No '=' found, #1 is the number directly
+    \setcounter{rk@ratingitemcount}{#1}%
+  \else
+    % '=' found, #2 is the part after '='
+    \setcounter{rk@ratingitemcount}{#2}%
+  \fi
 }
 
 \NewDocumentCommand{\ratingitem}{m m}{%
