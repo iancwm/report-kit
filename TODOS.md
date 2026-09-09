@@ -21,6 +21,7 @@ for why.
 | [2026-09-07-documentation-and-status-tracking-cleanup.md](docs/superpowers/plans/2026-09-07-documentation-and-status-tracking-cleanup.md) | Done — merged via PR #7 (`965443b`) | Process |
 | [2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md](docs/superpowers/specs/2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md) | Implemented (Steps 1–5); open questions resolved in the plan below | P2 |
 | [2026-09-09-reportkit-institutional-theme-implementation-plan.md](docs/superpowers/plans/2026-09-09-reportkit-institutional-theme-implementation-plan.md) | Steps 1–5 of 5 implemented (theme infrastructure, institutional theme, equity publication profile, visualization integration, fixtures/QA/skill guidance); pending real-TeX verification | P2 |
+| [2026-09-09-reportkit-multi-format-publication-architecture-spec.md](docs/superpowers/specs/2026-09-09-reportkit-multi-format-publication-architecture-spec.md) | Draft / not started — architecture hardening ahead of new themes; 6 open questions | P2 |
 
 ## Open work
 
@@ -96,6 +97,25 @@ for why.
   review against the printed spec §25 checklist before committing the
   resulting baseline. See
   [the implementation plan](docs/superpowers/plans/2026-09-09-reportkit-institutional-theme-implementation-plan.md).
+
+- **Multi-format publication architecture — spec drafted 2026-09-09, not
+  started.** Generalizes the v1.8 institutional/equity implementation into a
+  renderer- and theme-safe architecture before adding executive, venture or
+  editorial themes: a publication/renderer registry, hard-failing
+  theme×publication-type validation, a shared/paged core split, callout and
+  diagram styling moved behind theme hooks, and publication-aware pipeline
+  template selection. Verification against the tree at `7d8c0fe` surfaced two
+  defects the draft understated and this spec now treats as in-scope bug
+  fixes: (a) `reportkit.cls:46` forwards unknown options to `article`, so
+  `theme=venture` compiles to a *warning* and a silently default-themed PDF
+  rather than an error; (b) `document.theme`/`.publication_type` are resolved
+  and engine-validated in Python but never reach `\documentclass` — the
+  pipeline template hardcodes an unparameterized `\documentclass{reportkit}`,
+  which is why the equity fixture is compiled directly instead of through the
+  markdown pipeline. Phase A also has to close the standing `lualatex` gap
+  above, since this phase would otherwise add three themes and a second
+  renderer on top of unverified compiles. See
+  [the spec](docs/superpowers/specs/2026-09-09-reportkit-multi-format-publication-architecture-spec.md).
 
 ### P3
 
