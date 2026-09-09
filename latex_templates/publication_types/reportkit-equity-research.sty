@@ -98,10 +98,22 @@
 % price target is not rendered as a giant KPI (it shares \rkratingvaluesize
 % with every other item in the strip).
 % -----------------------------------------------------------------------------
+% Rating strip (spec §9) with dynamic item width support (spec §29.1).
+% Instead of hardcoded minipage widths, use pgfmathsetmacro to compute
+% 1/itemcount × \linewidth, supporting 3–4 items without overflow.
 \newcounter{rkratingitem}
-\NewDocumentEnvironment{ratingstrip}{}{%
+\newcounter{rk@ratingitemcount}
+
+\NewDocumentEnvironment{ratingstrip}{o}{%
   \par\Needspace{4\baselineskip}\noindent
   \setcounter{rkratingitem}{0}%
+  % Optional parameter: [itemcount=N] for explicit N (3 or 4).
+  % Default: 3 (backward compatible with existing 3-item usage).
+  \IfNoValueTF{#1}{%
+    \setcounter{rk@ratingitemcount}{3}%
+  }{%
+    \setcounter{rk@ratingitemcount}{#1}%
+  }%
   {\color{Hairline}\hrule height 0.4pt}\par\vspace{5pt}\noindent
 }{%
   \par\vspace{3pt}{\color{Hairline}\hrule height 0.4pt}\par\vspace{6pt}%
@@ -110,7 +122,9 @@
 \NewDocumentCommand{\ratingitem}{m m}{%
   \stepcounter{rkratingitem}%
   \ifnum\value{rkratingitem}>1\quad{\color{Hairline}\vrule width 0.4pt}\quad\fi
-  \begin{minipage}[t]{0.29\linewidth}%
+  % Dynamically compute width: 1 / itemcount \linewidth
+  \pgfmathsetmacro{\rk@itemwidth}{1 / \value{rk@ratingitemcount}}%
+  \begin{minipage}[t]{\rk@itemwidth\linewidth}%
     {\sffamily\rksidebarsize\color{Muted}\MakeUppercase{#1}\par}%
     \vspace{1pt}{\sffamily\bfseries\rkratingvaluesize\color{Ink}#2\par}%
   \end{minipage}%
