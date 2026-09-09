@@ -78,8 +78,10 @@ from reportkit.config import (  # noqa: E402
     load_publication_config,
     resolve_document,
     resolve_identity,
+    resolve_theme,
     resolve_validation,
     theme_engine_conflict,
+    theme_font_policy_conflict,
 )
 from reportkit.manifest import unique_build_id, write_report  # noqa: E402
 
@@ -261,6 +263,10 @@ def build(args: argparse.Namespace) -> int:
     conflict = theme_engine_conflict({**document, "engine": engine})
     if conflict:
         print(f"publication config: {conflict}", file=sys.stderr)
+        return 2
+    font_policy_conflict = theme_font_policy_conflict(resolve_theme(config, profile))
+    if font_policy_conflict:
+        print(f"publication config: {font_policy_conflict}", file=sys.stderr)
         return 2
     entries = order_entries(source_root)
     if args.mode == "section":

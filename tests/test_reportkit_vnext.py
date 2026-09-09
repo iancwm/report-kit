@@ -5,7 +5,14 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "python_scripts"))
 
-from reportkit.config import load_publication_config, resolve_document, resolve_identity, theme_engine_conflict
+from reportkit.config import (
+    load_publication_config,
+    resolve_document,
+    resolve_identity,
+    resolve_theme,
+    theme_engine_conflict,
+    theme_font_policy_conflict,
+)
 from reportkit.diagnostics import inspect_log
 from reportkit.registry import check_skill_drift, generate_registry
 
@@ -110,6 +117,87 @@ def test_theme_files_moved_out_of_reportkit_cls() -> None:
     assert "\\definecolor{Ink}" in theme_text
 
 
+def test_resolve_theme_defaults() -> None:
+    theme = resolve_theme({})
+    assert theme["font_family"] == "Google Sans"
+    assert theme["font_path"] == ""
+    assert theme["font_policy"] == "fallback"
+
+
+def test_resolve_theme_reads_nested_theme_section(tmp_path: Path) -> None:
+    path = tmp_path / "publication.yaml"
+    path.write_text(
+        "publication:\n  title: T\n"
+        "theme:\n  font_family: Google Sans\n  font_policy: strict\n",
+        encoding="utf-8",
+    )
+    theme = resolve_theme(load_publication_config(path))
+    assert theme["font_family"] == "Google Sans"
+    assert theme["font_policy"] == "strict"
+    assert theme["font_path"] == ""
+
+
+def test_theme_font_policy_conflict_none_for_known_values() -> None:
+    assert theme_font_policy_conflict(resolve_theme({})) is None
+    assert theme_font_policy_conflict({"font_policy": "strict"}) is None
+
+
+def test_theme_font_policy_conflict_flags_unknown_value() -> None:
+    message = theme_font_policy_conflict({"font_policy": "loose"})
+    assert message is not None
+    assert "loose" in message
+
+
+def test_theme_section_rejects_unknown_key(tmp_path: Path) -> None:
+    path = tmp_path / "publication.yaml"
+    path.write_text("publication:\n  title: T\ntheme:\n  font_weight: bold\n", encoding="utf-8")
+    with pytest.raises(ValueError, match=r"theme\.font_weight"):
+        load_publication_config(path)
+
+
+def test_reportkit_cls_declares_institutional_research_theme_option() -> None:
+    cls_text = (REPO / "latex_templates" / "reportkit.cls").read_text(encoding="utf-8")
+    assert r"\DeclareOption{theme=institutional-research}" in cls_text
+
+
+def test_institutional_theme_file_uses_regular_naming() -> None:
+    """The theme identifier is `institutional-research`, which is what
+    reportkit.cls's \\edef\\rk@themepackage{reportkit-theme-\\rk@theme} and
+    reportkit_viz.py's theme_file_for() both resolve to by literal
+    substitution -- so the file must be named accordingly, not
+    reportkit-theme-institutional.sty (spec §2's tree; see the
+    implementation plan's filename-note)."""
+    path = REPO / "latex_templates" / "themes" / "reportkit-theme-institutional-research.sty"
+    assert path.is_file()
+    assert not (REPO / "latex_templates" / "themes" / "reportkit-theme-institutional.sty").exists()
+
+
+def test_institutional_theme_uses_letter_geometry_and_type_scale() -> None:
+    theme_text = (REPO / "latex_templates" / "themes" / "reportkit-theme-institutional-research.sty").read_text(encoding="utf-8")
+    assert "letterpaper" in theme_text
+    assert r"\definecolor{Ink}{HTML}{202124}" in theme_text
+    assert r"\definecolor{Accent}{HTML}{18A999}" in theme_text
+    assert "10.7pt" in theme_text and "14.6pt" in theme_text
+
+
+def test_institutional_theme_guards_against_pdftex() -> None:
+    theme_text = (REPO / "latex_templates" / "themes" / "reportkit-theme-institutional-research.sty").read_text(encoding="utf-8")
+    assert r"\ifPDFTeX" in theme_text
+    assert "requires LuaLaTeX" in theme_text
+
+
+def test_reportkit_boxes_default_theme_unchanged() -> None:
+    """The institutional-theme branch added to reportkit-boxes.sty must not
+    change the default theme's callout chrome: colback=Surface with a
+    boxed frame stays the default (theme=default / no theme=) behaviour."""
+    boxes_text = (REPO / "latex_templates" / "reportkit-boxes.sty").read_text(encoding="utf-8")
+    assert "colback=Surface" in boxes_text
+    assert "colframe=Hairline" in boxes_text
+    # The quiet institutional variant coexists, gated on \rk@theme.
+    assert r"\ifdefstring{\rk@theme}{institutional-research}" in boxes_text
+    assert "colback=white" in boxes_text
+
+
 def test_check_theme_resolves_default_theme_file() -> None:
     pytest.importorskip("matplotlib")
     pytest.importorskip("numpy")
@@ -119,6 +207,24 @@ def test_check_theme_resolves_default_theme_file() -> None:
     path = reportkit_viz.theme_file_for("default", REPO)
     assert path == REPO / "latex_templates" / "themes" / "reportkit-theme-default.sty"
     assert reportkit_viz.validate_palette_against_latex(path) == []
+
+
+def test_check_theme_institutional_honestly_fails_until_step4() -> None:
+    """OQ2's resolution (Step 1 plan): check-theme becomes theme-parameterized
+    immediately, but a per-theme Python palette (reportkit.themes.*) is Step 4
+    work. Until that lands, --theme institutional-research compares the
+    institutional LaTeX palette against the *default* Python palette and
+    should fail -- an honest failure, not a false pass. This test pins that
+    expectation so it fails loudly (and gets deleted) the moment Step 4 adds
+    a real institutional-research Python palette."""
+    pytest.importorskip("matplotlib")
+    pytest.importorskip("numpy")
+    pytest.importorskip("pandas")
+    import reportkit_viz  # noqa: PLC0415
+
+    path = reportkit_viz.theme_file_for("institutional-research", REPO)
+    assert path == REPO / "latex_templates" / "themes" / "reportkit-theme-institutional-research.sty"
+    assert reportkit_viz.validate_palette_against_latex(path) != []
     # reportkit.cls itself no longer carries the palette, so checking it
     # directly (the pre-v1.6 default) must report every color missing.
     old_default = REPO / "latex_templates" / "reportkit.cls"

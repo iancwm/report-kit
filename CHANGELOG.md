@@ -7,6 +7,17 @@ tags on this repository, not a published package registry.
 ## [Unreleased]
 
 ### Added
+- Institutional-research theme (v1.7.0): `theme=institutional-research`
+  (`latex_templates/themes/reportkit-theme-institutional-research.sty`) adds
+  US Letter geometry, Google Sans resolution via `fontspec`
+  (`theme.font_family`/`font_path`/`font_policy: strict`/`fallback` in
+  `publication.yaml`, with an Inter → Noto Sans → TeX Gyre Heros fallback
+  chain), the spec's full type scale, and quieter semantic callouts
+  (`reportkit-boxes.sty` now themes its callout chrome). Requires
+  `lualatex`; `reportkit check`/`build` and the theme file itself both
+  refuse to build it under any other engine. Second step of the
+  institutional-research theme + equity-research publication-type work; see
+  `docs/superpowers/plans/2026-09-09-reportkit-institutional-theme-implementation-plan.md`.
 - Theme architecture (v1.6.0): typography, geometry, palette, and running
   furniture moved out of `reportkit.cls` into a selected theme file under
   `latex_templates/themes/`. `\documentclass{reportkit}` (or

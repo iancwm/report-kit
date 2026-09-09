@@ -1,7 +1,8 @@
 # ReportKit Institutional Theme + Equity Profile — Implementation Plan
 
 **Status:** In progress. Step 1 (theme infrastructure) implemented on
-`claude/vnext-spec-execution-wppmkl`. Steps 2–5 not started.
+`claude/vnext-spec-execution-wppmkl`. Step 2 (institutional theme) implemented
+on `claude/institutional-template-spec-m6imf7`. Steps 3–5 not started.
 **Last updated:** 2026-09-09
 
 **Spec:** [2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md](../specs/2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md)
@@ -228,23 +229,217 @@ option's) rendered output — every moved block is copied, not rewritten.
 
 ---
 
+## Step 2 — Institutional theme (this change)
+
+Scope per spec §27: "Letter geometry, Google Sans resolution, type scale,
+spacing, rules, tables and quieter semantic callouts." Not in scope: the
+equity-research publication-type primitives (`researchfrontpage`, `exhibit`,
+`ratingstrip`, etc. — Step 3), `reportkit_viz.py` theme-awareness (Step 4),
+and the equity-research example fixture (Step 5). A document that loads
+`theme=institutional-research` alone (no `publication-type=equity-research`,
+which doesn't exist yet) gets institutional typography/geometry/palette/
+furniture and a plain `\maketitle`/`\section`/`execsummary` — exactly the
+`theme=default` shape, restyled.
+
+**Environment constraint, still unresolved:** this session also has no TeX
+Live install (no `pdflatex`/`lualatex`/`kpsewhich`) and no PyMuPDF (installed
+locally via pip for the Python-level test run below, which is a real
+dependency of `tests/conftest.py`, not a substitute for compiling). Every
+`.sty` change in this step is therefore, again, **unverified by
+compilation**. Brace-balance was checked mechanically for every changed/new
+`.sty`/`.cls` file (a rough but real check: strip `%`-comments per line,
+sum `{`/`}`, confirm the file ends at depth 0) and every macro pattern used
+was cross-checked against an existing, working instance of the same pattern
+elsewhere in the tree (`\@setfontsize` against `\@title`/`\@empty` already in
+use; `\IfFontExistsTF`/fontspec syntax against Appendix A's embedded
+prototype; `\ifdefstring` against etoolbox's documented 4-argument form).
+None of that substitutes for an actual `lualatex` compile. Before this lands
+anywhere that matters: run `bash scripts/acceptance_check.sh --require-tex`
+(still pdflatex-only — institutional-research isn't in its test list, since
+it requires lualatex and there's no primitive-level acceptance fixture for
+it yet; that gap is Step 5's job), and compile a minimal
+`\documentclass[theme=institutional-research]{reportkit}` smoke document
+with `lualatex` on a machine that has Google Sans (or accept the
+`font_policy: fallback` warning path) installed.
+
+### What was added
+
+`latex_templates/themes/reportkit-theme-institutional-research.sty` (new) —
+self-contained, like `reportkit-theme-default.sty`: nothing in it depends on
+the default theme also being loaded (only one theme is ever loaded per
+document). Implements:
+
+- **Engine guard.** `\ifPDFTeX` at the top of the file raises a
+  `\PackageError` naming the requirement. This is enforcement *in addition
+  to*, not instead of, `config.py`'s `theme_engine_conflict()` (OQ1,
+  Step 1) — defense in depth for anyone invoking `lualatex`/`pdflatex`
+  directly rather than through the `reportkit` CLI.
+- **Fonts (spec §4).** `fontspec` + `\IfFontExistsTF{Google Sans}`. Three
+  new setter commands — `\setreportkitfontfamily`, `\setreportkitfontpath`,
+  `\setreportkitfontpolicy` — mirror the naming and preamble-settable
+  pattern of the existing `\setreportkitleftheader`-family macros in
+  `reportkit-core.sty`. Resolution itself runs in `\AtBeginDocument` (the
+  same deferral `reportkit-core.sty` already uses for the hyperref
+  PDF-metadata block), so a setter call anywhere in the preamble takes
+  effect regardless of where it appears relative to `\documentclass`.
+  `font_policy: strict` raises `FAIL institutional-research requires
+  <family>`; `font_policy: fallback` (the default) walks Inter → Noto Sans →
+  TeX Gyre Heros and warns which one it used, per spec §4's diagnostic text
+  almost verbatim. `font_path` is documented as a *directory* containing
+  `GoogleSans-Regular.ttf`/`GoogleSans-Bold.ttf`, matching Appendix A's
+  `\GoogleSansPath` convention, not an arbitrary single file — the simplest
+  contract that doesn't require generic path-splitting in LaTeX.
+- **Geometry (spec §6).** `\geometry{letterpaper,left=14mm,right=14mm,
+  top=14mm,bottom=15mm,headsep=6mm,footskip=8mm}` — inside §6's 13–15mm/
+  13–17mm ranges, looser than Appendix A's prototype margins per OQ5. The
+  `a4paper` `\LoadClass` option in `reportkit.cls` is irrelevant here:
+  geometry's own paper option recomputes the PDF page size regardless, the
+  same fact the default theme's late `\geometry{a4paper,...}` call already
+  relies on — no `reportkit.cls` change was needed for Letter to take
+  effect.
+- **Base font size — the plan's "harder problem", now resolved.**
+  `\renewcommand{\normalsize}{\@setfontsize{\normalsize}{10.7pt}{14.6pt}}`
+  then `\normalsize`, per the plan's Step 1 recommendation ("themes
+  override `\normalsize` directly"). This works because every other sized
+  element in both theme files already sets an explicit `\fontsize{}{}`
+  rather than relying on `\small`/`\large`/etc., so `\normalsize` is the
+  only class-relative size institutional body text actually depends on.
+  `\small`/`\footnotesize`/etc. remain scaled off the `10pt` `\LoadClass`
+  option — not re-tuned, since nothing in either theme file currently uses
+  them for anything the spec constrains.
+- **Full §5 type scale** as twelve named size commands (`\rkmastheadsize`
+  … `\rkdisclosuresize`), not yet consumed by anything (their consumers —
+  `\researchheadline`, `\ratingitem`, sidebar blocks, etc. — are Step 3).
+  Exposing the token now, unused, mirrors how Step 1 exposed
+  `THEME_ENGINE_REQUIREMENTS` and `resolve_document()`'s `theme`/
+  `publication_type` keys ahead of anything that reads them.
+- **Palette (spec §20).** Different hex values from the default theme's
+  (documented inline); the nine semantic-callout colors
+  (`Principle`/`Decision`/`RedFlag`/etc.) and `MetricAccent` are
+  deliberately kept at the *same* hex values as the default theme — §21
+  asks the institutional theme to quiet the callout **chrome**, not
+  recolor each semantic category, and a reader still scans by category
+  hue once the box background is gone.
+- **Quieter semantic callouts (spec §21).** `reportkit-boxes.sty` (a
+  semantic module, not a theme file) now branches its single
+  `\newtcolorbox{rk@callout}{...}` definition on `\rk@theme` via
+  `\ifdefstring` from etoolbox. This is the one place a theme reaches into
+  a semantic module rather than the reverse, and it's deliberate, not
+  architectural erosion: `\newtcolorbox` bakes its options in at
+  *definition* time, which happens when `reportkit-boxes.sty` loads —
+  strictly after the theme file, per `reportkit.cls`'s load order — so
+  there is no hook a theme file could use to override this after the fact.
+  The alternative (forking the whole boxes module per theme) is exactly
+  what spec §13 tells Step 4 *not* to do for charts, for the same
+  duplication reason. The default-theme branch is byte-for-byte the
+  pre-existing definition; a new test
+  (`test_reportkit_boxes_default_theme_unchanged`) pins that.
+- **Running furniture, section hierarchy, `\maketitle`, `execsummary`,
+  `\source`.** Same structural shape as the default theme (same core
+  macros: `\rk@leftheader`/`\rk@footer`/`\rk@version`), restyled to the
+  institutional type scale and palette. Section numbers are *not*
+  accent-colored, unlike the default theme's `LinkBlue` section numbers —
+  a deliberate difference, following §20's "do not use accent on every
+  section heading."
+
+`reportkit.cls` gained one line:
+`\DeclareOption{theme=institutional-research}{...}`. No other class change
+was needed — the base-size and paper-size problems Step 1 flagged as
+blocking are both resolved inside the theme file itself, not in the class.
+
+**Filename decision (new, not one of the original eight OQs, but the same
+kind of decision that needed making before writing the file):** the spec's
+§2 target tree names this file `reportkit-theme-institutional.sty`. It is
+named `reportkit-theme-institutional-research.sty` instead, matching the
+theme identifier (`institutional-research`) used everywhere else in the
+spec and by Step 1's `\edef\rk@themepackage{reportkit-theme-\rk@theme}` /
+`reportkit_viz.py`'s `theme_file_for()`, both of which resolve a theme name
+to a filename by literal, regular substitution. Keeping the mapping regular
+for every theme (present and future) was judged more valuable than matching
+one filename in a tree diagram; recorded here so it isn't "fixed" back to
+the irregular form later. A test
+(`test_institutional_theme_file_uses_regular_naming`) pins the chosen name
+and asserts the spec's literal name does *not* exist, so this can't drift
+silently either way.
+
+### Config, CLI, and build-script plumbing
+
+- `config.py`: new top-level `theme:` section (spec §3's optional
+  `font_family`/`font_path`/`font_policy`), a `resolve_theme()` alongside
+  `resolve_document()`/`resolve_validation()`, and
+  `theme_font_policy_conflict()` — the same "validate and fail rather than
+  silently degrade" shape as `theme_engine_conflict()`, because an
+  unrecognized `font_policy` value would otherwise silently take the
+  `\ifdefstring` fallback branch in the `.sty` file regardless of what was
+  requested. Checked in the same two places as the engine conflict:
+  `reportkit check` (`cli.py`) and `reportkit build`
+  (`publication_build.py`), before any compiler runs.
+- `context.py`: `reportkit context` now also reports `theme_config`
+  (`font_family`/`font_path`/`font_policy`), separate from
+  `document.theme` (the theme *name*).
+- **Known, deliberate gap, carried over from Step 1 rather than closed
+  here:** neither `document.theme` (Step 1) nor `theme.font_family`/etc.
+  (this step) are wired into the actual `\documentclass[...]{reportkit}`
+  options or preamble of anything `publication_build.py` compiles —
+  `publication_pipeline/templates/publication-template.tex` still hardcodes
+  `\documentclass{reportkit}` with no options, copied verbatim (not
+  templated) into every build. Every place that *does* select a theme today
+  (`latex_templates/examples/*/report.tex`) sets it directly in the `.tex`
+  source, the same way it already sets `\setreportkitleftheader` etc. — not
+  through the markdown-driven pipeline. `theme:`/`document.theme` therefore
+  exist for validation and `reportkit context`/`reportkit check` today, not
+  yet for pipeline-driven theme selection. Closing this gap, if it's ever
+  needed, is unstarted follow-up outside this five-step sequence, not a
+  Step 2 requirement — the spec's own Definition of Done example (§28) is a
+  raw `.tex` file using class options directly, which already works.
+
+### Verification actually performed
+
+- `python3 -m pytest tests publication_pipeline/tests -q`: 32 passed, 18
+  skipped (skips are TeX/PyMuPDF-adjacent fixtures this environment can't
+  exercise; `pymupdf`, `matplotlib`, `numpy`, `pandas` were installed via
+  pip specifically to run the suite fully rather than skip it wholesale).
+  10 of the 32 passes are new to this step.
+- `python3 -c "import reportkit.cli"`, `./reportkit context --json`,
+  `./reportkit check` — CLI still loads and runs; `context`'s
+  `class_version` correctly reads `1.7.0` back out of the updated
+  `reportkit.cls`, confirming the class file itself parses as valid text
+  the registry generator expects (not a substitute for a LaTeX parse).
+- `reportkit_viz.theme_file_for("institutional-research")` resolves to the
+  new file and `validate_palette_against_latex()` against it fails exactly
+  as OQ2's resolution predicted (Ink/Muted/Hairline/LinkBlue/MetricAccent
+  all mismatch the *default* Python palette) — pinned by a new test so this
+  known, honest failure doesn't get "fixed" by accident before Step 4
+  actually adds a per-theme Python palette.
+- Brace-balance check (see "Environment constraint" above) on every
+  changed/new `.sty`/`.cls` file.
+- **Not performed, and should be before merging:** an actual `lualatex`
+  compile of a minimal institutional-research document — with and without
+  Google Sans present, to exercise both the `font_policy: strict` failure
+  path and the `fallback` warning path — plus a compile of every existing
+  `theme=default` acceptance fixture to confirm `reportkit-boxes.sty`'s new
+  `\ifdefstring` branch really does leave default-theme output unchanged
+  under a real TeX engine, not just under the text-level test added here.
+
 ## Remaining sequence
 
-Steps 2–5 are not started. Per spec §27:
+Steps 3–5 are not started. Per spec §27:
 
-2. **Institutional theme** — Letter geometry, Google Sans resolution
-   (`font_policy: strict`/`fallback`), the full type scale from spec §5,
-   quieter semantic callouts. Needs the `\LoadClass`-time base-size question
-   above resolved first.
 3. **Equity publication profile** — front page, rating strip, sidebar,
    what-changed, exhibit system, valuation/model/risk-reward primitives.
+   Consumes the twelve `\rk...size` commands this step exposed but left
+   unused.
 4. **Visualization integration** — `reportkit.themes` package (OQ8),
    `FIGURE_SIZES`/aspect-ratio policy (OQ3/OQ4), Google Sans in Matplotlib,
-   `check-theme`'s per-theme Python palette.
+   `check-theme`'s per-theme Python palette (closes the honest failure
+   pinned by `test_check_theme_institutional_honestly_fails_until_step4`).
 5. **Fixtures + QA + skill guidance** — the four-page equity-research
    example (needs OQ6 resolved first), visual regression fixtures, `SKILL.md`
-   updates.
+   updates, and a lualatex-based acceptance fixture for the institutional
+   theme (the current `scripts/acceptance_check.sh` is pdflatex-only and
+   doesn't exercise it).
 
 Each remaining step should get its own review-and-verify pass on a machine
 with TeX Live before the next one starts — this plan deliberately did not
-attempt Steps 2–5 in the same pass as Step 1 given that constraint.
+attempt more than one step per pass given that constraint, and Step 2
+carries the same unverified-by-compilation caveat Step 1 did.

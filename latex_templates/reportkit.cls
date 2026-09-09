@@ -1,4 +1,4 @@
-% ReportKit v1.6.0 -- core document class
+% ReportKit v1.7.0 -- core document class
 % Project-local technical report grammar.
 % v1.1 adds structural pagination guards for section openings and diagrams.
 % v1.6 introduces a theme/publication-type architecture: typography,
@@ -9,8 +9,13 @@
 % theme=default) reproduces the pre-v1.6 visual output exactly -- nothing was
 % rewritten in the split, only relocated into reportkit-core.sty and
 % themes/reportkit-theme-default.sty.
+% v1.7 adds the institutional-research theme (Step 2 of the same spec):
+% Letter geometry, Google Sans via fontspec, the spec's full type scale, and
+% quieter semantic callouts. It requires LuaLaTeX -- config.py's
+% theme_engine_conflict() refuses to build it under any other engine, and the
+% theme file itself repeats that check at the TeX level.
 \NeedsTeXFormat{LaTeX2e}
-\ProvidesClass{reportkit}[2026/09/09 v1.6.0 ReportKit technical report class]
+\ProvidesClass{reportkit}[2026/09/09 v1.7.0 ReportKit technical report class]
 
 % -----------------------------------------------------------------------------
 % Theme / publication-type selection
@@ -22,12 +27,14 @@
 % (if not maximally friendly) failure mode for a name that doesn't exist yet
 % -- see the institutional-theme implementation plan, Step 1, "deferred".
 %
-% Only `theme=default` and `publication-type=technical-report` exist so far.
-% Adding a theme or publication type means adding both the corresponding
-% \DeclareOption line here and the .sty file it loads.
+% `theme=default`, `theme=institutional-research`, and
+% `publication-type=technical-report` exist so far. Adding a theme or
+% publication type means adding both the corresponding \DeclareOption line
+% here and the .sty file it loads.
 \newcommand{\rk@theme}{default}
 \newcommand{\rk@publicationtype}{technical-report}
 \DeclareOption{theme=default}{\renewcommand{\rk@theme}{default}}
+\DeclareOption{theme=institutional-research}{\renewcommand{\rk@theme}{institutional-research}}
 \DeclareOption{publication-type=technical-report}{\renewcommand{\rk@publicationtype}{technical-report}}
 \DeclareOption*{\PassOptionsToClass{\CurrentOption}{article}}
 \ProcessOptions\relax
