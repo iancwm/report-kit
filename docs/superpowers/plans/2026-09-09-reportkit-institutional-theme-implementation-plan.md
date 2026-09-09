@@ -1,8 +1,9 @@
 # ReportKit Institutional Theme + Equity Profile — Implementation Plan
 
 **Status:** In progress. Step 1 (theme infrastructure) implemented on
-`claude/vnext-spec-execution-wppmkl`. Step 2 (institutional theme) implemented
-on `claude/institutional-template-spec-m6imf7`. Steps 3–5 not started.
+`claude/vnext-spec-execution-wppmkl`. Steps 2–3 (institutional theme, equity
+publication profile) implemented on `claude/institutional-template-spec-m6imf7`.
+Steps 4–5 not started.
 **Last updated:** 2026-09-09
 
 **Spec:** [2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md](../specs/2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md)
@@ -421,25 +422,218 @@ silently either way.
   `\ifdefstring` branch really does leave default-theme output unchanged
   under a real TeX engine, not just under the text-level test added here.
 
+## Step 3 — Equity publication profile (this change)
+
+Scope per spec §27: "front page, rating strip, sidebar, what-changed,
+exhibit, valuation/model and risk/reward composition primitives." Not in
+scope: `reportkit_viz.py` theme-awareness or chart generation (Step 4 — the
+risk/reward primitive explicitly defers its chart to that), and the
+equity-research example fixture (Step 5).
+
+**Same environment constraint as Steps 1–2:** no TeX Live, no compile
+verification. The same mitigations apply (brace-balance check, pattern
+cross-checks against known-working code), plus one additional, deliberate
+risk-reduction: **`\dimexpr` arithmetic on `\linewidth` was avoided
+entirely.** `exhibitgrid`'s pane widths (spec §12) use literal fraction
+constants (`0.485\linewidth` for two columns, `0.313\linewidth` for three,
+matching Appendix A's own two-up ratio) selected via `\ifcase`, rather than
+a computed `(\linewidth - gutters)/columns` expression — that kind of
+arithmetic is exactly where a compile-blind change is most likely to hide a
+subtle bug (operator precedence, a missing `\relax`, dimension-vs-integer
+coercion). `columns=4+` or a non-uniform split needs an explicit `width=` on
+every `\exhibitpane` instead of a computed default.
+
+### What was added
+
+New `latex_templates/publication_types/reportkit-equity-research.sty`,
+loaded by `reportkit.cls` when `\documentclass[publication-type=
+equity-research]{reportkit}` is used (spec §2's target tree names this file
+`reportkit-equity-research.sty` — the identifier `equity-research` and the
+regular `reportkit-\rk@publicationtype` substitution `reportkit.cls` already
+uses for theme lookup happen to produce exactly that name, so no filename
+special-case was needed here the way the institutional theme's Step 2
+filename needed one).
+
+**Architectural guard, not just documentation.** Every equity-research
+primitive is built on the twelve `\rk...size` type-scale tokens Step 2
+exposed but left unused — meaning `publication-type=equity-research` today
+only actually works with `theme=institutional-research`, even though the
+architecture (spec §1) is designed so a publication type and a theme can
+vary independently. Rather than silently producing "Undefined control
+sequence `\rkheadlinesize`" the first time a document uses e.g.
+`\researchheadline` under `theme=default`, `reportkit-equity-research.sty`
+checks `\@ifundefined{rkheadlinesize}` at *load* time and raises a clear
+`\PackageError` naming the actual requirement. This is new, not something
+spec §27 asked for by name, but it follows directly from the same
+"validate and fail rather than silently degrade" principle OQ1 established
+in Step 1 — applied here at the TeX level (like the institutional theme's
+own `\ifPDFTeX` guard) rather than as a new Python-side config check,
+because the dependency is a fact about which macros a `.sty` file defines,
+not something `publication.yaml` can express more precisely than "these two
+options are used together."
+
+Primitives, grouped by spec section:
+
+- **§7 front page / two-column body.** `researchfrontpage` (masthead
+  wrapper), `\researchkicker`/`\researchheadline`/`\researchdeck`.
+  `researchmain`/`researchsidebar` realize the ~68/4/28 split as two
+  `\hfill`-separated, fixed-width (`0.68\linewidth`/`0.28\linewidth`)
+  sibling minipage environments — not one wrapper containing both, matching
+  the spec's own example where they appear as siblings, not nested. This
+  requires `\end{researchmain}` and `\begin{researchsidebar}` to have no
+  blank line between them in the source (a blank line starts a new
+  paragraph and breaks the minipage adjacency) — documented inline in the
+  `.sty` file since `SKILL.md` guidance is Step 5's job, not this step's.
+- **§8 sidebar.** `analystblock`/`marketdatablock`/`estimatesblock` (quiet
+  typographic contexts, hairline-separated) plus shared
+  `\sidebarlabel`/`\sidebarvalue`/`\sidebarrow` helpers — the spec names
+  three block *environments* but doesn't specify an internal row API beyond
+  its own bare `...` placeholder, so the row helpers are this file's own
+  design, reused across all three blocks rather than invented per-block.
+- **§9 rating strip.** `ratingstrip`/`\ratingitem` — hairline top/bottom
+  rules, thin `\vrule` separators between items (not a tabularx `|` column
+  rule, to avoid depending on `xcolor`'s `[table]` option, which core
+  doesn't load), one shared `\rkratingvaluesize` for every item so price
+  target isn't a giant KPI. Accent coloring of the value text is left to
+  the caller (`\ratingitem{Rating}{\color{Accent}Overweight}`), per §9's
+  "recommendation text *may* use accent."
+- **§10 what's changed.** `whatschanged`/`\change` — accent label, hairline
+  top/bottom, `$\to$` (kernel math, not `textcomp`'s `\textrightarrow`,
+  which isn't loaded) for the From/To arrow.
+- **§11 exhibit system.** `exhibit[number=,title=,source=,label=]` via
+  `pgfkeys`, matching the exact family-declaration idiom
+  `reportkit-diagrams.sty` already uses five times elsewhere in this
+  codebase (`/reportkit/<name>/.is family` + reset-every-invocation
+  defaults) — the lowest-risk choice available, since it's a proven pattern
+  in this exact codebase rather than a new dependency. Auto-numbered via
+  `\refstepcounter{rkexhibit}` so `\label`/`\ref` work normally;
+  `number=` overrides the *displayed* number without disturbing the
+  counter other exhibits still auto-increment from (for a combined
+  publication that numbers exhibits itself across independently-built
+  sections). A missing `title=` produces a `\PackageWarningNoLine`, not a
+  silent empty heading.
+- **§12 exhibit compositions.** `fullwidthexhibit`, `exhibitgrid[columns=N]`
+  (N=1/2/3 computed; N=4+ needs explicit `width=` per pane — see above),
+  and `exhibitpair` as `exhibitgrid[columns=2]` under another name (calling
+  `\exhibitgrid`/`\endexhibitgrid` directly — the control sequences
+  `\NewDocumentEnvironment` itself defines — rather than duplicating the
+  environment). "1 dominant + 2 supporting" and "2 exhibits + full-width
+  table" (spec §12's other two supported layouts) are documented as
+  *compositions* of `fullwidthexhibit`/`exhibitpair`/a plain `exhibit`
+  containing a table, not built as separate environments — the spec's own
+  "avoid generic dashboard grids" instruction argues against adding a third
+  layout primitive for a shape that's already expressible by sequencing the
+  first two.
+- **§16 table grammar.** `financialtable` is one generic typographic
+  context (institutional font/arraystretch/`siunitx` table-format), plus
+  `Y`/`Z`/`C` tabularx column types matching Appendix A's convention — not
+  six named table environments (financial-summary/estimate-revisions/
+  valuation/sensitivity/scenario-analysis/financial-model, per §16's list).
+  Building six fixed column layouts without the real fixture data Step 5
+  will introduce risks shipping tables shaped for no actual publication;
+  the shared grammar is the part of §16 that's the same across all six
+  regardless of what Step 5's fixture turns out to need.
+- **§17 dense model mode.** `financialmodelpage` locally (via the implicit
+  group `\begin{}...\end{}` already provides — no explicit `\begingroup`
+  needed) drops to 7.6pt/9pt table type and tighter `\arraystretch`, while
+  everything outside the environment is unaffected. True landscape page
+  rotation is deliberately not implemented — see the file's own comment for
+  why (another `\newgeometry`/page-rotation feature this session can't
+  verify); a page that needs it can wrap `financialmodelpage` in
+  `pdflscape`'s `landscape` environment itself.
+- **§18 risk/reward.** No `\riskrewardchart` LaTeX-side chart-drawing
+  macro: spec §18 itself prefers generating the chart "through
+  reportkit_viz.py" (Step 4), and drawing it here in raw TikZ/pgfplots
+  would be exactly the "bespoke chart styling" spec §28's Definition of
+  Done rules out — so the chart is just a Step-4-generated image dropped
+  into an ordinary `exhibit`. What this step *does* add: `\rksubheading`
+  (generic accent-kicker heading, reused for Investment Thesis/Key
+  Debates/Catalysts/Risks rather than four separate named macros for
+  section titles the spec itself only offers as examples, not a fixed
+  enum) and `\bullcase`/`\basecase`/`\bearcase` (specifically because Bull/
+  Base/Bear *is* a fixed triad in §18, unlike the sidebar's example
+  headings) mapped to `SeriesGold`/`Accent`/`BearRed` — matching Appendix
+  A's actual bull=gold/base=teal/bear=red convention exactly (not the
+  `BullGreen` token Step 2 defined speculatively and left unused here; that
+  color name turned out to describe the wrong scenario once this step
+  needed the real one). The page composition (thesis/debates column beside
+  chart/scenario column) reuses `researchmain`/`researchsidebar` rather
+  than inventing a second ~68/28 split under a new name, since Appendix A's
+  risk/reward page uses the identical ratio as its front page.
+
+### Config, CLI, and build-script plumbing
+
+Every place that flattens `latex_templates/themes/*.sty` for TEXINPUTS or a
+build's template manifest (Step 1's list) now also covers
+`latex_templates/publication_types/*.sty`: `tests/conftest.py`'s
+`compile_doc` fixture (which also gained a `class_options=` parameter so a
+future compile-based test can actually select
+`theme=institutional-research,publication-type=equity-research` — unused by
+any test yet, since none can run without TeX, but the hook is there),
+`scripts/acceptance_check.sh`'s flatten-copy, and
+`publication_pipeline/scripts/publication_build.py`'s `template_files()`.
+`shell_scripts/bootstrap.sh`'s `LATEX_REQUIRED` baseline list is
+deliberately *not* extended, the same call Step 2 made for the institutional
+theme file: that list is the minimum "new consumer project" bootstrap set
+(`theme=default`, `publication-type=technical-report`), not an exhaustive
+copy of every optional theme/publication-type file.
+
+No `config.py`/`cli.py`/`context.py` changes were needed this step — Step
+1's `document.publication_type` key and its validation already exist;
+`publication-type=equity-research` needed no new config-side plumbing the
+way `theme:`'s `font_family`/`font_path`/`font_policy` did in Step 2.
+
+### Verification actually performed
+
+- `python3 -m pytest tests publication_pipeline/tests -q`: 40 passed, 18
+  skipped (same TeX/PyMuPDF-adjacent skips as before). 8 of the 40 passes
+  are new to this step, including one that pins every changed
+  build-plumbing file actually mentions `publication_types`, one that pins
+  no `\dimexpr` crept into the pane-width computation, and one confirming
+  `generate_registry()`/`check_skill_drift()` (which scan
+  `latex_templates/*.sty` one level deep, same as `themes/*.sty` already
+  didn't reach) are unaffected by the new file sitting one directory
+  deeper.
+- Brace-balance check (strip `%`-comments, sum `{`/`}`, confirm depth 0) on
+  the new `.sty` file and every file this step edited.
+- `./reportkit context --json`, `./reportkit doctor`,
+  `bash scripts/acceptance_check.sh` (no-TeX warn-and-exit-0 path) all
+  still run cleanly; `context`'s `class_version` reads back `1.8.0`.
+- Manually copied `latex_templates/{*.cls,*.sty,themes/*.sty,
+  publication_types/*.sty}` into a scratch directory and confirmed both new
+  files land there by filename, the same flattening `reportkit.cls`'s
+  `\RequirePackage` resolution depends on.
+- **Not performed, and should be before merging:** an actual `lualatex`
+  compile of a minimal `\documentclass[theme=institutional-research,
+  publication-type=equity-research]{reportkit}` document exercising every
+  primitive in this file — `researchfrontpage`/`researchmain`/
+  `researchsidebar` adjacency in particular, since minipage-adjacency bugs
+  (an accidental blank line, a paragraph break) are exactly the class of
+  defect that produces a plausible-looking but wrong page layout rather
+  than a compile error, and `\vrule`'s "running dimensions" behavior in
+  `\ratingitem`, which this plan is reasoning about from documented TeX
+  semantics rather than an observed render.
+
 ## Remaining sequence
 
-Steps 3–5 are not started. Per spec §27:
+Steps 4–5 are not started. Per spec §27:
 
-3. **Equity publication profile** — front page, rating strip, sidebar,
-   what-changed, exhibit system, valuation/model/risk-reward primitives.
-   Consumes the twelve `\rk...size` commands this step exposed but left
-   unused.
 4. **Visualization integration** — `reportkit.themes` package (OQ8),
    `FIGURE_SIZES`/aspect-ratio policy (OQ3/OQ4), Google Sans in Matplotlib,
    `check-theme`'s per-theme Python palette (closes the honest failure
-   pinned by `test_check_theme_institutional_honestly_fails_until_step4`).
+   pinned by `test_check_theme_institutional_honestly_fails_until_step4`),
+   and the risk/reward chart this step's `\bullcase`/`\basecase`/`\bearcase`
+   and `researchmain`/`researchsidebar` composition are waiting to embed.
 5. **Fixtures + QA + skill guidance** — the four-page equity-research
    example (needs OQ6 resolved first), visual regression fixtures, `SKILL.md`
-   updates, and a lualatex-based acceptance fixture for the institutional
-   theme (the current `scripts/acceptance_check.sh` is pdflatex-only and
-   doesn't exercise it).
+   updates (including the front-page-minipage-adjacency and
+   `exhibitgrid` column-count caveats this step's `.sty` comments carry but
+   `SKILL.md` doesn't yet), and a lualatex-based acceptance fixture for the
+   institutional theme and equity-research publication type (the current
+   `scripts/acceptance_check.sh` is pdflatex-only and doesn't exercise
+   either).
 
 Each remaining step should get its own review-and-verify pass on a machine
 with TeX Live before the next one starts — this plan deliberately did not
-attempt more than one step per pass given that constraint, and Step 2
-carries the same unverified-by-compilation caveat Step 1 did.
+attempt more than one step per pass given that constraint, and Step 3
+carries the same unverified-by-compilation caveat Steps 1–2 did.

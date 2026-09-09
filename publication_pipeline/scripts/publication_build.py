@@ -35,15 +35,22 @@ DEFAULT_SOURCE_ROOT = PIPELINE_ROOT / "example_publication"
 def template_files() -> list[Path]:
     """Every .cls/.sty ReportKit ships, flattened for TEXINPUTS by filename.
 
-    Themes live in latex_templates/themes/ (see reportkit.cls's theme
-    architecture), one directory deeper than the rest of latex_templates/, so
-    a plain top-level glob misses them. Flattening by filename here -- not
-    preserving the themes/ subdirectory -- matches how reportkit.cls finds
-    them: `\\RequirePackage{reportkit-theme-<name>}` resolves by filename on
-    TEXINPUTS, not by path.
+    Themes and publication types live in latex_templates/themes/ and
+    latex_templates/publication_types/ respectively (see reportkit.cls's
+    theme/publication-type architecture), one directory deeper than the rest
+    of latex_templates/, so a plain top-level glob misses them. Flattening
+    by filename here -- not preserving the subdirectory -- matches how
+    reportkit.cls finds them: `\\RequirePackage{reportkit-theme-<name>}` /
+    `\\RequirePackage{reportkit-<publication-type>}` both resolve by
+    filename on TEXINPUTS, not by path.
     """
     templates = REPO_ROOT / "latex_templates"
-    return sorted(templates.glob("*.cls")) + sorted(templates.glob("*.sty")) + sorted(templates.glob("themes/*.sty"))
+    return (
+        sorted(templates.glob("*.cls"))
+        + sorted(templates.glob("*.sty"))
+        + sorted(templates.glob("themes/*.sty"))
+        + sorted(templates.glob("publication_types/*.sty"))
+    )
 
 
 def _load_reportkit_package() -> None:

@@ -26,7 +26,7 @@ Migrating an existing content branch out of this repo is covered in
 [`references/migrating-content-branches.md`](references/migrating-content-branches.md).
 
 ## 1. latex_templates/
-- `reportkit.cls` (v1.7.0), `reportkit-core.sty`, `reportkit-boxes.sty`,
+- `reportkit.cls` (v1.8.0), `reportkit-core.sty`, `reportkit-boxes.sty`,
   `reportkit-code.sty`, `reportkit-diagrams.sty`, `reportkit-grammar.sty`,
   `reportkit-pandoc.sty`, and `reportkit-longform.sty` — the core document
   class and style files. The public diagram DSL covers positioning, risk,
@@ -38,9 +38,15 @@ Migrating an existing content branch out of this repo is covered in
   `reportkit-theme-default.sty` reproduces ReportKit's original design
   exactly. `reportkit-theme-institutional-research.sty`
   (`theme=institutional-research`, requires `lualatex`) is a Letter-geometry,
-  Google-Sans institutional research theme; see
+  Google-Sans institutional research theme.
+- `publication_types/` — structural primitives layered on top of a theme,
+  selected via `\documentclass[publication-type=<name>]{reportkit}`.
+  `reportkit-equity-research.sty` (`publication-type=equity-research`,
+  currently requires `theme=institutional-research`) adds a research front
+  page, rating strip, sidebar blocks, an exhibit system, table grammar, a
+  dense financial-model mode, and risk/reward primitives; see
   `docs/superpowers/specs/2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md`
-  for the architecture and the equity-research publication-type work still
+  for the architecture and the visualization-integration/fixtures work still
   in progress on top of it.
 - `REPORT_TEMPLATE.tex` — minimal report skeleton.
 - `examples/{primitive_acceptance_test,visual_grammar_acceptance_test}.tex` —

@@ -1,4 +1,5 @@
 from pathlib import Path
+import re
 import sys
 
 import pytest
@@ -229,3 +230,121 @@ def test_check_theme_institutional_honestly_fails_until_step4() -> None:
     # directly (the pre-v1.6 default) must report every color missing.
     old_default = REPO / "latex_templates" / "reportkit.cls"
     assert reportkit_viz.validate_palette_against_latex(old_default) != []
+
+
+# -----------------------------------------------------------------------------
+# Institutional-theme spec, Step 3: equity-research publication type
+# -----------------------------------------------------------------------------
+
+EQUITY_RESEARCH_STY = REPO / "latex_templates" / "publication_types" / "reportkit-equity-research.sty"
+
+
+def test_reportkit_cls_declares_equity_research_publication_type() -> None:
+    cls_text = (REPO / "latex_templates" / "reportkit.cls").read_text(encoding="utf-8")
+    assert r"\DeclareOption{publication-type=equity-research}" in cls_text
+
+
+def test_equity_research_publication_type_file_exists_and_named_regularly() -> None:
+    """Unlike the institutional theme (see the implementation plan's filename
+    note), no special case is needed here: spec §2's own target tree names
+    this file reportkit-equity-research.sty, and reportkit.cls's
+    \\edef\\rk@pubtypepackage{reportkit-\\rk@publicationtype} produces exactly
+    that from the publication-type identifier `equity-research`."""
+    assert EQUITY_RESEARCH_STY.is_file()
+
+
+def test_equity_research_requires_institutional_type_scale() -> None:
+    text = EQUITY_RESEARCH_STY.read_text(encoding="utf-8")
+    assert r"\@ifundefined{rkheadlinesize}" in text
+    assert "requires a theme that defines" in text
+
+
+def test_equity_research_defines_front_page_and_exhibit_primitives() -> None:
+    text = EQUITY_RESEARCH_STY.read_text(encoding="utf-8")
+    for primitive in (
+        r"\NewDocumentEnvironment{researchfrontpage}",
+        r"\newcommand{\researchkicker}",
+        r"\newcommand{\researchheadline}",
+        r"\newcommand{\researchdeck}",
+        r"\NewDocumentEnvironment{ratingstrip}",
+        r"\NewDocumentCommand{\ratingitem}",
+        r"\NewDocumentEnvironment{researchmain}",
+        r"\NewDocumentEnvironment{researchsidebar}",
+        r"\NewDocumentEnvironment{analystblock}",
+        r"\NewDocumentEnvironment{marketdatablock}",
+        r"\NewDocumentEnvironment{estimatesblock}",
+        r"\NewDocumentEnvironment{whatschanged}",
+        r"\NewDocumentCommand{\change}",
+        r"\NewDocumentEnvironment{exhibit}",
+        r"\NewDocumentEnvironment{fullwidthexhibit}",
+        r"\NewDocumentEnvironment{exhibitgrid}",
+        r"\NewDocumentEnvironment{exhibitpair}",
+        r"\NewDocumentCommand{\exhibitpane}",
+        r"\NewDocumentEnvironment{financialtable}",
+        r"\NewDocumentEnvironment{financialmodelpage}",
+        r"\NewDocumentCommand{\bullcase}",
+        r"\NewDocumentCommand{\basecase}",
+        r"\NewDocumentCommand{\bearcase}",
+    ):
+        assert primitive in text, f"missing primitive: {primitive}"
+
+
+def _strip_latex_comments(text: str) -> str:
+    return "\n".join(re.sub(r"(?<!\\)%.*", "", line) for line in text.splitlines())
+
+
+def test_equity_research_primitives_use_only_theme_tokens_for_sizing() -> None:
+    """Structure, not style (spec §1): this file should never define its own
+    color (\\definecolor) -- every color it uses is a theme token -- and the
+    primitives themselves should reach for \\rk...size theme tokens rather
+    than a literal size."""
+    code = _strip_latex_comments(EQUITY_RESEARCH_STY.read_text(encoding="utf-8"))
+    assert r"\definecolor" not in code
+    # rkmastheadsize, rksectionheadingsize, and rksourcesize are theme tokens
+    # this file legitimately never touches directly: masthead styling and
+    # section headings belong to the theme's own \maketitle/\titleformat,
+    # and \source{} is called as a black box, not re-sized here.
+    size_tokens = (
+        "rksectorkickersize", "rkheadlinesize", "rkdecksize",
+        "rkratingvaluesize", "rksubsectionsize", "rkbodysize",
+        "rkexhibitheadlinesize", "rksidebarsize", "rktablebodysize",
+    )
+    for token in size_tokens:
+        assert f"\\{token}" in code, f"never references theme token: {token}"
+
+
+def test_equity_research_exhibit_pane_widths_avoid_dimexpr_arithmetic() -> None:
+    """Pane widths are literal fraction constants, not \\dimexpr arithmetic on
+    \\linewidth -- see the implementation plan's rationale (unverifiable
+    without a compiler). Pin that choice so it isn't quietly replaced by a
+    computed expression later without the same scrutiny."""
+    code = _strip_latex_comments(EQUITY_RESEARCH_STY.read_text(encoding="utf-8"))
+    assert r"\dimexpr" not in code
+    assert "0.485\\linewidth" in code
+    assert "0.313\\linewidth" in code
+
+
+def test_publication_types_directory_covered_by_build_plumbing() -> None:
+    """Every place that flattens latex_templates/**/*.sty for TEXINPUTS or a
+    build's template manifest must also cover publication_types/, the same
+    way Step 1 covered themes/ -- otherwise reportkit.cls's
+    \\RequirePackage{reportkit-equity-research} fails to find its file the
+    moment a document selects publication-type=equity-research."""
+    conftest_text = (REPO / "tests" / "conftest.py").read_text(encoding="utf-8")
+    assert "publication_types" in conftest_text
+    acceptance_text = (REPO / "scripts" / "acceptance_check.sh").read_text(encoding="utf-8")
+    assert "publication_types" in acceptance_text
+    build_text = (REPO / "publication_pipeline" / "scripts" / "publication_build.py").read_text(encoding="utf-8")
+    assert "publication_types" in build_text
+
+
+def test_registry_and_skill_drift_unaffected_by_new_publication_type_file() -> None:
+    """generate_registry()/check_skill_drift() scan latex_templates/*.sty
+    (one level deep) for the diagram DSL's figure/callout inventory --
+    publication_types/reportkit-equity-research.sty sits one directory
+    deeper (like themes/*.sty already did) and must not be picked up by
+    that scan or start failing the skill-drift check."""
+    registry = generate_registry(REPO)
+    assert len(registry["figures"]) == 19
+    assert len(registry["callouts"]["public"]) == 10
+    assert check_skill_drift(REPO) == []

@@ -7,6 +7,20 @@ tags on this repository, not a published package registry.
 ## [Unreleased]
 
 ### Added
+- Equity-research publication type (v1.8.0):
+  `publication-type=equity-research`
+  (`latex_templates/publication_types/reportkit-equity-research.sty`) adds
+  the research front page (`researchfrontpage`/`researchkicker`/
+  `researchheadline`/`researchdeck`), a rating strip, sidebar blocks
+  (`analystblock`/`marketdatablock`/`estimatesblock`), a `whatschanged`
+  primitive, the `exhibit` system with `fullwidthexhibit`/`exhibitgrid`/
+  `exhibitpair` compositions, an institutional `financialtable` grammar, a
+  dense `financialmodelpage` mode, and `\bullcase`/`\basecase`/`\bearcase`
+  risk-reward primitives. Currently requires
+  `theme=institutional-research` (checked at load time with a clear error).
+  Third step of the institutional-research theme + equity-research
+  publication-type work; see
+  `docs/superpowers/plans/2026-09-09-reportkit-institutional-theme-implementation-plan.md`.
 - Institutional-research theme (v1.7.0): `theme=institutional-research`
   (`latex_templates/themes/reportkit-theme-institutional-research.sty`) adds
   US Letter geometry, Google Sans resolution via `fontspec`

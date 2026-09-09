@@ -4,10 +4,10 @@
 2026-09-09 (see [Current state](#current-state-verified-2026-09-09)). The
 eight open questions below are now resolved — see
 [2026-09-09-reportkit-institutional-theme-implementation-plan.md](../plans/2026-09-09-reportkit-institutional-theme-implementation-plan.md),
-which also tracks execution. That plan's Step 1 (theme infrastructure) and
-Step 2 (the institutional theme itself) are implemented; Steps 3–5 (the
-equity-research profile, visualization integration, and fixtures/QA) are
-not.
+which also tracks execution. That plan's Step 1 (theme infrastructure),
+Step 2 (the institutional theme itself), and Step 3 (the equity-research
+publication profile) are implemented; Steps 4–5 (visualization integration
+and fixtures/QA) are not.
 **Last updated:** 2026-09-09
 **Visual reference:** Appendix A — the `meridian_equity_research_mockup_v3`
 prototype, embedded verbatim. The prototype is a hand-coded proof of the target

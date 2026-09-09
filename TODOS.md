@@ -20,7 +20,7 @@ for why.
 | [2026-09-07-documentation-and-status-tracking-cleanup-design.md](docs/superpowers/specs/2026-09-07-documentation-and-status-tracking-cleanup-design.md) | Approved | Process |
 | [2026-09-07-documentation-and-status-tracking-cleanup.md](docs/superpowers/plans/2026-09-07-documentation-and-status-tracking-cleanup.md) | Done — merged via PR #7 (`965443b`) | Process |
 | [2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md](docs/superpowers/specs/2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md) | Draft; open questions resolved in the plan below | P2 |
-| [2026-09-09-reportkit-institutional-theme-implementation-plan.md](docs/superpowers/plans/2026-09-09-reportkit-institutional-theme-implementation-plan.md) | Steps 1–2 of 5 implemented (theme infrastructure, institutional theme); Steps 3–5 not started | P2 |
+| [2026-09-09-reportkit-institutional-theme-implementation-plan.md](docs/superpowers/plans/2026-09-09-reportkit-institutional-theme-implementation-plan.md) | Steps 1–3 of 5 implemented (theme infrastructure, institutional theme, equity publication profile); Steps 4–5 not started | P2 |
 
 ## Open work
 
@@ -52,14 +52,24 @@ for why.
   spec's full §5 type scale, and quieter semantic callouts
   (`reportkit-boxes.sty` now branches its box chrome on `\rk@theme`).
   `publication.yaml` gains an optional top-level `theme:` section
-  (`font_family`/`font_path`/`font_policy`). **Both steps remain unverified
-  by compilation** — no session so far has had a TeX Live install. Run
-  `bash scripts/acceptance_check.sh --require-tex`, diff
+  (`font_family`/`font_path`/`font_policy`). **Step 3 (equity publication
+  profile) implemented 2026-09-09**: new
+  `publication_types/reportkit-equity-research.sty`, loaded via
+  `publication-type=equity-research` — front page
+  (`researchfrontpage`/`researchkicker`/`researchheadline`/`researchdeck`),
+  rating strip, sidebar blocks, what's-changed, the exhibit system
+  (`exhibit`/`fullwidthexhibit`/`exhibitgrid`/`exhibitpair`), table grammar,
+  a dense financial-model-page mode, and bull/base/bear risk-reward
+  primitives (the chart itself is deferred to Step 4's `reportkit_viz.py`
+  integration, per the spec's own preference). **All three steps remain
+  unverified by compilation** — no session so far has had a TeX Live
+  install. Run `bash scripts/acceptance_check.sh --require-tex`, diff
   `latex_templates/examples/career_guide_en/report.tex`'s compiled output
   against its pre-Step-1 PDF, and compile a minimal
-  `\documentclass[theme=institutional-research]{reportkit}` smoke document
-  with `lualatex` before trusting either step on a machine with TeX. Steps
-  3–5 (the equity-research profile, visualization integration, and
+  `\documentclass[theme=institutional-research,
+  publication-type=equity-research]{reportkit}` smoke document exercising
+  every Step 3 primitive with `lualatex` before trusting any of the three
+  on a machine with TeX. Steps 4–5 (visualization integration and
   fixtures/QA) are not started. See
   [the implementation plan](docs/superpowers/plans/2026-09-09-reportkit-institutional-theme-implementation-plan.md).
 
@@ -85,6 +95,12 @@ for why.
 
 ## History
 
+- 2026-09-09: institutional-theme spec's Step 3 (equity publication profile)
+  implemented on `claude/institutional-template-spec-m6imf7` -- front page,
+  rating strip, sidebar, what's-changed, exhibit system, table grammar,
+  dense financial-model mode, and bull/base/bear risk-reward primitives.
+  Not compiled -- no TeX Live in the implementing session; see the P2 entry
+  above and the plan's own verification section.
 - 2026-09-09: institutional-theme spec's Step 2 (institutional theme)
   implemented on `claude/institutional-template-spec-m6imf7` -- Letter
   geometry, Google Sans resolution, the spec's §5 type scale, and quieter
