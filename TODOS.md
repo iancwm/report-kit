@@ -27,7 +27,7 @@ for why.
 ### P0
 
 - **P0-1 — delete `tooling`, don't re-cut it.** `git rev-list --left-right
-  --count main...tooling` returns `34 0` (verified 2026-09-07): the branch has
+  --count main...tooling` returns `61 0` (verified 2026-09-09): the branch has
   no unique commits, so there is nothing to preserve, and
   [references/migrating-content-branches.md](references/migrating-content-branches.md)
   already dispositions it as "Superseded and stale… then delete". Branch the
