@@ -7,6 +7,26 @@ tags on this repository, not a published package registry.
 ## [Unreleased]
 
 ### Added
+- Institutional-research theme fixtures, QA, and skill guidance: a
+  fictional four-page equity-research example
+  (`latex_templates/examples/equity-research/`, front page, analysis
+  exhibits, risk/reward, financial model) built from only public
+  ReportKit primitives, its financial figures reconciled to one
+  internally-consistent model; a compact
+  `institutional_equity_acceptance_test.tex` smoke fixture compiled by a
+  new `lualatex` block in `scripts/acceptance_check.sh`;
+  `scripts/visual_qa_equity_research.py` (compile, run
+  `reportkit.diagnostics` log checks, render every page to PNG, and
+  pixel-diff against a checked-in baseline); and a new
+  `references/institutional-research-theme.md`, linked from `SKILL.md`,
+  documenting the primitive reference, the `researchmain`/
+  `researchsidebar` minipage-adjacency requirement, the `exhibitgrid`
+  column-count limit, and `rkv.apply_theme`/`rkv.risk_reward_chart` usage.
+  Fixed a `risk_reward_chart()` label-overlap bug found by actually
+  rendering the new fixture's chart. Fifth and final step of the
+  institutional-research theme + equity-research publication-type work;
+  see
+  `docs/superpowers/plans/2026-09-09-reportkit-institutional-theme-implementation-plan.md`.
 - Theme-aware visualization layer: `reportkit_viz.apply_theme(name)` now
   actually switches theme at runtime (colors, `TEXT_WIDTH_IN`,
   `FIGURE_SIZES`, fonts, mathtext) via a new `reportkit.themes` Python

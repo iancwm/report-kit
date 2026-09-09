@@ -1,9 +1,10 @@
 # ReportKit Institutional Theme + Equity Profile — Implementation Plan
 
-**Status:** In progress. Step 1 (theme infrastructure) implemented on
+**Status:** Complete. Step 1 (theme infrastructure) implemented on
 `claude/vnext-spec-execution-wppmkl`. Steps 2–4 (institutional theme, equity
 publication profile, visualization integration) implemented on
-`claude/institutional-template-spec-m6imf7`. Step 5 not started.
+`claude/institutional-template-spec-m6imf7`. Step 5 (fixtures, QA, skill
+guidance) implemented on `claude/institutional-theme-step-5-gi0ptf`.
 **Last updated:** 2026-09-09
 
 **Spec:** [2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md](../specs/2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md)
@@ -795,24 +796,224 @@ statically checked:
   `risk_reward_chart`'s proportions suit a real `exhibit`-embedded width).
   Both are Step 5 fixture-and-eyeball work.
 
-## Remaining sequence
+## Step 5 — Fixtures, QA, and skill guidance (this change)
 
-Step 5 is not started. Per spec §27:
+Scope per spec §27: "the four-page equity-research example (needs OQ6
+resolved first), visual regression fixtures, `SKILL.md` updates ..., and a
+lualatex-based acceptance fixture for the institutional theme and
+equity-research publication type."
 
-5. **Fixtures + QA + skill guidance** — the four-page equity-research
-   example (needs OQ6 resolved first), visual regression fixtures, `SKILL.md`
-   updates (including the front-page-minipage-adjacency and
-   `exhibitgrid` column-count caveats Step 3's `.sty` comments carry but
-   `SKILL.md` doesn't yet, and Step 4's `apply_theme(name)`/`risk_reward_chart`
-   usage), and a lualatex-based acceptance fixture for the institutional
-   theme and equity-research publication type (the current
-   `scripts/acceptance_check.sh` is pdflatex-only and doesn't exercise
-   either). This is also where the LaTeX side of Steps 1–3 finally gets a
-   real compile — see each of those steps' "Not performed" notes for what
-   specifically to check first.
+**Same environment constraint as every prior step, with one addition and
+one partial improvement.** This session still has no TeX Live
+(`pdflatex`/`lualatex`/`kpsewhich` all absent) and could not compile the
+new fixture or run `scripts/visual_qa_equity_research.py`'s render/compare
+path — both remain genuinely unverified by compilation, exactly the gap
+spec §27 named Step 5 as the place to finally close. The partial
+improvement: `matplotlib`, `numpy`, `pandas`, and `PyMuPDF` were installed
+via pip (as Step 4 also did), so unlike Steps 1–3's `.sty`/`.cls` changes,
+`figures.py` was **actually run**, its four figures **actually rendered**
+and **visually inspected** (sent to the user as PNGs) under
+`apply_theme("institutional-research")`, and every number in the
+fixture's financial model was checked by direct arithmetic, not just
+transcribed.
 
-Step 5 should get its own review-and-verify pass on a machine with TeX
-Live — this plan deliberately did not attempt it in the same pass as
-Step 4, and unlike Step 4, it cannot avoid the unverified-by-compilation
-caveat Steps 1–3 carried: fixtures are exactly where that finally has to be
-resolved.
+### OQ6 — fixture arithmetic reconciliation (resolved)
+
+Appendix A's three disagreeing islands (front page/Exhibit 4's FY27E
+EBITDA 691/EPS 2.95; Exhibit 5's self-consistent model at 917/2.27;
+Exhibit 6's valuation, which needed 122 diluted shares against the
+model's 241 and whose Value/Share column summed to $233, not $245) are
+resolved by anchoring every number in the new fixture to Exhibit 5's
+income statement — the most granular island, since its quarterly figures
+sum to the annual ones it reports. `report.tex`'s own header comment
+carries the full derivation (which numbers changed from Appendix A, which
+didn't, and why); not repeated here. The valuation table (renumbered
+Exhibit 7, since this fixture has an extra usage-index exhibit Appendix
+A's page 2 also had) is rebuilt as three EV/Sales lines — no more
+unreconciled "Services EBITDA" plug — with an explicit Net Cash
+per-share row added specifically so the Value/Share column's own numbers
+are auditable (they sum to $244.82 against an unrounded $244.90, 2dp
+rounding noise, not silently off by 5% the way Appendix A's was). The
+risk/reward page's Bull/Base/Bear narrative is restated as EV/Sales on
+FY28E consolidated revenue, tying each scenario's multiple back to its
+own price target through the same shares/net-cash basis as Exhibit 7,
+rather than reusing a mislabeled EBITDA figure the way Appendix A's Base
+case did.
+
+### What was added
+
+**`latex_templates/examples/equity-research/`** — `report.tex`,
+`publication.yaml`, `figures.py`, `expected/README.md` (spec §2's target
+tree, now populated). `report.tex` compiles directly (like
+`examples/career_guide_en/`, not through the markdown pipeline) and uses
+only primitives Steps 1–4 shipped:
+`researchfrontpage`/`researchkicker`/`researchheadline`/`researchdeck`/
+`ratingstrip`/`\ratingitem`/`whatschanged`/`\change`/`researchmain`/
+`researchsidebar`/`analystblock`/`marketdatablock`/`estimatesblock`/
+`\sidebarrow`/`exhibit`/`fullwidthexhibit`/`exhibitpair`/`\exhibitpane`/
+`financialtable`/`financialmodelpage`/`\rksubheading`/`\bullcase`/
+`\basecase`/`\bearcase` — no page-specific coordinates, local font
+patches, bespoke chart styling, or raw `minipage` layouts, per spec §28.
+`publication.yaml` documents the intended `document.theme`/
+`publication_type`/`paper`/`engine` and `theme.font_policy` config (the
+same "exists for validation, not yet for pipeline-driven selection" gap
+Step 2 recorded) — verified against the real `config.py` loader end to
+end (`load_publication_config` → `resolve_document` →
+`theme_engine_conflict` → `None`, `resolve_theme` →
+`theme_font_policy_conflict` → `None`).
+
+`figures.py` generates four figures via `apply_theme("institutional-
+research")` and the public `reportkit_viz` API: `timeseries` (usage
+index), custom `new_figure`/`style_axes`/`legend_above`/`DATA_COLORS`
+code for the platform-mix stacked bar (no dedicated stacked-bar helper
+exists yet — this is exactly the "true small-multiple analysis" case
+`new_figure()`'s own docstring says to build custom code on top of the
+same theme/export helpers for, not a fork of the theme system),
+`timeseries` again for gross margin, and `risk_reward_chart()` for the
+risk/reward exhibit. All four were actually rendered and inspected this
+step (not just written) — see "Verification actually performed" below,
+including a real bug this caught and fixed.
+
+**`python_scripts/reportkit_viz.py` bug fix, found by actually rendering
+the fixture, not by inspection.** `risk_reward_chart()`'s bear/base/bull
+labels were centered (`va="center"`) directly on their reference line's
+y-value with a purely horizontal offset, so the dashed line visually
+struck through the label text — invisible from reading the code, obvious
+from looking at the rendered PNG. Fixed to offset up-and-right
+(`va="bottom"`, `xytext=(6, 4)`), matching how Appendix A's own pgfplots
+`\node` placed its equivalent labels 2 units above the line rather than
+on it. `tests/test_reportkit_viz_themes.py`'s existing
+`test_risk_reward_chart_renders_and_labels_bear_base_bull` only asserts
+label text/line color/count (position-independent), so it needed no
+change and still passes.
+
+**`latex_templates/examples/institutional_equity_acceptance_test.tex`**
+(new) — a compact, fast-compiling fixture distinct from the four-page
+example, exercising every institutional-research/equity-research
+primitive at least once (including a `principle` callout, to exercise
+`reportkit-boxes.sty`'s Step-2 theme branch) for a quick pass/fail signal
+that points at the theme or publication-type file directly, not at a
+four-page fixture, when something breaks.
+
+**`scripts/acceptance_check.sh`** — gained a second, `lualatex`-based
+compile block for the new acceptance-test fixture, after the existing
+`pdflatex` block (which cannot compile it — the institutional-research
+theme's own `\ifPDFTeX` guard would reject it immediately, correctly, but
+indistinguishably from a real regression in a pdflatex-only log). Same
+non-blocking-when-the-toolchain-is-missing convention as the existing
+block: WARN and exit 0 normally, FAIL only under `--require-tex`. The
+four-page `examples/equity-research/` fixture is deliberately *not* added
+here — `scripts/visual_qa_equity_research.py` (below) owns compiling and
+rendering that one, since it also needs to pixel-diff the result, which a
+log-grep-only script has no reason to do.
+
+**`scripts/visual_qa_equity_research.py`** (new) — spec §25's visual
+regression tooling: compiles `examples/equity-research/report.tex` with
+`lualatex`, runs `reportkit.diagnostics.inspect_log` on the log (reusing
+the same overfull/underfull-hbox and undefined-reference detection
+`reportkit build`/`inspect` already use, rather than reimplementing
+log-parsing regexes), renders every page to PNG via PyMuPDF, and
+pixel-diffs against `examples/equity-research/expected/` (a
+`--update-expected` flag regenerates that baseline). Prints spec §25's
+manual-review checklist (headline wrapping, sidebar alignment, exhibit
+positioning, chart-font identity, table overflow, source alignment, blank
+pages — the items that need a human looking at the render, per spec
+§25's own "where programmatic font detection is unreliable, the render
+should still be included in visual QA"). `compare_pages()`, the
+pixel-diff step, is deliberately a pure function of two PNG directories,
+independent of the `lualatex` compile it can't run in this environment —
+so it's actually exercised, with synthetic images, by
+`tests/test_visual_qa_equity_research.py` (6 tests, including the
+missing-lualatex WARN-and-exit-0 path).
+
+`examples/equity-research/expected/` ships with only a `README.md`, not
+placeholder PNGs — this session had no `lualatex` to produce a genuine
+baseline, and a fabricated one would look like an accepted render while
+being nothing of the kind. The README explains exactly how to populate it
+for real (`--update-expected` after a human reviews the checklist) on a
+machine that has the toolchain.
+
+**`tests/test_institutional_equity_theme_compile.py`** (new) — the actual
+`lualatex` compile every prior step's plan flagged as "not performed":
+one test compiles a minimal
+`theme=institutional-research,publication-type=equity-research` document
+exercising `researchfrontpage`/`researchmain`/`researchsidebar` adjacency
+specifically (Step 3's own named risk), the other compiles the checked-in
+acceptance-test fixture itself (not a re-typed excerpt), so a regression
+there and in `scripts/acceptance_check.sh`'s lualatex block are the same
+regression. Both skip cleanly via the existing session-scoped
+`latex_engine` fixture in this environment and will actually run on a
+machine with `lualatex`.
+
+**`SKILL.md` / `references/institutional-research-theme.md`** (new
+reference doc, linked from a new "Institutional-research theme (equity
+research)" section in `SKILL.md`, placed after "Analytical figures"). The
+reference doc carries: theme/publication-type selection and the engine
+requirement; the exhibit-led authoring rules from spec §22 verbatim in
+spirit; a primitive reference table (sourced from
+`reportkit-equity-research.sty`'s own comments, not re-derived); the
+`researchmain`/`researchsidebar` no-blank-line-between adjacency
+requirement and the `exhibitgrid` `columns=1/2/3`-only computed-width
+limit, both of which existed only as `.sty` comments before this step;
+`rkv.apply_theme(name)`/`rkv.risk_reward_chart()` usage; and the QA
+commands above. `SKILL.md`'s own "Build and inspect" section was updated
+to mention the `lualatex` block `scripts/acceptance_check.sh` now runs
+alongside its `pdflatex` one.
+
+### Verification actually performed
+
+- `python3 -m pytest tests publication_pipeline/tests -q`: 60 passed, 20
+  skipped (compile-based fixtures still skip cleanly — no `lualatex` in
+  this environment; the visual-QA and theme tests do not skip, since
+  `matplotlib`/`numpy`/`pandas`/`PyMuPDF` were installed this step). 8 of
+  the 60 passes are new to this step (6 in
+  `tests/test_visual_qa_equity_research.py`, exercising
+  `compare_pages()` with synthetic PNGs including the size-mismatch,
+  page-set-mismatch, under-threshold, and over-threshold cases; the
+  remaining 2 compile-based tests currently skip and were confirmed to
+  skip for the *expected* reason — no `lualatex` — not silently erroring).
+- `figures.py` actually run end to end
+  (`PYTHONPATH=python_scripts python3 figures.py`): produced all four
+  `figures/*.pdf`, no exceptions. Each was rendered to PNG via PyMuPDF and
+  visually inspected (sent to the user); this is what caught the
+  `risk_reward_chart()` label-overlap bug described above, which was then
+  fixed and re-rendered to confirm the fix.
+- `publication.yaml` loaded through the real config pipeline end to end:
+  `load_publication_config` → `resolve_document` (confirms
+  `engine: lualatex` alongside `theme: institutional-research`) →
+  `theme_engine_conflict` returns `None` → `resolve_theme` →
+  `theme_font_policy_conflict` returns `None` → `resolve_identity`
+  produces a sane `left_header`/`slug`. Not a hypothetical — actually
+  called.
+- Every table in `report.tex` (financial model, estimate revisions,
+  valuation, both sidebar tables) checked programmatically for column
+  count against its declared `tabularx`/`tabular` column spec (a script,
+  not eyeballing) — every row matches. Brace-balance and
+  `\begin{}`/`\end{}` pairing checked mechanically (as Steps 1–3 did for
+  `.sty`/`.cls` files) for both new `.tex` fixtures — both balance at
+  depth 0 with matching begin/end counts.
+- `scripts/acceptance_check.sh`'s new `lualatex` block exercised with
+  fake `pdflatex`/`lualatex` shims standing in for the real toolchain (this
+  environment has neither): confirmed the missing-lualatex WARN-and-
+  continue path, the both-present PASS path, and the lualatex-failure FAIL
+  path all produce the correct exit code and log content. This validates
+  the shell control flow, not a real LaTeX compile.
+- `./reportkit context --json`, `./reportkit check`, `./reportkit doctor`,
+  `python3 reportkit_viz.py check-theme --theme default`, `--theme
+  institutional-research`, and `python3 reportkit_viz.py demo` all run
+  cleanly end to end (the last of these regenerates the full demo figure
+  set, including `risk_reward.pdf`, confirming the label-position fix
+  didn't regress the existing demo).
+- **Not performed, and should be before this lands anywhere that
+  matters:** an actual `lualatex` compile of
+  `examples/equity-research/report.tex` and
+  `examples/institutional_equity_acceptance_test.tex`, and a run of
+  `scripts/visual_qa_equity_research.py --update-expected` followed by a
+  human review of the resulting render against spec §25's checklist (the
+  checklist itself is printed by the script, and reproduced in
+  `references/institutional-research-theme.md`, precisely so that review
+  isn't skipped once a machine with the toolchain is available). Until
+  that happens, `examples/equity-research/expected/` intentionally holds
+  no baseline PNGs — see that directory's `README.md`. This is the last
+  of the "not performed" items every earlier step in this plan deferred
+  to Step 5; closing it is real, unfinished follow-up work, not a formality.

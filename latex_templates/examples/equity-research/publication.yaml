@@ -1,0 +1,23 @@
+# Descriptive config for this example. report.tex is compiled directly
+# (like latex_templates/examples/career_guide_en/), not through the
+# publication_pipeline's markdown pipeline, so nothing reads this file to
+# drive the actual build -- it documents the intended `reportkit
+# check`/`reportkit context` configuration for this publication, the same
+# gap the institutional-theme implementation plan's Step 2 recorded for
+# document.theme generally: config-side validation exists; pipeline-driven
+# theme selection does not yet.
+publication:
+  title: Nexa Cloud Solutions (NXCL) -- Update
+  subtitle: AI infrastructure demand holds up; services mix provides an offset
+  author: ReportKit Research
+  version: v1.0
+document:
+  main: report.tex
+  class: reportkit
+  engine: lualatex
+  theme: institutional-research
+  publication_type: equity-research
+  paper: letter
+theme:
+  font_family: Google Sans
+  font_policy: fallback

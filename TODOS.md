@@ -19,8 +19,8 @@ for why.
 | [2026-09-07-reportkit-vnext-implementation-plan.md](docs/superpowers/plans/2026-09-07-reportkit-vnext-implementation-plan.md) | Phase 1 in PR #10; additive Phases 2–4 in PR #9 | P3 |
 | [2026-09-07-documentation-and-status-tracking-cleanup-design.md](docs/superpowers/specs/2026-09-07-documentation-and-status-tracking-cleanup-design.md) | Approved | Process |
 | [2026-09-07-documentation-and-status-tracking-cleanup.md](docs/superpowers/plans/2026-09-07-documentation-and-status-tracking-cleanup.md) | Done — merged via PR #7 (`965443b`) | Process |
-| [2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md](docs/superpowers/specs/2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md) | Draft; open questions resolved in the plan below | P2 |
-| [2026-09-09-reportkit-institutional-theme-implementation-plan.md](docs/superpowers/plans/2026-09-09-reportkit-institutional-theme-implementation-plan.md) | Steps 1–4 of 5 implemented (theme infrastructure, institutional theme, equity publication profile, visualization integration); Step 5 not started | P2 |
+| [2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md](docs/superpowers/specs/2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md) | Implemented (Steps 1–5); open questions resolved in the plan below | P2 |
+| [2026-09-09-reportkit-institutional-theme-implementation-plan.md](docs/superpowers/plans/2026-09-09-reportkit-institutional-theme-implementation-plan.md) | Steps 1–5 of 5 implemented (theme infrastructure, institutional theme, equity publication profile, visualization integration, fixtures/QA/skill guidance); pending real-TeX verification | P2 |
 
 ## Open work
 
@@ -67,20 +67,34 @@ for why.
   `FIGURE_SIZES`, fonts, mathtext) at runtime; `check-theme` is now
   correctly theme-aware end-to-end (`--theme institutional-research`
   passes); new `risk_reward_chart()`; fixed a latent theme-switching bug in
-  `annotate_point`/`shade_period`. **Unlike Steps 1–3, Step 4's Python code
-  was actually executed and tested in this session** (matplotlib/numpy/
-  pandas are installed here) — not just statically checked; see the plan's
-  Step 4 section for what was run. **Steps 1–3 (the LaTeX-side work) remain
-  unverified by compilation** — no session so far has had a TeX Live
-  install. Run `bash scripts/acceptance_check.sh --require-tex`, diff
+  `annotate_point`/`shade_period`. **Step 4's Python code was actually
+  executed and tested** (matplotlib/numpy/pandas installed) — not just
+  statically checked. **Step 5 (fixtures, QA, skill guidance) implemented
+  2026-09-09**: the four-page fictional `latex_templates/examples/
+  equity-research/` publication (front page, analysis exhibits,
+  risk/reward, financial model), with its financial figures reconciled to
+  one internally-consistent model (open question 6) and its four
+  `figures.py` charts actually rendered and visually inspected this step
+  (which caught and fixed a real `risk_reward_chart()` label-overlap bug);
+  a compact `institutional_equity_acceptance_test.tex` smoke fixture,
+  compiled by a new `lualatex` block in `scripts/acceptance_check.sh`;
+  `scripts/visual_qa_equity_research.py` (compile + `reportkit.diagnostics`
+  log check + PNG render + pixel-diff against a checked-in baseline,
+  spec §25), whose pure pixel-diff function is unit-tested with synthetic
+  images; two new `lualatex`-compile pytest tests; and a new
+  `references/institutional-research-theme.md` linked from `SKILL.md`
+  covering the primitive reference, the `researchmain`/`researchsidebar`
+  adjacency requirement, the `exhibitgrid` column-count limit, and
+  `apply_theme`/`risk_reward_chart` usage. **Steps 1–3's LaTeX and Step
+  5's visual-regression baseline remain unverified by compilation** — no
+  session so far has had a TeX Live install with `lualatex`. Before
+  trusting any of it on a machine with TeX: run `bash
+  scripts/acceptance_check.sh --require-tex`, diff
   `latex_templates/examples/career_guide_en/report.tex`'s compiled output
-  against its pre-Step-1 PDF, and compile a minimal
-  `\documentclass[theme=institutional-research,
-  publication-type=equity-research]{reportkit}` smoke document exercising
-  every Step 3 primitive with `lualatex` before trusting any of them on a
-  machine with TeX. Step 5 (fixtures/QA/skill guidance -- including the
-  four-page equity-research example, which is also where Steps 1–3 finally
-  get a real compile) is not started. See
+  against its pre-Step-1 PDF, and run `python3 scripts/
+  visual_qa_equity_research.py --update-expected` followed by a human
+  review against the printed spec §25 checklist before committing the
+  resulting baseline. See
   [the implementation plan](docs/superpowers/plans/2026-09-09-reportkit-institutional-theme-implementation-plan.md).
 
 ### P3
@@ -105,6 +119,20 @@ for why.
 
 ## History
 
+- 2026-09-09: institutional-theme spec's Step 5 (fixtures, QA, skill
+  guidance) implemented on `claude/institutional-theme-step-5-gi0ptf` --
+  the four-page `examples/equity-research/` fixture (financial figures
+  reconciled per open question 6), a compact lualatex acceptance-test
+  fixture wired into `scripts/acceptance_check.sh`, `scripts/
+  visual_qa_equity_research.py` (spec §25's compile/diagnose/render/
+  pixel-diff tooling), and `references/institutional-research-theme.md`.
+  `figures.py`'s four charts were actually rendered and inspected this
+  step (matplotlib/numpy/pandas/PyMuPDF installed), which caught and fixed
+  a real `risk_reward_chart()` label-overlap bug; the LaTeX compile itself
+  still was not, and neither could `scripts/visual_qa_equity_research.py`
+  actually run its render/compare path -- no TeX Live in this session
+  either. See the plan's own Step 5 section for exactly what was and
+  wasn't run.
 - 2026-09-09: institutional-theme spec's Step 4 (visualization integration)
   implemented on `claude/institutional-template-spec-m6imf7` -- a new
   `reportkit.themes` Python package, a genuinely theme-switching
