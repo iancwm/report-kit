@@ -9,8 +9,6 @@ tags on this repository, not a published package registry.
 ## [1.9.1] - 2026-09-10
 
 ### Fixed
-- Test collection now exposes scientific-stack import incompatibilities instead
-  of hiding them behind an unrelated optional-package skip.
 - Dated roadmap milestone arrows follow wrapped period labels, diagram label
   validation ignores edge labels, and Pandoc figures preserve their aspect
   ratio.
@@ -19,6 +17,10 @@ tags on this repository, not a published package registry.
   in generated LaTeX.
 - Visualization helpers now support pre-2.2 pandas month-end aliases and use
   marker shapes as a second encoding for grouped bubble matrices.
+
+### For contributors
+- Test collection now exposes scientific-stack import incompatibilities instead
+  of hiding them behind an unrelated optional-package skip.
 
 ## [1.9.0] - 2026-09-10
 

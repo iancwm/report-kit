@@ -139,7 +139,7 @@ you're a person cloning this locally or a Claude session bootstrapping it.
 
 ## Versioning
 
-Releases are git tags (for example `v1.9.0`) on this repo, not a zip or package
+Releases are git tags (for example `v1.9.1`) on this repo, not a zip or package
 registry. The ReportKit release version and machine-contract version are
 independent; see [`references/agent-contract.md`](references/agent-contract.md)
 and `CHANGELOG.md`.

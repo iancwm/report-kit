@@ -40,6 +40,10 @@ optional `license:` section can override `content_license`,
 values retain the engine defaults. A missing title (in both the config and
 the CLI) fails the build with a message naming the file and the flag.
 
+Before TeX runs, optional consumer-project `figures/` and `assets/` files are
+copied into the isolated build directory. Their relative paths and SHA-256
+hashes are recorded in `build-report.json` for build provenance.
+
 `combine.sh` is the canonical full-document build and is driven by
 `manuscript/order.txt`. It validates the publication before Pandoc runs,
 compiles twice with `-file-line-error`, applies the strict log gate, renders
