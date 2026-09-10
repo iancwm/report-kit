@@ -9,6 +9,10 @@ introduced by
 (see [Current state](#1-current-state-verified-2026-09-09)). Every premise below
 carries a `file:line` anchor so the implementer does not re-derive it.
 **Priority:** P2 — architectural hardening, ahead of any new theme.
+**Companion:** [2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md](2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md)
+covers the agent-facing contract (capability discovery, authoring input,
+diagnostics, reproducibility, vendor-neutral packaging) and amends §9, §17,
+§18, §19, §20 and §21 of this document — see its §18.
 
 ---
 
