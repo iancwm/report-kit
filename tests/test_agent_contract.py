@@ -31,7 +31,7 @@ from reportkit.toolchain import load_toolchain_lock, toolchain_fingerprint  # no
 from reportkit.version import REPORTKIT_VERSION  # noqa: E402
 from publication_build import _reproducible_datetime, run_limited  # noqa: E402
 from publication_validation import validate_publication  # noqa: E402
-from scripts.contract_acceptance import acceptance_source  # noqa: E402
+from scripts.contract_acceptance import acceptance_source, run_acceptance  # noqa: E402
 
 
 def test_xparse_signature_handles_nested_defaults_and_supported_tokens() -> None:
@@ -253,6 +253,16 @@ def test_contract_only_acceptance_source_uses_emitted_examples() -> None:
     assert context["capabilities"]["primitives"]["callout"]["principle"]["example"] in source
     assert context["capabilities"]["primitives"]["figure"]["reportflow"]["example"] in source
     assert "contract-chart.pdf" in source
+
+
+@pytest.mark.skipif(shutil.which("pdflatex") is None, reason="pdflatex not on PATH")
+def test_contract_acceptance_document_has_no_blocking_diagnostics(tmp_path: Path) -> None:
+    pytest.importorskip("matplotlib")
+    pytest.importorskip("numpy")
+    pytest.importorskip("pandas")
+    code, payload = run_acceptance(tmp_path)
+    assert code == 0, json.dumps(payload, indent=2, sort_keys=True)
+    assert not any(item["blocking"] for item in payload["diagnostics"])
 
 
 def test_command_contract_covers_every_public_cli_option() -> None:
