@@ -10,10 +10,22 @@ import sys
 try:
     import pymupdf as fitz
 except ImportError:  # PyMuPDF < 1.26
-    import fitz  # type: ignore
+    try:
+        import fitz  # type: ignore
+    except ImportError:
+        fitz = None  # type: ignore[assignment]
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+PYTHON_ROOT = REPO_ROOT / "python_scripts"
+if str(PYTHON_ROOT) not in sys.path:
+    sys.path.insert(0, str(PYTHON_ROOT))
+
+from reportkit.diagnostics import diagnostic_envelope, make_diagnostic  # noqa: E402
 
 
 def inspect(path: Path) -> dict:
+    if fitz is None:
+        raise ModuleNotFoundError("PyMuPDF is not installed")
     doc = fitz.open(path)
     outside: list[dict[str, object]] = []
     near_margin: list[dict[str, object]] = []
@@ -39,18 +51,28 @@ def inspect(path: Path) -> dict:
             elif x0 < media.x0 + margin or y0 < media.y0 + margin or x1 > media.x1 - margin or y1 > media.y1 - margin:
                 near_margin.append({"page": page_number, "text": text, "bbox": [x0, y0, x1, y1], "margin_pt": margin})
     toc = doc.get_toc(simple=True)
-    return {
-        "passed": not outside and not blank_pages and len(doc) > 0,
-        "page_count": len(doc),
-        "outside_media_box": outside,
-        "near_margin_content": near_margin,
-        "blank_pages": blank_pages,
-        "page_dimensions": dimensions,
-        "bookmarks": {"count": len(toc), "items": toc},
-        "fonts": sorted(fonts.values(), key=lambda item: str(item["name"])),
-        "metadata": doc.metadata,
-        "link_count": sum(len(page.get_links()) for page in doc),
-    }
+    diagnostics = [make_diagnostic(
+        "pdf_geometry", f"content {item['text']!r} lies outside the page media box",
+        code="RK_PDF_OUTSIDE_MEDIA_BOX", source={"file": str(path)},
+        details={"page": item["page"], "bbox": item["bbox"], "media_box": item["media_box"]},
+    ) for item in outside]
+    diagnostics.extend(make_diagnostic(
+        "blank_page", f"page {page} is blank", code="RK_PDF_BLANK_PAGE",
+        source={"file": str(path)}, details={"page": page},
+    ) for page in blank_pages)
+    return diagnostic_envelope(
+        diagnostics,
+        passed=not outside and not blank_pages and len(doc) > 0,
+        page_count=len(doc),
+        outside_media_box=outside,
+        near_margin_content=near_margin,
+        blank_pages=blank_pages,
+        page_dimensions=dimensions,
+        bookmarks={"count": len(toc), "items": toc},
+        fonts=sorted(fonts.values(), key=lambda item: str(item["name"])),
+        metadata=doc.metadata,
+        link_count=sum(len(page.get_links()) for page in doc),
+    )
 
 
 def main() -> int:
@@ -60,14 +82,27 @@ def main() -> int:
     args = parser.parse_args()
     try:
         result = inspect(args.pdf)
+    except ModuleNotFoundError as exc:
+        result = diagnostic_envelope([
+            make_diagnostic("environment_error", f"PDF inspection requires PyMuPDF: {exc}", code="RK_PYMUPDF_MISSING")
+        ], passed=False)
+        if args.json_path:
+            args.json_path.write_text(json.dumps(result, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        print(f"FAIL: PDF inspection requires PyMuPDF: {exc}", file=sys.stderr)
+        return 5
     except Exception as exc:
+        result = diagnostic_envelope([
+            make_diagnostic("pdf_geometry", f"PDF inspection failed: {exc}", code="RK_PDF_INSPECTION")
+        ], passed=False)
+        if args.json_path:
+            args.json_path.write_text(json.dumps(result, indent=2, sort_keys=True) + "\n", encoding="utf-8")
         print(f"FAIL: PDF inspection failed: {exc}", file=sys.stderr)
-        return 1
+        return 3
     if args.json_path:
         args.json_path.write_text(json.dumps(result, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     if not result["passed"]:
         print(f"FAIL: {len(result['outside_media_box'])} glyph boxes fall outside the media box; {len(result['blank_pages'])} blank pages", file=sys.stderr)
-        return 1
+        return 3
     print(f"PASS: PDF inspection ({result['page_count']} pages, {result['link_count']} links)")
     return 0
 

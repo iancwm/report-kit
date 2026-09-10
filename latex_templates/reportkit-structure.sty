@@ -80,6 +80,9 @@
 }
 \newcount\rk@archcount
 \newcount\rk@archcomponents
+% <reportkit-contract>
+% {"kind":"figure","description":"Layered architecture with semantic components.","arguments":[{"name":"options","type":"options","description":"Architecture layout keys."}],"constraints":[],"example":"\\begin{diagram}[caption={Platform architecture.},description={Three platform layers.}]\n\\begin{reportarchitecture}\n\\layer{Experience}{Reader,Author}\n\\layer{Services}{Build,Validation}\n\\layer{Data}{Sources,Archive}\n\\end{reportarchitecture}\n\\end{diagram}","stability":"stable","since":"1.0.0"}
+% </reportkit-contract>
 \NewDocumentEnvironment{reportarchitecture}{O{}}{%
   \def\rk@archwidth{15.2}\def\rk@archannotation{}\def\rk@archannotationposition{top}%
   \rk@archcount=0\relax
@@ -93,6 +96,7 @@
     \rk@architecture@render
   \fi
 }
+% reportkit-contract: internal
 \NewDocumentCommand{\rk@architecture@layer}{m m}{%
   \rk@structure@nonempty{#1}{Architecture layer title}{Every \string\layer needs a non-empty title.}%
   \rk@structure@nonempty{#2}{Architecture layer '#1' components}{Provide one or more comma-delimited components.}%
@@ -152,6 +156,9 @@
 \newcount\rk@roadmilestonecount
 \newcount\rk@roaditemcount
 \newcount\rk@roadresolved
+% <reportkit-contract>
+% {"kind":"figure","description":"Ordered horizon or dated roadmap.","arguments":[{"name":"options","type":"options","description":"Roadmap mode and layout keys."}],"constraints":[],"example":"\\begin{diagram}[caption={Delivery roadmap.},description={Three delivery horizons.}]\n\\begin{reportroadmap}\n\\horizon{Now}{Foundation}{Model,Governance}\n\\horizon{Next}{Integration}{API,Pilot}\n\\horizon{Later}{Scale}{Automation,Optimization}\n\\end{reportroadmap}\n\\end{diagram}","stability":"stable","since":"1.0.0"}
+% </reportkit-contract>
 \NewDocumentEnvironment{reportroadmap}{O{}}{%
   \def\rk@roadmode{horizons}\def\rk@roadwidth{15.2}%
   \rk@roadcount=0\relax\rk@roadmilestonecount=0\relax
@@ -167,6 +174,7 @@
     }%
   }%
 }
+% reportkit-contract: internal
 \NewDocumentCommand{\rk@roadmap@horizon}{m m m}{%
   \rk@structure@nonempty{#1}{Horizon label}{Use a period label such as Now, Next, or Later.}%
   \rk@structure@nonempty{#2}{Horizon '#1' theme}{Each horizon needs a theme.}%
@@ -176,6 +184,7 @@
   \expandafter\def\csname rk@road@theme@\the\rk@roadcount\endcsname{#2}%
   \expandafter\def\csname rk@road@items@\the\rk@roadcount\endcsname{#3}%
 }
+% reportkit-contract: internal
 \NewDocumentCommand{\rk@roadmap@period}{m}{%
   \rk@structure@nonempty{#1}{Period label}{Every \string\period needs a non-empty ordered label.}%
   \advance\rk@roadcount by 1\relax
@@ -183,6 +192,7 @@
   \expandafter\edef\csname rk@road@periodindex@#1\endcsname{\the\rk@roadcount}%
   \expandafter\edef\csname rk@road@periodindex@\the\rk@roadcount\endcsname{\the\rk@roadcount}%
 }
+% reportkit-contract: internal
 \NewDocumentCommand{\rk@roadmap@milestone}{m m}{%
   \rk@structure@nonempty{#1}{Milestone period}{Reference a declared period label or its one-based position.}%
   \rk@structure@nonempty{#2}{Milestone label}{Every \string\milestone needs a non-empty label.}%
@@ -269,6 +279,9 @@
   .unknown/.code={\rk@structure@unknownkey{strategicpillars}}
 }
 \newcount\rk@pillarcount
+% <reportkit-contract>
+% {"kind":"figure","description":"Objective supported by three to six strategic pillars.","arguments":[{"name":"options","type":"options","description":"Pillar layout keys."}],"constraints":[{"code":"pillar_count","description":"Declare three to six pillars.","min":3,"max":6}],"example":"\\begin{diagram}[caption={Strategic pillars.},description={Three pillars support an objective.}]\n\\begin{strategicpillars}[objective={Trusted reporting}]\n\\pillar{People}{Skills}\n\\pillar{Process}{Standards}\n\\pillar{Technology}{Platform}\n\\end{strategicpillars}\n\\end{diagram}","stability":"stable","since":"1.0.0"}
+% </reportkit-contract>
 \NewDocumentEnvironment{strategicpillars}{O{}}{%
   \def\rk@pillarobjective{}\def\rk@pillarwidth{15.2}\rk@pillarcount=0\relax
   \pgfkeys{/reportkit/pillars,#1}%
@@ -284,6 +297,7 @@
     \rk@pillars@render
   \fi\fi
 }
+% reportkit-contract: internal
 \NewDocumentCommand{\rk@pillars@pillar}{m m}{%
   \rk@structure@nonempty{#1}{Pillar title}{Every \string\pillar requires a non-empty title.}%
   \rk@structure@nonempty{#2}{Pillar '#1' description}{Every pillar needs a concise description.}%
@@ -317,6 +331,9 @@
 }
 \newcount\rk@maturitycount
 \newcount\rk@maturityresolved
+% <reportkit-contract>
+% {"kind":"figure","description":"Four-to-six-stage capability maturity progression.","arguments":[{"name":"options","type":"options","description":"Maturity layout and current-stage keys."}],"constraints":[{"code":"stage_count","description":"Declare four to six stages.","min":4,"max":6}],"example":"\\begin{diagram}[caption={Maturity progression.},description={Four ordered maturity stages.}]\n\\begin{maturitymodel}[current={Managed}]\n\\stage{Ad hoc}{Local}\n\\stage{Defined}{Common}\n\\stage{Managed}{Measured}\n\\stage{Optimized}{Improving}\n\\end{maturitymodel}\n\\end{diagram}","stability":"stable","since":"1.0.0"}
+% </reportkit-contract>
 \NewDocumentEnvironment{maturitymodel}{O{}}{%
   \def\rk@maturitycurrent{}\def\rk@maturitywidth{15.2}\rk@maturitycount=0\relax
   \pgfkeys{/reportkit/maturity,#1}%
@@ -331,6 +348,7 @@
     \rk@maturity@render
   \fi\fi
 }
+% reportkit-contract: internal
 \NewDocumentCommand{\rk@maturity@stage}{m m}{%
   \rk@structure@nonempty{#1}{Maturity stage title}{Every \string\stage needs a non-empty title.}%
   \rk@structure@nonempty{#2}{Maturity stage '#1' description}{Every stage needs a concise description.}%
@@ -387,6 +405,9 @@
   \ifstrempty{#2}{\rk@structure@error{continuum endpoints must contain exactly two labels}{Use endpoints={Left label,Right label}, or the left and right keys.}}{}%
 }
 \newcount\rk@continuummarkercount
+% <reportkit-contract>
+% {"kind":"figure","description":"Labelled positions between two semantic endpoints.","arguments":[{"name":"options","type":"options","description":"Endpoint labels and layout keys."}],"constraints":[],"example":"\\begin{diagram}[caption={Operating continuum.},description={Two positions between centralized and distributed.}]\n\\begin{continuum}[left={Centralized},right={Distributed}]\n\\marker{Team A}{.3}\n\\marker{Team B}{.7}\n\\end{continuum}\n\\end{diagram}","stability":"stable","since":"1.0.0"}
+% </reportkit-contract>
 \NewDocumentEnvironment{continuum}{O{}}{%
   \def\rk@continuumleft{}\def\rk@continuumright{}\def\rk@continuumwidth{15.2}\rk@continuummarkercount=0\relax
   \pgfkeys{/reportkit/continuum,#1}%
@@ -397,6 +418,7 @@
   \rk@structure@nonempty{\rk@continuumright}{Continuum right endpoint}{Supply right={...} or endpoints={left,right}.}%
   \rk@continuum@render
 }
+% reportkit-contract: internal
 \NewDocumentCommand{\rk@continuum@marker}{m m}{%
   \rk@structure@nonempty{#1}{Continuum marker label}{Every \string\marker needs a label.}%
   \rk@structure@rangezeroone{#2}{Continuum marker '#1' value}{Use a normalized value from 0 to 1.}%
@@ -431,6 +453,9 @@
 }
 \newcount\rk@capabilitydomaincount
 \newcount\rk@capabilityitemcount
+% <reportkit-contract>
+% {"kind":"figure","description":"Capabilities grouped into named business domains.","arguments":[{"name":"options","type":"options","description":"Capability-map layout keys."}],"constraints":[],"example":"\\begin{diagram}[caption={Capability map.},description={Two domains group four capabilities.}]\n\\begin{capabilitymap}\n\\domain{Data}{Acquire,Govern}\n\\domain{Analytics}{Model,Explain}\n\\end{capabilitymap}\n\\end{diagram}","stability":"stable","since":"1.0.0"}
+% </reportkit-contract>
 \NewDocumentEnvironment{capabilitymap}{O{}}{%
   \def\rk@capabilitywidth{15.2}\rk@capabilitydomaincount=0\relax
   \pgfkeys{/reportkit/capability,#1}%
@@ -443,6 +468,7 @@
     \rk@capability@render
   \fi
 }
+% reportkit-contract: internal
 \NewDocumentCommand{\rk@capability@domain}{m m}{%
   \rk@structure@nonempty{#1}{Capability domain name}{Every \string\domain needs a non-empty name.}%
   \rk@structure@nonempty{#2}{Capability domain '#1' capabilities}{Provide one or more comma-delimited capabilities.}%
@@ -494,6 +520,9 @@
 \newcount\rk@treeslot
 \newif\ifrk@treedeepwarning
 \newcommand{\rk@tree@literal}[1]{\in@{\rkcode}{#1}}
+% <reportkit-contract>
+% {"kind":"figure","description":"Compact semantic decomposition tree.","arguments":[{"name":"options","type":"options","description":"Tree layout keys."}],"constraints":[],"example":"\\begin{diagram}[caption={Issue tree.},description={Revenue splits into volume and price.}]\n\\begin{reporttree}\n\\root{Revenue}\n\\branch{Volume}{Customers,Usage}\n\\branch{Price}{List price,Discounts}\n\\end{reporttree}\n\\end{diagram}","stability":"stable","since":"1.0.0"}
+% </reportkit-contract>
 \NewDocumentEnvironment{reporttree}{O{}}{%
   \def\rk@treekind{hierarchy}\def\rk@treewidth{15.2}%
   \rk@treecount=0\relax\rk@treeroot=0\relax\rk@treedeepwarningfalse
@@ -546,6 +575,7 @@
     \fi
   \fi
 }
+% reportkit-contract: internal
 \NewDocumentCommand{\rk@tree@root}{m}{%
   \ifnum\rk@treeroot>0
     \rk@structure@error{reporttree permits exactly one \string\root}{Use \string\branch to add children to the existing root.}%
@@ -554,6 +584,7 @@
     \rk@treeroot=\rk@treecount\relax
   \fi
 }
+% reportkit-contract: internal
 \NewDocumentCommand{\rk@tree@branch}{O{} m m}{%
   \ifstrempty{#1}{%
     \ifnum\rk@treeroot=0

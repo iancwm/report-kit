@@ -32,12 +32,18 @@
 % A flow's declaration order is its primary reading order.  Edges are
 % intentionally declared after steps: authors control only semantic links,
 % not coordinates or routing.
+% <reportkit-contract>
+% {"kind":"figure","description":"Ordered process flow with semantic edges.","arguments":[{"name":"options","type":"options","description":"Direction and step-spacing keys."}],"constraints":[],"example":"\\begin{diagram}[caption={Publication flow.},description={Three ordered publication steps.}]\n\\begin{reportflow}\n\\step{draft}{Draft}\n\\step{review}{Review}\n\\step{publish}{Publish}\n\\flowedge{draft}{review}\n\\flowedge{review}{publish}\n\\end{reportflow}\n\\end{diagram}","stability":"stable","since":"1.0.0"}
+% </reportkit-contract>
 \NewDocumentEnvironment{reportflow}{O{}}{%
   \begingroup
   \pgfkeys{/reportkit/flow,direction=horizontal,step spacing=3.05,#1}%
   \rk@flowindex=0\relax
 }{\endgroup}
 
+% <reportkit-contract>
+% {"kind":"command","description":"Step","arguments":[{"name":"id","type":"text","description":"Id."},{"name":"label","type":"text","description":"Label."}],"constraints":[],"example":"\\step{a}{Example}","stability":"stable","since":"1.0.0","parent":"reportflow"}
+% </reportkit-contract>
 \NewDocumentCommand{\step}{m m}{%
   \expandafter\ifstrequal\expandafter{\rk@flowdirection}{vertical}{%
     \node[rk node] (#1) at (0,{-\the\rk@flowindex*\rk@flowspacing}) {\strut #2};%
@@ -48,6 +54,9 @@
 }
 % Explicit positions deliberately complement, rather than replace, declaration
 % order. They are useful for small deterministic DAG branches.
+% <reportkit-contract>
+% {"kind":"command","description":"Stepat","arguments":[{"name":"options","type":"options","description":"Options."},{"name":"id","type":"text","description":"Id."},{"name":"x","type":"text","description":"X."},{"name":"y","type":"text","description":"Y."},{"name":"label","type":"text","description":"Label."}],"constraints":[],"example":"\\stepat[]{a}{1}{1}{Example}","stability":"stable","since":"1.0.0","parent":"reportflow"}
+% </reportkit-contract>
 \NewDocumentCommand{\stepat}{O{} m m m m}{%
   \node[rk node,#1] (#2) at (#3,#4) {\strut #5};%
 }
@@ -90,15 +99,24 @@
     }%
   }}%
 }
+% <reportkit-contract>
+% {"kind":"command","description":"Flowedge","arguments":[{"name":"options","type":"options","description":"Options."},{"name":"source","type":"text","description":"Source."},{"name":"target","type":"text","description":"Target."}],"constraints":[],"example":"\\flowedge[]{a}{b}","stability":"stable","since":"1.0.0","parent":"reportflow"}
+% </reportkit-contract>
 \NewDocumentCommand{\flowedge}{O{} m m}{%
   \def\rk@flowroute{straight}\def\rk@flowlabelposition{above}\def\rk@flowlabel{}%
   \in@{=}{#1}%
   \ifin@\pgfkeys{/reportkit/flow/edge,#1}\else\def\rk@flowlabel{#1}\fi
   \rk@flow@draw{#2}{#3}{\rk@flowlabel}%
 }
+% <reportkit-contract>
+% {"kind":"command","description":"Branch","arguments":[{"name":"options","type":"options","description":"Options."},{"name":"source","type":"text","description":"Source."},{"name":"target","type":"text","description":"Target."},{"name":"label","type":"text","description":"Label."}],"constraints":[],"example":"\\branch[]{a}{b}{Example}","stability":"stable","since":"1.0.0","parent":"reportflow"}
+% </reportkit-contract>
 \NewDocumentCommand{\branch}{O{} m m m}{%
   \flowedge[#1]{#2}{#3}\flowedge[#1]{#2}{#4}%
 }
+% <reportkit-contract>
+% {"kind":"command","description":"Merge","arguments":[{"name":"options","type":"options","description":"Options."},{"name":"source","type":"text","description":"Source."},{"name":"target","type":"text","description":"Target."},{"name":"label","type":"text","description":"Label."}],"constraints":[],"example":"\\merge[]{a}{b}{Example}","stability":"stable","since":"1.0.0","parent":"reportflow"}
+% </reportkit-contract>
 \NewDocumentCommand{\merge}{O{} m m m}{%
   \flowedge[#1]{#2}{#4}\flowedge[#1]{#3}{#4}%
 }
@@ -152,6 +170,9 @@
 }
 \makeatother
 \makeatletter
+% <reportkit-contract>
+% {"kind":"figure","description":"Responsibility lanes containing an ordered process.","arguments":[{"name":"options","type":"options","description":"Lane names, width, columns, and spacing keys."}],"constraints":[],"example":"\\begin{diagram}[caption={Review ownership.},description={Three steps move across responsibility lanes.}]\n\\begin{reportswimlane}[lanes={Author,Reviewer},columns=3]\n\\lanestep{draft}{Author}{Draft}{1}\n\\lanestep{review}{Reviewer}{Review}{2}\n\\lanestep{publish}{Author}{Publish}{3}\n\\handoff{draft}{review}\n\\handoff{review}{publish}\n\\end{reportswimlane}\n\\end{diagram}","stability":"stable","since":"1.0.0"}
+% </reportkit-contract>
 \NewDocumentEnvironment{reportswimlane}{O{}}{%
   \begingroup
   \pgfkeys{/reportkit/swimlane,lanes={},lane spacing=1.32,width=12.2,columns={},node width=20mm,column spacing={},label gutter=.28,#1}%
@@ -161,6 +182,9 @@
   \rk@drawlanes
 }{\endgroup}
 % #1 id, #2 lane name, #3 label, #4 one-based process column.
+% <reportkit-contract>
+% {"kind":"command","description":"Lanestep","arguments":[{"name":"lane","type":"text","description":"Lane."},{"name":"id","type":"text","description":"Id."},{"name":"column","type":"text","description":"Column."},{"name":"label","type":"text","description":"Label."}],"constraints":[],"example":"\\lanestep{Example}{a}{1}{Example}","stability":"stable","since":"1.0.0","parent":"reportswimlane"}
+% </reportkit-contract>
 \NewDocumentCommand{\lanestep}{m m m m}{%
   \rk@findlane{#2}%
   \expandafter\ifstrempty\expandafter{\rk@lanecolumns}{%
@@ -190,7 +214,13 @@
       at ({0.5*\rk@laneouterwidth/1cm+(#4-1)*\rk@lanestepwidth},{-\the\rk@lanequery*\rk@lanespacing}) {\strut #3};%
   }%
 }
+% <reportkit-contract>
+% {"kind":"command","description":"Handoff","arguments":[{"name":"options","type":"options","description":"Options."},{"name":"source","type":"text","description":"Source."},{"name":"target","type":"text","description":"Target."}],"constraints":[],"example":"\\handoff[]{a}{b}","stability":"stable","since":"1.0.0","parent":"reportswimlane"}
+% </reportkit-contract>
 \NewDocumentCommand{\handoff}{O{} m m}{\RKEdge[#1]{handoff}{#2}{#3}}
+% <reportkit-contract>
+% {"kind":"command","description":"Laneflow","arguments":[{"name":"options","type":"options","description":"Options."},{"name":"source","type":"text","description":"Source."},{"name":"target","type":"text","description":"Target."}],"constraints":[],"example":"\\laneflow[]{a}{b}","stability":"stable","since":"1.0.0","parent":"reportswimlane"}
+% </reportkit-contract>
 \NewDocumentCommand{\laneflow}{O{} m m}{\RKEdge[#1]{flow}{#2}{#3}}
 
 \newcommand{\rk@networklayout}{grid}
@@ -208,9 +238,15 @@
   x spacing/.store in=\rk@networkxstep,
   y spacing/.store in=\rk@networkystep,
 }
+% <reportkit-contract>
+% {"kind":"figure","description":"Automatically laid-out dependency network.","arguments":[{"name":"options","type":"options","description":"Network layout keys."}],"constraints":[],"example":"\\begin{diagram}[caption={Service network.},description={Three connected service nodes.}]\n\\begin{reportnetwork}\n\\networknode{client}{Client}\n\\networknode{api}{API}\n\\networknode{store}{Store}\n\\networkedge{client}{api}[request]\n\\networkedge{api}{store}[write]\n\\end{reportnetwork}\n\\end{diagram}","stability":"stable","since":"1.0.0"}
+% </reportkit-contract>
 \NewDocumentEnvironment{reportnetwork}{O{}}{%
   \begingroup\pgfkeys{/reportkit/network,layout=grid,x spacing=3.9,y spacing=2.25,#1}\rk@networkindex=0\relax
 }{\endgroup}
+% <reportkit-contract>
+% {"kind":"command","description":"Networknode","arguments":[{"name":"options","type":"options","description":"Options."},{"name":"id","type":"text","description":"Id."},{"name":"label","type":"text","description":"Label."}],"constraints":[],"example":"\\networknode[]{a}{Example}","stability":"stable","since":"1.0.0","parent":"reportnetwork"}
+% </reportkit-contract>
 \NewDocumentCommand{\networknode}{O{} m m}{%
   \ifstrequal{\rk@networklayout}{radial}{%
     \node[rk node,#1] (#2) at ({3.5*cos(90-\the\rk@networkindex*60)},{3.5*sin(90-\the\rk@networkindex*60)}) {\strut #3};%
@@ -220,9 +256,21 @@
   \advance\rk@networkindex by 1\relax
 }
 % #1 edge type: dependency (default), flow, handoff, optional, or causal.
+% <reportkit-contract>
+% {"kind":"command","description":"Networkedge","arguments":[{"name":"relationship","type":"options","description":"Relationship."},{"name":"source","type":"text","description":"Source."},{"name":"target","type":"text","description":"Target."},{"name":"options","type":"options","description":"Options."}],"constraints":[],"example":"\\networkedge[]{a}{b}[]","stability":"stable","since":"1.0.0","parent":"reportnetwork"}
+% </reportkit-contract>
 \NewDocumentCommand{\networkedge}{O{dependency} m m O{}}{\RKEdge[#4]{#1}{#2}{#3}}
+% <reportkit-contract>
+% {"kind":"figure","description":"Signed causal feedback loop.","arguments":[{"name":"options","type":"options","description":"Causal-loop layout keys."}],"constraints":[],"example":"\\begin{diagram}[caption={Capacity loop.},description={Demand, investment, and capacity form a feedback loop.}]\n\\begin{causalloop}\n\\causalnode{demand}{Demand}\n\\causalnode{investment}{Investment}\n\\causalnode{capacity}{Capacity}\n\\causaledge{demand}{investment}{+}\n\\causaledge{investment}{capacity}{+}\n\\causaledge{capacity}{demand}{-}\n\\end{causalloop}\n\\end{diagram}","stability":"stable","since":"1.0.0"}
+% </reportkit-contract>
 \NewDocumentEnvironment{causalloop}{O{}}{\begin{reportnetwork}[layout=radial,#1]}{\end{reportnetwork}}
+% <reportkit-contract>
+% {"kind":"command","description":"Causalnode","arguments":[{"name":"options","type":"options","description":"Options."},{"name":"id","type":"text","description":"Id."},{"name":"label","type":"text","description":"Label."}],"constraints":[],"example":"\\causalnode[]{a}{Example}","stability":"stable","since":"1.0.0","parent":"causalloop"}
+% </reportkit-contract>
 \NewDocumentCommand{\causalnode}{O{} m m}{\networknode[#1]{#2}{#3}}
+% <reportkit-contract>
+% {"kind":"command","description":"Causaledge","arguments":[{"name":"source","type":"text","description":"Source."},{"name":"target","type":"text","description":"Target."},{"name":"polarity","type":"text","description":"Polarity."}],"constraints":[],"example":"\\causaledge{a}{b}{+}","stability":"stable","since":"1.0.0","parent":"causalloop"}
+% </reportkit-contract>
 \NewDocumentCommand{\causaledge}{m m m}{\RKEdge[#3]{causal}{#1}{#2}}
 
 \makeatother

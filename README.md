@@ -1,7 +1,8 @@
 # ReportKit
 
 A LaTeX toolkit for producing polished, professionally designed technical
-reports as PDFs, packaged as a Claude Skill.
+reports as PDFs, with a versioned host-neutral CLI contract and a Claude Skill
+adapter.
 
 **`SKILL.md` is the Claude-driven entry point** — a claude.ai session
 clones this repo and follows it directly. This file is the human-facing
@@ -26,7 +27,7 @@ Migrating an existing content branch out of this repo is covered in
 [`references/migrating-content-branches.md`](references/migrating-content-branches.md).
 
 ## 1. latex_templates/
-- `reportkit.cls` (v1.8.0), `reportkit-core.sty`, `reportkit-boxes.sty`,
+- `reportkit.cls` (v1.9.0), `reportkit-core.sty`, `reportkit-boxes.sty`,
   `reportkit-code.sty`, `reportkit-diagrams.sty`, `reportkit-grammar.sty`,
   `reportkit-pandoc.sty`, and `reportkit-longform.sty` — the core document
   class and style files. The public diagram DSL covers positioning, risk,
@@ -58,7 +59,7 @@ Migrating an existing content branch out of this repo is covered in
 
 ## 2. python_scripts/
 - `reportkit` (from the repository root) — stdlib CLI facade for doctor,
-  context, check, build, diagnose, inspect, analyse-history, and package; its importable
+  context, check, build, diagnose, inspect, docs, analyse-history, and package; its importable
   implementation lives under `python_scripts/reportkit/`, including
   `reportkit/themes/` — per-theme Python tokens (`default`,
   `institutional-research`) that `reportkit_viz.py` resolves by name.
@@ -109,6 +110,9 @@ See [`publication_pipeline/README.md`](publication_pipeline/README.md).
   [`licensing.md`](references/licensing.md) — operational, accessibility, and
   licensing guidance, linked from `SKILL.md` or the relevant entry points on
   demand.
+- [`agent-contract.md`](references/agent-contract.md) — the v1.9 contract
+  versioning policy, diagnostic exits, pinned toolchain, and security/trust
+  boundary.
 
 ## Licensing scope
 
@@ -135,8 +139,10 @@ you're a person cloning this locally or a Claude session bootstrapping it.
 
 ## Versioning
 
-Releases are git tags (e.g. `v1.2.1`, `v1.3.0`) on this repo, not a zip or
-package registry. See `CHANGELOG.md`.
+Releases are git tags (for example `v1.9.0`) on this repo, not a zip or package
+registry. The ReportKit release version and machine-contract version are
+independent; see [`references/agent-contract.md`](references/agent-contract.md)
+and `CHANGELOG.md`.
 
 ## Visual grammar
 

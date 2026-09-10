@@ -6,7 +6,22 @@ tags on this repository, not a published package registry.
 
 ## [Unreleased]
 
+## [1.9.0] - 2026-09-10
+
 ### Added
+- ReportKit v1.9.0 agent-contract foundations: capability and diagnostic schema
+  1.0.0, balanced LaTeX/Python signature extraction with adjacent metadata,
+  filtered `context` catalogs for the two current paged publication matrices,
+  deterministic contract-derived documentation, `docs --write/--check`,
+  contract-version negotiation on `check`/`build`, shared diagnostics and
+  stable exit classes, JSON build output, pinned-toolchain doctor checks,
+  build-report schema v3, a digest/snapshot/version/hash-pinned OCI toolchain,
+  fingerprinted visual baselines, and pinned GitHub Actions gates. Existing
+  flat context fields and raw LaTeX authoring remain supported through v1.x.
+- Build security controls for converter/TeX time and address-space limits,
+  restrictive TeX file access, disabled shell escape, source-path confinement,
+  escaped Markdown content, and explicit trusted fragment/direct-TeX escape
+  hatches. See `references/agent-contract.md`.
 - Institutional-research theme fixtures, QA, and skill guidance: a
   fictional four-page equity-research example
   (`latex_templates/examples/equity-research/`, front page, analysis

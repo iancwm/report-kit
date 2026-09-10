@@ -66,6 +66,9 @@
 % and Y/Z/C/S columns) inside it for any of the six, e.g.
 % \begin{financialtable}\begin{tabularx}{\linewidth}{@{}Yrrr@{}}...
 % \end{tabularx}\end{financialtable}.
+% <reportkit-contract>
+% {"kind":"composition","description":"Financialtable","arguments":[],"constraints":[],"example":"\\begin{financialtable}\nExample content.\n\\end{financialtable}","stability":"stable","since":"1.8.0"}
+% </reportkit-contract>
 \NewDocumentEnvironment{financialtable}{}{%
   \par\Needspace{5\baselineskip}\noindent
   \sffamily\rktablebodysize\color{Ink}
@@ -80,6 +83,9 @@
 % -----------------------------------------------------------------------------
 % Research front page (spec §7)
 % -----------------------------------------------------------------------------
+% <reportkit-contract>
+% {"kind":"composition","description":"Researchfrontpage","arguments":[],"constraints":[],"example":"\\begin{researchfrontpage}\nExample content.\n\\end{researchfrontpage}","stability":"stable","since":"1.8.0"}
+% </reportkit-contract>
 \NewDocumentEnvironment{researchfrontpage}{}{%
   \thispagestyle{fancy}%
   \vspace*{1mm}%
@@ -107,6 +113,9 @@
 \newlength{\rk@ratingitemwidth}
 \newlength{\rk@ratingseparatorwidth}
 
+% <reportkit-contract>
+% {"kind":"composition","description":"Ratingstrip","arguments":[{"name":"item_count","type":"options","description":"Item count."}],"constraints":[],"example":"\\begin{ratingstrip}[]\nExample content.\n\\end{ratingstrip}","stability":"stable","since":"1.8.0"}
+% </reportkit-contract>
 \NewDocumentEnvironment{ratingstrip}{o}{%
   \par\Needspace{4\baselineskip}\noindent
   \setcounter{rkratingitem}{0}%
@@ -137,6 +146,9 @@
 }
 \def\@ratingstrip@striptrailingeq#1=\@nil{#1}
 
+% <reportkit-contract>
+% {"kind":"command","description":"Ratingitem","arguments":[{"name":"label","type":"text","description":"Label."},{"name":"value","type":"text","description":"Value."}],"constraints":[],"example":"\\ratingitem{Example}{1}","stability":"stable","since":"1.8.0","parent":"ratingstrip"}
+% </reportkit-contract>
 \NewDocumentCommand{\ratingitem}{m m}{%
   \stepcounter{rkratingitem}%
   \ifnum\value{rkratingitem}>1\quad{\color{Hairline}\vrule width 0.4pt}\quad\fi
@@ -173,11 +185,17 @@
 % \hfill's stretch between two fixed-width boxes (0.68 + 0.28 = 0.96
 % \linewidth) rather than a hard-coded gutter width.
 % -----------------------------------------------------------------------------
+% <reportkit-contract>
+% {"kind":"composition","description":"Researchmain","arguments":[],"constraints":[{"code":"adjacent_environment","description":"researchmain must be immediately followed by researchsidebar.","value":"researchsidebar"}],"example":"\\begin{researchmain}\nExample content.\n\\end{researchmain}","stability":"stable","since":"1.8.0"}
+% </reportkit-contract>
 \NewDocumentEnvironment{researchmain}{}{%
   \par\noindent\begin{minipage}[t]{0.68\linewidth}\RaggedRight%
 }{%
   \end{minipage}%
 }
+% <reportkit-contract>
+% {"kind":"composition","description":"Researchsidebar","arguments":[],"constraints":[{"code":"adjacent_environment","description":"researchsidebar must immediately follow researchmain.","value":"researchmain"}],"example":"\\begin{researchsidebar}\nExample content.\n\\end{researchsidebar}","stability":"stable","since":"1.8.0"}
+% </reportkit-contract>
 \NewDocumentEnvironment{researchsidebar}{}{%
   \hfill\begin{minipage}[t]{0.28\linewidth}\RaggedRight%
 }{%
@@ -193,20 +211,32 @@
 \newcommand{\sidebarlabel}[1]{{\sffamily\fontsize{6.2pt}{7.4pt}\selectfont\color{Muted}\MakeUppercase{#1}}}
 \newcommand{\sidebarvalue}[1]{{\sffamily\rksidebarsize\bfseries\color{Ink}#1}}
 \newcommand{\sidebarrule}{\par\vspace{2pt}{\color{Hairline}\hrule height 0.4pt}\vspace{3pt}}
+% <reportkit-contract>
+% {"kind":"command","description":"Sidebarrow","arguments":[{"name":"label","type":"text","description":"Label."},{"name":"value","type":"text","description":"Value."}],"constraints":[],"example":"\\sidebarrow{Example}{1}","stability":"stable","since":"1.8.0","parent":"researchsidebar"}
+% </reportkit-contract>
 \NewDocumentCommand{\sidebarrow}{m m}{%
   \par\noindent\sidebarlabel{#1}\hfill\sidebarvalue{#2}\par\vspace{2pt}%
 }
 
+% <reportkit-contract>
+% {"kind":"composition","description":"Analystblock","arguments":[],"constraints":[],"example":"\\begin{analystblock}\nExample content.\n\\end{analystblock}","stability":"stable","since":"1.8.0"}
+% </reportkit-contract>
 \NewDocumentEnvironment{analystblock}{}{%
   \par\Needspace{4\baselineskip}\noindent\sffamily\rksidebarsize\color{Ink}\ignorespaces
 }{%
   \par\vspace{6pt}%
 }
+% <reportkit-contract>
+% {"kind":"composition","description":"Marketdatablock","arguments":[],"constraints":[],"example":"\\begin{marketdatablock}\nExample content.\n\\end{marketdatablock}","stability":"stable","since":"1.8.0"}
+% </reportkit-contract>
 \NewDocumentEnvironment{marketdatablock}{}{%
   \sidebarrule\noindent\sffamily\rksidebarsize\color{Ink}\ignorespaces
 }{%
   \par\vspace{6pt}%
 }
+% <reportkit-contract>
+% {"kind":"composition","description":"Estimatesblock","arguments":[],"constraints":[],"example":"\\begin{estimatesblock}\nExample content.\n\\end{estimatesblock}","stability":"stable","since":"1.8.0"}
+% </reportkit-contract>
 \NewDocumentEnvironment{estimatesblock}{}{%
   \sidebarrule\noindent\sffamily\rksidebarsize\color{Ink}%
   \setlength{\tabcolsep}{2pt}\ignorespaces
@@ -219,6 +249,9 @@
 % rules, no card container. A reusable research primitive, not
 % equity-specific hand formatting.
 % -----------------------------------------------------------------------------
+% <reportkit-contract>
+% {"kind":"composition","description":"Whatschanged","arguments":[],"constraints":[],"example":"\\begin{whatschanged}\nExample content.\n\\end{whatschanged}","stability":"stable","since":"1.8.0"}
+% </reportkit-contract>
 \NewDocumentEnvironment{whatschanged}{}{%
   \par\Needspace{5\baselineskip}\vspace{3pt}%
   {\sffamily\bfseries\rksidebarsize\color{Accent}\MakeUppercase{What's Changed?}\par}%
@@ -227,6 +260,9 @@
 }{%
   \par\vspace{2pt}{\color{Hairline}\hrule height 0.4pt}\vspace{6pt}%
 }
+% <reportkit-contract>
+% {"kind":"command","description":"Change","arguments":[{"name":"date","type":"text","description":"Date."},{"name":"headline","type":"text","description":"Headline."},{"name":"detail","type":"text","description":"Detail."}],"constraints":[],"example":"\\change{Example}{Example}{Example}","stability":"stable","since":"1.8.0","parent":"whatschanged"}
+% </reportkit-contract>
 \NewDocumentCommand{\change}{m m m}{%
   \noindent#1\hfill\textcolor{Muted}{#2}\;$\to$\;\textbf{#3}\par\vspace{1.5pt}%
 }
@@ -248,6 +284,9 @@
   source/.store in=\rk@exhibitsource,
   label/.store in=\rk@exhibitlabel,
 }
+% <reportkit-contract>
+% {"kind":"composition","description":"Exhibit","arguments":[{"name":"options","type":"options","description":"Options."}],"constraints":[],"example":"\\begin{exhibit}[]\nExample content.\n\\end{exhibit}","stability":"stable","since":"1.8.0"}
+% </reportkit-contract>
 \NewDocumentEnvironment{exhibit}{O{}}{%
   \pgfkeys{/reportkit/exhibit,number={},title={},source={},label={},#1}%
   \expandafter\ifstrempty\expandafter{\rk@exhibittitle}{%
@@ -287,6 +326,9 @@
 % fill unused columns, and deliberate whitespace (fewer panes than columns)
 % is left as-is, not redistributed.
 % -----------------------------------------------------------------------------
+% <reportkit-contract>
+% {"kind":"composition","description":"Fullwidthexhibit","arguments":[],"constraints":[],"example":"\\begin{fullwidthexhibit}\nExample content.\n\\end{fullwidthexhibit}","stability":"stable","since":"1.8.0"}
+% </reportkit-contract>
 \NewDocumentEnvironment{fullwidthexhibit}{}{%
   \par\noindent\begin{minipage}[t]{\linewidth}\ignorespaces%
 }{%
@@ -307,6 +349,9 @@
 \newcommand{\rk@exhibitpanecols}{2}
 \newcommand{\rk@exhibitpanewidth}{}
 
+% <reportkit-contract>
+% {"kind":"composition","description":"Exhibitgrid","arguments":[{"name":"options","type":"options","description":"Options."}],"constraints":[{"code":"max_columns","description":"An exhibit grid supports at most three columns.","value":3}],"example":"\\begin{exhibitgrid}[]\nExample content.\n\\end{exhibitgrid}","stability":"stable","since":"1.8.0"}
+% </reportkit-contract>
 \NewDocumentEnvironment{exhibitgrid}{O{}}{%
   \pgfkeys{/reportkit/exhibitgrid,columns=2,#1}%
   \par\noindent\setcounter{rkexhibitpane}{0}%
@@ -317,6 +362,9 @@
 % \endexhibitgrid are the control sequences \NewDocumentEnvironment defined
 % above for it, callable directly without \begin{}/\end{} the same way
 % \begin{exhibitgrid} itself expands to \exhibitgrid.
+% <reportkit-contract>
+% {"kind":"composition","description":"Exhibitpair","arguments":[],"constraints":[],"example":"\\begin{exhibitpair}\nExample content.\n\\end{exhibitpair}","stability":"stable","since":"1.8.0"}
+% </reportkit-contract>
 \NewDocumentEnvironment{exhibitpair}{}{%
   \exhibitgrid[columns=2]%
 }{%
@@ -331,6 +379,9 @@
 % that's easy to get subtly wrong without a compiler to check it against.
 % columns=4+ (or a non-uniform split, e.g. one dominant pane) needs an
 % explicit width= on every \exhibitpane in the grid instead.
+% <reportkit-contract>
+% {"kind":"command","description":"Exhibitpane","arguments":[{"name":"options","type":"options","description":"Options."},{"name":"content","type":"text","description":"Content."}],"constraints":[],"example":"\\exhibitpane[]{Example}","stability":"stable","since":"1.8.0","parent":"exhibitgrid"}
+% </reportkit-contract>
 \NewDocumentCommand{\exhibitpane}{O{} m}{%
   \stepcounter{rkexhibitpane}%
   \pgfkeys{/reportkit/exhibitpane,width={},#1}%
@@ -370,6 +421,9 @@
 % environment around this one; that composition doesn't require anything
 % from this file.
 % -----------------------------------------------------------------------------
+% <reportkit-contract>
+% {"kind":"composition","description":"Financialmodelpage","arguments":[],"constraints":[],"example":"\\begin{financialmodelpage}\nExample content.\n\\end{financialmodelpage}","stability":"stable","since":"1.8.0"}
+% </reportkit-contract>
 \NewDocumentEnvironment{financialmodelpage}{}{%
   \begingroup
   \renewcommand{\arraystretch}{0.92}%
@@ -394,12 +448,24 @@
 % -----------------------------------------------------------------------------
 \newcommand{\rksubheading}[1]{\par\vspace{6pt}{\sffamily\bfseries\rksidebarsubheadingsize\color{Accent}\MakeUppercase{#1}\par}\vspace{3pt}}
 
+% <reportkit-contract>
+% {"kind":"command","description":"Rkscenario","arguments":[{"name":"label","type":"text","description":"Label."},{"name":"color","type":"text","description":"Color."},{"name":"value","type":"text","description":"Value."},{"name":"detail","type":"text","description":"Detail."}],"constraints":[],"example":"\\rkscenario{Example}{Accent}{1}{Example}","stability":"stable","since":"1.8.0","parent":"financialmodelpage"}
+% </reportkit-contract>
 \NewDocumentCommand{\rkscenario}{m m m m}{%
   \par\noindent{\sffamily\bfseries\rksubsectionsize\color{Ink}#1\hfill\textcolor{#2}{#3}\par}%
   \vspace{2pt}{\rkbodysize\color{Ink}#4\par}\vspace{6pt}%
 }
+% <reportkit-contract>
+% {"kind":"command","description":"Bullcase","arguments":[{"name":"value","type":"text","description":"Value."},{"name":"detail","type":"text","description":"Detail."}],"constraints":[],"example":"\\bullcase{1}{Example}","stability":"stable","since":"1.8.0","parent":"financialmodelpage"}
+% </reportkit-contract>
 \NewDocumentCommand{\bullcase}{m m}{\rkscenario{Bull}{SeriesGold}{#1}{#2}}
+% <reportkit-contract>
+% {"kind":"command","description":"Basecase","arguments":[{"name":"value","type":"text","description":"Value."},{"name":"detail","type":"text","description":"Detail."}],"constraints":[],"example":"\\basecase{1}{Example}","stability":"stable","since":"1.8.0","parent":"financialmodelpage"}
+% </reportkit-contract>
 \NewDocumentCommand{\basecase}{m m}{\rkscenario{Base}{Accent}{#1}{#2}}
+% <reportkit-contract>
+% {"kind":"command","description":"Bearcase","arguments":[{"name":"value","type":"text","description":"Value."},{"name":"detail","type":"text","description":"Detail."}],"constraints":[],"example":"\\bearcase{1}{Example}","stability":"stable","since":"1.8.0","parent":"financialmodelpage"}
+% </reportkit-contract>
 \NewDocumentCommand{\bearcase}{m m}{\rkscenario{Bear}{BearRed}{#1}{#2}}
 
 \endinput

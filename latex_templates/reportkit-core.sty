@@ -21,9 +21,13 @@
 \RequirePackage{caption}
 \RequirePackage{geometry}
 \RequirePackage{hyperref}
-\providecommand{\RKLink}[1]{\href{#1}{#1}}
 \RequirePackage{xparse}
 \RequirePackage{etoolbox}
+
+% <reportkit-contract>
+% {"kind":"command","description":"Render a safe named link from links.yaml.","arguments":[{"name":"key","type":"link-key","description":"Registered link key."}],"constraints":[{"code":"known_link","description":"Use a key declared in links.yaml; unknown values fall back to literal URLs."}],"example":"\\RKLink{project-home}","stability":"stable","since":"1.5.0"}
+% </reportkit-contract>
+\ProvideDocumentCommand{\RKLink}{m}{\href{#1}{#1}}
 
 % -----------------------------------------------------------------------------
 % Metadata and running furniture (mechanism; visual values live in the theme)
@@ -68,12 +72,18 @@
 % Use this when a section opens with a conceptual diagram after a short setup
 % paragraph. It reserves the whole reading unit: heading + setup + compact
 % diagram/caption. If insufficient space remains, the section starts next page.
+% <reportkit-contract>
+% {"kind":"command","description":"Rkdiagramsection","arguments":[{"name":"title","type":"text","description":"Title."}],"constraints":[],"example":"\\RKDiagramSection{Example}","stability":"stable","since":"1.0.0"}
+% </reportkit-contract>
 \NewDocumentCommand{\RKDiagramSection}{m}{%
   \par\Needspace{0.46\textheight}%
   \section{#1}%
 }
 
 % Smaller variant for a subsection that opens with a diagram.
+% <reportkit-contract>
+% {"kind":"command","description":"Rkdiagramsubsection","arguments":[{"name":"title","type":"text","description":"Title."}],"constraints":[],"example":"\\RKDiagramSubsection{Example}","stability":"stable","since":"1.0.0"}
+% </reportkit-contract>
 \NewDocumentCommand{\RKDiagramSubsection}{m}{%
   \par\Needspace{0.38\textheight}%
   \subsection{#1}%

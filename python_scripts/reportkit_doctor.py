@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import importlib.util
+import json
 import shutil
 import subprocess
 import sys
@@ -16,6 +17,10 @@ import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
+REPO_ROOT = ROOT.parent
+
+from reportkit.diagnostics import diagnostic_envelope, make_diagnostic  # noqa: E402
+from reportkit.toolchain import resolved_toolchain  # noqa: E402
 
 
 def check_import(name: str) -> tuple[bool, str]:
@@ -115,33 +120,74 @@ def print_check(label: str, result: tuple[bool, str]) -> bool:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--require", choices=("full-build",), help="fail unless the requested build mode is available")
+    parser.add_argument("--require", choices=("full-build", "pinned-toolchain"), help="fail unless the requested build mode is available")
+    parser.add_argument("--json", action="store_true")
     args = parser.parse_args()
+    checks: list[dict[str, object]] = []
 
-    print("ReportKit environment doctor")
-    print(f"[OK] Python: {sys.version.split()[0]}")
+    def record(label: str, result: tuple[bool, str]) -> bool:
+        ok, detail = result
+        checks.append({"name": label, "available": ok, "detail": detail})
+        if not args.json:
+            print_check(label, result)
+        return ok
+
+    if not args.json:
+        print("ReportKit environment doctor")
+        print(f"[OK] Python: {sys.version.split()[0]}")
+    checks.append({"name": "Python", "available": True, "detail": sys.version.split()[0]})
     py_ok = True
     for pkg in ("matplotlib", "numpy", "pandas"):
-        py_ok &= print_check(pkg, check_import(pkg))
-    viz_ok = print_check("ReportKit vector export", check_vector_export()) if py_ok else False
+        py_ok &= record(pkg, check_import(pkg))
+    viz_ok = record("ReportKit vector export", check_vector_export()) if py_ok else False
 
-    print()
-    pdflatex_ok = print_check("pdflatex", check_executable("pdflatex"))
-    lualatex_ok = print_check("lualatex", check_executable("lualatex"))
-    bibtex_ok = print_check("bibtex", check_executable("bibtex"))
-    biber_ok = print_check("biber", check_executable("biber"))
+    if not args.json:
+        print()
+    pdflatex_ok = record("pdflatex", check_executable("pdflatex"))
+    lualatex_ok = record("lualatex", check_executable("lualatex"))
+    bibtex_ok = record("bibtex", check_executable("bibtex"))
+    biber_ok = record("biber", check_executable("biber"))
 
-    print()
-    fonts_ok = print_check("libertinus.sty", check_kpse("libertinus.sty"))
-    fonts_ok &= print_check("libertinust1math.sty", check_kpse("libertinust1math.sty"))
+    if not args.json:
+        print()
+    fonts_ok = record("libertinus.sty", check_kpse("libertinus.sty"))
+    fonts_ok &= record("libertinust1math.sty", check_kpse("libertinust1math.sty"))
 
-    print()
-    pandoc_ok = print_check("pandoc", check_executable("pandoc"))
-    pymupdf_ok = print_check("PyMuPDF (publication pipeline renderer)", check_pymupdf())
+    if not args.json:
+        print()
+    pandoc_ok = record("pandoc", check_executable("pandoc"))
+    pymupdf_ok = record("PyMuPDF (publication pipeline renderer)", check_pymupdf())
 
-    print()
     tex_ok = pdflatex_ok or lualatex_ok
     full_ok = py_ok and viz_ok and tex_ok and fonts_ok and pandoc_ok and pymupdf_ok
+    toolchain = resolved_toolchain(REPO_ROOT)
+    pinned_ok = toolchain["status"] == "pinned"
+    mode = "FULL BUILD" if full_ok else ("SOURCE BUILD + FIGURES" if py_ok and viz_ok else "SOURCE BUILD")
+    diagnostics = []
+    if toolchain["status"] == "mismatch":
+        diagnostics.append(make_diagnostic(
+            "toolchain_mismatch", "resolved toolchain identity or dependency versions differ from the checked-in lock",
+            code="RK_TOOLCHAIN_MISMATCH",
+            details={
+                "version_matches": toolchain.get("version_matches"),
+                "integrity": toolchain.get("integrity"),
+                "commands": toolchain.get("commands"),
+                "runtime_fonts": toolchain.get("runtime_fonts"),
+            },
+        ))
+    requirement_ok = full_ok if args.require == "full-build" else pinned_ok if args.require == "pinned-toolchain" else True
+    if args.require and not requirement_ok:
+        diagnostics.append(make_diagnostic(
+            "environment_error", f"required environment {args.require!r} is unavailable",
+            code="RK_ENVIRONMENT_REQUIRED",
+        ))
+    if args.json:
+        print(json.dumps(diagnostic_envelope(
+            diagnostics, passed=requirement_ok and not any(item["severity"] == "error" for item in diagnostics),
+            mode=mode, checks=checks, toolchain=toolchain,
+        ), indent=2, sort_keys=True))
+        return 0 if requirement_ok and not any(item["severity"] == "error" for item in diagnostics) else 5
+
     print()
     if full_ok:
         print("MODE: FULL BUILD")
@@ -157,9 +203,10 @@ def main() -> int:
     else:
         print("MODE: SOURCE BUILD")
         print("Generate a portable ReportKit source bundle; do not promise compiled output.")
-    if args.require and not full_ok:
+    print(f"TOOLCHAIN: {toolchain['status']} ({toolchain['expected_fingerprint']})")
+    if args.require and not requirement_ok:
         print(f"REQUIREMENT FAILED: {args.require}", file=sys.stderr)
-        return 1
+        return 5
     return 0
 
 

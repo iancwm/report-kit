@@ -30,9 +30,11 @@ _load_reportkit_package()
 
 from reportkit.diagnostics import (  # noqa: E402
     DEFAULT_UNDERFULL_BADNESS,
+    diagnostic_envelope,
     inspect_log,
     load_allowlist,
     load_maps,
+    make_diagnostic,
 )
 
 
@@ -54,8 +56,13 @@ def main() -> int:
             maps=maps,
         )
     except (OSError, ValueError, json.JSONDecodeError) as exc:
+        result = diagnostic_envelope([
+            make_diagnostic("configuration_error", f"unable to inspect build log: {exc}", code="RK_LOG_INPUT")
+        ], passed=False)
+        if args.json_path:
+            args.json_path.write_text(json.dumps(result, indent=2, sort_keys=True) + "\n", encoding="utf-8")
         print(f"FAIL: unable to inspect build log: {exc}", file=sys.stderr)
-        return 1
+        return 2
     if args.json_path:
         args.json_path.write_text(json.dumps(result, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     if result["passed"]:
@@ -67,7 +74,7 @@ def main() -> int:
         if issue.get("line"):
             location += f":{issue['line']}"
         print(f"- {location} [{issue['type']} / {issue['owner']}]: {issue['message']}", file=sys.stderr)
-    return 1
+    return 3
 
 
 if __name__ == "__main__":

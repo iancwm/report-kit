@@ -1,6 +1,8 @@
 # ReportKit — Agent Interface & Platform Contract
 
-**Status:** Draft / not started. Companion to
+**Status:** Implemented for ReportKit v1.9.0: Phase A′ and the
+non-renderer-dependent parts of Phase B′ are complete. Renderer-dependent work
+is explicitly deferred. Companion to
 [2026-09-09-reportkit-multi-format-publication-architecture-spec.md](2026-09-09-reportkit-multi-format-publication-architecture-spec.md)
 (the "renderer spec"), which it amends in [§18](#18-amendments-to-the-renderer-spec).
 **Last updated:** 2026-09-10
@@ -10,6 +12,11 @@ carries a `file:line` anchor.
 **Priority:** P2 — [§3](#3-the-capability-contract), [§5](#5-documentation-derivation-and-drift)
 and [§8](#8-reproducibility-and-toolchain-pinning) are Phase A work in the
 renderer spec's sequencing; the rest follows.
+
+**Implementation record:** the current-state section below is the historical
+baseline used to scope this change. The implemented contract is schema 1.0.0;
+its canonical operational summary is
+[`references/agent-contract.md`](../../../references/agent-contract.md).
 
 ---
 
@@ -601,6 +608,10 @@ Interleaved with the renderer spec's phases rather than sequenced after them.
 
 ### Phase A′ — Contract foundations (with renderer Phase A)
 
+**Complete in v1.9.0.** The primitive contract, checked-in schemas, generated
+documentation, lock manifest, OCI definition, fingerprinted visual baseline,
+and relevant-path GitHub Actions gate now ship together.
+
 1. Signature extraction ([§4](#4-primitive-signature-extraction)) — smallest
    change, unblocks the rest.
 2. Contract schema and enriched `context` ([§3](#3-the-capability-contract)).
@@ -612,6 +623,10 @@ Interleaved with the renderer spec's phases rather than sequenced after them.
 generate from it; CI fails on drift; builds reproduce on a pinned image.
 
 ### Phase B′ — Diagnostics and security (with renderer Phase B)
+
+**Complete in v1.9.0 for the paged renderer.** Items 5 and 6 are implemented.
+Item 7 remains deferred because the slide renderer does not yet exist; no
+accessibility parity claim is made for it.
 
 5. Unified diagnostic schema with remediation ([§7](#7-unified-diagnostic-contract)).
 6. Security posture stated and tested ([§10](#10-security-posture)).
@@ -661,6 +676,28 @@ neutral layer, within the declared context budget.
 ---
 
 ## 21. Open questions
+
+All questions affecting v1.9.0 are resolved:
+
+1. Contract metadata is multiline JSON in comments immediately adjacent to
+   each public LaTeX or Python declaration. This keeps syntax extraction and
+   semantic metadata co-located while still allowing schema validation.
+2. Constrained Markdown parsed into a typed IR is the intended later authoring
+   surface. Both the IR and validation grammar remain deferred until the
+   companion renderer reaches Phase B; v1.9 keeps raw LaTeX compatible.
+3. Themes expose semantic capability and token names, not styling values.
+4. A different contract major is rejected. Same-major older callers continue
+   with a structured stale-contract warning.
+5. The always-loaded budget and progressive-disclosure accounting are deferred
+   with the expanded renderer catalog; no unsupported budget is invented now.
+6. The later neutrality proof will be an OpenAI tool-definition adapter over
+   this same CLI contract.
+7. The repository boundary holds: schemas and generators are engine assets;
+   authored IR instances will remain in consumer projects.
+8. v1.9 normalizes known volatile PDF metadata and gates visual releases on
+   pinned pixels. It does not require byte-identical PDF hashes.
+
+The original question text is retained below as the decision history.
 
 1. **Where does contract metadata live?** Structured comments beside each
    `\NewDocumentEnvironment`, a sidecar file per module, or a central manifest?

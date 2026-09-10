@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:reportkit:schema:toolchain:1.0.0",
+  "type": "object",
+  "required": ["schema_version", "base_image", "debian_snapshot", "apt_packages", "apt_package_versions", "python_version", "python_packages", "python_lock_sha256", "fonts", "renderer", "normalization"],
+  "properties": {
+    "schema_version": {"const": 1}, "base_image": {"type": "string", "pattern": "@sha256:"},
+    "debian_snapshot": {"type": "string"}, "apt_packages": {"type": "array", "items": {"type": "string"}},
+    "apt_package_versions": {"type": "object", "additionalProperties": {"type": "string"}},
+    "python_version": {"type": "string"},
+    "python_packages": {"type": "object", "additionalProperties": {"type": "string"}},
+    "python_lock_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "fonts": {"type": "object", "additionalProperties": {"type": "string", "pattern": "^[a-f0-9]{64}$"}},
+    "renderer": {"type": "object"}, "normalization": {"type": "object"}
+  },
+  "additionalProperties": false
+}

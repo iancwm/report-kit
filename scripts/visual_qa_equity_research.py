@@ -35,6 +35,8 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import json
+import os
 import shutil
 import subprocess
 import sys
@@ -47,9 +49,17 @@ EXPECTED = EXAMPLE / "expected"
 TEMPLATES = ROOT / "latex_templates"
 
 sys.path.insert(0, str(ROOT / "python_scripts"))
+sys.path.insert(0, str(ROOT / "publication_pipeline" / "scripts"))
+
+from reportkit.diagnostics import diagnostic_envelope, make_diagnostic  # noqa: E402
+from reportkit.toolchain import toolchain_context  # noqa: E402
+from publication_build import run_limited  # noqa: E402
 
 
-def _warn_exit0(message: str) -> int:
+def _warn_exit0(message: str, *, as_json: bool = False) -> int:
+    if as_json:
+        print(json.dumps(diagnostic_envelope([], passed=True, skipped=True, reason=message), indent=2, sort_keys=True))
+        return 0
     print(f"WARN: {message}", file=sys.stderr)
     print(
         "      Not blocking -- this is a QA aid. Real enforcement needs a machine "
@@ -59,8 +69,8 @@ def _warn_exit0(message: str) -> int:
     return 0
 
 
-def compile_fixture(workdir: Path) -> tuple[Path, str]:
-    """Compile report.tex with lualatex into workdir; return (pdf_path, combined stdout+stderr log)."""
+def compile_fixture(workdir: Path) -> tuple[Path, str, int]:
+    """Compile report.tex with lualatex; return the PDF, combined log, and exit status."""
     for src in (
         list(TEMPLATES.glob("*.cls"))
         + list(TEMPLATES.glob("*.sty"))
@@ -71,18 +81,31 @@ def compile_fixture(workdir: Path) -> tuple[Path, str]:
     shutil.copy(EXAMPLE / "report.tex", workdir / "report.tex")
     shutil.copytree(EXAMPLE / "figures", workdir / "figures", dirs_exist_ok=True)
 
-    log_text = ""
+    log_chunks: list[str] = []
+    returncode = 0
     for _ in range(2):  # two passes: cross-references/labels need a second pass to settle
-        proc = subprocess.run(
+        proc = run_limited(
             ["lualatex", "-file-line-error", "-interaction=nonstopmode", "-halt-on-error", "report.tex"],
             cwd=workdir,
             capture_output=True,
             text=True,
-            timeout=180,
+            timeout=120,
+            memory_limit_mb=2048,
+            env={
+                **os.environ,
+                "openin_any": "p",
+                "openout_any": "p",
+                "SOURCE_DATE_EPOCH": "1",
+                "FORCE_SOURCE_DATE": "1",
+                "TZ": "UTC",
+            },
         )
-        log_text = proc.stdout + "\n" + proc.stderr
+        returncode = proc.returncode
+        log_chunks.append(proc.stdout + "\n" + proc.stderr)
+        if returncode:
+            break
     pdf = workdir / "report.pdf"
-    return pdf, log_text
+    return pdf, "\n".join(log_chunks), returncode
 
 
 def render_pages(pdf: Path, out_dir: Path, dpi: int) -> list[Path]:
@@ -161,39 +184,121 @@ def main() -> int:
     )
     parser.add_argument("--dpi", type=int, default=150)
     parser.add_argument("--threshold", type=float, default=0.01, help="Fraction of differing pixels tolerated per page (default 1%%).")
+    parser.add_argument("--json", action="store_true")
     args = parser.parse_args()
 
     if shutil.which("lualatex") is None:
-        return _warn_exit0("lualatex not found on PATH -- skipping visual QA compile.")
+        return _warn_exit0("lualatex not found on PATH -- skipping visual QA compile.", as_json=args.json)
     try:
         import numpy  # noqa: F401
         import pymupdf  # noqa: F401
     except ImportError as exc:
-        return _warn_exit0(f"PyMuPDF and/or NumPy not importable ({exc}) -- skipping visual QA render/compare.")
+        return _warn_exit0(f"PyMuPDF and/or NumPy not importable ({exc}) -- skipping visual QA render/compare.", as_json=args.json)
 
     from reportkit import diagnostics
 
+    baseline_path = EXPECTED / "baseline.json"
+    if not baseline_path.is_file():
+        diagnostic = make_diagnostic("toolchain_mismatch", f"missing visual baseline manifest: {baseline_path}", code="RK_BASELINE_MANIFEST_MISSING")
+        if args.json:
+            print(json.dumps(diagnostic_envelope([diagnostic], passed=False), indent=2, sort_keys=True))
+        else:
+            print(f"FAIL: {diagnostic['message']}", file=sys.stderr)
+        return 5
+    baseline = json.loads(baseline_path.read_text(encoding="utf-8"))
+    toolchain = toolchain_context(ROOT)
+    resolved = toolchain["resolved"]
+    baseline_expected = baseline.get("expected_toolchain_fingerprint", baseline.get("toolchain_fingerprint"))
+    baseline_resolved = baseline.get("resolved_toolchain_fingerprint", baseline.get("toolchain_fingerprint"))
+    pinned_current = resolved["status"] == "pinned" and resolved.get("fingerprint") == toolchain["fingerprint"]
+    baseline_matches = (
+        baseline_expected == toolchain["fingerprint"]
+        and baseline_resolved == resolved.get("fingerprint")
+    )
+    if not pinned_current or (not args.update_expected and not baseline_matches):
+        diagnostic = make_diagnostic(
+            "toolchain_mismatch",
+            "visual comparison requires the exact toolchain recorded by expected/baseline.json",
+            code="RK_VISUAL_TOOLCHAIN_MISMATCH",
+            details={
+                "baseline_expected": baseline_expected,
+                "baseline_resolved": baseline_resolved,
+                "expected": toolchain["fingerprint"],
+                "resolved": resolved.get("fingerprint"),
+            },
+        )
+        if args.json:
+            print(json.dumps(diagnostic_envelope([diagnostic], passed=False), indent=2, sort_keys=True))
+        else:
+            print(f"FAIL: {diagnostic['message']}", file=sys.stderr)
+        return 5
+    if args.dpi != baseline.get("dpi") or args.threshold != baseline.get("pixel_difference_threshold"):
+        diagnostic = make_diagnostic(
+            "toolchain_mismatch", "visual DPI or threshold differs from the recorded baseline settings",
+            code="RK_VISUAL_SETTINGS_MISMATCH", details={"baseline": baseline, "dpi": args.dpi, "threshold": args.threshold},
+        )
+        if args.json:
+            print(json.dumps(diagnostic_envelope([diagnostic], passed=False), indent=2, sort_keys=True))
+        else:
+            print(f"FAIL: {diagnostic['message']}", file=sys.stderr)
+        return 5
+
     with tempfile.TemporaryDirectory() as tmp:
         workdir = Path(tmp)
-        pdf, log_text = compile_fixture(workdir)
-        if not pdf.exists():
-            print("FAIL: lualatex produced no PDF. Last 4000 characters of log:", file=sys.stderr)
-            print(log_text[-4000:], file=sys.stderr)
-            return 1
+        try:
+            pdf, log_text, compile_code = compile_fixture(workdir)
+        except subprocess.TimeoutExpired:
+            diagnostic = make_diagnostic(
+                "compile_timeout", "equity-research visual fixture exceeded 120 seconds",
+                code="RK_VISUAL_COMPILE_TIMEOUT",
+            )
+            if args.json:
+                print(json.dumps(diagnostic_envelope([diagnostic], passed=False), indent=2, sort_keys=True))
+            else:
+                print(f"FAIL: {diagnostic['message']}", file=sys.stderr)
+            return 4
+        except (OSError, RuntimeError) as exc:
+            diagnostic = make_diagnostic(
+                "environment_error", f"visual fixture cannot enforce its build environment: {exc}",
+                code="RK_VISUAL_ENVIRONMENT",
+            )
+            if args.json:
+                print(json.dumps(diagnostic_envelope([diagnostic], passed=False), indent=2, sort_keys=True))
+            else:
+                print(f"FAIL: {diagnostic['message']}", file=sys.stderr)
+            return 5
+        if compile_code or not pdf.exists():
+            memory_failure = compile_code < 0 or compile_code in {134, 137} or "memory" in log_text.lower()
+            diagnostic = make_diagnostic(
+                "compile_memory" if memory_failure else "compile_failure",
+                f"lualatex visual fixture failed with status {compile_code}",
+                code="RK_VISUAL_COMPILE_MEMORY" if memory_failure else "RK_VISUAL_COMPILE_FAILURE",
+                details={"log_tail": log_text[-4000:]},
+            )
+            if args.json:
+                print(json.dumps(diagnostic_envelope([diagnostic], passed=False), indent=2, sort_keys=True))
+            else:
+                print(f"FAIL: {diagnostic['message']}\n{log_text[-4000:]}", file=sys.stderr)
+            return 4
 
         result = diagnostics.inspect_log(log_text)
-        print(f"-- diagnostics: {result['counts']} --")
+        if not args.json:
+            print(f"-- diagnostics: {result['counts']} --")
         blocking = [issue for issue in result["issues"] if issue["blocking"]]
         if blocking:
-            print("FAIL: blocking diagnostics found in the compile log:", file=sys.stderr)
-            for issue in blocking:
-                location = f"{issue.get('file')}:{issue.get('line', issue['log_line'])}"
-                print(f"  {issue['type']} at {location}: {issue['message']}", file=sys.stderr)
-            return 1
+            if args.json:
+                print(json.dumps(diagnostic_envelope(blocking, passed=False), indent=2, sort_keys=True))
+            else:
+                print("FAIL: blocking diagnostics found in the compile log:", file=sys.stderr)
+                for issue in blocking:
+                    location = f"{issue.get('file')}:{issue.get('line') or issue.get('log_line')}"
+                    print(f"  {issue['type']} at {location}: {issue['message']}", file=sys.stderr)
+            return 3
 
         rendered_dir = workdir / "rendered"
         pages = render_pages(pdf, rendered_dir, args.dpi)
-        print(f"-- rendered {len(pages)} page(s) at {args.dpi} DPI --")
+        if not args.json:
+            print(f"-- rendered {len(pages)} page(s) at {args.dpi} DPI --")
 
         if args.update_expected:
             EXPECTED.mkdir(parents=True, exist_ok=True)
@@ -201,28 +306,53 @@ def main() -> int:
                 old.unlink()
             for page in pages:
                 shutil.copy(page, EXPECTED / page.name)
-            print(f"PASS: wrote {len(pages)} baseline page(s) to {EXPECTED}")
-            print(CHECKLIST)
+            baseline["toolchain_fingerprint"] = toolchain["fingerprint"]
+            baseline["expected_toolchain_fingerprint"] = toolchain["fingerprint"]
+            baseline["resolved_toolchain_fingerprint"] = resolved["fingerprint"]
+            baseline["pages"] = [page.name for page in pages]
+            baseline_path.write_text(json.dumps(baseline, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+            if args.json:
+                print(json.dumps(diagnostic_envelope(
+                    [], passed=True, updated=True, page_count=len(pages), baseline=str(EXPECTED),
+                ), indent=2, sort_keys=True))
+            else:
+                print(f"PASS: wrote {len(pages)} baseline page(s) to {EXPECTED}")
+                print(CHECKLIST)
             return 0
 
         if not any(EXPECTED.glob("page-*.png")):
-            print(
-                f"WARN: {EXPECTED} has no baseline pages yet -- review this run's render "
-                "against the checklist below, then re-run with --update-expected.",
-                file=sys.stderr,
+            diagnostic = make_diagnostic(
+                "visual_regression", f"{EXPECTED} has no baseline pages",
+                code="RK_VISUAL_BASELINE_EMPTY",
             )
-            print(CHECKLIST)
-            return 0
+            if args.json:
+                print(json.dumps(diagnostic_envelope([diagnostic], passed=False), indent=2, sort_keys=True))
+            else:
+                print(f"FAIL: {diagnostic['message']}", file=sys.stderr)
+                print(CHECKLIST)
+            return 3
 
         mismatches = compare_pages(rendered_dir, EXPECTED, threshold=args.threshold)
         if mismatches:
-            print("FAIL: rendered pages differ from expected/:", file=sys.stderr)
-            for mismatch in mismatches:
-                print(f"  {mismatch}", file=sys.stderr)
-            return 1
+            records = [make_diagnostic(
+                "visual_regression", mismatch, code="RK_VISUAL_REGRESSION",
+                details={"baseline": str(EXPECTED), "dpi": args.dpi, "threshold": args.threshold},
+            ) for mismatch in mismatches]
+            if args.json:
+                print(json.dumps(diagnostic_envelope(records, passed=False), indent=2, sort_keys=True))
+            else:
+                print("FAIL: rendered pages differ from expected/:", file=sys.stderr)
+                for mismatch in mismatches:
+                    print(f"  {mismatch}", file=sys.stderr)
+            return 3
 
-    print("PASS: equity-research fixture compiled clean and matched expected/.")
-    print(CHECKLIST)
+    if args.json:
+        print(json.dumps(diagnostic_envelope(
+            [], passed=True, page_count=len(pages), baseline=str(EXPECTED), dpi=args.dpi,
+        ), indent=2, sort_keys=True))
+    else:
+        print("PASS: equity-research fixture compiled clean and matched expected/.")
+        print(CHECKLIST)
     return 0
 
 

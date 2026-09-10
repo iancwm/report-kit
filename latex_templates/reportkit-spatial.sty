@@ -101,6 +101,9 @@
   \fi
 }
 
+% <reportkit-contract>
+% {"kind":"figure","description":"Qualitative two-axis matrix with labelled points.","arguments":[{"name":"options","type":"options","description":"Axis, size, and highlight keys."}],"constraints":[{"code":"normalized_point","description":"Point coordinates must lie between zero and one.","min":0,"max":1}],"example":"\\begin{diagram}[caption={Priority matrix.},description={A two-axis matrix with one labelled point.}]\n\\begin{reportmatrix}\n\\quadrant{low}{high}{Quick wins}\n\\point{Pilot}{.25}{.75}\n\\end{reportmatrix}\n\\end{diagram}","stability":"stable","since":"1.0.0"}
+% </reportkit-contract>
 \NewDocumentEnvironment{reportmatrix}{O{}}{%
   \begingroup
   \pgfkeys{/reportkit/reportmatrix,
@@ -122,6 +125,9 @@
 }
 
 % \quadrant{x-position}{y-position}{label}; positions are low or high.
+% <reportkit-contract>
+% {"kind":"command","description":"Quadrant","arguments":[{"name":"column","type":"text","description":"Column."},{"name":"row","type":"text","description":"Row."},{"name":"label","type":"text","description":"Label."}],"constraints":[],"example":"\\quadrant{1}{1}{Example}","stability":"stable","since":"1.0.0","parent":"reportmatrix"}
+% </reportkit-contract>
 \NewDocumentCommand{\quadrant}{m m m}{%
   \rk@matrixvalidtrue
   \ifboolexpr{ not test {\ifstrequal{#1}{low}} and not test {\ifstrequal{#1}{high}} }{\rk@matrixvalidfalse}{}%
@@ -137,6 +143,9 @@
 }
 
 % \point[label-position=auto|above|below|left|right]{label}{x}{y}
+% <reportkit-contract>
+% {"kind":"command","description":"Point","arguments":[{"name":"options","type":"options","description":"Options."},{"name":"x","type":"text","description":"X."},{"name":"y","type":"text","description":"Y."},{"name":"label","type":"text","description":"Label."}],"constraints":[],"example":"\\point[]{1}{1}{Example}","stability":"stable","since":"1.0.0","parent":"reportmatrix"}
+% </reportkit-contract>
 \NewDocumentCommand{\point}{O{} m m m}{%
   \begingroup
   \pgfkeys{/reportkit/reportmatrix/point,label-position=auto,#1}%
@@ -277,6 +286,9 @@
   \fi
 }
 
+% <reportkit-contract>
+% {"kind":"figure","description":"Ordinal impact-likelihood heatmap and risk register.","arguments":[{"name":"options","type":"options","description":"Heatmap size, labels, and threshold keys."}],"constraints":[],"example":"\\begin{diagram}[caption={Risk heatmap.},description={One high-impact operational risk.}]\n\\begin{riskheatmap}\n\\risk{R1}{5}{4}{Identity dependency}{owner=Security,status=mitigating}\n\\end{riskheatmap}\n\\end{diagram}","stability":"stable","since":"1.0.0"}
+% </reportkit-contract>
 \NewDocumentEnvironment{riskheatmap}{O{}}{%
   \begingroup
   \pgfkeys{/reportkit/riskheatmap,
@@ -298,6 +310,9 @@
 }
 
 % \risk{id}{impact}{likelihood}{description}{owner=...,status=...}
+% <reportkit-contract>
+% {"kind":"command","description":"Risk","arguments":[{"name":"likelihood","type":"text","description":"Likelihood."},{"name":"impact","type":"text","description":"Impact."},{"name":"label","type":"text","description":"Label."},{"name":"owner","type":"text","description":"Owner."},{"name":"status","type":"text","description":"Status."}],"constraints":[],"example":"\\risk{1}{1}{Example}{Example}{Example}","stability":"stable","since":"1.0.0","parent":"riskheatmap"}
+% </reportkit-contract>
 \NewDocumentCommand{\risk}{m m m m m}{%
   \begingroup
   \pgfkeys{/reportkit/risk,owner={},status={},#5}%

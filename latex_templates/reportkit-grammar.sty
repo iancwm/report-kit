@@ -36,21 +36,36 @@
   style/.store in=\rk@transitionstyle,
   .unknown/.code={\PackageError{reportkit-grammar}{Unknown reportstate transition key '\pgfkeyscurrentname'}{Use route=straight, bend left=<degrees>, bend right=<degrees>, orthogonal, or label-position=above|below|left|right.}}
 }
+% <reportkit-contract>
+% {"kind":"figure","description":"State transition diagram with explicit terminal states.","arguments":[{"name":"options","type":"options","description":"State layout keys."}],"constraints":[],"example":"\\begin{diagram}[caption={Task states.},description={A task moves from scheduled to running and done.}]\n\\begin{reportstate}\n\\state{scheduled}{Scheduled}\n\\state{running}{Running}\n\\terminalstate{done}{Done}\n\\transition{scheduled}{running}{start}\n\\transition{running}{done}{finish}\n\\end{reportstate}\n\\end{diagram}","stability":"stable","since":"1.0.0"}
+% </reportkit-contract>
 \NewDocumentEnvironment{reportstate}{O{}}{%
   \begingroup\pgfkeys{/reportkit/state,step spacing=4.2,#1}%
   \rk@stateindex=0\relax
 }{\endgroup}
+% <reportkit-contract>
+% {"kind":"command","description":"State","arguments":[{"name":"options","type":"options","description":"Options."},{"name":"id","type":"text","description":"Id."},{"name":"label","type":"text","description":"Label."}],"constraints":[],"example":"\\state[]{a}{Example}","stability":"stable","since":"1.0.0","parent":"reportstate"}
+% </reportkit-contract>
 \NewDocumentCommand{\state}{O{} m m}{%
   \node[rk node,#1] (#2) at ({\the\rk@stateindex*\rk@statestep},0) {\strut #3};%
   \advance\rk@stateindex by 1\relax
 }
+% <reportkit-contract>
+% {"kind":"command","description":"Terminalstate","arguments":[{"name":"options","type":"options","description":"Options."},{"name":"id","type":"text","description":"Id."},{"name":"label","type":"text","description":"Label."}],"constraints":[],"example":"\\terminalstate[]{a}{Example}","stability":"stable","since":"1.0.0","parent":"reportstate"}
+% </reportkit-contract>
 \NewDocumentCommand{\terminalstate}{O{} m m}{%
   \node[rk terminal,#1] (#2) at ({\the\rk@stateindex*\rk@statestep},0) {\strut #3};%
   \advance\rk@stateindex by 1\relax
 }
+% <reportkit-contract>
+% {"kind":"command","description":"Stateat","arguments":[{"name":"options","type":"options","description":"Options."},{"name":"id","type":"text","description":"Id."},{"name":"x","type":"text","description":"X."},{"name":"y","type":"text","description":"Y."},{"name":"label","type":"text","description":"Label."}],"constraints":[],"example":"\\stateat[]{a}{1}{1}{Example}","stability":"stable","since":"1.0.0","parent":"reportstate"}
+% </reportkit-contract>
 \NewDocumentCommand{\stateat}{O{} m m m m}{%
   \node[rk node,#1] (#2) at (#3,#4) {\strut #5};%
 }
+% <reportkit-contract>
+% {"kind":"command","description":"Terminalstateat","arguments":[{"name":"options","type":"options","description":"Options."},{"name":"id","type":"text","description":"Id."},{"name":"x","type":"text","description":"X."},{"name":"y","type":"text","description":"Y."},{"name":"label","type":"text","description":"Label."}],"constraints":[],"example":"\\terminalstateat[]{a}{1}{1}{Example}","stability":"stable","since":"1.0.0","parent":"reportstate"}
+% </reportkit-contract>
 \NewDocumentCommand{\terminalstateat}{O{} m m m m}{%
   \node[rk terminal,#1] (#2) at (#3,#4) {\strut #5};%
 }
@@ -88,12 +103,18 @@
     }%
   }}%
 }
+% <reportkit-contract>
+% {"kind":"command","description":"Transition","arguments":[{"name":"options","type":"options","description":"Options."},{"name":"source","type":"text","description":"Source."},{"name":"target","type":"text","description":"Target."},{"name":"label","type":"text","description":"Label."}],"constraints":[],"example":"\\transition[]{a}{b}{Example}","stability":"stable","since":"1.0.0","parent":"reportstate"}
+% </reportkit-contract>
 \NewDocumentCommand{\transition}{O{} m m m}{%
   \def\rk@transitionroute{straight}\def\rk@transitionlabelposition{above}\def\rk@transitionstyle{}%
   \in@{=}{#1}%
   \ifin@\pgfkeys{/reportkit/state/transition,#1}\else\def\rk@transitionstyle{#1}\fi
   \rk@transition@draw{#2}{#3}{#4}%
 }
+% <reportkit-contract>
+% {"kind":"command","description":"Selfloop","arguments":[{"name":"options","type":"options","description":"Options."},{"name":"state","type":"text","description":"State."},{"name":"label","type":"text","description":"Label."}],"constraints":[],"example":"\\selfloop[]{a}{Example}","stability":"stable","since":"1.0.0","parent":"reportstate"}
+% </reportkit-contract>
 \NewDocumentCommand{\selfloop}{O{} m m}{%
   \draw[rk edge flow,#1] (#2.north) .. controls +(0.7,1.1) and +(-0.7,1.1) .. (#2.north)
     node[rk transition label,above=6pt] {#3};%
@@ -116,10 +137,16 @@
   rk panel heading/.style={font=\sffamily\bfseries\fontsize{8.4}{10}\selectfont,text=Ink,anchor=north west},
   rk panel row/.style={rk node,text width={\rk@panelwidth cm - 10pt},minimum height=7mm,anchor=north west},
 }
+% <reportkit-contract>
+% {"kind":"figure","description":"Before-and-after comparison with semantic rows.","arguments":[{"name":"options","type":"options","description":"Panel spacing and row layout keys."}],"constraints":[],"example":"\\begin{diagram}[caption={Join comparison.},description={A before and after comparison of data grain.}]\n\\begin{reportcompare}\n\\panel{before}{Before}\n\\panelitem{before}{0}{one order}\n\\panel{after}{After}\n\\panelitem{after}{0}{three items}\n\\transformarrow{join}\n\\end{reportcompare}\n\\end{diagram}","stability":"stable","since":"1.0.0"}
+% </reportkit-contract>
 \NewDocumentEnvironment{reportcompare}{O{}}{%
   \begingroup\pgfkeys{/reportkit/compare,gap=2.6,panel width=5.4,#1}%
   \rk@panelindex=0\relax
 }{\endgroup}
+% <reportkit-contract>
+% {"kind":"command","description":"Panel","arguments":[{"name":"id","type":"text","description":"Id."},{"name":"title","type":"text","description":"Title."}],"constraints":[],"example":"\\panel{a}{Example}","stability":"stable","since":"1.0.0","parent":"reportcompare"}
+% </reportkit-contract>
 \NewDocumentCommand{\panel}{m m}{%
   \ifnum\rk@panelindex>1
     \PackageError{reportkit-grammar}{reportcompare takes exactly two panels}%
@@ -130,6 +157,9 @@
   \expandafter\xdef\csname rk@panelpos@#1\endcsname{\the\rk@panelindex}%
   \advance\rk@panelindex by 1\relax
 }
+% <reportkit-contract>
+% {"kind":"command","description":"Panelitem","arguments":[{"name":"panel","type":"text","description":"Panel."},{"name":"label","type":"text","description":"Label."},{"name":"detail","type":"text","description":"Detail."}],"constraints":[],"example":"\\panelitem{a}{Example}{Example}","stability":"stable","since":"1.0.0","parent":"reportcompare"}
+% </reportkit-contract>
 \NewDocumentCommand{\panelitem}{m m m}{%
   \@ifundefined{rk@panelpos@#1}{%
     \PackageError{reportkit-grammar}{Unknown reportcompare panel '#1'}%
@@ -139,6 +169,9 @@
     ({\csname rk@panelpos@#1\endcsname*(\rk@panelwidth+\rk@comparegap)},
      {-0.55-#2*\rk@rowheight}) {\strut #3};%
 }
+% <reportkit-contract>
+% {"kind":"command","description":"Transformarrow","arguments":[{"name":"label","type":"text","description":"Label."}],"constraints":[],"example":"\\transformarrow{Example}","stability":"stable","since":"1.0.0","parent":"reportcompare"}
+% </reportkit-contract>
 \NewDocumentCommand{\transformarrow}{m}{%
   \draw[rk edge flow]
     ({\rk@panelwidth+0.25},-1.1) -- ({\rk@panelwidth+\rk@comparegap-0.25},-1.1)
@@ -202,6 +235,9 @@
     \advance\rk@trackindex by 1\relax
   }%
 }
+% <reportkit-contract>
+% {"kind":"figure","description":"Events placed on one or more normalized time tracks.","arguments":[{"name":"options","type":"options","description":"Track, span, and label-layout keys."}],"constraints":[],"example":"\\begin{diagram}[caption={Event timeline.},description={Two events on one time track.}]\n\\begin{reporttimeline}[tracks={Event time}]\n\\event{Event time}{.2}{A}\n\\event{Event time}{.8}{B}\n\\watermark{Event time}{.6}{close}\n\\end{reporttimeline}\n\\end{diagram}","stability":"stable","since":"1.0.0"}
+% </reportkit-contract>
 \NewDocumentEnvironment{reporttimeline}{O{}}{%
   \begingroup\pgfkeys{/reportkit/timeline,tracks={},span=12.0,track gap=1.6,#1}%
   \ifstrempty{\rk@tracks}{%
@@ -210,10 +246,16 @@
   }{}%
   \rk@drawtracks
 }{\endgroup}
+% <reportkit-contract>
+% {"kind":"command","description":"Event","arguments":[{"name":"options","type":"options","description":"Options."},{"name":"track","type":"text","description":"Track."},{"name":"position","type":"text","description":"Position."},{"name":"label","type":"text","description":"Label."}],"constraints":[],"example":"\\event[]{a}{1}{Example}","stability":"stable","since":"1.0.0","parent":"reporttimeline"}
+% </reportkit-contract>
 \NewDocumentCommand{\event}{O{} m m m}{%
   \rk@findtrack{#2}%
   \node[rk event mark,#1] at ({#3*\rk@trackspan},{-\the\rk@trackquery*\rk@trackgap}) {#4};%
 }
+% <reportkit-contract>
+% {"kind":"command","description":"Skewarrow","arguments":[{"name":"source_track","type":"text","description":"Source track."},{"name":"source_position","type":"text","description":"Source position."},{"name":"target_track","type":"text","description":"Target track."},{"name":"target_position","type":"text","description":"Target position."}],"constraints":[],"example":"\\skewarrow{a}{Example}{b}{Example}","stability":"stable","since":"1.0.0","parent":"reporttimeline"}
+% </reportkit-contract>
 \NewDocumentCommand{\skewarrow}{m m m m}{%
   \rk@findtrack{#1}\edef\rk@skewfrom{\the\rk@trackquery}%
   \rk@findtrack{#3}\edef\rk@skewto{\the\rk@trackquery}%
@@ -221,6 +263,9 @@
     ({#2*\rk@trackspan},{-\rk@skewfrom*\rk@trackgap+0.18}) --
     ({#4*\rk@trackspan},{-\rk@skewto*\rk@trackgap-0.18});%
 }
+% <reportkit-contract>
+% {"kind":"command","description":"Watermark","arguments":[{"name":"options","type":"options","description":"Options."},{"name":"start","type":"text","description":"Start."},{"name":"end","type":"text","description":"End."},{"name":"label","type":"text","description":"Label."}],"constraints":[],"example":"\\watermark[]{1}{1}{Example}","stability":"stable","since":"1.0.0","parent":"reporttimeline"}
+% </reportkit-contract>
 \NewDocumentCommand{\watermark}{O{} m m m}{%
   \def\rk@watermarklabelposition{below}\def\rk@watermarklabelwidth{}\def\rk@watermarklabelanchor{}%
   \pgfkeys{/reportkit/timeline/watermark,#1}%
