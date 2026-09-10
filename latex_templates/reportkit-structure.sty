@@ -51,7 +51,7 @@
   \rk@structure@error{Unknown #1 key '\pgfkeyscurrentname'}{Check the primitive's documented keys.}%
 }
 \newcommand{\rk@structure@nonempty}[3]{%
-  \ifstrempty{#1}{\rk@structure@error{#2 must not be empty}{#3}}{}%
+  \expandafter\ifstrempty\expandafter{#1}{\rk@structure@error{#2 must not be empty}{#3}}{}%
 }
 \newcommand{\rk@structure@rangezeroone}[3]{%
   \rk@structure@ifnumber{#1}{%
@@ -409,7 +409,10 @@
 % {"kind":"figure","description":"Labelled positions between two semantic endpoints.","arguments":[{"name":"options","type":"options","description":"Endpoint labels and layout keys."}],"constraints":[],"example":"\\begin{diagram}[caption={Operating continuum.},description={Two positions between centralized and distributed.}]\n\\begin{continuum}[left={Centralized},right={Distributed}]\n\\marker{Team A}{.3}\n\\marker{Team B}{.7}\n\\end{continuum}\n\\end{diagram}","stability":"stable","since":"1.0.0"}
 % </reportkit-contract>
 \NewDocumentEnvironment{continuum}{O{}}{%
-  \def\rk@continuumleft{}\def\rk@continuumright{}\def\rk@continuumwidth{15.2}\rk@continuummarkercount=0\relax
+  % Endpoint labels sit outside the axis, so the default axis is narrower than
+  % the other full-width structure primitives. This keeps the complete natural
+  % diagram inside ReportKit's A4 text block without requiring wrapper scaling.
+  \def\rk@continuumleft{}\def\rk@continuumright{}\def\rk@continuumwidth{9.2}\rk@continuummarkercount=0\relax
   \pgfkeys{/reportkit/continuum,#1}%
   \rk@structure@widthwarning{\rk@continuumwidth}{8}%
   \let\marker\rk@continuum@marker
@@ -430,8 +433,8 @@
   \draw[draw=Evidence,line width=1pt] (0,0) -- (\rk@continuumwidth,0);
   \fill[Evidence] (0,0) circle (2pt);
   \fill[Evidence] (\rk@continuumwidth,0) circle (2pt);
-  \node[rk structure title,anchor=east,text width=3cm,align=right] at (-.25,0) {\rk@continuumleft};
-  \node[rk structure title,anchor=west,text width=3cm,align=left] at (\rk@continuumwidth+.25,0) {\rk@continuumright};
+  \node[rk structure title,anchor=east,text width=2.75cm,align=right] at (-.18,0) {\rk@continuumleft};
+  \node[rk structure title,anchor=west,text width=2.75cm,align=left] at (\rk@continuumwidth+.18,0) {\rk@continuumright};
   \foreach \rk@i in {1,...,\the\rk@continuummarkercount}{%
     \pgfmathsetmacro{\rk@continuumx}{\csname rk@continuum@value@\rk@i\endcsname*\rk@continuumwidth}
     \draw[draw=LinkBlue,line width=.8pt] (\rk@continuumx,-.15) -- (\rk@continuumx,.65);

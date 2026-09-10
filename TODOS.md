@@ -38,12 +38,7 @@ for why.
 
 ### P1
 
-- **P1-1 — restore the contract acceptance gate.**
-  `scripts/contract_acceptance.py --json` currently exits 3 in the repository
-  test environment: the generated all-examples document reports two blocking
-  overfull hboxes and 18 duplicate empty-label warnings. Fix the fixture or
-  generator and keep `.github/workflows/contract-ci.yml` green.
-- **P1-2 — finish the tooling-hardening follow-up.** Run and record the B4
+- **P1-1 — finish the tooling-hardening follow-up.** Run and record the B4
   contrast/grayscale audit, then measure the publication build before deciding
   whether to implement bounded parallelism or incremental builds for the
   existing `--workers`/F2 hook.
@@ -163,11 +158,15 @@ for why.
 
 ## History
 
+- 2026-09-10: fixed the contract acceptance gate. Diagram metadata now expands
+  empty PGF-stored options before testing them, preventing duplicate empty
+  labels; the continuum's default natural width now includes its endpoint
+  labels. The gate passes with zero blocking diagnostics, and the full suite is
+  green at 129 passed, 12 skipped.
 - 2026-09-10: synchronized this index with `main` at v1.9.1. The v1.9.0
   agent contract and v1.9.1 fork-port fixes are merged; strict acceptance and
   the full equity fixture compile locally. Pinned visual QA remains blocked by
-  the locked toolchain fingerprint, and contract acceptance still needs its
-  overfull-box/duplicate-empty-label diagnostics resolved.
+  the locked toolchain fingerprint.
 - 2026-09-09: institutional-theme spec's Step 5 (fixtures, QA, skill
   guidance) implemented on `claude/institutional-theme-step-5-gi0ptf` --
   the four-page `examples/equity-research/` fixture (financial figures

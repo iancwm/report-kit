@@ -153,11 +153,11 @@
   \ifx\rk@diagramdescription\@empty\else\rk@actualtextend\fi
   \end{center}%
   \vspace{-2pt}%
-  \ifstrempty{\rk@diagramcaption}{}{%
+  \expandafter\ifstrempty\expandafter{\rk@diagramcaption}{}{%
     \captionof{figure}{\rk@diagramcaption}%
-    \ifstrempty{\rk@diagramlabel}{}{\label{\rk@diagramlabel}}%
+    \expandafter\ifstrempty\expandafter{\rk@diagramlabel}{}{\label{\rk@diagramlabel}}%
   }%
-  \ifstrempty{\rk@diagramsource}{}{\source{\rk@diagramsource}}%
+  \expandafter\ifstrempty\expandafter{\rk@diagramsource}{}{\source{\rk@diagramsource}}%
   \par\vspace{5pt}%
 }
 
