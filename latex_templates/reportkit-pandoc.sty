@@ -10,6 +10,15 @@
 \RequirePackage[htt]{hyphenat}
 \IfFileExists{xurl.sty}{\RequirePackage{xurl}}{\RequirePackage{url}}
 
+% Pandoc supplies both width and height fallbacks for percentage-sized
+% images. Keep those constraints proportional rather than allowing the pair
+% to distort a non-square source image.
+\makeatletter
+\def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth\else\Gin@nat@width\fi}
+\def\maxheight{\ifdim\Gin@nat@height>\textheight\textheight\else\Gin@nat@height\fi}
+\makeatother
+\setkeys{Gin}{width=\maxwidth,height=\maxheight,keepaspectratio}
+
 % Pandoc's current LaTeX writer emits this helper for compact lists.
 \providecommand{\tightlist}{%
   \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}

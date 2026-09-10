@@ -26,6 +26,7 @@ from pathlib import Path
 import pandas as pd
 
 import reportkit_viz as rkv
+from reportkit.context import month_end_freq
 
 FIGURES = Path(__file__).resolve().parent / "figures"
 FIGURES.mkdir(exist_ok=True)
@@ -110,7 +111,7 @@ rkv.save_figure(fig, FIGURES / "gross_margin", formats=("pdf",))
 # strip and Exhibit 7 (SOTP) price target exactly: base=$245 is the same
 # published target as the front page and Exhibit 7's valuation table.
 # -----------------------------------------------------------------------------
-price_dates = pd.date_range("2024-09-30", "2026-08-31", freq="ME")
+price_dates = pd.date_range("2024-09-30", "2026-08-31", freq=month_end_freq())
 price_path = [
     128, 133, 136, 142, 150, 148, 152, 158, 162, 168, 171, 165,
     181, 176, 183, 189, 201, 195, 188, 179, 182, 186, 190, 182.5,

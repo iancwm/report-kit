@@ -35,3 +35,30 @@ def test_invalid_sentinel_and_unordered_manuscript_fail() -> None:
     result = validate_publication(root)
     assert any("invalid visual sentinel" in error for error in result.errors)
     assert any("not listed in order.txt" in error for error in result.errors)
+
+
+def test_edge_label_does_not_count_as_diagram_label() -> None:
+    root = make_publication({"01-one.md": "[[REPORTKIT-VISUAL:fig:one]]\n"}, ["01-one.md"], {"one": "fig:one"})
+    (root / "fragments" / "fig-one.tex").write_text(
+        r"""\begin{diagram}[label={fig:one},caption={A flow}]
+\begin{reportflow}
+  \step{a}{Approve}
+  \step{b}{Publish}
+  \flowedge[label={Approve}]{a}{b}
+\end{reportflow}
+\end{diagram}
+""",
+        encoding="utf-8",
+    )
+    assert validate_publication(root).ok
+
+
+def test_unterminated_diagram_options_are_reported() -> None:
+    root = make_publication({"01-one.md": "[[REPORTKIT-VISUAL:fig:one]]\n"}, ["01-one.md"], {"one": "fig:one"})
+    (root / "fragments" / "fig-one.tex").write_text(
+        r"\begin{diagram}[label={fig:one},caption={A flow}\end{diagram}\n",
+        encoding="utf-8",
+    )
+    result = validate_publication(root)
+    assert not result.ok
+    assert any("malformed diagram options" in error for error in result.errors)

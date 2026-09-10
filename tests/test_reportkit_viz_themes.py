@@ -24,6 +24,7 @@ import matplotlib.pyplot as plt  # noqa: E402
 import pandas as pd  # noqa: E402
 
 import reportkit_viz as rkv  # noqa: E402
+from reportkit.context import month_end_freq  # noqa: E402
 from reportkit.themes import Theme, available_themes, get_theme  # noqa: E402
 
 REPO = Path(__file__).resolve().parents[1]
@@ -80,6 +81,17 @@ def test_figure_sizes_keep_wide_and_add_dominant_and_half() -> None:
         assert "half" in sizes
         assert "full" in sizes
         assert "compact" in sizes
+
+
+def test_grouped_bubble_matrix_uses_shape_as_well_as_colour() -> None:
+    data = pd.DataFrame({"x": [1, 2], "y": [2, 1], "group": ["Alpha", "Beta"]})
+    figure, axis = rkv.bubble_matrix(
+        data, x="x", y="y", xlabel="Impact", ylabel="Effort", group_column="group"
+    )
+    collections = [item for item in axis.collections if item.get_label() in {"Alpha", "Beta"}]
+    assert len(collections) == 2
+    assert len({len(item.get_paths()[0].vertices) for item in collections}) == 2
+    plt.close(figure)
 
 
 def test_apply_theme_institutional_research_switches_palette_and_geometry() -> None:
@@ -223,7 +235,7 @@ def test_risk_reward_chart_renders_and_labels_bear_base_bull() -> None:
     \\bullcase/\\basecase/\\bearcase primitives expect exactly this image to
     arrive as an ordinary \\includegraphics inside an exhibit."""
     rkv.apply_theme("institutional-research")
-    dates = pd.date_range("2024-09-01", periods=12, freq="ME")
+    dates = pd.date_range("2024-09-01", periods=12, freq=month_end_freq())
     price = pd.Series([150 + i * 3 for i in range(len(dates))], index=dates)
     fig, ax = rkv.risk_reward_chart(
         price, bear=135, base=245, bull=310, current=182.50,

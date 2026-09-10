@@ -7,6 +7,23 @@ import shutil
 import subprocess
 
 import pytest
+
+# Import the scientific stack before PyMuPDF. Some Linux wheel combinations
+# can disagree over the process-wide libstdc++ ABI; keeping this order makes a
+# real incompatibility fail during collection instead of being hidden later
+# by a test module's importorskip(). Missing optional packages remain optional
+# for suites that do not use them.
+try:
+    import matplotlib  # noqa: F401
+except ModuleNotFoundError as exc:
+    if exc.name != "matplotlib":
+        raise
+try:
+    import pandas  # noqa: F401
+except ModuleNotFoundError as exc:
+    if exc.name != "pandas":
+        raise
+
 import pymupdf
 
 REPO = Path(__file__).resolve().parents[1]

@@ -18,12 +18,46 @@ SENTINEL_RE = re.compile(r"\[\[REPORTKIT-VISUAL:fig:(?P<slug>[a-z0-9]+(?:-[a-z0-
 FRAGMENT_RE = re.compile(r"^fig-(?P<slug>[a-z0-9]+(?:-[a-z0-9]+)*)\.tex$")
 LABEL_RE = re.compile(r"\\label\s*\{\s*([^{}]+?)\s*\}")
 OPTION_LABEL_RE = re.compile(r"(?<![\\A-Za-z])label\s*=\s*\{\s*([^{}]+?)\s*\}")
+DIAGRAM_BEGIN_RE = re.compile(r"\\begin\s*\{\s*diagram\s*\}")
 TEX_PATH_RE = re.compile(
     r"\\(?:input|include|includegraphics)(?:\[[^]]*\])?\s*(?:\{([^{}]+)\}|([^\s%{}]+))"
 )
 TEX_OUTPUT_PATH_RE = re.compile(r"\\openout\s*(?:\d+|\\[A-Za-z@]+)\s*=\s*(?:\{([^{}]+)\}|([^\s%]+))")
 SHELL_ESCAPE_RE = re.compile(r"\\(?:immediate\s*\\)?write\s*18\b|\\ShellEscape\b")
 MARKDOWN_ASSET_RE = re.compile(r"!?\[[^]]*\]\((?P<path>[^ )]+)(?:\s+['\"][^'\"]*['\"])?\)")
+
+
+def _diagram_options(text: str) -> tuple[str, str | None]:
+    """Return the first diagram's option text and a malformed-group error."""
+    match = DIAGRAM_BEGIN_RE.search(text)
+    if match is None:
+        return "", None
+    cursor = match.end()
+    while cursor < len(text) and text[cursor].isspace():
+        cursor += 1
+    if cursor >= len(text) or text[cursor] != "[":
+        return "", None
+
+    start = cursor + 1
+    cursor = start
+    brace_depth = 0
+    while cursor < len(text):
+        char = text[cursor]
+        if char == "\\":
+            cursor += 2
+            continue
+        if char == "{":
+            brace_depth += 1
+        elif char == "}":
+            if brace_depth == 0:
+                return "", "malformed diagram options: unexpected '}' before closing ']'"
+            brace_depth -= 1
+        elif char == "]" and brace_depth == 0:
+            return text[start:cursor], None
+        cursor += 1
+    if brace_depth:
+        return "", "malformed diagram options: unterminated '{...}' value"
+    return "", "malformed diagram options: unterminated '[...]' group"
 
 
 @dataclass
@@ -159,8 +193,11 @@ def validate_publication(root: Path) -> ValidationResult:
                     )
         if len(re.findall(r"\\begin\s*\{diagram\}", text)) != 1 or len(re.findall(r"\\end\s*\{diagram\}", text)) != 1:
             result.add(f"{path.relative_to(root)}: expected exactly one diagram environment", rule="diagram_count", file=str(path.relative_to(root)))
+        options, options_error = _diagram_options(text)
+        if options_error:
+            result.add(f"{path.relative_to(root)}: {options_error}", rule="diagram_options", file=str(path.relative_to(root)))
         labels = [value.strip() for value in LABEL_RE.findall(text)]
-        labels.extend(value.strip() for value in OPTION_LABEL_RE.findall(text))
+        labels.extend(value.strip() for value in OPTION_LABEL_RE.findall(options))
         if len(labels) != 1:
             result.add(f"{path.relative_to(root)}: expected exactly one diagram label", rule="diagram_label_count", file=str(path.relative_to(root)))
             continue

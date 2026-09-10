@@ -49,6 +49,7 @@ import pandas as pd
 # already required to import reportkit_viz itself, so nothing new is asked
 # of callers. See reportkit/themes/__init__.py's module docstring for why
 # the dependency runs this direction and not the reverse (open question 8).
+from reportkit.context import month_end_freq
 from reportkit.themes import get_theme
 
 __version__ = "1.0.0"
@@ -66,6 +67,10 @@ __version__ = "1.0.0"
 # chart functions below that read these as plain names.
 LINE_STYLES = ("-", "--", "-.", ":", (0, (5, 1.5)), (0, (3, 1, 1, 1)))
 MARKERS = (None, None, "o", "s", "D", "^")
+# Line charts intentionally reserve the first two series for line style alone.
+# Bubbles need a distinct shape from the first group onward because colour is
+# not a sufficient encoding for accessibility.
+BUBBLE_MARKERS = ("o", "s", "D", "^", "v", "P")
 
 
 def _available_font(candidates: Sequence[str], fallback: str = "DejaVu Sans") -> str:
@@ -1283,7 +1288,8 @@ def bubble_matrix(
         for index, group in enumerate(groups):
             mask = frame[group_column].astype(str) == group
             ax.scatter(frame.loc[mask, x], frame.loc[mask, y], s=areas[mask.to_numpy()], color=DATA_COLORS[index],
-                       alpha=0.72, linewidths=0.45, edgecolors=WHITE, label=group)
+                       marker=BUBBLE_MARKERS[index % len(BUBBLE_MARKERS)], alpha=0.72, linewidths=0.45,
+                       edgecolors=WHITE, label=group)
     else:
         ax.scatter(frame[x], frame[y], s=areas, color=PRIMARY, alpha=0.72, linewidths=0.45, edgecolors=WHITE)
     style_axes(ax, grid="both")
@@ -1566,7 +1572,7 @@ def build_demo(out_dir: str | Path) -> list[Path]:
     outputs: list[Path] = []
 
     rng = np.random.default_rng(14)
-    dates = pd.date_range("2022-01-31", periods=44, freq="ME")
+    dates = pd.date_range("2022-01-31", periods=44, freq=month_end_freq())
     portfolio_r = rng.normal(0.0075, 0.027, len(dates))
     benchmark_r = rng.normal(0.0050, 0.024, len(dates))
     portfolio = pd.Series(np.cumprod(1 + portfolio_r) - 1, index=dates, name="Portfolio")

@@ -68,7 +68,7 @@
     "passed": {"const": true},
     "diagnostics": {"type": "array", "items": {"$ref": "#/$defs/diagnostic"}},
     "contract_version": {"const": "1.0.0"},
-    "reportkit_version": {"const": "1.9.0"},
+    "reportkit_version": {"const": "1.9.1"},
     "revision": {"type": "string"},
     "selection": {"type": "object"},
     "capabilities": {

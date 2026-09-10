@@ -89,6 +89,7 @@ from reportkit.authoring import render_links_tex, validate_authoring  # noqa: E4
 from reportkit.config import (  # noqa: E402
     CONFIG_NAME,
     load_publication_config,
+    resolve_license,
     resolve_document,
     resolve_identity,
     resolve_theme,
@@ -102,7 +103,9 @@ from reportkit.publications import compatibility_error  # noqa: E402
 from reportkit.toolchain import toolchain_context  # noqa: E402
 from reportkit.version import BUILD_REPORT_SCHEMA_VERSION  # noqa: E402
 
-load_license_metadata = _load_module("reportkit_license_metadata", REPO_ROOT / "python_scripts" / "license_metadata.py").load_license_metadata
+_license_module = _load_module("reportkit_license_metadata", REPO_ROOT / "python_scripts" / "license_metadata.py")
+load_license_metadata = _license_module.load_license_metadata
+validate_license_metadata = _license_module.validate_license_metadata
 
 
 def sha256(path: Path) -> str:
@@ -111,6 +114,22 @@ def sha256(path: Path) -> str:
         for chunk in iter(lambda: stream.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def stage_project_assets(source_root: Path, output: Path) -> list[dict[str, str]]:
+    """Copy consumer-owned figures/assets into the isolated TeX build tree."""
+    staged: list[dict[str, str]] = []
+    for directory_name in ("figures", "assets"):
+        directory = source_root / directory_name
+        if not directory.is_dir():
+            continue
+        for source in sorted(path for path in directory.rglob("*") if path.is_file()):
+            relative = source.relative_to(source_root)
+            destination = output / relative
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(source, destination)
+            staged.append({"path": str(relative), "sha256": sha256(source)})
+    return staged
 
 
 def tex_escape(value: str) -> str:
@@ -237,9 +256,12 @@ def write_metadata(path: Path, *, identity: dict[str, str], combined: bool, lice
         f"\\newcommand{{\\RKPubFooter}}{{{tex_escape(identity['footer'])}}}",
         f"\\newcommand{{\\RKPubSubject}}{{{tex_escape(identity['subject'])}}}",
         f"\\newcommand{{\\RKPubKeywords}}{{{tex_escape(identity['keywords'])}}}",
-        f"\\newcommand{{\\RKPubProjectURL}}{{{identity['project_url']}}}",
+        # These macros are consumed by \RKPath/\href after expansion, so
+        # escape configured URLs at definition time just like other metadata.
+        f"\\newcommand{{\\RKPubProjectURL}}{{{tex_escape(identity['project_url'])}}}",
         f"\\newcommand{{\\RKPubContentLicense}}{{{tex_escape(license_values['content_license'])}}}",
-        f"\\newcommand{{\\RKPubContentLicenseURL}}{{{license_values['content_license_url']}}}",
+        f"\\newcommand{{\\RKPubContentLicenseURL}}{{{tex_escape(license_values['content_license_url'])}}}",
+        f"\\newcommand{{\\RKPubClassification}}{{{tex_escape(license_values.get('classification', ''))}}}",
         f"\\newcommand{{\\RKPubCoverPath}}{{{cover_name or ''}}}",
         f"\\newcommand{{\\RKPubDisclaimer}}{{{tex_escape(identity['disclaimer'])}}}",
     ]
@@ -310,7 +332,7 @@ def build(args: argparse.Namespace) -> int:
             print(f"authoring validation: {error}", file=sys.stderr)
         return 3
     try:
-        license_values = load_license_metadata(LICENSE_FILE)
+        license_defaults = load_license_metadata(LICENSE_FILE)
     except (OSError, ValueError) as exc:
         print(f"licensing: {exc}", file=sys.stderr)
         return 2
@@ -324,6 +346,12 @@ def build(args: argparse.Namespace) -> int:
         )
     except (OSError, ValueError) as exc:
         print(f"publication config: {exc}", file=sys.stderr)
+        return 2
+    try:
+        license_values = resolve_license(config, license_defaults, profile=profile)
+        validate_license_metadata(license_values, source_root / CONFIG_NAME)
+    except (OSError, ValueError) as exc:
+        print(f"licensing: {exc}", file=sys.stderr)
         return 2
     document = resolve_document(config, profile)
     pairing = compatibility_error(str(document.get("publication_type")), str(document.get("theme")))
@@ -366,6 +394,7 @@ def build(args: argparse.Namespace) -> int:
     for path in template_files():
         shutil.copy2(path, output / path.name)
     shutil.copy2(TEMPLATE, output / TEMPLATE.name)
+    staged_assets = stage_project_assets(source_root, output)
     cover_name = None
     if args.cover:
         cover = Path(args.cover).resolve()
@@ -426,6 +455,7 @@ def build(args: argparse.Namespace) -> int:
         "started_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "inputs": [{"path": str(path), "sha256": sha256(source_root / "manuscript" / path)} for path in manuscripts],
         "templates": [{"path": str(path.relative_to(REPO_ROOT)), "sha256": sha256(path)} for path in (template_files() + [TEMPLATE, LICENSE_FILE])],
+        "assets": staged_assets,
         "tool_versions": {"python": sys.version.split()[0], "pandoc": version_line("pandoc"), "tex": version_line(engine)},
         "toolchain": toolchain_context(REPO_ROOT),
         "commands": [], "exit_codes": [], "diagnostics": {}, "figures": figure_count, "tables": table_count, "pdf_sha256": None,
