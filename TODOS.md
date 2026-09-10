@@ -1,6 +1,6 @@
 # ReportKit — Outstanding Work
 
-**Last updated:** 2026-09-09
+**Last updated:** 2026-09-10
 
 This is an index, not an audit. Each spec/plan under `docs/superpowers/`
 carries its own `**Status:**` line, updated at the workflow checkpoint that
@@ -16,20 +16,21 @@ for why.
 |---|---|---|
 | [2026-09-06-reportkit-tooling-hardening-design.md](docs/superpowers/specs/2026-09-06-reportkit-tooling-hardening-design.md) | Approved, implementation slice landed; tooling follow-up remains | P1 |
 | [2026-09-06-reportkit-vnext-ai-publication-system-spec.md](docs/superpowers/specs/2026-09-06-reportkit-vnext-ai-publication-system-spec.md) | Draft / roadmap — reconciled; implement from the plan, not this | P3 |
-| [2026-09-07-reportkit-vnext-implementation-plan.md](docs/superpowers/plans/2026-09-07-reportkit-vnext-implementation-plan.md) | Phase 1 in PR #10; additive Phases 2–4 in PR #9 | P3 |
+| [2026-09-07-reportkit-vnext-implementation-plan.md](docs/superpowers/plans/2026-09-07-reportkit-vnext-implementation-plan.md) | Complete — Phase 1 merged via PR #10; additive Phases 2–4 merged via PR #9 | P3 |
 | [2026-09-07-documentation-and-status-tracking-cleanup-design.md](docs/superpowers/specs/2026-09-07-documentation-and-status-tracking-cleanup-design.md) | Approved | Process |
 | [2026-09-07-documentation-and-status-tracking-cleanup.md](docs/superpowers/plans/2026-09-07-documentation-and-status-tracking-cleanup.md) | Done — merged via PR #7 (`965443b`) | Process |
 | [2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md](docs/superpowers/specs/2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md) | Implemented (Steps 1–5); open questions resolved in the plan below | P2 |
-| [2026-09-09-reportkit-institutional-theme-implementation-plan.md](docs/superpowers/plans/2026-09-09-reportkit-institutional-theme-implementation-plan.md) | Steps 1–5 of 5 implemented (theme infrastructure, institutional theme, equity publication profile, visualization integration, fixtures/QA/skill guidance); pending real-TeX verification | P2 |
+| [2026-09-09-reportkit-institutional-theme-implementation-plan.md](docs/superpowers/plans/2026-09-09-reportkit-institutional-theme-implementation-plan.md) | Complete — Steps 1–5 implemented; local LuaLaTeX verification passes; pinned visual QA remains | P2 |
 | [2026-09-09-reportkit-multi-format-publication-architecture-spec.md](docs/superpowers/specs/2026-09-09-reportkit-multi-format-publication-architecture-spec.md) | Draft / not started — architecture hardening ahead of new themes; 6 open questions | P2 |
-| [2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md](docs/superpowers/specs/2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md) | Draft / not started — agent-facing contract for vendor-agnostic use; amends the spec above; 8 open questions | P2 |
+| [2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md](docs/superpowers/specs/2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md) | Implemented for v1.9.0 — Phase A′ and paged-renderer B′ complete; renderer-dependent work deferred | P2 |
+| [2026-09-10-reportkit-fork-port-fixes-spec.md](docs/superpowers/specs/2026-09-10-reportkit-fork-port-fixes-spec.md) | Implemented in v1.9.1 via PR #19; all 11 applicable fixes landed | Complete |
 
 ## Open work
 
 ### P0
 
 - **P0-1 — delete `tooling`, don't re-cut it.** `git rev-list --left-right
-  --count main...tooling` returns `61 0` (verified 2026-09-09): the branch has
+  --count main...tooling` returns `86 0` (verified 2026-09-10): the branch has
   no unique commits, so there is nothing to preserve, and
   [references/migrating-content-branches.md](references/migrating-content-branches.md)
   already dispositions it as "Superseded and stale… then delete". Branch the
@@ -37,8 +38,15 @@ for why.
 
 ### P1
 
-- Continue the tooling-hardening follow-up slices and reconcile them with the
-  vNext roadmap; the vNext Phase 2–4 implementation slice is now complete.
+- **P1-1 — restore the contract acceptance gate.**
+  `scripts/contract_acceptance.py --json` currently exits 3 in the repository
+  test environment: the generated all-examples document reports two blocking
+  overfull hboxes and 18 duplicate empty-label warnings. Fix the fixture or
+  generator and keep `.github/workflows/contract-ci.yml` green.
+- **P1-2 — finish the tooling-hardening follow-up.** Run and record the B4
+  contrast/grayscale audit, then measure the publication build before deciding
+  whether to implement bounded parallelism or incremental builds for the
+  existing `--workers`/F2 hook.
 
 ### P2
 
@@ -87,20 +95,17 @@ for why.
   `references/institutional-research-theme.md` linked from `SKILL.md`
   covering the primitive reference, the `researchmain`/`researchsidebar`
   adjacency requirement, the `exhibitgrid` column-count limit, and
-  `apply_theme`/`risk_reward_chart` usage. **Steps 1–3's LaTeX and Step
-  5's visual-regression baseline remain unverified by compilation** — no
-  session so far has had a TeX Live install with `lualatex`. Before
-  trusting any of it on a machine with TeX: run `bash
-  scripts/acceptance_check.sh --require-tex`, diff
-  `latex_templates/examples/career_guide_en/report.tex`'s compiled output
-  against its pre-Step-1 PDF, and run `python3 scripts/
-  visual_qa_equity_research.py --update-expected` followed by a human
-  review against the printed spec §25 checklist before committing the
-  resulting baseline. See
+  `apply_theme`/`risk_reward_chart` usage. **Local verification on
+  2026-09-10:** `bash scripts/acceptance_check.sh --require-tex` and a full
+  four-page equity fixture compile both pass under the available LuaLaTeX
+  toolchain. The checked-in visual baseline still requires the pinned OCI
+  toolchain and a human §25 review; the current host reports
+  `RK_VISUAL_TOOLCHAIN_MISMATCH`, so do not update expected pixels from this
+  environment. See
   [the implementation plan](docs/superpowers/plans/2026-09-09-reportkit-institutional-theme-implementation-plan.md).
 
 - **Multi-format publication architecture — spec drafted 2026-09-09, not
-  started.** Generalizes the v1.8 institutional/equity implementation into a
+  started.** Generalizes the v1.9.1 institutional/equity implementation into a
   renderer- and theme-safe architecture before adding executive, venture or
   editorial themes: a publication/renderer registry, hard-failing
   theme×publication-type validation, a shared/paged core split, callout and
@@ -113,35 +118,27 @@ for why.
   and engine-validated in Python but never reach `\documentclass` — the
   pipeline template hardcodes an unparameterized `\documentclass{reportkit}`,
   which is why the equity fixture is compiled directly instead of through the
-  markdown pipeline. Phase A also has to close the standing `lualatex` gap
-  above, since this phase would otherwise add three themes and a second
-  renderer on top of unverified compiles. See
+  markdown pipeline. Phase A must also establish a reproducible pinned
+  toolchain/visual-QA path now that local `lualatex` compiles pass, since this
+  phase would otherwise add three themes and a second renderer without a
+  trustworthy visual baseline. See
   [the spec](docs/superpowers/specs/2026-09-09-reportkit-multi-format-publication-architecture-spec.md).
 
-- **Agent interface & platform contract — spec drafted 2026-09-10, not
-  started.** Companion to the multi-format spec above, covering what that
-  document leaves out: the contract a non-Claude AI agent binds to. The
-  renderer spec addresses the agent once (its §17) and the instruction is to
-  update `SKILL.md` prose — which is a contract only a large-context,
-  strong-instruction-following model can honor. Verification against `2587e03`
-  found the vendor lock is one regex wide: `registry.py:29` captures the
-  primitive name and discards the xparse argument spec sitting in the next
-  brace group, so `reportkit context --json` can tell an agent that
-  `reportmatrix` exists but not how to call it — leaving `SKILL.md` prose,
-  behind Claude-skill frontmatter, as the only usage contract. Also found: two
-  incompatible error channels already in the tree (`diagnostics.py`'s typed
-  records versus `publication_validation.py:17`'s `list[str]`), no remediation
-  data on any diagnostic, no toolchain pinning under §18's pixel-diff
-  baselines, and no validation of primitive usage before `lualatex` runs. Its
-  §4, §5 and §8 are proposed as additions to the renderer spec's Phase A, on
-  that spec's own argument that hardening is cheaper before the surface
-  triples. See
+- **Agent interface & platform contract — Phase A′ and the
+  non-renderer-dependent parts of Phase B′ implemented in v1.9.0; remaining
+  work deferred.** The canonical contract is now in
+  [references/agent-contract.md](references/agent-contract.md), and the
+  spec's eight open questions are resolved. Upcoming work is renderer-gated:
+  slide-renderer accessibility parity (B′ item 7), the authoring IR and
+  constrained dialect/visual feedback loop (C′), then progressive-disclosure
+  context budgets, a neutral non-Claude adapter, and i18n extensions (D′).
+  See
   [the spec](docs/superpowers/specs/2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md).
 
 ### P3
 
-- vNext — **Phase 1 implemented 2026-09-08 in PR #10; additive Phases 2–4 are
-  implemented on PR #9**. PR #9 intentionally inherits the Phase 1 package,
+- vNext — **Phase 1 merged 2026-09-08 via PR #10; additive Phases 2–4 merged
+  via PR #9**. PR #9 intentionally inherits the Phase 1 package,
   config, diagnostics, registry, CLI, manifest, and test-wiring work from PR
   #10 rather than duplicating it. Its additive capabilities are deeper PDF QA,
   source/manuscript and link-registry validation, `\RKLink` rendering, and
@@ -153,6 +150,12 @@ for why.
 
 ## Environment notes
 
+- The repository test environment is `build/.venv-tests`; it supplies
+  PyMuPDF, NumPy, pandas, matplotlib, and pytest. The host Python environment
+  is not authoritative for the full suite.
+- TeX Live 2025 with `lualatex` is available locally; strict acceptance and
+  the full equity fixture compile pass. The pinned visual-comparison
+  environment is not available on this host.
 - `pdfinfo`, `pdffonts`, `pdftoppm` (poppler-utils): not installed on the current dev machine.
 - `pypdf`, `pdfplumber`, system-wide PyMuPDF: not installed.
 - `accsupp.sty`: not installed; `tlmgr install` fails (this checkout is TinyTeX on TL2025 against a TL2026 remote).
@@ -160,6 +163,11 @@ for why.
 
 ## History
 
+- 2026-09-10: synchronized this index with `main` at v1.9.1. The v1.9.0
+  agent contract and v1.9.1 fork-port fixes are merged; strict acceptance and
+  the full equity fixture compile locally. Pinned visual QA remains blocked by
+  the locked toolchain fingerprint, and contract acceptance still needs its
+  overfull-box/duplicate-empty-label diagnostics resolved.
 - 2026-09-09: institutional-theme spec's Step 5 (fixtures, QA, skill
   guidance) implemented on `claude/institutional-theme-step-5-gi0ptf` --
   the four-page `examples/equity-research/` fixture (financial figures

@@ -1,7 +1,10 @@
 # ReportKit Fork Port: Verified Fixes
 
-**Status:** Proposed — verified against `main` at `299b933`, not yet
-implemented.
+**Status:** Implemented in ReportKit v1.9.1 and merged to `main` via PR #19
+(`e77a8a7`). All 11 applicable fixes in this record are landed and covered by
+the repository's current test suite.
+**Verification baseline:** originally verified against `main` at `299b933`;
+implementation is present in the current `main` baseline at `e77a8a7`.
 **Source:** a port record describing 11 changes (9 defects, 2 features) made
 on another fork of this repository, commits `5d1b3c9..eaa80f9`. That range
 does not exist in this repository's history — the fork diverged before this
