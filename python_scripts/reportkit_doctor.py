@@ -20,6 +20,7 @@ ROOT = Path(__file__).resolve().parent
 REPO_ROOT = ROOT.parent
 
 from reportkit.diagnostics import diagnostic_envelope, make_diagnostic  # noqa: E402
+from reportkit.context import month_end_freq  # noqa: E402
 from reportkit.toolchain import resolved_toolchain  # noqa: E402
 
 
@@ -99,7 +100,7 @@ def check_vector_export() -> tuple[bool, str]:
 
         with tempfile.TemporaryDirectory() as td:
             out = Path(td) / "doctor_plot"
-            s = pd.Series([0.0, 0.1, 0.05], index=pd.date_range("2026-01-31", periods=3, freq="ME"))
+            s = pd.Series([0.0, 0.1, 0.05], index=pd.date_range("2026-01-31", periods=3, freq=month_end_freq()))
             fig, _ = rkv.timeseries(s)
             rkv.save_figure(fig, out)
             pdf = out.with_suffix(".pdf")

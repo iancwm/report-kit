@@ -246,7 +246,7 @@
       \foreach \rk@i in {1,...,\the\rk@roadcount}{%
         \pgfmathsetmacro{\rk@roadx}{(\rk@i-1)*\rk@roadstep}
         \fill[LinkBlue] (\rk@roadx,0) circle (2.1pt);
-        \node[rk structure muted,anchor=north,text width=2.55cm] at (\rk@roadx,-.22) {\csname rk@road@label@\rk@i\endcsname};
+        \node[rk structure muted,anchor=north,text width=2.55cm] (roadperiod\rk@i) at (\rk@roadx,-.22) {\csname rk@road@label@\rk@i\endcsname};
       }%
       \foreach \rk@m in {1,...,\the\rk@roadmilestonecount}{%
         \expandafter\rk@roadmap@resolveperiod\expandafter{\csname rk@road@milestoneperiod@\rk@m\endcsname}%
@@ -259,8 +259,8 @@
             \draw[rk structure arrow] (\rk@roadx,.10) -- (\rk@roadx,.63);
             \node[rk structure card,anchor=south,text width=2.65cm,minimum height=8.5mm] at (\rk@roadx,.68) {\csname rk@road@milestonelabel@\rk@m\endcsname};
           \else
-            \draw[rk structure arrow] (\rk@roadx,-.10) -- (\rk@roadx,-.63);
-            \node[rk structure card,anchor=north,text width=2.65cm,minimum height=8.5mm] at (\rk@roadx,-.68) {\csname rk@road@milestonelabel@\rk@m\endcsname};
+            \draw[rk structure arrow] ([yshift=-.10cm]roadperiod\the\rk@roadresolved.south) -- ([yshift=-.63cm]roadperiod\the\rk@roadresolved.south);
+            \node[rk structure card,anchor=north,text width=2.65cm,minimum height=8.5mm] at ([yshift=-.68cm]roadperiod\the\rk@roadresolved.south) {\csname rk@road@milestonelabel@\rk@m\endcsname};
           \fi
         \fi
       }%

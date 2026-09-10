@@ -1,9 +1,13 @@
 import json
 from pathlib import Path
+import sys
 
 import pytest
 
 from python_scripts.reportkit.analysis import analyse_history
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
+from publication_pipeline.scripts.publication_build import stage_project_assets
 
 
 def test_analyse_history_reports_recurring_diagnostics(tmp_path: Path) -> None:
@@ -47,3 +51,19 @@ def test_pdf_inspection_reports_qa_metadata(tmp_path: Path) -> None:
     assert result["page_dimensions"] == [{"page": 1, "width": 595.0, "height": 842.0}]
     assert result["fonts"]
     assert "near_margin_content" in result
+
+
+def test_project_assets_are_staged_with_hashes(tmp_path: Path) -> None:
+    source = tmp_path / "publication"
+    output = tmp_path / "build"
+    (source / "figures" / "nested").mkdir(parents=True)
+    (source / "assets").mkdir()
+    (source / "figures" / "nested" / "chart.png").write_bytes(b"chart")
+    (source / "assets" / "logo.svg").write_text("<svg/>", encoding="utf-8")
+
+    staged = stage_project_assets(source, output)
+
+    assert {item["path"] for item in staged} == {"figures/nested/chart.png", "assets/logo.svg"}
+    assert (output / "figures" / "nested" / "chart.png").read_bytes() == b"chart"
+    assert (output / "assets" / "logo.svg").read_text(encoding="utf-8") == "<svg/>"
+    assert all(len(item["sha256"]) == 64 for item in staged)

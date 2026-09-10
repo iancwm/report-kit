@@ -2,7 +2,9 @@
 from __future__ import annotations
 
 from copy import deepcopy
+from importlib.metadata import PackageNotFoundError, version as package_version
 from pathlib import Path
+import re
 import subprocess
 from typing import Any, Iterable
 
@@ -12,6 +14,29 @@ from .publications import PUBLICATION_TYPES, RENDERERS, THEMES, compatibility_er
 from .registry import CALLOUT_ENVIRONMENTS, COMMANDS, LEGACY_CHART_NAMES, PRIMITIVE_KINDS, generate_registry
 from .toolchain import toolchain_context
 from .version import CONTRACT_VERSION, CONTEXT_SCHEMA_VERSION, DIAGNOSTIC_SCHEMA_VERSION, REPORTKIT_VERSION
+
+
+def month_end_freq(version: str | None = None) -> str:
+    """Return the pandas-compatible month-end frequency alias.
+
+    ``ME`` is available starting with pandas 2.2; older supported pandas
+    versions use ``M``. The optional version argument keeps both branches
+    directly testable without installing multiple pandas versions.
+    """
+    installed = version
+    if installed is None:
+        try:
+            installed = package_version("pandas")
+        except PackageNotFoundError:
+            try:
+                import pandas as pd
+            except ImportError:
+                return "M"
+            installed = getattr(pd, "__version__", "0")
+    match = re.match(r"^(\d+)\.(\d+)", str(installed))
+    if not match:
+        return "M"
+    return "ME" if (int(match.group(1)), int(match.group(2))) >= (2, 2) else "M"
 
 
 def _git(repo_root: Path, *args: str) -> str:

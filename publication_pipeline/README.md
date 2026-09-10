@@ -34,9 +34,11 @@ pages, and near-margin content. The shell wrappers and direct
 `publication_build.py` invocation remain supported.
 
 `<publication-project>/publication.yaml` supplies the title, subtitle, author,
-and version; `--title`/`--author`/`--version` on the CLI override it. A
-missing title (in both the config and the CLI) fails the build with a message
-naming the file and the flag.
+and version; `--title`/`--author`/`--version` on the CLI override it. An
+optional `license:` section can override `content_license`,
+`content_license_url`, and `classification` for that publication; omitted
+values retain the engine defaults. A missing title (in both the config and
+the CLI) fails the build with a message naming the file and the flag.
 
 `combine.sh` is the canonical full-document build and is driven by
 `manuscript/order.txt`. It validates the publication before Pandoc runs,

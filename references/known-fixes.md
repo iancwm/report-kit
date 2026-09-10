@@ -59,3 +59,23 @@ and `libertinust1math.sty` specifically, and downgrades its reported mode
 to `SOURCE BUILD + FIGURES` when they're missing, printing the fix
 command. Always trust the doctor's printed `MODE:` line over an assumption
 that "TeX is installed" implies a working build.
+
+## Test collection — PyMuPDF/scientific-stack import order (fixed)
+
+**Symptom:** a pandas/matplotlib-dependent test suite skips instead of
+failing, or collection fails with a `libstdc++` version/import error after
+PyMuPDF has already loaded.
+
+**Cause:** some Linux wheel combinations share a process-wide C++ runtime;
+loading `pymupdf` before the scientific stack can expose an ABI conflict.
+The old test order also let `pytest.importorskip()` turn that environment
+failure into an exit-0 skip.
+
+**Fix:** `tests/conftest.py` imports matplotlib and pandas before PyMuPDF,
+while still allowing genuinely absent optional packages to be handled by the
+tests that need them.
+
+**Verified:** the CI-order command `python -m pytest tests
+publication_pipeline/tests -q` now collects the scientific-stack tests after
+that deterministic import order; an installed-but-incompatible package fails
+during collection instead of being silently skipped.

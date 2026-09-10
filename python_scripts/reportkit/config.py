@@ -12,6 +12,7 @@ IDENTITY_KEYS = (
     "footer", "subject", "keywords", "disclaimer", "project_url",
 )
 DOCUMENT_KEYS = ("main", "class", "engine", "theme", "publication_type", "paper")
+LICENSE_KEYS = ("content_license", "content_license_url", "classification")
 # Themes that require a specific engine. Selecting the theme without
 # configuring that engine must fail validation rather than silently degrade
 # the PDF (for example, falling back off Google Sans under pdfTeX). See
@@ -36,8 +37,8 @@ VALIDATION_KEYS = (
     "overfull_hbox_threshold", "underfull_badness_threshold",
 )
 OUTPUT_KEYS = ("directory",)
-KNOWN = IDENTITY_KEYS + DOCUMENT_KEYS + VALIDATION_KEYS + OUTPUT_KEYS + THEME_KEYS
-SECTIONS = ("publication", "document", "theme", "profiles", "validation", "output")
+KNOWN = IDENTITY_KEYS + DOCUMENT_KEYS + LICENSE_KEYS + VALIDATION_KEYS + OUTPUT_KEYS + THEME_KEYS
+SECTIONS = ("publication", "document", "license", "theme", "profiles", "validation", "output")
 
 
 def _strip_comment(value: str) -> str:
@@ -229,6 +230,7 @@ def _known_for(section: str) -> tuple[str, ...]:
     return {
         "publication": IDENTITY_KEYS,
         "document": DOCUMENT_KEYS,
+        "license": LICENSE_KEYS,
         "theme": THEME_KEYS,
         "validation": VALIDATION_KEYS,
         "output": OUTPUT_KEYS,
@@ -247,10 +249,16 @@ def _validate_and_normalize(raw: dict[str, Any], source: Path) -> dict[str, Any]
         _validate_mapping(raw, "", KNOWN, source)
         return raw
     unknown_top = set(raw) - set(SECTIONS)
+    if "publication" not in raw and unknown_top:
+        # Keep the historical flat identity form composable with new nested
+        # sections, so a project can add `license:` without first moving its
+        # existing title/author fields under `publication:`.
+        _validate_mapping({key: raw[key] for key in unknown_top}, "", KNOWN, source)
+        unknown_top = set()
     if unknown_top:
         key = sorted(unknown_top)[0]
         raise ValueError(f"{source}: unknown key {key}; known keys: {', '.join(SECTIONS)}")
-    for section in ("publication", "document", "theme", "validation", "output"):
+    for section in ("publication", "document", "license", "theme", "validation", "output"):
         value = raw.get(section)
         if value is not None and not isinstance(value, dict):
             raise ValueError(f"{source}: {section} must be a mapping")
@@ -288,7 +296,13 @@ def slugify(value: str) -> str:
 
 def _profile_values(config: dict[str, Any], profile: str | None) -> dict[str, Any]:
     if "publication" not in config:
-        return dict(config)
+        values = {key: value for key, value in config.items() if key not in SECTIONS}
+        selected = profile or "draft"
+        profile_values = (config.get("profiles") or {}).get(selected, {})
+        if isinstance(profile_values, dict):
+            values.update({key: value for key, value in profile_values.items() if key not in SECTIONS})
+            values.update(profile_values.get("publication") or {})
+        return values
     values = dict(config.get("publication") or {})
     selected = profile or "draft"
     profile_values = (config.get("profiles") or {}).get(selected, {})
@@ -321,14 +335,27 @@ def resolve_identity(config: dict[str, Any], overrides: dict[str, Any], source_r
     return {key: str(value) for key, value in values.items()}
 
 
+def resolve_license(config: dict[str, Any], defaults: dict[str, str], profile: str | None = None) -> dict[str, str]:
+    """Merge optional project license metadata over engine defaults."""
+    values = {key: str(value) for key, value in defaults.items()}
+    overrides = _profile_section(config, "license", profile)
+    for key in LICENSE_KEYS:
+        value = overrides.get(key)
+        if value not in (None, ""):
+            values[key] = str(value)
+    values.setdefault("classification", "")
+    return values
+
+
 def _profile_section(config: dict[str, Any], name: str, profile: str | None) -> dict[str, Any]:
-    values = dict(config.get(name) or {}) if "publication" in config else {}
+    values = dict(config.get(name) or {}) if isinstance(config.get(name), dict) else {}
     selected = profile or "draft"
-    profile_values = (config.get("profiles") or {}).get(selected, {}) if "publication" in config else {}
+    profile_values = (config.get("profiles") or {}).get(selected, {})
     if isinstance(profile_values, dict):
         values.update(profile_values.get(name) or {})
         allowed = {
             "document": DOCUMENT_KEYS,
+            "license": LICENSE_KEYS,
             "theme": THEME_KEYS,
             "validation": VALIDATION_KEYS,
             "output": OUTPUT_KEYS,

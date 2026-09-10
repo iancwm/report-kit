@@ -1,5 +1,7 @@
 """Rendered-PDF regressions for the width-aware and positioned primitives."""
 
+import pytest
+
 from geometry import node_rects, word_boxes
 
 
@@ -28,11 +30,20 @@ def test_five_column_swimlane_stays_inside_its_declared_process_width(compile_do
     assert [boxes[label][0] for label in labels] == sorted(box[0] for box in boxes.values())
     rails = [drawing["rect"] for drawing in page.get_drawings() if drawing["rect"].width > 200 and drawing["rect"].height < 2]
     assert rails
-    process_left = min(rail.x0 for rail in rails)
-    process_right = max(rail.x1 for rail in rails)
-    nodes = node_rects(page, min_width=40)
+    process_left = max(rail.x0 for rail in rails)
+    process_right = min(rail.x1 for rail in rails)
+    nodes = sorted(node_rects(page, min_width=40), key=lambda node: node.x0)
     assert len(nodes) == 5
-    assert all(process_left <= node.x0 and node.x1 <= process_right for node in nodes)
+    edge_tolerance = 0.75
+    assert all(
+        process_left - edge_tolerance <= node.x0
+        and node.x1 <= process_right + edge_tolerance
+        for node in nodes
+    )
+    centers = [node.x0 + node.width / 2 for node in nodes]
+    gaps = [right - left for left, right in zip(centers, centers[1:])]
+    expected_pitch = (process_right - process_left - nodes[0].width) / 4
+    assert gaps == pytest.approx([expected_pitch] * 4, rel=0.08)
     assert_on_page(page, boxes)
 
 
@@ -123,3 +134,30 @@ def test_timeline_marker_labels_avoid_track_name_and_page_boundary(compile_doc):
     assert boxes["allowed"][1] < boxes["Event"][1]
     assert boxes["endpoint"][0] < page.rect.x1
     assert_on_page(page, boxes)
+
+
+def test_dated_roadmap_below_arrow_starts_below_wrapped_period_label(compile_doc):
+    page = compile_doc(
+        r"""
+        \begin{diagram}[width=\textwidth,caption={Dated roadmap.}]
+          \begin{reportroadmap}[mode=dated]
+            \period{2026 Q4 governance and controls}
+            \period{2027 Q1}
+            \milestone{2026 Q4 governance and controls}{Design}
+          \end{reportroadmap}
+        \end{diagram}
+        """
+    )[0]
+    period_words = word_boxes(page, {"2026", "Q4", "gover-", "nance", "controls"})
+    assert set(period_words) == {"2026", "Q4", "gover-", "nance", "controls"}
+    period_bottom = max(box[3] for box in period_words.values())
+    period_center = (min(box[0] for box in period_words.values()) + max(box[2] for box in period_words.values())) / 2
+    arrows = [
+        drawing["rect"]
+        for drawing in page.get_drawings()
+        if drawing["rect"].height > 10
+        and drawing["rect"].width < 4
+        and abs((drawing["rect"].x0 + drawing["rect"].x1) / 2 - period_center) < 8
+    ]
+    assert arrows
+    assert all(arrow.y0 >= period_bottom for arrow in arrows)

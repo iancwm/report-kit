@@ -8,6 +8,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "python_scripts"))
 
 from reportkit.config import (
     load_publication_config,
+    resolve_license,
     resolve_document,
     resolve_identity,
     resolve_theme,
@@ -16,6 +17,7 @@ from reportkit.config import (
 )
 from reportkit.diagnostics import inspect_log
 from reportkit.registry import check_skill_drift, generate_registry
+from reportkit.context import month_end_freq
 
 
 REPO = Path(__file__).resolve().parents[1]
@@ -32,6 +34,33 @@ def test_nested_config_resolves_profile_and_document(tmp_path: Path) -> None:
     config = load_publication_config(path)
     assert resolve_identity(config, {}, tmp_path, profile="release")["version"] == "2.0"
     assert resolve_document(config)["engine"] == "lualatex"
+
+
+def test_project_license_overrides_fallback_and_profile(tmp_path: Path) -> None:
+    path = tmp_path / "publication.yaml"
+    path.write_text(
+        "publication:\n  title: Nested Report\n"
+        "license:\n  content_license: Proprietary\n  content_license_url: https://example.com/license?x=1&y=2#terms\n"
+        "profiles:\n  release:\n    license:\n      classification: Confidential\n",
+        encoding="utf-8",
+    )
+    config = load_publication_config(path)
+    defaults = {
+        "software_license": "GPL-3.0-or-later",
+        "content_license": "CC-BY-4.0",
+        "content_license_url": "https://creativecommons.org/licenses/by/4.0/",
+    }
+    resolved = resolve_license(config, defaults, profile="release")
+    assert resolved["content_license"] == "Proprietary"
+    assert resolved["content_license_url"].startswith("https://example.com")
+    assert resolved["classification"] == "Confidential"
+    assert resolve_license({}, defaults)["content_license"] == defaults["content_license"]
+
+
+def test_month_end_frequency_supports_old_and_new_pandas_aliases() -> None:
+    assert month_end_freq("2.1.4") == "M"
+    assert month_end_freq("2.2.0") == "ME"
+    assert month_end_freq("3.0.0rc1") == "ME"
 
 
 def test_flat_config_keeps_historical_identity_resolution() -> None:

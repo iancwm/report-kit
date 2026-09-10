@@ -197,6 +197,10 @@
     \fi
     % rk node adds 5pt horizontal padding on either side of its usable width.
     \pgfmathsetlengthmacro{\rk@laneouterwidth}{\rk@lanenodewidth + 10pt}%
+    % Keep the coordinate expression dimensionless. Mixing this point-valued
+    % width directly into the centimetre coordinate makes PGF interpret the
+    % computed column pitch as points, collapsing all columns together.
+    \pgfmathsetmacro{\rk@lanehalfouter}{0.5*\rk@laneouterwidth/1cm}%
     \expandafter\ifstrempty\expandafter{\rk@lanecolumnspacing}{%
       \pgfmathsetmacro{\rk@lanestepwidth}{(\rk@lanewidth-\rk@laneouterwidth/1cm)/(\rk@lanecolumns-1)}%
     }{%
@@ -210,8 +214,9 @@
         \let\rk@lanestepwidth\rk@lanemaxstep
       \fi
     }%
+    \pgfmathsetmacro{\rk@lanex}{\rk@lanehalfouter+(#4-1)*\rk@lanestepwidth}%
     \node[rk node,text width=\rk@lanenodewidth,minimum height=8mm] (#1)
-      at ({0.5*\rk@laneouterwidth/1cm+(#4-1)*\rk@lanestepwidth},{-\the\rk@lanequery*\rk@lanespacing}) {\strut #3};%
+      at (\rk@lanex,{-\the\rk@lanequery*\rk@lanespacing}) {\strut #3};%
   }%
 }
 % <reportkit-contract>
