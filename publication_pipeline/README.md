@@ -25,7 +25,7 @@ bash scripts/setup.sh
 ```
 
 The `reportkit` facade also exposes `doctor`, `context`, `diagnose`, `inspect`,
-`analyse-history`, and `package`. Add `--profile release` to resolve a release
+`docs`, `analyse-history`, and `package`. Add `--profile release` to resolve a release
 profile from a nested `publication.yaml`; `--engine` is an explicit TeX-engine
 override. Optional `sources.yaml` and `links.yaml` files are validated during
 `check` and `build`; the latter renders named `\RKLink{key}` links into the
@@ -49,6 +49,15 @@ against.
 The isolated section command is an author-feedback loop, not a release
 artifact. `requirements.txt` pins the one PDF-inspection dependency used by
 the harness: PyMuPDF.
+
+Markdown input is converted with raw TeX disabled. Files in `fragments/` and
+direct `.tex` documents are trusted escape hatches and must come from a trusted
+author. Converter and TeX children run without shell escape, with restrictive
+TeX file access, a 120-second timeout, and a 2 GiB address-space limit. Trusted
+operators can override those resource values with CLI flags or
+`REPORTKIT_COMPILE_TIMEOUT_SECONDS` / `REPORTKIT_MEMORY_LIMIT_MB`;
+`publication.yaml` cannot weaken them. The complete contract and exit-code
+table are in [references/agent-contract.md](../references/agent-contract.md).
 
 ## If a publication needs something this pipeline doesn't do
 

@@ -1,0 +1,46 @@
+name: ReportKit contract and renderer gates
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/contract-ci.yml"
+      - "latex_templates/**"
+      - "publication_pipeline/**"
+      - "python_scripts/**"
+      - "schemas/**"
+      - "scripts/**"
+      - "tests/**"
+      - "toolchain/**"
+      - "SKILL.md"
+      - "references/**"
+  push:
+    branches: [main]
+    paths:
+      - "latex_templates/**"
+      - "publication_pipeline/**"
+      - "python_scripts/**"
+      - "schemas/**"
+      - "scripts/**"
+      - "tests/**"
+      - "toolchain/**"
+      - "SKILL.md"
+      - "references/**"
+
+jobs:
+  pinned-toolchain:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build immutable ReportKit toolchain
+        run: docker build --file toolchain/Dockerfile --tag reportkit-ci .
+      - name: Verify contract, schemas, diagnostics, and renderers
+        run: >-
+          docker run --rm --entrypoint /bin/bash reportkit-ci -lc
+          './reportkit doctor --require pinned-toolchain --json &&
+          ./reportkit docs --check --json &&
+          python -m pytest tests publication_pipeline/tests -q &&
+          bash scripts/acceptance_check.sh --require-tex &&
+          python scripts/contract_acceptance.py --json &&
+          PYTHONPATH=python_scripts python latex_templates/examples/equity-research/figures.py &&
+          python scripts/visual_qa_equity_research.py --json'

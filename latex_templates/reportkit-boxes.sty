@@ -62,13 +62,37 @@
   }
 }
 
+% <reportkit-contract>
+% {"kind":"callout","description":"Principle","arguments":[{"name":"title","type":"text","description":"Title."}],"constraints":[],"example":"\\begin{principle}{Example}\nExample content.\n\\end{principle}","stability":"stable","since":"1.0.0"}
+% </reportkit-contract>
 \NewDocumentEnvironment{principle}{m}{\Needspace{6\baselineskip}\begin{rk@callout}{Principle}{PRINCIPLE\quad #1}}{\end{rk@callout}}
+% <reportkit-contract>
+% {"kind":"callout","description":"Decisionpoint","arguments":[{"name":"title","type":"text","description":"Title."}],"constraints":[],"example":"\\begin{decisionpoint}{Example}\nExample content.\n\\end{decisionpoint}","stability":"stable","since":"1.0.0"}
+% </reportkit-contract>
 \NewDocumentEnvironment{decisionpoint}{m}{\Needspace{6\baselineskip}\begin{rk@callout}{Decision}{DECISION POINT\quad #1}}{\end{rk@callout}}
+% <reportkit-contract>
+% {"kind":"callout","description":"Researchproblem","arguments":[{"name":"title","type":"text","description":"Title."}],"constraints":[],"example":"\\begin{researchproblem}{Example}\nExample content.\n\\end{researchproblem}","stability":"stable","since":"1.0.0"}
+% </reportkit-contract>
 \NewDocumentEnvironment{researchproblem}{m}{\Needspace{6\baselineskip}\begin{rk@callout}{Research}{RESEARCH PROBLEM\quad #1}}{\end{rk@callout}}
+% <reportkit-contract>
+% {"kind":"callout","description":"Assumption","arguments":[{"name":"title","type":"text","description":"Title."}],"constraints":[],"example":"\\begin{assumption}{Example}\nExample content.\n\\end{assumption}","stability":"stable","since":"1.0.0"}
+% </reportkit-contract>
 \NewDocumentEnvironment{assumption}{m}{\Needspace{6\baselineskip}\begin{rk@callout}{Assumption}{ASSUMPTION\quad #1}}{\end{rk@callout}}
+% <reportkit-contract>
+% {"kind":"callout","description":"Redflag","arguments":[{"name":"title","type":"text","description":"Title."}],"constraints":[],"example":"\\begin{redflag}{Example}\nExample content.\n\\end{redflag}","stability":"stable","since":"1.0.0"}
+% </reportkit-contract>
 \NewDocumentEnvironment{redflag}{m}{\Needspace{6\baselineskip}\begin{rk@callout}{RedFlag}{RED FLAG\quad #1}}{\end{rk@callout}}
+% <reportkit-contract>
+% {"kind":"callout","description":"Evidencenote","arguments":[{"name":"title","type":"text","description":"Title."}],"constraints":[],"example":"\\begin{evidencenote}{Example}\nExample content.\n\\end{evidencenote}","stability":"stable","since":"1.0.0"}
+% </reportkit-contract>
 \NewDocumentEnvironment{evidencenote}{m}{\Needspace{5\baselineskip}\begin{rk@callout}{Evidence}{EVIDENCE\quad #1}}{\end{rk@callout}}
+% <reportkit-contract>
+% {"kind":"callout","description":"Limitationnote","arguments":[{"name":"title","type":"text","description":"Title."}],"constraints":[],"example":"\\begin{limitationnote}{Example}\nExample content.\n\\end{limitationnote}","stability":"stable","since":"1.0.0"}
+% </reportkit-contract>
 \NewDocumentEnvironment{limitationnote}{m}{\Needspace{5\baselineskip}\begin{rk@callout}{Limitation}{LIMITATION\quad #1}}{\end{rk@callout}}
+% <reportkit-contract>
+% {"kind":"callout","description":"Tipnote","arguments":[{"name":"title","type":"text","description":"Title."}],"constraints":[],"example":"\\begin{tipnote}{Example}\nExample content.\n\\end{tipnote}","stability":"stable","since":"1.0.0"}
+% </reportkit-contract>
 \NewDocumentEnvironment{tipnote}{m}{\Needspace{5\baselineskip}\begin{rk@callout}{Tip}{TIP\quad #1}}{\end{rk@callout}}
 
 % v1.2 addition: many process/workflow reports end a module with a named
@@ -78,13 +102,28 @@
 % it's "this step exists to yield deliverable X". Reuses \Deliverable color,
 % defined in reportkit.cls's palette and mirrored in reportkit_viz.py's
 % LATEX_THEME_COLORS for check-theme sync.
+% <reportkit-contract>
+% {"kind":"callout","description":"Deliverablenote","arguments":[{"name":"title","type":"text","description":"Title."}],"constraints":[],"example":"\\begin{deliverablenote}{Example}\nExample content.\n\\end{deliverablenote}","stability":"stable","since":"1.0.0"}
+% </reportkit-contract>
 \NewDocumentEnvironment{deliverablenote}{m}{\Needspace{5\baselineskip}\begin{rk@callout}{Deliverable}{DELIVERABLE\quad #1}}{\end{rk@callout}}
 
 % Compatibility aliases.
+% <reportkit-contract>
+% {"kind":"callout","description":"Evidence","arguments":[{"name":"title","type":"text","description":"Title."}],"constraints":[],"example":"\\begin{evidence}{Example}\nExample content.\n\\end{evidence}","stability":"stable","since":"1.0.0"}
+% </reportkit-contract>
 \NewDocumentEnvironment{evidence}{m}{\begin{evidencenote}{#1}}{\end{evidencenote}}
+% <reportkit-contract>
+% {"kind":"callout","description":"Limitation","arguments":[{"name":"title","type":"text","description":"Title."}],"constraints":[],"example":"\\begin{limitation}{Example}\nExample content.\n\\end{limitation}","stability":"stable","since":"1.0.0"}
+% </reportkit-contract>
 \NewDocumentEnvironment{limitation}{m}{\begin{limitationnote}{#1}}{\end{limitationnote}}
+% <reportkit-contract>
+% {"kind":"callout","description":"Tip","arguments":[{"name":"title","type":"text","description":"Title."}],"constraints":[],"example":"\\begin{tip}{Example}\nExample content.\n\\end{tip}","stability":"stable","since":"1.0.0"}
+% </reportkit-contract>
 \NewDocumentEnvironment{tip}{m}{\begin{tipnote}{#1}}{\end{tipnote}}
 
+% <reportkit-contract>
+% {"kind":"callout","description":"Metric","arguments":[{"name":"label","type":"text","description":"Label."},{"name":"value","type":"text","description":"Value."}],"constraints":[],"example":"\\begin{metric}{Example}{1}\nExample content.\n\\end{metric}","stability":"stable","since":"1.0.0"}
+% </reportkit-contract>
 \NewDocumentEnvironment{metric}{m m}{%
   \par\Needspace{9\baselineskip}%
   \begin{tcolorbox}[

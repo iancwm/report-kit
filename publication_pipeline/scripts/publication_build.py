@@ -8,9 +8,11 @@ See references/repository-boundary.md.
 from __future__ import annotations
 
 import argparse
+from contextlib import redirect_stderr, redirect_stdout
 from datetime import datetime, timezone
 import hashlib
 import importlib.util
+import io
 import json
 import os
 from pathlib import Path
@@ -19,6 +21,10 @@ import shutil
 import subprocess
 import sys
 import time
+try:
+    import resource
+except ImportError:  # pragma: no cover - ReportKit's pinned environment is Linux
+    resource = None  # type: ignore[assignment]
 
 from publication_validation import validate_publication
 
@@ -91,6 +97,10 @@ from reportkit.config import (  # noqa: E402
     theme_font_policy_conflict,
 )
 from reportkit.manifest import unique_build_id, write_report  # noqa: E402
+from reportkit.diagnostics import diagnostic_envelope, inspect_log, make_diagnostic  # noqa: E402
+from reportkit.publications import compatibility_error  # noqa: E402
+from reportkit.toolchain import toolchain_context  # noqa: E402
+from reportkit.version import BUILD_REPORT_SCHEMA_VERSION  # noqa: E402
 
 load_license_metadata = _load_module("reportkit_license_metadata", REPO_ROOT / "python_scripts" / "license_metadata.py").load_license_metadata
 
@@ -119,8 +129,42 @@ def order_entries(root: Path) -> list[str]:
     return [line.strip() for line in (root / "manuscript" / "order.txt").read_text(encoding="utf-8").splitlines() if line.strip() and not line.strip().startswith("#")]
 
 
-def render_markdown(root: Path, manuscript: Path, output: Path, map_path: Path | None = None) -> None:
-    proc = subprocess.run(["pandoc", "-f", "markdown", "-t", "latex", str(manuscript)], cwd=root.parent, capture_output=True, text=True)
+def _resource_limiter(memory_limit_mb: int):
+    if resource is None or not hasattr(resource, "RLIMIT_AS"):
+        raise RuntimeError("this platform cannot enforce the required compile memory limit")
+    limit = memory_limit_mb * 1024 * 1024
+
+    def apply_limit() -> None:
+        resource.setrlimit(resource.RLIMIT_AS, (limit, limit))
+
+    return apply_limit
+
+
+def run_limited(command: list[str], *, cwd: Path, timeout: int, memory_limit_mb: int, **kwargs):
+    """Run an external build tool with ReportKit's mandatory resource limits."""
+    forbidden = {"-shell-escape", "--shell-escape", "-enable-write18", "--enable-write18"}
+    if any(part.split("=", 1)[0] in forbidden for part in command):
+        raise ValueError("shell escape is forbidden by the ReportKit security contract")
+    return subprocess.run(
+        command, cwd=cwd, timeout=timeout, preexec_fn=_resource_limiter(memory_limit_mb), **kwargs,
+    )
+
+
+def render_markdown(
+    root: Path,
+    manuscript: Path,
+    output: Path,
+    map_path: Path | None = None,
+    *,
+    timeout: int = 120,
+    memory_limit_mb: int = 2048,
+) -> None:
+    proc = run_limited(
+        # Raw TeX is deliberately disabled in Markdown. Trusted TeX belongs in
+        # a validated fragment or a direct .tex document, never a content field.
+        ["pandoc", "-f", "markdown-raw_tex", "-t", "latex", str(manuscript)],
+        cwd=root.parent, timeout=timeout, memory_limit_mb=memory_limit_mb, capture_output=True, text=True,
+    )
     if proc.returncode:
         raise RuntimeError(proc.stderr or f"Pandoc failed for {manuscript}")
     source_lines = manuscript.read_text(encoding="utf-8").splitlines()
@@ -163,6 +207,11 @@ def render_markdown(root: Path, manuscript: Path, output: Path, map_path: Path |
     sidecar.write_text(json.dumps({"source": str(manuscript.relative_to(root)), "fragments": fragments}, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
+def _reproducible_datetime() -> datetime:
+    """Return the fixed build time used in PDF-visible generated metadata."""
+    return datetime.fromtimestamp(1, timezone.utc)
+
+
 def write_metadata(path: Path, *, identity: dict[str, str], combined: bool, license_values: dict[str, str], cover_name: str | None, uses_tables: bool, uses_code: bool) -> None:
     """Emit the publication's identity as LaTeX macros.
 
@@ -183,7 +232,7 @@ def write_metadata(path: Path, *, identity: dict[str, str], combined: bool, lice
         f"\\newcommand{{\\RKPubSubtitle}}{{{tex_escape(identity['subtitle'])}}}",
         f"\\newcommand{{\\RKPubAuthor}}{{{tex_escape(identity['author'])}}}",
         f"\\newcommand{{\\RKPubVersion}}{{{tex_escape(identity['version'])}}}",
-        "\\newcommand{\\RKPubDate}{" + datetime.now().strftime("%-d %B %Y") + "}",
+        "\\newcommand{\\RKPubDate}{" + _reproducible_datetime().strftime("%-d %B %Y") + "}",
         f"\\newcommand{{\\RKPubLeftHeader}}{{{tex_escape(identity['left_header'])}}}",
         f"\\newcommand{{\\RKPubFooter}}{{{tex_escape(identity['footer'])}}}",
         f"\\newcommand{{\\RKPubSubject}}{{{tex_escape(identity['subject'])}}}",
@@ -206,22 +255,25 @@ def git_value(args: list[str]) -> str:
     return proc.stdout.strip() if proc.returncode == 0 and proc.stdout.strip() else "unknown"
 
 
-def write_lock(path: Path, *, engine: str, tool_versions: dict[str, str]) -> None:
+def write_lock(path: Path, *, engine: str, tool_versions: dict[str, str], toolchain: dict) -> None:
     """Pin the engine and toolchain the publication was built against."""
     lock = {
+        "schema_version": 2,
         "reportkit_ref": git_value(["describe", "--tags", "--always"]),
         "reportkit_commit": git_value(["rev-parse", "HEAD"]),
         "tex_engine": engine,
         "pandoc": tool_versions.get("pandoc", "unknown"),
         "python": tool_versions.get("python", "unknown"),
+        "toolchain_fingerprint": toolchain["fingerprint"],
+        "toolchain": toolchain,
     }
     path.write_text(json.dumps(lock, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
-def run(command: list[str], cwd: Path, log: Path) -> int:
+def run(command: list[str], cwd: Path, log: Path, *, timeout: int = 120, memory_limit_mb: int = 2048) -> int:
     with log.open("a", encoding="utf-8") as stream:
         stream.write("$ " + " ".join(command) + "\n")
-        proc = subprocess.run(command, cwd=cwd, stdout=stream, stderr=subprocess.STDOUT, text=True)
+        proc = run_limited(command, cwd=cwd, timeout=timeout, memory_limit_mb=memory_limit_mb, stdout=stream, stderr=subprocess.STDOUT, text=True)
     return proc.returncode
 
 
@@ -239,21 +291,29 @@ def resolve_roots(args: argparse.Namespace) -> tuple[Path, Path]:
 def build(args: argparse.Namespace) -> int:
     source_root, output_root = resolve_roots(args)
     profile = getattr(args, "profile", None)
+    timeout = int(getattr(args, "compile_timeout_seconds", 120))
+    memory_limit_mb = int(getattr(args, "memory_limit_mb", 2048))
+    if timeout <= 0 or memory_limit_mb <= 0:
+        print("compile timeout and memory limit must be positive", file=sys.stderr)
+        return 2
+    if resource is None or not hasattr(resource, "RLIMIT_AS"):
+        print("environment: this platform cannot enforce the required compile memory limit", file=sys.stderr)
+        return 5
     validation = validate_publication(source_root)
     if not validation.ok:
         for error in validation.errors:
             print(f"publication validation: {error}", file=sys.stderr)
-        return 1
+        return 3
     authoring = validate_authoring(source_root)
     if not authoring.ok:
         for error in authoring.errors:
             print(f"authoring validation: {error}", file=sys.stderr)
-        return 1
+        return 3
     try:
         license_values = load_license_metadata(LICENSE_FILE)
     except (OSError, ValueError) as exc:
         print(f"licensing: {exc}", file=sys.stderr)
-        return 1
+        return 2
     try:
         config = load_publication_config(source_root / CONFIG_NAME)
         identity = resolve_identity(
@@ -266,6 +326,10 @@ def build(args: argparse.Namespace) -> int:
         print(f"publication config: {exc}", file=sys.stderr)
         return 2
     document = resolve_document(config, profile)
+    pairing = compatibility_error(str(document.get("publication_type")), str(document.get("theme")))
+    if pairing:
+        print(f"publication config: {pairing}", file=sys.stderr)
+        return 2
     engine = str(getattr(args, "engine", None) or os.environ.get("REPORTKIT_TEX_ENGINE") or document.get("engine", "pdflatex"))
     conflict = theme_engine_conflict({**document, "engine": engine})
     if conflict:
@@ -281,13 +345,17 @@ def build(args: argparse.Namespace) -> int:
         if not chosen:
             print("--section is required in section mode", file=sys.stderr)
             return 2
-        manuscripts = [Path(chosen)]
+        chosen_path = Path(chosen)
+        if chosen_path.is_absolute() or ".." in chosen_path.parts or chosen_path.suffix != ".md":
+            print(f"--section must name a Markdown file inside manuscript/: {chosen!r}", file=sys.stderr)
+            return 2
+        manuscripts = [chosen_path]
     else:
         manuscripts = [Path(entry) for entry in entries]
     for manuscript in manuscripts:
         if not (source_root / "manuscript" / manuscript).is_file():
             print(f"missing manuscript: {manuscript}", file=sys.stderr)
-            return 1
+            return 3
     stamp = time.strftime("%Y%m%d-%H%M%S")
     history_root = output_root / "history"
     build_id = unique_build_id(args.mode, stamp, history_root)
@@ -301,15 +369,33 @@ def build(args: argparse.Namespace) -> int:
     cover_name = None
     if args.cover:
         cover = Path(args.cover).resolve()
+        try:
+            cover.relative_to(source_root)
+        except ValueError:
+            print(f"cover must be inside the publication root: {cover}", file=sys.stderr)
+            return 2
         if not cover.is_file() or cover.suffix.lower() != ".pdf":
-            print(f"cover must be an existing PDF: {cover}", file=sys.stderr)
+            print(f"cover must be an existing PDF inside the publication root: {cover}", file=sys.stderr)
             return 2
         cover_name = "reportkit-cover.pdf"
         shutil.copy2(cover, output / cover_name)
     body_files = []
     for index, manuscript in enumerate(manuscripts):
         rendered = output / f"body-{index:02d}.tex"
-        render_markdown(source_root, source_root / "manuscript" / manuscript, rendered)
+        try:
+            render_markdown(
+                source_root, source_root / "manuscript" / manuscript, rendered,
+                timeout=timeout, memory_limit_mb=memory_limit_mb,
+            )
+        except subprocess.TimeoutExpired:
+            print(f"compile timeout: pandoc exceeded {timeout} seconds", file=sys.stderr)
+            return 4
+        except FileNotFoundError:
+            print("environment: pandoc is not installed", file=sys.stderr)
+            return 5
+        except RuntimeError as exc:
+            print(f"compile failure: {exc}", file=sys.stderr)
+            return 4
         body_files.append(rendered)
     body = output / "body.tex"
     body.write_text("\n".join(f"\\input{{{path.stem}}}" for path in body_files) + "\n", encoding="utf-8")
@@ -330,7 +416,7 @@ def build(args: argparse.Namespace) -> int:
     figure_count = sum(len(re.findall(r"REPORTKIT-VISUAL:fig:[a-z0-9]+(?:-[a-z0-9]+)*", text)) for text in ((source_root / "manuscript" / path).read_text(encoding="utf-8") for path in manuscripts))
     table_count = len(re.findall(r"(?m)^\s*\|.*\n\s*\|?\s*:?-{3,}", manuscript_text))
     report = {
-        "schema_version": 2,
+        "schema_version": BUILD_REPORT_SCHEMA_VERSION,
         "build_id": build_id,
         "mode": args.mode,
         "profile": profile or "draft",
@@ -341,23 +427,62 @@ def build(args: argparse.Namespace) -> int:
         "inputs": [{"path": str(path), "sha256": sha256(source_root / "manuscript" / path)} for path in manuscripts],
         "templates": [{"path": str(path.relative_to(REPO_ROOT)), "sha256": sha256(path)} for path in (template_files() + [TEMPLATE, LICENSE_FILE])],
         "tool_versions": {"python": sys.version.split()[0], "pandoc": version_line("pandoc"), "tex": version_line(engine)},
+        "toolchain": toolchain_context(REPO_ROOT),
         "commands": [], "exit_codes": [], "diagnostics": {}, "figures": figure_count, "tables": table_count, "pdf_sha256": None,
     }
-    texinputs = f"{output}:{REPO_ROOT / 'latex_templates'}:"
+    texinputs = f"{output}:{REPO_ROOT / 'latex_templates'}//:"
     for pass_number in range(1, 3):
         command = [engine, "-file-line-error", "-interaction=nonstopmode", "-halt-on-error", tex.name]
         report["commands"].append(" ".join(command))
-        env = dict(os.environ, TEXINPUTS=texinputs)
+        env = dict(
+            os.environ,
+            TEXINPUTS=texinputs,
+            openin_any="p",
+            openout_any="p",
+            SOURCE_DATE_EPOCH="1",
+            FORCE_SOURCE_DATE="1",
+            TZ="UTC",
+        )
         pass_log = output / f"publication-pass-{pass_number}.log"
         with pass_log.open("w", encoding="utf-8") as stream:
             stream.write("$ " + " ".join(command) + "\n")
-            proc = subprocess.run(command, cwd=output, env=env, stdout=stream, stderr=subprocess.STDOUT, text=True)
+            try:
+                proc = run_limited(
+                    command, cwd=output, timeout=timeout, memory_limit_mb=memory_limit_mb,
+                    env=env, stdout=stream, stderr=subprocess.STDOUT, text=True,
+                )
+            except subprocess.TimeoutExpired:
+                report["status"] = "failed"
+                report["diagnostics"] = diagnostic_envelope([
+                    make_diagnostic("compile_timeout", f"{engine} pass {pass_number} exceeded {timeout} seconds", code="RK_COMPILE_TIMEOUT")
+                ], passed=False)
+                report["finished_at"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
+                write_report(report, output / "build-report.json", history_root)
+                return 4
+            except FileNotFoundError:
+                report["status"] = "failed"
+                report["diagnostics"] = diagnostic_envelope([
+                    make_diagnostic("environment_error", f"TeX engine {engine!r} is not installed", code="RK_TEX_ENGINE_MISSING")
+                ], passed=False)
+                report["finished_at"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
+                write_report(report, output / "build-report.json", history_root)
+                return 5
         report["exit_codes"].append({"command": " ".join(command), "code": proc.returncode})
         if proc.returncode:
             report["status"] = "failed"
+            report["diagnostics"] = inspect_log(pass_log.read_text(encoding="utf-8", errors="replace"))
+            if not report["diagnostics"]["diagnostics"]:
+                memory_failure = proc.returncode < 0 or proc.returncode in {134, 137}
+                report["diagnostics"] = diagnostic_envelope([
+                    make_diagnostic(
+                        "compile_memory" if memory_failure else "compile_failure",
+                        f"{engine} exited with status {proc.returncode}",
+                        code="RK_COMPILE_MEMORY" if memory_failure else "RK_COMPILE_FAILURE",
+                    )
+                ], passed=False)
             report["finished_at"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
             write_report(report, output / "build-report.json", history_root)
-            return proc.returncode
+            return 4
         if pass_number == 2:
             shutil.copy2(pass_log, log)
     gate = SCRIPT_DIR / "check_build_log.py"
@@ -372,7 +497,19 @@ def build(args: argparse.Namespace) -> int:
     project_allowlist = source_root / "build-log-allowlist.json"
     if project_allowlist.is_file():
         gate_command += ["--allowlist", str(project_allowlist)]
-    gate_result = subprocess.run(gate_command, text=True)
+    try:
+        gate_result = run_limited(
+            gate_command, cwd=output, timeout=timeout, memory_limit_mb=memory_limit_mb,
+            capture_output=True, text=True,
+        )
+    except subprocess.TimeoutExpired:
+        report["diagnostics"] = diagnostic_envelope([
+            make_diagnostic("compile_timeout", "diagnostic gate timed out", code="RK_DIAGNOSTIC_TIMEOUT")
+        ], passed=False)
+        report["status"] = "failed"
+        report["finished_at"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
+        write_report(report, output / "build-report.json", history_root)
+        return 4
     report["exit_codes"].append({"command": f"{sys.executable} {gate} {log}", "code": gate_result.returncode})
     report["diagnostics"] = json.loads((output / "diagnostics.json").read_text(encoding="utf-8"))
     report["gate"] = "passed" if gate_result.returncode == 0 else "failed"
@@ -384,7 +521,7 @@ def build(args: argparse.Namespace) -> int:
         report["status"] = "failed"
         report["finished_at"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
         write_report(report, output / "build-report.json", history_root)
-        return 1
+        return 3
     report["pdf"] = pdf.name
     report["pdf_sha256"] = sha256(pdf)
     renderer = Path(os.environ["REPORTKIT_PDF_PYTHON"]).expanduser() if os.environ.get("REPORTKIT_PDF_PYTHON") else output_root / ".venv" / "bin" / "python"
@@ -393,20 +530,71 @@ def build(args: argparse.Namespace) -> int:
     if not renderer.is_file():
         renderer = Path(sys.executable)
     pages = output / "pages"
-    render = subprocess.run([str(renderer), str(SCRIPT_DIR / "render_pdf_pages.py"), str(pdf), str(pages), "--manifest", str(output / "page-manifest.json")], cwd=output, text=True)
+    render_command = [str(renderer), str(SCRIPT_DIR / "render_pdf_pages.py"), str(pdf), str(pages), "--manifest", str(output / "page-manifest.json")]
+    try:
+        render = run_limited(
+            render_command, cwd=output, timeout=timeout, memory_limit_mb=memory_limit_mb,
+            capture_output=True, text=True,
+        )
+    except (subprocess.TimeoutExpired, FileNotFoundError) as exc:
+        kind = "compile_timeout" if isinstance(exc, subprocess.TimeoutExpired) else "environment_error"
+        report["diagnostics"] = diagnostic_envelope([
+            make_diagnostic(kind, f"page rendering failed: {exc}", code="RK_RENDER_FAILED")
+        ], passed=False)
+        report["status"] = "failed"
+        report["finished_at"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
+        write_report(report, output / "build-report.json", history_root)
+        return 4 if isinstance(exc, subprocess.TimeoutExpired) else 5
     report["exit_codes"].append({"command": f"{renderer} {SCRIPT_DIR / 'render_pdf_pages.py'} {pdf}", "code": render.returncode})
-    report["page_count"] = json.loads((output / "page-manifest.json").read_text(encoding="utf-8")).get("page_count") if render.returncode == 0 else None
-    inspection = subprocess.run([str(renderer), str(SCRIPT_DIR / "inspect_pdf.py"), str(pdf), "--json", str(output / "pdf-inspection.json")], cwd=output, text=True)
+    if render.returncode:
+        report["diagnostics"] = diagnostic_envelope([
+            make_diagnostic(
+                "pdf_geometry", f"page renderer exited with status {render.returncode}",
+                code="RK_RENDER_FAILED", details={"stderr": (render.stderr or "")[-4000:]},
+            )
+        ], passed=False)
+        report["status"] = "failed"
+        report["finished_at"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
+        write_report(report, output / "build-report.json", history_root)
+        return 3
+    report["page_count"] = json.loads((output / "page-manifest.json").read_text(encoding="utf-8")).get("page_count")
+    inspection_command = [str(renderer), str(SCRIPT_DIR / "inspect_pdf.py"), str(pdf), "--json", str(output / "pdf-inspection.json")]
+    try:
+        inspection = run_limited(
+            inspection_command, cwd=output, timeout=timeout, memory_limit_mb=memory_limit_mb,
+            capture_output=True, text=True,
+        )
+    except (subprocess.TimeoutExpired, FileNotFoundError) as exc:
+        kind = "compile_timeout" if isinstance(exc, subprocess.TimeoutExpired) else "environment_error"
+        report["diagnostics"] = diagnostic_envelope([
+            make_diagnostic(kind, f"PDF inspection failed: {exc}", code="RK_INSPECTION_FAILED")
+        ], passed=False)
+        report["status"] = "failed"
+        report["finished_at"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
+        write_report(report, output / "build-report.json", history_root)
+        return 4 if isinstance(exc, subprocess.TimeoutExpired) else 5
     report["exit_codes"].append({"command": f"{renderer} {SCRIPT_DIR / 'inspect_pdf.py'} {pdf}", "code": inspection.returncode})
     if (output / "pdf-inspection.json").is_file():
         report["pdf_inspection"] = json.loads((output / "pdf-inspection.json").read_text(encoding="utf-8"))
+    if inspection.returncode:
+        nested = report.get("pdf_inspection", {})
+        report["diagnostics"] = nested if isinstance(nested, dict) and nested.get("diagnostics") else diagnostic_envelope([
+            make_diagnostic(
+                "pdf_geometry", f"PDF inspector exited with status {inspection.returncode}",
+                code="RK_INSPECTION_FAILED", details={"stderr": (inspection.stderr or "")[-4000:]},
+            )
+        ], passed=False)
+        report["status"] = "failed"
+        report["finished_at"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
+        write_report(report, output / "build-report.json", history_root)
+        return 5 if inspection.returncode == 5 else 3
     report["commands"].append(f"{renderer} {SCRIPT_DIR / 'inspect_pdf.py'} {pdf}")
     report["finished_at"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
     report["status"] = "passed" if render.returncode == 0 and inspection.returncode == 0 else "failed"
     write_report(report, output / "build-report.json", history_root)
     if report["status"] == "passed":
-        write_lock(source_root / "reportkit.lock", engine=engine, tool_versions=report["tool_versions"])
-    return render.returncode or inspection.returncode
+        write_lock(source_root / "reportkit.lock", engine=engine, tool_versions=report["tool_versions"], toolchain=report["toolchain"])
+    return 0 if report["status"] == "passed" else 3
 
 
 def main() -> int:
@@ -422,23 +610,69 @@ def main() -> int:
     parser.add_argument("--title", default=os.environ.get("REPORTKIT_TITLE"), help=f"overrides title in {CONFIG_NAME}")
     parser.add_argument("--author", default=os.environ.get("REPORTKIT_AUTHOR"), help=f"overrides author in {CONFIG_NAME}")
     parser.add_argument("--cover", help="reserved for a future cover-PDF prepend")
+    parser.add_argument("--compile-timeout-seconds", type=int, default=os.environ.get("REPORTKIT_COMPILE_TIMEOUT_SECONDS", "120"))
+    parser.add_argument("--memory-limit-mb", type=int, default=os.environ.get("REPORTKIT_MEMORY_LIMIT_MB", "2048"))
+    parser.add_argument("--json", action="store_true")
     args = parser.parse_args()
-    if args.mode == "sections":
-        root, _ = resolve_roots(args)
-        result = validate_publication(root)
-        if not result.ok:
-            for error in result.errors:
-                print(error, file=sys.stderr)
-            return 1
-        failures = 0
-        for entry in order_entries(root):
-            if entry.startswith("00-"):
-                continue
-            section_args = argparse.Namespace(**vars(args))
-            section_args.mode, section_args.section = "section", entry
-            failures |= build(section_args)
-        return failures
-    return build(args)
+
+    _, initial_output_root = resolve_roots(args)
+    prior_reports = {
+        path.resolve(): (path.stat().st_mtime_ns, path.stat().st_size)
+        for path in initial_output_root.glob("**/build-report.json")
+        if path.is_file()
+    }
+
+    def execute() -> int:
+        if args.mode == "sections":
+            root, _ = resolve_roots(args)
+            result = validate_publication(root)
+            if not result.ok:
+                for error in result.errors:
+                    print(error, file=sys.stderr)
+                return 3
+            failure = 0
+            for entry in order_entries(root):
+                if entry.startswith("00-"):
+                    continue
+                section_args = argparse.Namespace(**vars(args))
+                section_args.mode, section_args.section = "section", entry
+                code = build(section_args)
+                failure = failure or code
+            return failure
+        return build(args)
+
+    if not args.json:
+        return execute()
+    stdout, stderr = io.StringIO(), io.StringIO()
+    with redirect_stdout(stdout), redirect_stderr(stderr):
+        try:
+            code = execute()
+        except Exception as exc:  # structured last-resort boundary for the script facade
+            code = 70
+            print(str(exc), file=sys.stderr)
+    _, output_root = resolve_roots(args)
+    candidates = [output_root / "combined" / "build-report.json"]
+    candidates.extend(sorted(output_root.glob("section-*/build-report.json"), reverse=True))
+    report_path = next((
+        path for path in candidates
+        if path.is_file()
+        and prior_reports.get(path.resolve()) != (path.stat().st_mtime_ns, path.stat().st_size)
+    ), None)
+    report = json.loads(report_path.read_text(encoding="utf-8")) if report_path else None
+    nested = report.get("diagnostics", {}) if isinstance(report, dict) else {}
+    diagnostics = list(nested.get("diagnostics", nested.get("issues", []))) if isinstance(nested, dict) else []
+    message = stderr.getvalue().strip() or stdout.getvalue().strip()
+    if code and not diagnostics:
+        kind = {2: "configuration_error", 3: "publication_validation", 4: "compile_failure", 5: "environment_error"}.get(code, "internal_error")
+        diagnostics = [make_diagnostic(kind, message or "publication build failed", code={
+            2: "RK_BUILD_CONFIG", 3: "RK_BUILD_VALIDATION", 4: "RK_BUILD_COMPILE", 5: "RK_BUILD_ENVIRONMENT",
+        }.get(code, "RK_BUILD_INTERNAL"))]
+    payload = diagnostic_envelope(
+        diagnostics, passed=code == 0, exit_code=code, report=report,
+        report_path=str(report_path) if report_path else None,
+    )
+    print(json.dumps(payload, indent=2, sort_keys=True))
+    return code
 
 
 if __name__ == "__main__":

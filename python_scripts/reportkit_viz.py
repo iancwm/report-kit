@@ -31,6 +31,10 @@ from pathlib import Path
 from typing import Any, Mapping, Sequence
 
 import matplotlib as mpl
+# ReportKit creates publication assets, never interactive GUI windows. Pin the
+# raster backend before pyplot import so host desktop settings cannot change or
+# break source builds and pixel QA.
+mpl.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib import colors as mcolors
 from matplotlib import dates as mdates
@@ -414,6 +418,9 @@ def _format_datetime_axis(ax: mpl.axes.Axes, index: pd.Index) -> None:
 # -----------------------------------------------------------------------------
 # High-level analytical chart helpers
 # -----------------------------------------------------------------------------
+# <reportkit-contract>
+# {"kind":"chart","description":"Plot one to six time series with ReportKit line semantics.","arguments":[{"name":"data","type":"data","description":"Data."},{"name":"ylabel","type":"option","description":"Ylabel."},{"name":"xlabel","type":"option","description":"Xlabel."},{"name":"y_formatter","type":"option","description":"Y formatter."},{"name":"benchmark","type":"option","description":"Benchmark."},{"name":"reference_line","type":"option","description":"Reference line."},{"name":"legend","type":"option","description":"Legend."},{"name":"size","type":"option","description":"Size."},{"name":"title","type":"option","description":"Title."}],"constraints":[],"example":"data = pd.Series([1, 2, 3]); fig, ax = rkv.timeseries(data)","stability":"stable","since":"1.0.0"}
+# </reportkit-contract>
 def timeseries(
     data: pd.Series | pd.DataFrame,
     *,
@@ -451,6 +458,9 @@ def timeseries(
     return fig, ax
 
 
+# <reportkit-contract>
+# {"kind":"chart","description":"Clean categorical bar chart, useful for exposures and decompositions.","arguments":[{"name":"data","type":"data","description":"Data."},{"name":"horizontal","type":"option","description":"Horizontal."},{"name":"highlight","type":"option","description":"Highlight."},{"name":"value_formatter","type":"option","description":"Value formatter."},{"name":"axis_label","type":"option","description":"Axis label."},{"name":"sort","type":"option","description":"Sort."},{"name":"zero_line","type":"option","description":"Zero line."},{"name":"size","type":"option","description":"Size."},{"name":"title","type":"option","description":"Title."}],"constraints":[],"example":"fig, ax = rkv.bar_chart({\"A\": 2, \"B\": 1})","stability":"stable","since":"1.0.0"}
+# </reportkit-contract>
 def bar_chart(
     data: pd.Series | Mapping[str, float],
     *,
@@ -490,6 +500,9 @@ def bar_chart(
     return fig, ax
 
 
+# <reportkit-contract>
+# {"kind":"chart","description":"Histogram without decorative KDE assumptions.","arguments":[{"name":"values","type":"data","description":"Values."},{"name":"bins","type":"option","description":"Bins."},{"name":"xlabel","type":"option","description":"Xlabel."},{"name":"x_formatter","type":"option","description":"X formatter."},{"name":"reference","type":"option","description":"Reference."},{"name":"density","type":"option","description":"Density."},{"name":"size","type":"option","description":"Size."},{"name":"title","type":"option","description":"Title."}],"constraints":[],"example":"fig, ax = rkv.distribution([1, 2, 2, 3])","stability":"stable","since":"1.0.0"}
+# </reportkit-contract>
 def distribution(
     values: Sequence[float] | pd.Series | np.ndarray,
     *,
@@ -515,6 +528,9 @@ def distribution(
     return fig, ax
 
 
+# <reportkit-contract>
+# {"kind":"chart","description":"Scatter plot with optional first-order fit for diagnostics.","arguments":[{"name":"x","type":"data","description":"X."},{"name":"y","type":"option","description":"Y."},{"name":"xlabel","type":"option","description":"Xlabel."},{"name":"ylabel","type":"option","description":"Ylabel."},{"name":"fit_line","type":"option","description":"Fit line."},{"name":"x_formatter","type":"option","description":"X formatter."},{"name":"y_formatter","type":"option","description":"Y formatter."},{"name":"reference_x","type":"option","description":"Reference x."},{"name":"reference_y","type":"option","description":"Reference y."},{"name":"size","type":"option","description":"Size."},{"name":"title","type":"option","description":"Title."}],"constraints":[],"example":"fig, ax = rkv.scatter_plot([1, 2], [2, 3], xlabel=\"X\", ylabel=\"Y\")","stability":"stable","since":"1.0.0"}
+# </reportkit-contract>
 def scatter_plot(
     x: Sequence[float] | pd.Series | np.ndarray,
     y: Sequence[float] | pd.Series | np.ndarray,
@@ -565,6 +581,9 @@ def _diverging_cmap() -> mpl.colors.Colormap:
     )
 
 
+# <reportkit-contract>
+# {"kind":"chart","description":"Sequential or diverging heatmap for correlations and scenario matrices.","arguments":[{"name":"matrix","type":"data","description":"Matrix."},{"name":"row_labels","type":"option","description":"Row labels."},{"name":"col_labels","type":"option","description":"Col labels."},{"name":"center","type":"option","description":"Center."},{"name":"vmin","type":"option","description":"Vmin."},{"name":"vmax","type":"option","description":"Vmax."},{"name":"annotate","type":"option","description":"Annotate."},{"name":"annotation_format","type":"option","description":"Annotation format."},{"name":"cbar_label","type":"option","description":"Cbar label."},{"name":"size","type":"option","description":"Size."},{"name":"title","type":"option","description":"Title."}],"constraints":[],"example":"fig, ax = rkv.heatmap([[1, 2], [3, 4]])","stability":"stable","since":"1.0.0"}
+# </reportkit-contract>
 def heatmap(
     matrix: pd.DataFrame | np.ndarray,
     *,
@@ -641,6 +660,9 @@ def heatmap(
     return fig, ax
 
 
+# <reportkit-contract>
+# {"kind":"chart","description":"Plot a precomputed drawdown series as a restrained filled area.","arguments":[{"name":"drawdown","type":"data","description":"Drawdown."},{"name":"ylabel","type":"option","description":"Ylabel."},{"name":"y_formatter","type":"option","description":"Y formatter."},{"name":"size","type":"option","description":"Size."},{"name":"title","type":"option","description":"Title."}],"constraints":[],"example":"fig, ax = rkv.drawdown_chart(pd.Series([0, -0.1, -0.05]))","stability":"stable","since":"1.0.0"}
+# </reportkit-contract>
 def drawdown_chart(
     drawdown: pd.Series,
     *,
@@ -663,6 +685,9 @@ def drawdown_chart(
     return fig, ax
 
 
+# <reportkit-contract>
+# {"kind":"chart","description":"Plot a price history with bear/base/bull reference levels.","arguments":[{"name":"price_history","type":"data","description":"Price history."},{"name":"bear","type":"option","description":"Bear."},{"name":"base","type":"option","description":"Base."},{"name":"bull","type":"option","description":"Bull."},{"name":"current","type":"option","description":"Current."},{"name":"bear_label","type":"option","description":"Bear label."},{"name":"base_label","type":"option","description":"Base label."},{"name":"bull_label","type":"option","description":"Bull label."},{"name":"value_formatter","type":"option","description":"Value formatter."},{"name":"ylabel","type":"option","description":"Ylabel."},{"name":"xlabel","type":"option","description":"Xlabel."},{"name":"size","type":"option","description":"Size."},{"name":"title","type":"option","description":"Title."}],"constraints":[],"example":"prices = pd.Series([90, 100]); fig, ax = rkv.risk_reward_chart(prices, bear=80, base=110, bull=140)","stability":"stable","since":"1.0.0"}
+# </reportkit-contract>
 def risk_reward_chart(
     price_history: pd.Series,
     *,
@@ -741,6 +766,9 @@ def risk_reward_chart(
     return fig, ax
 
 
+# <reportkit-contract>
+# {"kind":"chart","description":"Plot proportional data as a donut chart for sidebar embeds.","arguments":[{"name":"data","type":"data","description":"Data."},{"name":"title","type":"option","description":"Title."},{"name":"size","type":"option","description":"Size."},{"name":"colors","type":"option","description":"Colors."}],"constraints":[{"code":"slice_count","description":"Use two to four proportional slices.","min":2,"max":4}],"example":"fig, ax = rkv.donut_chart({\"Core\": 70, \"Other\": 30})","stability":"stable","since":"1.0.0"}
+# </reportkit-contract>
 def donut_chart(
     data: dict[str, float],
     *,
@@ -806,6 +834,9 @@ def donut_chart(
     return fig, ax
 
 
+# <reportkit-contract>
+# {"kind":"chart","description":"Render an opening-to-closing financial or operational bridge.","arguments":[{"name":"contributions","type":"data","description":"Contributions."},{"name":"opening","type":"option","description":"Opening."},{"name":"opening_label","type":"option","description":"Opening label."},{"name":"total_label","type":"option","description":"Total label."},{"name":"subtotals","type":"option","description":"Subtotals."},{"name":"closing_total","type":"option","description":"Closing total."},{"name":"value_formatter","type":"option","description":"Value formatter."},{"name":"ylabel","type":"option","description":"Ylabel."},{"name":"size","type":"option","description":"Size."},{"name":"title","type":"option","description":"Title."}],"constraints":[],"example":"fig, ax = rkv.waterfall_chart({\"Growth\": 10, \"Costs\": -4})","stability":"stable","since":"1.0.0"}
+# </reportkit-contract>
 def waterfall_chart(
     contributions: pd.Series | Mapping[str, float],
     *,
@@ -1042,6 +1073,9 @@ def _treemap_from_frame(
     return {root: build(root) for root in roots}
 
 
+# <reportkit-contract>
+# {"kind":"chart","description":"Draw a flat or nested, vector-native treemap.","arguments":[{"name":"data","type":"data","description":"Data."},{"name":"label_column","type":"option","description":"Label column."},{"name":"value_column","type":"option","description":"Value column."},{"name":"parent_column","type":"option","description":"Parent column."},{"name":"group_column","type":"option","description":"Group column."},{"name":"min_category_fraction","type":"option","description":"Min category fraction."},{"name":"min_label_fraction","type":"option","description":"Min label fraction."},{"name":"other_label","type":"option","description":"Other label."},{"name":"value_formatter","type":"option","description":"Value formatter."},{"name":"size","type":"option","description":"Size."},{"name":"title","type":"option","description":"Title."}],"constraints":[],"example":"fig, ax = rkv.treemap_chart({\"A\": 60, \"B\": 40})","stability":"stable","since":"1.0.0"}
+# </reportkit-contract>
 def treemap_chart(
     data: pd.Series | Mapping[str, float | Mapping] | pd.DataFrame,
     *,
@@ -1126,6 +1160,9 @@ def treemap_chart(
     return fig, ax
 
 
+# <reportkit-contract>
+# {"kind":"chart","description":"Draw ordered low/high sensitivity bars around a labelled base case.","arguments":[{"name":"sensitivities","type":"data","description":"Sensitivities."},{"name":"base_case","type":"option","description":"Base case."},{"name":"low_column","type":"option","description":"Low column."},{"name":"high_column","type":"option","description":"High column."},{"name":"label_column","type":"option","description":"Label column."},{"name":"value_formatter","type":"option","description":"Value formatter."},{"name":"xlabel","type":"option","description":"Xlabel."},{"name":"size","type":"option","description":"Size."},{"name":"title","type":"option","description":"Title."}],"constraints":[],"example":"fig, ax = rkv.tornado_chart({\"Price\": (-10, 15), \"Volume\": (-5, 8)})","stability":"stable","since":"1.0.0"}
+# </reportkit-contract>
 def tornado_chart(
     sensitivities: Mapping[str, Sequence[float]] | pd.DataFrame,
     *,
@@ -1195,6 +1232,9 @@ def _bubble_areas(values: Sequence[float], minimum: float, maximum: float) -> np
     return minimum + (raw - raw.min()) / (raw.max() - raw.min()) * (maximum - minimum)
 
 
+# <reportkit-contract>
+# {"kind":"chart","description":"DataFrame-oriented scatter/bubble matrix with optional quadrants.","arguments":[{"name":"data","type":"data","description":"Data."},{"name":"x","type":"option","description":"X."},{"name":"y","type":"option","description":"Y."},{"name":"xlabel","type":"option","description":"Xlabel."},{"name":"ylabel","type":"option","description":"Ylabel."},{"name":"size_column","type":"option","description":"Size column."},{"name":"label_column","type":"option","description":"Label column."},{"name":"group_column","type":"option","description":"Group column."},{"name":"reference_x","type":"option","description":"Reference x."},{"name":"reference_y","type":"option","description":"Reference y."},{"name":"quadrant_labels","type":"option","description":"Quadrant labels."},{"name":"x_formatter","type":"option","description":"X formatter."},{"name":"y_formatter","type":"option","description":"Y formatter."},{"name":"size","type":"option","description":"Size."},{"name":"title","type":"option","description":"Title."}],"constraints":[],"example":"data = pd.DataFrame({\"x\":[1],\"y\":[2]}); fig, ax = rkv.bubble_matrix(data, x=\"x\", y=\"y\", xlabel=\"X\", ylabel=\"Y\")","stability":"stable","since":"1.0.0"}
+# </reportkit-contract>
 def bubble_matrix(
     data: pd.DataFrame,
     *,
@@ -1313,6 +1353,9 @@ def _timeline_boolean(value: Any) -> bool:
     raise ValueError(f"timeline milestone value '{value}' must be boolean")
 
 
+# <reportkit-contract>
+# {"kind":"chart","description":"Render a dated or quarterly planning timeline with bars and milestones.","arguments":[{"name":"tasks","type":"data","description":"Tasks."},{"name":"label_column","type":"option","description":"Label column."},{"name":"start_column","type":"option","description":"Start column."},{"name":"end_column","type":"option","description":"End column."},{"name":"workstream_column","type":"option","description":"Workstream column."},{"name":"milestone_column","type":"option","description":"Milestone column."},{"name":"current_date","type":"option","description":"Current date."},{"name":"scale","type":"option","description":"Scale."},{"name":"size","type":"option","description":"Size."},{"name":"title","type":"option","description":"Title."}],"constraints":[{"code":"max_tasks","description":"A timeline supports at most 30 tasks.","value":30}],"example":"fig, ax = rkv.timeline_chart([{\"label\":\"Build\",\"start\":\"2026 Q1\",\"end\":\"2026 Q2\"}])","stability":"stable","since":"1.0.0"}
+# </reportkit-contract>
 def timeline_chart(
     tasks: pd.DataFrame | Sequence[Mapping[str, Any]],
     *,

@@ -2,19 +2,128 @@
 from __future__ import annotations
 
 from collections import Counter
+from dataclasses import dataclass, field
 from datetime import date
+import difflib
 import json
 from pathlib import Path
 import re
 from typing import Any, Iterable
 
+from .version import DIAGNOSTIC_SCHEMA_VERSION
+
 DEFAULT_UNDERFULL_BADNESS = 4000
 
-DIAGNOSTIC_TYPES = (
-    "latex_error", "undefined_reference", "undefined_citation", "duplicate_label",
-    "missing_asset", "missing_font", "missing_glyph", "overfull_hbox",
-    "underfull_hbox", "bibliography_warning", "package_warning", "ignored_error",
-)
+DIAGNOSTIC_DEFINITIONS: dict[str, dict[str, str]] = {
+    "latex_error": {"severity": "error", "remediation": "Fix the reported LaTeX error at the authored source location."},
+    "undefined_reference": {"severity": "warning", "remediation": "Define the referenced label or correct the reference name, then rebuild twice."},
+    "undefined_citation": {"severity": "warning", "remediation": "Add the citation to the bibliography source or correct its key."},
+    "duplicate_label": {"severity": "warning", "remediation": "Give every label a unique value and update its references."},
+    "missing_asset": {"severity": "error", "remediation": "Add the asset inside the publication root or correct the relative path."},
+    "missing_font": {"severity": "error", "remediation": "Install the pinned font set or select a theme whose fonts are available."},
+    "missing_glyph": {"severity": "error", "remediation": "Use a verified script/font combination or provide a compatible font."},
+    "overfull_hbox": {"severity": "warning", "remediation": "Shorten or reflow the content so it fits inside the declared layout."},
+    "underfull_hbox": {"severity": "warning", "remediation": "Rephrase or adjust the content break to improve line filling."},
+    "bibliography_warning": {"severity": "warning", "remediation": "Run the configured bibliography tool and rebuild, or remove the unused bibliography declaration."},
+    "package_warning": {"severity": "warning", "remediation": "Review the package warning and resolve it or add a justified, expiring allowlist entry."},
+    "ignored_error": {"severity": "error", "remediation": "Remove the ignored-error path and fix the underlying build failure."},
+    "allowlist": {"severity": "error", "remediation": "Remove or renew the expired allowlist entry after reviewing the diagnostic."},
+    "configuration_error": {"severity": "error", "remediation": "Correct the named configuration key or command argument and retry."},
+    "publication_validation": {"severity": "error", "remediation": "Correct the publication source at the reported location and rerun reportkit check."},
+    "contract_drift": {"severity": "error", "remediation": "Run reportkit docs --write, review the generated changes, and commit them."},
+    "contract_version": {"severity": "error", "remediation": "Refresh reportkit context and retry with a compatible contract major version."},
+    "deprecated_contract": {"severity": "warning", "remediation": "Refresh the cached context contract before the next major release."},
+    "deprecated_primitive": {"severity": "warning", "remediation": "Replace the deprecated primitive with the alternative named in its contract entry."},
+    "toolchain_mismatch": {"severity": "error", "remediation": "Run the command in the pinned ReportKit OCI toolchain or update the lock and baselines together."},
+    "environment_error": {"severity": "error", "remediation": "Install or select the required pinned build dependency, then rerun reportkit doctor."},
+    "compile_timeout": {"severity": "error", "remediation": "Fix the non-terminating input or have a trusted operator raise the compile timeout."},
+    "compile_memory": {"severity": "error", "remediation": "Reduce document memory use or have a trusted operator raise the memory limit."},
+    "compile_failure": {"severity": "error", "remediation": "Inspect the structured TeX diagnostics and correct the authored source."},
+    "pdf_geometry": {"severity": "error", "remediation": "Adjust the content or primitive so every object remains within the page media box."},
+    "blank_page": {"severity": "error", "remediation": "Remove the unintended page break or add the missing page content."},
+    "visual_regression": {"severity": "error", "remediation": "Review the rendered difference; fix the regression or explicitly regenerate the pinned baseline."},
+    "security_violation": {"severity": "error", "remediation": "Use paths inside the publication root and do not enable shell escape."},
+    "internal_error": {"severity": "error", "remediation": "Report the failure with the command output and ReportKit revision."},
+}
+
+DIAGNOSTIC_TYPES = tuple(DIAGNOSTIC_DEFINITIONS)
+
+
+def _diagnostic_code(kind: str, rule: str | None = None) -> str:
+    suffix = rule or kind
+    return "RK_" + re.sub(r"[^A-Z0-9]+", "_", suffix.upper()).strip("_")
+
+
+for _name, _definition in DIAGNOSTIC_DEFINITIONS.items():
+    _definition.setdefault("code", _diagnostic_code(_name))
+    _definition.setdefault("type", _name)
+    _definition.setdefault("docs", "references/agent-contract.md#diagnostic-envelope-and-exits")
+
+
+def suggest(value: str, choices: Iterable[str], *, limit: int = 3) -> list[str]:
+    """Return deterministic near-match suggestions for an unrecognised name."""
+    return difflib.get_close_matches(value, sorted(set(choices)), n=limit, cutoff=0.45)
+
+
+def make_diagnostic(
+    kind: str,
+    message: str,
+    *,
+    code: str | None = None,
+    severity: str | None = None,
+    remediation: str | None = None,
+    primitive: str | None = None,
+    source: dict[str, Any] | None = None,
+    docs: str | None = None,
+    candidates: Iterable[str] = (),
+    details: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Create one record in the stable diagnostic schema."""
+    definition = DIAGNOSTIC_DEFINITIONS.get(kind, DIAGNOSTIC_DEFINITIONS["internal_error"])
+    normalized_source = None if source is None else {
+        "file": source.get("file"),
+        "line": source.get("line"),
+        "line_end": source.get("line_end"),
+    }
+    item: dict[str, Any] = {
+        "code": code or definition["code"],
+        "type": definition["type"],
+        "severity": severity or definition["severity"],
+        "message": re.sub(r"\s+", " ", str(message)).strip(),
+        "remediation": remediation or definition["remediation"],
+        "primitive": primitive,
+        "source": normalized_source,
+        "docs": docs or definition["docs"],
+        "candidates": list(candidates),
+        "details": dict(details or {}),
+    }
+    # Flat aliases are retained throughout ReportKit v1.x.
+    item["file"] = normalized_source.get("file") if normalized_source else None
+    item["line"] = normalized_source.get("line") if normalized_source else None
+    item["line_end"] = normalized_source.get("line_end") if normalized_source else None
+    item["kind"] = _legacy_kind(kind)
+    item["owner"] = item["details"].get("owner", _owner(kind, item["file"]))
+    item["blocking"] = item["severity"] == "error"
+    return item
+
+
+def diagnostic_envelope(
+    diagnostics: Iterable[dict[str, Any]],
+    *,
+    passed: bool | None = None,
+    **payload: Any,
+) -> dict[str, Any]:
+    records = list(diagnostics)
+    result = {
+        "schema_version": DIAGNOSTIC_SCHEMA_VERSION,
+        "passed": not any(item.get("severity") == "error" for item in records) if passed is None else passed,
+        "diagnostics": records,
+        **payload,
+    }
+    # ``issues`` is the v1.5 diagnostic-list name.
+    result.setdefault("issues", records)
+    result.setdefault("errors", [item["message"] for item in records if item.get("severity") == "error"])
+    return result
 
 _FILE_LINE = re.compile(r"(?P<file>(?:\./|[^()\s]*[/\\])?[^()\s]+\.tex):(?P<line>\d+):")
 _STACK_FILE = re.compile(r"\((?P<file>(?:\./|/)[^()\s]+\.[A-Za-z0-9]+)(?=\s|\)|$)")
@@ -187,22 +296,37 @@ def inspect_log(
         counts[kind] += 1
         if legacy != kind:
             counts[legacy] += 1
-        item: dict[str, Any] = {
-            "severity": "error" if kind in {"latex_error", "missing_asset", "missing_font", "missing_glyph", "ignored_error"} else "warning",
-            "type": kind,
+        mapped_line_end = None
+        if line_end is not None and mapped_line is not None:
+            mapped_line_end = line_end if mapped_file == file_name else mapped_line + (line_end - (line or line_end))
+        source = None
+        if mapped_file:
+            source = {"file": mapped_file}
+            if mapped_line is not None:
+                source["line"] = mapped_line
+            if mapped_line_end is not None:
+                source["line_end"] = mapped_line_end
+        item = make_diagnostic(
+            kind,
+            _message(raw_message),
+            source=source,
+            details={
+                "log_line": physical_line,
+                "owner": _owner(kind, mapped_file),
+            },
+        )
+        item.update({
             "kind": legacy,
             "file": mapped_file,
             "log_line": physical_line,
             "owner": _owner(kind, mapped_file),
-            "message": _message(raw_message),
+            # Historical behavior treated every record except package warnings
+            # as blocking, including layout warnings.
             "blocking": kind != "package_warning",
-        }
-        if mapped_line is not None:
-            item["line"] = mapped_line
-        if line_end is not None and mapped_line is not None:
-            item["line_end"] = line_end if mapped_file == file_name else mapped_line + (line_end - (line or line_end))
+        })
         if amount_pt is not None:
             item["amount_pt"] = amount_pt
+            item["details"]["amount_pt"] = amount_pt
         issues.append(item)
 
     allowlisted_lines: set[int] = set()
@@ -250,9 +374,9 @@ def inspect_log(
                 add(kind, starts[physical_line - 1], raw)
                 break
     issues.sort(key=lambda issue: (issue["log_line"], issue["type"]))
-    return {
-        "passed": not any(issue["blocking"] for issue in issues),
-        "underfull_badness_threshold": underfull_badness,
-        "counts": dict(counts),
-        "issues": issues,
-    }
+    return diagnostic_envelope(
+        issues,
+        passed=not any(issue["blocking"] for issue in issues),
+        underfull_badness_threshold=underfull_badness,
+        counts=dict(counts),
+    )

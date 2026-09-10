@@ -12,6 +12,13 @@ import shutil
 import sys
 import tempfile
 
+REPO_ROOT = Path(__file__).resolve().parents[2]
+PYTHON_ROOT = REPO_ROOT / "python_scripts"
+if str(PYTHON_ROOT) not in sys.path:
+    sys.path.insert(0, str(PYTHON_ROOT))
+
+from reportkit.toolchain import toolchain_context  # noqa: E402
+
 try:
     import pymupdf as fitz
 except ImportError:  # PyMuPDF < 1.26
@@ -52,7 +59,15 @@ def main() -> int:
             f"<h1>Pages ({page_count})</h1><ol>{links}</ol>\n",
             encoding="utf-8",
         )
-        manifest = {"page_count": page_count, "dpi": args.dpi, "pdf": args.pdf.name, "files": files, "index": "index.html", "rendered_at": datetime.now(timezone.utc).isoformat(timespec="seconds")}
+        manifest = {
+            "page_count": page_count,
+            "dpi": args.dpi,
+            "pdf": args.pdf.name,
+            "files": files,
+            "index": "index.html",
+            "rendered_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+            "toolchain_fingerprint": toolchain_context(REPO_ROOT)["fingerprint"],
+        }
         (temp_dir / "pages.json").write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")
         if args.out_dir.exists():
             if args.out_dir.is_dir():

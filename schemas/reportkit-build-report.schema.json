@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:reportkit:schema:build-report:3",
+  "type": "object",
+  "required": ["schema_version", "build_id", "status", "toolchain", "diagnostics"],
+  "properties": {
+    "schema_version": {"const": 3}, "build_id": {"type": "string"}, "status": {"type": "string"},
+    "toolchain": {"type": "object"}, "diagnostics": {"type": "object"}
+  },
+  "additionalProperties": true
+}

@@ -35,6 +35,9 @@
   \pagestyle{fancy}%
 }
 
+% <reportkit-contract>
+% {"kind":"command","description":"Rktitlepage","arguments":[{"name":"options","type":"options","description":"Options."},{"name":"title","type":"text","description":"Title."}],"constraints":[],"example":"\\RKTitlePage[]{Example}","stability":"stable","since":"1.0.0"}
+% </reportkit-contract>
 \NewDocumentCommand{\RKTitlePage}{O{} m}{%
   \thispagestyle{empty}%
   \begin{center}
@@ -52,10 +55,16 @@
 
 % URL's native breakpoints cover '/', '=', and '_' while retaining a
 % searchable/clickable string. This is the supported path for long URIs.
+% <reportkit-contract>
+% {"kind":"command","description":"Rkpath","arguments":[{"name":"path","type":"text","description":"Path."}],"constraints":[],"example":"\\RKPath{https://example.com}","stability":"stable","since":"1.0.0"}
+% </reportkit-contract>
 \NewDocumentCommand{\RKPath}{m}{\begingroup\urlstyle{tt}\url{#1}\endgroup}
 
 % Keep short listings with their lead-in. Longer listings may split normally;
 % authors can place the marker at a deliberate continuation boundary.
+% <reportkit-contract>
+% {"kind":"composition","description":"Rkshortlisting","arguments":[{"name":"options","type":"options","description":"Options."}],"constraints":[],"example":"\\begin{RKShortListing}[]\nExample content.\n\\end{RKShortListing}","stability":"stable","since":"1.0.0"}
+% </reportkit-contract>
 \NewDocumentEnvironment{RKShortListing}{O{}}{%
   \begin{samepage}\begin{minipage}{\linewidth}\ifstrempty{#1}{}{\textbf{#1}\par\smallskip}%
 }{\end{minipage}\end{samepage}}

@@ -1,0 +1,94 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:reportkit:schema:context:1.0.0",
+  "title": "ReportKit capability context",
+  "type": "object",
+  "required": ["schema_version", "passed", "diagnostics", "contract_version", "reportkit_version", "revision", "selection", "capabilities", "commands", "command_contract", "schemas", "toolchain"],
+  "$defs": {
+    "diagnostic": {
+      "type": "object",
+      "required": ["code", "type", "severity", "message", "remediation", "primitive", "source", "docs", "candidates", "details"],
+      "properties": {
+        "code": {"type": "string", "pattern": "^RK_[A-Z0-9_]+$"},
+        "type": {"type": "string"},
+        "severity": {"enum": ["error", "warning", "info"]},
+        "message": {"type": "string"},
+        "remediation": {"type": "string"},
+        "primitive": {"type": ["string", "null"]},
+        "source": {"type": ["object", "null"]},
+        "docs": {"type": ["string", "null"]},
+        "candidates": {"type": "array", "items": {"type": "string"}},
+        "details": {"type": "object"}
+      },
+      "additionalProperties": true
+    },
+    "availability": {
+      "type": "object",
+      "required": ["publication_types", "themes", "renderers"],
+      "properties": {
+        "publication_types": {"type": "array", "items": {"type": "string"}},
+        "themes": {"type": "array", "items": {"type": "string"}},
+        "renderers": {"type": "array", "items": {"type": "string"}}
+      },
+      "additionalProperties": false
+    },
+    "argument": {
+      "type": "object",
+      "required": ["name", "type", "required", "default", "description", "specifier"],
+      "properties": {
+        "name": {"type": "string"}, "type": {"type": "string"}, "required": {"type": "boolean"},
+        "default": {}, "description": {"type": "string"}, "specifier": {"type": "string"},
+        "position": {"type": "integer", "minimum": 1}
+      },
+      "additionalProperties": false
+    },
+    "primitive": {
+      "type": "object",
+      "required": ["name", "kind", "signature", "source_signature", "arity", "arguments", "constraints", "example", "available_in", "stability", "since", "description", "contract_pointer", "docs", "source"],
+      "properties": {
+        "name": {"type": "string"},
+        "kind": {"enum": ["callout", "figure", "chart", "composition", "command"]},
+        "signature": {"type": "string"}, "source_signature": {"type": "string"},
+        "arity": {"type": "object", "required": ["required", "optional"], "properties": {"required": {"type": "integer"}, "optional": {"type": "integer"}}, "additionalProperties": false},
+        "arguments": {"type": "array", "items": {"$ref": "#/$defs/argument"}},
+        "constraints": {"type": "array", "items": {"type": "object"}},
+        "example": {"type": "string", "minLength": 1},
+        "available_in": {"$ref": "#/$defs/availability"},
+        "stability": {"enum": ["stable", "experimental", "deprecated"]},
+        "since": {"type": "string"}, "description": {"type": "string"},
+        "contract_pointer": {"type": "string", "pattern": "^#/capabilities/primitives/"},
+        "docs": {"type": "string"},
+        "source": {"type": "object"}, "parent": {"type": "string"}
+      },
+      "additionalProperties": false
+    }
+  },
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "passed": {"const": true},
+    "diagnostics": {"type": "array", "items": {"$ref": "#/$defs/diagnostic"}},
+    "contract_version": {"const": "1.0.0"},
+    "reportkit_version": {"const": "1.9.0"},
+    "revision": {"type": "string"},
+    "selection": {"type": "object"},
+    "capabilities": {
+      "type": "object",
+      "required": ["publication_types", "themes", "renderers", "primitives", "authoring"],
+      "properties": {
+        "publication_types": {"type": "object"}, "themes": {"type": "object"}, "renderers": {"type": "object"},
+        "authoring": {
+          "type": "object",
+          "required": ["mode", "document_template", "chart_prelude", "chart_export", "markdown_raw_tex", "trusted_escape_hatches"]
+        },
+        "primitives": {
+          "type": "object",
+          "additionalProperties": {"type": "object", "additionalProperties": {"$ref": "#/$defs/primitive"}}
+        }
+      },
+      "additionalProperties": false
+    },
+    "commands": {"type": "object", "additionalProperties": {"type": "string"}},
+    "command_contract": {"type": "object"}, "schemas": {"type": "object"}, "toolchain": {"type": "object"}
+  },
+  "additionalProperties": true
+}

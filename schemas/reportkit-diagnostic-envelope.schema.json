@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:reportkit:schema:diagnostic-envelope:1.0.0",
+  "title": "ReportKit diagnostic envelope",
+  "type": "object",
+  "$defs": {
+    "diagnostic": {
+      "type": "object",
+      "required": ["code", "type", "severity", "message", "remediation", "primitive", "source", "docs", "candidates", "details"],
+      "properties": {
+        "code": {"type": "string", "pattern": "^RK_[A-Z0-9_]+$"},
+        "type": {"type": "string", "minLength": 1},
+        "severity": {"enum": ["error", "warning", "info"]},
+        "message": {"type": "string", "minLength": 1},
+        "remediation": {"type": "string", "minLength": 1},
+        "primitive": {"type": ["string", "null"]},
+        "source": {"type": ["object", "null"]},
+        "docs": {"type": ["string", "null"]},
+        "candidates": {"type": "array", "items": {"type": "string"}},
+        "details": {"type": "object"}
+      },
+      "additionalProperties": true
+    }
+  },
+  "required": ["schema_version", "passed", "diagnostics"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "passed": {"type": "boolean"},
+    "diagnostics": {"type": "array", "items": {"$ref": "#/$defs/diagnostic"}}
+  },
+  "additionalProperties": true
+}

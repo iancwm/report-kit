@@ -67,6 +67,10 @@ TEST_PYTHON="${REPORTKIT_TEST_PYTHON:-}"
 if [[ -z "$TEST_PYTHON" && -x "$ROOT/build/.venv-tests/bin/python" ]]; then
   TEST_PYTHON="$ROOT/build/.venv-tests/bin/python"
 fi
+if [[ -z "$TEST_PYTHON" ]] && command -v python3 >/dev/null 2>&1 \
+  && python3 -c 'import pytest' >/dev/null 2>&1; then
+  TEST_PYTHON="$(command -v python3)"
+fi
 if [[ -n "$TEST_PYTHON" ]]; then
   if ! "$TEST_PYTHON" -m pytest "$ROOT/tests" "$ROOT/publication_pipeline/tests" -q > "$WORKDIR/pytest.log" 2>&1; then
     echo "FAIL: rendered-geometry or publication-pipeline tests failed:" >&2
