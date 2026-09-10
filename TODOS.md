@@ -21,6 +21,8 @@ for why.
 | [2026-09-07-documentation-and-status-tracking-cleanup.md](docs/superpowers/plans/2026-09-07-documentation-and-status-tracking-cleanup.md) | Done — merged via PR #7 (`965443b`) | Process |
 | [2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md](docs/superpowers/specs/2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md) | Implemented (Steps 1–5); open questions resolved in the plan below | P2 |
 | [2026-09-09-reportkit-institutional-theme-implementation-plan.md](docs/superpowers/plans/2026-09-09-reportkit-institutional-theme-implementation-plan.md) | Steps 1–5 of 5 implemented (theme infrastructure, institutional theme, equity publication profile, visualization integration, fixtures/QA/skill guidance); pending real-TeX verification | P2 |
+| [2026-09-09-reportkit-multi-format-publication-architecture-spec.md](docs/superpowers/specs/2026-09-09-reportkit-multi-format-publication-architecture-spec.md) | Draft / not started — architecture hardening ahead of new themes; 6 open questions | P2 |
+| [2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md](docs/superpowers/specs/2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md) | Draft / not started — agent-facing contract for vendor-agnostic use; amends the spec above; 8 open questions | P2 |
 
 ## Open work
 
@@ -96,6 +98,45 @@ for why.
   review against the printed spec §25 checklist before committing the
   resulting baseline. See
   [the implementation plan](docs/superpowers/plans/2026-09-09-reportkit-institutional-theme-implementation-plan.md).
+
+- **Multi-format publication architecture — spec drafted 2026-09-09, not
+  started.** Generalizes the v1.8 institutional/equity implementation into a
+  renderer- and theme-safe architecture before adding executive, venture or
+  editorial themes: a publication/renderer registry, hard-failing
+  theme×publication-type validation, a shared/paged core split, callout and
+  diagram styling moved behind theme hooks, and publication-aware pipeline
+  template selection. Verification against the tree at `7d8c0fe` surfaced two
+  defects the draft understated and this spec now treats as in-scope bug
+  fixes: (a) `reportkit.cls:46` forwards unknown options to `article`, so
+  `theme=venture` compiles to a *warning* and a silently default-themed PDF
+  rather than an error; (b) `document.theme`/`.publication_type` are resolved
+  and engine-validated in Python but never reach `\documentclass` — the
+  pipeline template hardcodes an unparameterized `\documentclass{reportkit}`,
+  which is why the equity fixture is compiled directly instead of through the
+  markdown pipeline. Phase A also has to close the standing `lualatex` gap
+  above, since this phase would otherwise add three themes and a second
+  renderer on top of unverified compiles. See
+  [the spec](docs/superpowers/specs/2026-09-09-reportkit-multi-format-publication-architecture-spec.md).
+
+- **Agent interface & platform contract — spec drafted 2026-09-10, not
+  started.** Companion to the multi-format spec above, covering what that
+  document leaves out: the contract a non-Claude AI agent binds to. The
+  renderer spec addresses the agent once (its §17) and the instruction is to
+  update `SKILL.md` prose — which is a contract only a large-context,
+  strong-instruction-following model can honor. Verification against `2587e03`
+  found the vendor lock is one regex wide: `registry.py:29` captures the
+  primitive name and discards the xparse argument spec sitting in the next
+  brace group, so `reportkit context --json` can tell an agent that
+  `reportmatrix` exists but not how to call it — leaving `SKILL.md` prose,
+  behind Claude-skill frontmatter, as the only usage contract. Also found: two
+  incompatible error channels already in the tree (`diagnostics.py`'s typed
+  records versus `publication_validation.py:17`'s `list[str]`), no remediation
+  data on any diagnostic, no toolchain pinning under §18's pixel-diff
+  baselines, and no validation of primitive usage before `lualatex` runs. Its
+  §4, §5 and §8 are proposed as additions to the renderer spec's Phase A, on
+  that spec's own argument that hardening is cheaper before the surface
+  triples. See
+  [the spec](docs/superpowers/specs/2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md).
 
 ### P3
 
