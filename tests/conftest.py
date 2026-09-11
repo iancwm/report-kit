@@ -43,7 +43,10 @@ def compile_doc(latex_engine: str, tmp_path: Path):
     def _compile(body: str, name: str = "doc", class_options: str = "") -> pymupdf.Document:
         tex = tmp_path / f"{name}.tex"
         documentclass = f"\\documentclass[{class_options}]{{reportkit}}" if class_options else "\\documentclass{reportkit}"
-        tex.write_text(documentclass + "\n\\begin{document}\n" + body + "\n\\end{document}\n", encoding="utf-8")
+        font_setup = ""
+        if "theme=institutional-research" in class_options:
+            font_setup = f"\n\\setreportkitfontpath{{{REPO / 'font_data'}/}}"
+        tex.write_text(documentclass + font_setup + "\n\\begin{document}\n" + body + "\n\\end{document}\n", encoding="utf-8")
         # LuaTeX exits before writing a log when it inherits an unavailable
         # locale such as en_US.UTF-8 from a GUI Git client. Keep the renderer
         # environment deterministic for tests.

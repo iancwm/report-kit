@@ -1,0 +1,70 @@
+% ReportKit shared class-option parser.
+% The value lists and known option declarations are generated in
+% reportkit-publication-registry.def from publications.py.
+\makeatletter
+
+\providecommand{\rk@theme}{default}
+\providecommand{\rk@requestedtheme}{default}
+\providecommand{\rk@publicationtype}{technical-report}
+\providecommand{\rk@classrenderer}{paged}
+\providecommand{\rk@classname}{reportkit}
+
+\def\RKSetTheme#1#2{%
+  \def\rk@requestedtheme{#1}%
+  \def\rk@theme{#2}%
+}
+\def\RKSetPublicationType#1{\def\rk@publicationtype{#1}}
+
+\input{reportkit-publication-registry.def}
+
+% A valid registry option is declared by the generated file. Any option that
+% starts with theme= or publication-type= therefore represents a typo or an
+% unsupported future value and must not fall through to the base class.
+\def\RKUnknownTheme#1=#2\RKOptionStop{%
+  \ClassError{reportkit}{Unknown theme '#2'. Valid themes: \RKValidThemes}{Choose one of the registered theme names.}%
+}
+\def\RKUnknownPublicationType#1=#2\RKOptionStop{%
+  \ClassError{reportkit}{Unknown publication type '#2'. Valid publication types: \RKValidPublicationTypes}{Choose one of the registered publication-type names.}%
+}
+\def\RKCheckUnknownOption#1\RKOptionStop{%
+  \in@false\in@{theme=}{#1}%
+  \ifin@
+    \RKUnknownTheme#1\RKOptionStop
+  \else
+    \in@false\in@{publication-type=}{#1}%
+    \ifin@
+      \RKUnknownPublicationType#1\RKOptionStop
+    \else
+      \PassOptionsToClass{#1}{article}%
+    \fi
+  \fi
+}
+\def\RKHandleUnknownOption#1{%
+  \edef\RK@option{#1}%
+  \expandafter\RKCheckUnknownOption\RK@option\RKOptionStop
+}
+\DeclareOption*{\RKHandleUnknownOption{\CurrentOption}}
+
+\def\RKValidateSelection{%
+  \expandafter\ifx\csname RKPublicationRenderer@\rk@publicationtype\endcsname\relax
+    \ClassError{reportkit}{Unknown publication type '\rk@publicationtype'. Valid publication types: \RKValidPublicationTypes}{Choose a registered publication type.}%
+  \else
+    \edef\RK@selectedrenderer{\csname RKPublicationRenderer@\rk@publicationtype\endcsname}%
+    \edef\RK@expectedclass{\csname RKPublicationClass@\rk@publicationtype\endcsname}%
+    \ifx\RK@selectedrenderer\rk@classrenderer\else
+      \ClassError{reportkit}{Publication type '\rk@publicationtype' uses renderer '\RK@selectedrenderer', not the '\rk@classrenderer' renderer provided by this class}{Use the class selected by the publication registry.}%
+    \fi
+    \ifx\RK@expectedclass\rk@classname\else
+      \ClassError{reportkit}{Publication type '\rk@publicationtype' belongs to class '\RK@expectedclass', not '\rk@classname'}{Use the class selected by the publication registry.}%
+    \fi
+    % \string supplies the literal separator without accidentally extending
+    % the preceding control-sequence name (publication identifiers contain
+    % hyphens and are looked up through \csname).
+    \expandafter\ifx\csname RKPublicationTheme@\rk@publicationtype\string @\rk@requestedtheme\endcsname\relax
+      \edef\RK@compatiblethemes{\csname RKPublicationThemes@\rk@publicationtype\endcsname}%
+      \ClassError{reportkit}{Theme '\rk@requestedtheme' is not supported for publication type '\rk@publicationtype'. Compatible themes: \RK@compatiblethemes}{Choose a compatible theme/publication pair.}%
+    \fi
+  \fi
+}
+
+\endinput
