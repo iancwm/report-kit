@@ -9,12 +9,12 @@ tags on this repository, not a published package registry.
 ## [1.9.2] - 2026-09-11
 
 ### Added
-- Canonical publication, renderer, and theme registry resolution for the
-  current paged publication matrix, including immutable build targets, theme
-  aliases, engine validation, and structured configuration diagnostics.
-- Registry-backed context and build validation for publication target
-  selection, plus coverage for alias parity, candidate suggestions, and
-  target immutability.
+- Publication authors can now resolve the current paged publication matrix
+  into one immutable build target, including the renderer, class, template,
+  writer, engine, geometry, accessibility, and package choices.
+- `reportkit context`, `check`, and `build` now share registry-backed target
+  validation, including the `technical` compatibility alias, engine checks,
+  candidate suggestions, and structured configuration diagnostics.
 
 ## [1.9.1] - 2026-09-10
 

@@ -62,7 +62,8 @@ Migrating an existing content branch out of this repo is covered in
   context, check, build, diagnose, inspect, docs, analyse-history, and package; its importable
   implementation lives under `python_scripts/reportkit/`, including
   `reportkit/themes/` — per-theme Python tokens (`default`,
-  `institutional-research`) that `reportkit_viz.py` resolves by name.
+  `institutional-research`) plus the `technical` compatibility alias for
+  `default` that `reportkit_viz.py` and the publication context resolve by name.
 - `reportkit_viz.py` — Matplotlib analytical chart theme, switchable at
   runtime via `apply_theme(name)` (palette/geometry/fonts synced with the
   matching `latex_templates/themes/*.sty` file; `check-theme --theme <name>`
