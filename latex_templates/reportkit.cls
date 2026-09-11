@@ -1,4 +1,4 @@
-% ReportKit v1.9.2 -- core document class
+% ReportKit v1.9.3 -- core document class
 % Project-local technical report grammar.
 % v1.1 adds structural pagination guards for section openings and diagrams.
 % v1.6 introduces a theme/publication-type architecture: typography,
@@ -21,7 +21,7 @@
 % publication-type=technical-report (the default) loads no extra file, same
 % as before -- only equity-research adds one.
 \NeedsTeXFormat{LaTeX2e}
-\ProvidesClass{reportkit}[2026/09/11 v1.9.2 ReportKit technical report class]
+\ProvidesClass{reportkit}[2026/09/11 v1.9.3 ReportKit technical report class]
 
 % -----------------------------------------------------------------------------
 % Theme / publication-type selection

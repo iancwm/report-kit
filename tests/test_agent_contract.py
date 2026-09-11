@@ -138,7 +138,7 @@ def test_context_is_versioned_filterable_and_legacy_compatible() -> None:
     context = build_context(REPO, kinds=["chart"], publication_type="equity-research")
     assert context["schema_version"] == "1.0.0"
     assert context["contract_version"] == "1.0.0"
-    assert context["reportkit_version"] == "1.9.2"
+    assert context["reportkit_version"] == "1.9.3"
     assert context["selection"] == {
         "publication_type": "equity-research", "requested_theme": "institutional-research",
         "requested_name": "institutional-research",
@@ -491,7 +491,7 @@ def test_toolchain_fingerprint_and_release_version_are_stable() -> None:
     assert set(lock["apt_packages"]) == set(lock["apt_package_versions"])
     fingerprint = toolchain_fingerprint(lock)
     assert fingerprint == "74513be7e9578e0bc9ec84bcb12a1edf43743a32b967ee6b8b8b4288e96fe50c"
-    assert REPORTKIT_VERSION == "1.9.2"
+    assert REPORTKIT_VERSION == "1.9.3"
     assert generate_registry(REPO)["class_version"] == REPORTKIT_VERSION
     assert load_toolchain_lock(REPO)["apt_package_versions"]
     dockerfile = (REPO / "toolchain" / "Dockerfile").read_text()
