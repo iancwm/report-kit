@@ -73,6 +73,10 @@ class Theme:
 
 _MODULES = {
     "default": "reportkit.themes.default",
+    # `technical` is a declared publication alias, not a second visual
+    # implementation. Returning the same module preserves one Python Theme
+    # object and one chart baseline for both names.
+    "technical": "reportkit.themes.default",
     "institutional-research": "reportkit.themes.institutional_research",
 }
 

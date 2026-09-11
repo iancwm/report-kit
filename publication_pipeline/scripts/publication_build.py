@@ -94,12 +94,11 @@ from reportkit.config import (  # noqa: E402
     resolve_identity,
     resolve_theme,
     resolve_validation,
-    theme_engine_conflict,
     theme_font_policy_conflict,
 )
 from reportkit.manifest import unique_build_id, write_report  # noqa: E402
 from reportkit.diagnostics import diagnostic_envelope, inspect_log, make_diagnostic  # noqa: E402
-from reportkit.publications import compatibility_error  # noqa: E402
+from reportkit.publications import PublicationRegistryError, resolve_build_target  # noqa: E402
 from reportkit.toolchain import toolchain_context  # noqa: E402
 from reportkit.version import BUILD_REPORT_SCHEMA_VERSION  # noqa: E402
 
@@ -354,14 +353,17 @@ def build(args: argparse.Namespace) -> int:
         print(f"licensing: {exc}", file=sys.stderr)
         return 2
     document = resolve_document(config, profile)
-    pairing = compatibility_error(str(document.get("publication_type")), str(document.get("theme")))
-    if pairing:
-        print(f"publication config: {pairing}", file=sys.stderr)
-        return 2
     engine = str(getattr(args, "engine", None) or os.environ.get("REPORTKIT_TEX_ENGINE") or document.get("engine", "pdflatex"))
-    conflict = theme_engine_conflict({**document, "engine": engine})
-    if conflict:
-        print(f"publication config: {conflict}", file=sys.stderr)
+    try:
+        resolve_build_target(
+            str(document.get("publication_type")),
+            str(document.get("theme")),
+            explicit_paper=str(document.get("paper")),
+            engine=engine,
+            repo_root=REPO_ROOT,
+        )
+    except PublicationRegistryError as exc:
+        print(f"publication config: {exc}", file=sys.stderr)
         return 2
     font_policy_conflict = theme_font_policy_conflict(resolve_theme(config, profile))
     if font_policy_conflict:

@@ -50,6 +50,7 @@ import pandas as pd
 # of callers. See reportkit/themes/__init__.py's module docstring for why
 # the dependency runs this direction and not the reverse (open question 8).
 from reportkit.context import month_end_freq
+from reportkit.publications import canonical_theme_name
 from reportkit.themes import get_theme
 
 __version__ = "1.0.0"
@@ -1528,7 +1529,8 @@ def theme_file_for(theme: str, repo_root: str | Path | None = None) -> Path:
     open question 2.
     """
     root = Path(repo_root) if repo_root is not None else Path(__file__).resolve().parents[1]
-    return root / "latex_templates" / "themes" / f"reportkit-theme-{theme}.sty"
+    canonical = canonical_theme_name(theme)
+    return root / "latex_templates" / "themes" / f"reportkit-theme-{canonical}.sty"
 
 
 def validate_palette_against_latex(class_path: str | Path, colors: Mapping[str, str] | None = None) -> list[str]:

@@ -10,7 +10,14 @@ from typing import Any, Iterable
 
 from .config import load_publication_config, resolve_document, resolve_theme
 from .diagnostics import make_diagnostic
-from .publications import PUBLICATION_TYPES, RENDERERS, THEMES, compatibility_error
+from .publications import (
+    PUBLICATION_TYPES,
+    RENDERERS,
+    THEMES,
+    PublicationRegistryError,
+    compatibility_error,
+    resolve_build_target,
+)
 from .registry import CALLOUT_ENVIRONMENTS, COMMANDS, LEGACY_CHART_NAMES, PRIMITIVE_KINDS, generate_registry
 from .toolchain import toolchain_context
 from .version import CONTRACT_VERSION, CONTEXT_SCHEMA_VERSION, DIAGNOSTIC_SCHEMA_VERSION, REPORTKIT_VERSION
@@ -112,28 +119,46 @@ def build_context(
         (theme, THEMES, "theme"),
     ):
         if value is not None and value not in known:
-            raise ValueError(f"unknown {label} {value!r}; known values: {', '.join(known)}")
-    conflict = compatibility_error(selected_publication, selected_theme)
-    if conflict:
-        raise ValueError(conflict)
-    if publication_type and theme:
-        filter_conflict = compatibility_error(publication_type, theme)
-        if filter_conflict:
-            raise ValueError(filter_conflict)
+            raise PublicationRegistryError(
+                f"unknown {label} {value!r}; valid values: {', '.join(sorted(known))}",
+                diagnostic=make_diagnostic(
+                    "configuration_error",
+                    f"unknown {label} {value!r}; valid values: {', '.join(sorted(known))}",
+                    code="RK_CONFIG_BUILD_TARGET", docs="#/selection", candidates=sorted(known),
+                ),
+            )
+
+    configured_conflict = compatibility_error(selected_publication, selected_theme)
+    if configured_conflict:
+        raise PublicationRegistryError(
+            configured_conflict,
+            diagnostic=make_diagnostic(
+                "configuration_error", configured_conflict, code="RK_CONFIG_BUILD_TARGET", docs="#/selection",
+            ),
+        )
+
     effective_publication = publication_type
     if effective_publication is None and theme is not None:
-        effective_publication = next(
-            name for name, record in PUBLICATION_TYPES.items() if theme in record["themes"]
-        )
+        if theme in PUBLICATION_TYPES.get(selected_publication, {}).get("themes", []):
+            effective_publication = selected_publication
+        else:
+            effective_publication = next(
+                name for name, record in PUBLICATION_TYPES.items() if theme in record["themes"]
+            )
     effective_publication = effective_publication or selected_publication
     effective_theme = theme or (
         PUBLICATION_TYPES[effective_publication]["themes"][0]
         if publication_type is not None
         else selected_theme
     )
-    resolved_conflict = compatibility_error(effective_publication, effective_theme)
-    if resolved_conflict:
-        raise ValueError(resolved_conflict)
+    explicit_selection = publication_type is not None or theme is not None
+    target = resolve_build_target(
+        effective_publication,
+        effective_theme,
+        explicit_paper=None if explicit_selection else str(document.get("paper")),
+        engine=None if explicit_selection else str(document.get("engine")),
+        repo_root=repo_root,
+    )
     selected_kinds = list(kinds or PRIMITIVE_KINDS)
     unknown_kinds = sorted(set(selected_kinds) - set(PRIMITIVE_KINDS))
     if unknown_kinds:
@@ -153,18 +178,12 @@ def build_context(
             code="RK_VERSION_PARITY", severity="warning", docs="#/reportkit_version",
             remediation="Tag the release with the ReportKit version or use a checkout whose class metadata matches its revision.",
         ))
-    explicit_selection = publication_type is not None or theme is not None
-    effective_engine = (
-        THEMES[effective_theme]["required_engine"]
-        if explicit_selection
-        else document.get("engine", THEMES[effective_theme]["required_engine"])
+    document_options = f"theme={target.requested_theme},publication-type={target.publication_type}"
+    authoring_template = (
+        f"\\documentclass[{document_options}]{{{target.class_name}}}\n"
+        "\\title{Contract acceptance}\n\\author{ReportKit}\n"
+        "\\begin{document}\n\\maketitle\n{{body}}\n\\end{document}\n"
     )
-    effective_paper = (
-        PUBLICATION_TYPES[effective_publication]["paper"]
-        if explicit_selection
-        else document.get("paper", PUBLICATION_TYPES[effective_publication]["paper"])
-    )
-    document_options = f"theme={effective_theme},publication-type={effective_publication}"
     result: dict[str, Any] = {
         "schema_version": CONTEXT_SCHEMA_VERSION,
         "passed": True,
@@ -175,11 +194,7 @@ def build_context(
         "reportkit_version": REPORTKIT_VERSION,
         "revision": revision,
         "selection": {
-            "engine": effective_engine,
-            "theme": effective_theme,
-            "publication_type": effective_publication,
-            "renderer": PUBLICATION_TYPES[effective_publication]["renderer"],
-            "paper": effective_paper,
+            **target.as_dict(),
             "profile": profile or "draft",
         },
         "filters": {"publication_type": publication_type, "theme": theme, "kinds": selected_kinds},
@@ -190,14 +205,10 @@ def build_context(
             "primitives": primitives,
             "authoring": {
                 "mode": "trusted-latex",
-                "document_template": (
-                    f"\\documentclass[{document_options}]{{reportkit}}\n"
-                    "\\title{Contract acceptance}\n\\author{ReportKit}\n"
-                    "\\begin{document}\n\\maketitle\n{{body}}\n\\end{document}\n"
-                ),
+                "document_template": authoring_template,
                 "chart_prelude": (
                     "import pandas as pd\nimport numpy as np\nimport reportkit_viz as rkv\n"
-                    f"rkv.apply_theme({effective_theme!r})"
+                    f"rkv.apply_theme({target.requested_theme!r})"
                 ),
                 "chart_export": "rkv.save_figure(fig, output_path)",
                 "markdown_raw_tex": "disabled",
