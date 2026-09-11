@@ -60,11 +60,18 @@ def test_institutional_equity_acceptance_fixture_compiles(compile_doc, latex_eng
     templates = REPO / "latex_templates"
     for src in (
         list(templates.glob("*.cls"))
+        + list(templates.glob("*.def"))
+        + list(templates.glob("reportkit-*.tex"))
         + list(templates.glob("*.sty"))
         + list((templates / "themes").glob("*.sty"))
         + list((templates / "publication_types").glob("*.sty"))
     ):
         shutil.copy(src, tmp_path / src.name)
+    font_data = REPO / "font_data"
+    staged_fonts = tmp_path / "font_data"
+    staged_fonts.mkdir()
+    for src in font_data.glob("GoogleSans-*.ttf"):
+        shutil.copy(src, staged_fonts / src.name)
     shutil.copy(fixture, tmp_path / fixture.name)
 
     import os

@@ -1,0 +1,44 @@
+% Generated from python_scripts/reportkit/publications.py; do not edit.
+% Regenerate with: python -c 'from reportkit.publications import write_latex_registry; write_latex_registry(...)'
+\def\RKPublicationRegistryVersion{1}
+\def\RKValidThemes{default,institutional-research,technical}
+\def\RKValidPublicationTypes{equity-research,technical-report}
+\def\RKValidRenderers{paged}
+\expandafter\def\csname RKRendererClass@paged\endcsname{reportkit}
+\expandafter\def\csname RKRendererClassFile@paged\endcsname{latex_templates/reportkit.cls}
+\expandafter\def\csname RKRendererTemplateBase@paged\endcsname{publication-template.tex}
+\expandafter\def\csname RKRendererPandocWriter@paged\endcsname{latex}
+\expandafter\def\csname RKRendererGeometryKind@paged\endcsname{paper}
+\expandafter\def\csname RKThemeCanonical@default\endcsname{default}
+\expandafter\def\csname RKThemePackage@default\endcsname{reportkit-theme-default}
+\expandafter\def\csname RKThemeRenderers@default\endcsname{paged}
+\expandafter\def\csname RKThemeRequiredEngine@default\endcsname{pdflatex}
+\expandafter\def\csname RKThemeAdapter@default@paged\endcsname{reportkit-theme-default}
+\DeclareOption{theme=default}{\RKSetTheme{default}{default}}
+\expandafter\def\csname RKThemeCanonical@institutional-research\endcsname{institutional-research}
+\expandafter\def\csname RKThemePackage@institutional-research\endcsname{reportkit-theme-institutional-research}
+\expandafter\def\csname RKThemeRenderers@institutional-research\endcsname{paged}
+\expandafter\def\csname RKThemeRequiredEngine@institutional-research\endcsname{lualatex}
+\expandafter\def\csname RKThemeAdapter@institutional-research@paged\endcsname{reportkit-theme-institutional-research}
+\DeclareOption{theme=institutional-research}{\RKSetTheme{institutional-research}{institutional-research}}
+\expandafter\def\csname RKThemeCanonical@technical\endcsname{default}
+\expandafter\def\csname RKThemePackage@technical\endcsname{reportkit-theme-default}
+\expandafter\def\csname RKThemeRenderers@technical\endcsname{paged}
+\expandafter\def\csname RKThemeRequiredEngine@technical\endcsname{pdflatex}
+\expandafter\def\csname RKThemeAdapter@technical@paged\endcsname{reportkit-theme-default}
+\DeclareOption{theme=technical}{\RKSetTheme{technical}{default}}
+\expandafter\def\csname RKPublicationRenderer@equity-research\endcsname{paged}
+\expandafter\def\csname RKPublicationClass@equity-research\endcsname{reportkit}
+\expandafter\def\csname RKPublicationThemes@equity-research\endcsname{institutional-research}
+\expandafter\def\csname RKPublicationDefaultTheme@equity-research\endcsname{institutional-research}
+\expandafter\def\csname RKPublicationPackage@equity-research\endcsname{reportkit-equity-research}
+\DeclareOption{publication-type=equity-research}{\RKSetPublicationType{equity-research}}
+\expandafter\def\csname RKPublicationTheme@equity-research@institutional-research\endcsname{1}
+\expandafter\def\csname RKPublicationRenderer@technical-report\endcsname{paged}
+\expandafter\def\csname RKPublicationClass@technical-report\endcsname{reportkit}
+\expandafter\def\csname RKPublicationThemes@technical-report\endcsname{default,technical}
+\expandafter\def\csname RKPublicationDefaultTheme@technical-report\endcsname{default}
+\expandafter\def\csname RKPublicationPackage@technical-report\endcsname{}
+\DeclareOption{publication-type=technical-report}{\RKSetPublicationType{technical-report}}
+\expandafter\def\csname RKPublicationTheme@technical-report@default\endcsname{1}
+\expandafter\def\csname RKPublicationTheme@technical-report@technical\endcsname{1}

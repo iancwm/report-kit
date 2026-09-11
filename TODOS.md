@@ -1,6 +1,6 @@
 # ReportKit — Outstanding Work
 
-**Last updated:** 2026-09-10
+**Last updated:** 2026-09-11
 
 This is an index, not an audit. Each spec/plan under `docs/superpowers/`
 carries its own `**Status:**` line, updated at the workflow checkpoint that
@@ -21,7 +21,7 @@ for why.
 | [2026-09-07-documentation-and-status-tracking-cleanup.md](docs/superpowers/plans/2026-09-07-documentation-and-status-tracking-cleanup.md) | Done — merged via PR #7 (`965443b`) | Process |
 | [2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md](docs/superpowers/specs/2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md) | Implemented (Steps 1–5); open questions resolved in the plan below | P2 |
 | [2026-09-09-reportkit-institutional-theme-implementation-plan.md](docs/superpowers/plans/2026-09-09-reportkit-institutional-theme-implementation-plan.md) | Complete — Steps 1–5 implemented; local LuaLaTeX verification passes; pinned visual QA remains | P2 |
-| [2026-09-09-reportkit-multi-format-publication-architecture-spec.md](docs/superpowers/specs/2026-09-09-reportkit-multi-format-publication-architecture-spec.md) | Draft / not started — architecture hardening ahead of new themes; 6 open questions | P2 |
+| [2026-09-09-reportkit-multi-format-publication-architecture-spec.md](docs/superpowers/specs/2026-09-09-reportkit-multi-format-publication-architecture-spec.md) | Draft — Phase A1 landed in v1.9.2; A2 implemented in the current tree; A0 and A3–A5 remain | P2 |
 | [2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md](docs/superpowers/specs/2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md) | Implemented for v1.9.0 — Phase A′ and paged-renderer B′ complete; renderer-dependent work deferred | P2 |
 | [2026-09-10-reportkit-fork-port-fixes-spec.md](docs/superpowers/specs/2026-09-10-reportkit-fork-port-fixes-spec.md) | Implemented in v1.9.1 via PR #19; all 11 applicable fixes landed | Complete |
 
@@ -99,25 +99,22 @@ for why.
   environment. See
   [the implementation plan](docs/superpowers/plans/2026-09-09-reportkit-institutional-theme-implementation-plan.md).
 
-- **Multi-format publication architecture — spec drafted 2026-09-09, not
-  started.** Generalizes the v1.9.1 institutional/equity implementation into a
-  renderer- and theme-safe architecture before adding executive, venture or
-  editorial themes: a publication/renderer registry, hard-failing
-  theme×publication-type validation, a shared/paged core split, callout and
-  diagram styling moved behind theme hooks, and publication-aware pipeline
-  template selection. Verification against the tree at `7d8c0fe` surfaced two
-  defects the draft understated and this spec now treats as in-scope bug
-  fixes: (a) `reportkit.cls:46` forwards unknown options to `article`, so
-  `theme=venture` compiles to a *warning* and a silently default-themed PDF
-  rather than an error; (b) `document.theme`/`.publication_type` are resolved
-  and engine-validated in Python but never reach `\documentclass` — the
-  pipeline template hardcodes an unparameterized `\documentclass{reportkit}`,
-  which is why the equity fixture is compiled directly instead of through the
-  markdown pipeline. Phase A must also establish a reproducible pinned
-  toolchain/visual-QA path now that local `lualatex` compiles pass, since this
-  phase would otherwise add three themes and a second renderer without a
-  trustworthy visual baseline. See
-  [the spec](docs/superpowers/specs/2026-09-09-reportkit-multi-format-publication-architecture-spec.md).
+- **Multi-format publication architecture — Phase A1 implemented in v1.9.2
+  (commits `db19e78`, `8efc601`); Phase A2 implemented in v1.9.3.**
+  `publications.py` is now the canonical
+  publication/renderer/theme registry: it resolves one immutable build target,
+  preserves the `technical` alias, validates engine and compatibility choices,
+  and supplies shared structured diagnostics to context, check, and build.
+  The current tree also implements Phase A2: a generated LaTeX compatibility
+  registry, shared hard-failing class-option parser, pair/renderer validation,
+  drift coverage, and staging for the new `.def`/`.tex` infrastructure. The
+  remaining Phase A work is ordered in the plan:
+  capture the pinned compatibility baseline (A0), split shared/paged mechanics
+  (A3), move component appearance behind theme hooks (A4), and make pipeline
+  templates target-aware (A5). The original architecture risk remains in
+  scope: the Markdown pipeline must eventually pass the resolved
+  theme/publication selection to LaTeX. See [the spec](docs/superpowers/specs/2026-09-09-reportkit-multi-format-publication-architecture-spec.md)
+  and [the implementation plan](docs/superpowers/plans/2026-09-10-reportkit-multi-format-publication-implementation-plan.md).
 
 - **Agent interface & platform contract — Phase A′ and the
   non-renderer-dependent parts of Phase B′ implemented in v1.9.0; remaining
@@ -148,15 +145,23 @@ for why.
 - The repository test environment is `build/.venv-tests`; it supplies
   PyMuPDF, NumPy, pandas, matplotlib, and pytest. The host Python environment
   is not authoritative for the full suite.
-- TeX Live 2025 with `lualatex` is available locally; strict acceptance and
-  the full equity fixture compile pass. The pinned visual-comparison
-  environment is not available on this host.
+- TeX Live 2025 with `lualatex` is available locally; the default/paged and
+  institutional strict acceptance fixtures compile using the checked-in,
+  licensed Google Sans fixtures staged by the test harness. Ambient system-font
+  fallback lookup is unavailable on this host; the pinned visual-comparison
+  environment is also unavailable.
 - `pdfinfo`, `pdffonts`, `pdftoppm` (poppler-utils): not installed on the current dev machine.
 - `pypdf`, `pdfplumber`, system-wide PyMuPDF: not installed.
 - `accsupp.sty`: not installed; `tlmgr install` fails (this checkout is TinyTeX on TL2025 against a TL2026 remote).
 - Libertinus fonts: installed to `TEXMFHOME` (`~/.TinyTeX/texmf-local`) from `font_data/reportkit-libertinus-fonts.tar.gz`.
 
 ## History
+
+- 2026-09-11: synchronized this index with the v1.9.2 publication-registry
+  commits and shipped Phase A2 in v1.9.3: a generated LaTeX compatibility
+  registry plus hard-failing theme/publication class-option validation. The
+  `technical` compatibility alias is documented in the contract and README;
+  A0 and Phase A3–A5 remain open.
 
 - 2026-09-10: fixed the contract acceptance gate. Diagram metadata now expands
   empty PGF-stored options before testing them, preventing duplicate empty

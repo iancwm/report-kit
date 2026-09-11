@@ -1,4 +1,4 @@
-% ReportKit v1.9.2 -- core document class
+% ReportKit v1.9.3 -- core document class
 % Project-local technical report grammar.
 % v1.1 adds structural pagination guards for section openings and diagrams.
 % v1.6 introduces a theme/publication-type architecture: typography,
@@ -21,56 +21,41 @@
 % publication-type=technical-report (the default) loads no extra file, same
 % as before -- only equity-research adds one.
 \NeedsTeXFormat{LaTeX2e}
-\ProvidesClass{reportkit}[2026/09/11 v1.9.2 ReportKit technical report class]
+\ProvidesClass{reportkit}[2026/09/11 v1.9.3 ReportKit technical report class]
 
 % -----------------------------------------------------------------------------
 % Theme / publication-type selection
 % -----------------------------------------------------------------------------
-% A fixed, enumerated option set -- not a general key=value parser -- so an
-% unrecognised theme or publication-type name fails loudly rather than being
-% silently accepted and ignored. \DeclareOption* passes anything unrecognised
-% through to `article`, which will itself reject it; that is an acceptable
-% (if not maximally friendly) failure mode for a name that doesn't exist yet
-% -- see the institutional-theme implementation plan, Step 1, "deferred".
-%
-% `theme=default`, `theme=institutional-research`,
-% `publication-type=technical-report`, and `publication-type=equity-research`
-% exist so far. Adding a theme or publication type means adding both the
-% corresponding \DeclareOption line here and the .sty file it loads.
+% Known declarations (including \DeclareOption{theme=institutional-research}
+% and \DeclareOption{publication-type=equity-research})
+% are generated from the canonical Python publication registry. The shared
+% parser intercepts unknown theme= and publication-type= values instead of
+% forwarding them to article, where they would otherwise produce a warning and
+% a plausible PDF under the wrong design system.
 \newcommand{\rk@theme}{default}
+\newcommand{\rk@requestedtheme}{default}
 \newcommand{\rk@publicationtype}{technical-report}
-\DeclareOption{theme=default}{\renewcommand{\rk@theme}{default}}
-\DeclareOption{theme=institutional-research}{\renewcommand{\rk@theme}{institutional-research}}
-\DeclareOption{publication-type=technical-report}{\renewcommand{\rk@publicationtype}{technical-report}}
-\DeclareOption{publication-type=equity-research}{\renewcommand{\rk@publicationtype}{equity-research}}
-\DeclareOption*{\PassOptionsToClass{\CurrentOption}{article}}
+\newcommand{\rk@classrenderer}{paged}
+\newcommand{\rk@classname}{reportkit}
+\input{reportkit-options.tex}
 \ProcessOptions\relax
+\RKValidateSelection
 
 \LoadClass[10pt,a4paper]{article}
 
 \RequirePackage{reportkit-core}
-% \rk@theme is a simple macro expanding to a literal theme name (set only by
-% \renewcommand above, never by user input beyond the enumerated \DeclareOption
-% set), so \edef-then-\expandafter is the standard, safe way to turn it into
-% a package name: it fully expands \rk@theme once into \rk@themepackage, then
-% hands \RequirePackage a literal token list, not a macro to expand itself.
-\edef\rk@themepackage{reportkit-theme-\rk@theme}
+% The registry resolves aliases to the canonical implementation package before
+% any theme code is loaded (theme=technical uses the default package).
+\edef\rk@themepackage{\csname RKThemePackage@\rk@theme\endcsname}
 \expandafter\RequirePackage\expandafter{\rk@themepackage}
 
-% Publication types layer primitives on top of the selected theme.
-% `technical-report` (the default) is the baseline shape every existing
-% ReportKit document already has -- it loads no extra file, same as before
-% this option existed. Any other publication-type name maps to
-% latex_templates/publication_types/reportkit-<name>.sty by the same
-% literal-substitution convention as themes above -- and, unlike the theme
-% filename (see reportkit-theme-institutional-research.sty's filename
-% note), `equity-research` needs no special case: spec §2's own target tree
-% names this file reportkit-equity-research.sty, which is exactly what
-% `reportkit-\rk@publicationtype` produces.
-\ifdefstring{\rk@publicationtype}{technical-report}{}{%
-  \edef\rk@pubtypepackage{reportkit-\rk@publicationtype}%
+% Publication types layer primitives on top of the selected theme. The package
+% name is also registry-backed so a future renderer/publication adapter cannot
+% silently inherit a filename convention it does not own.
+\edef\rk@pubtypepackage{\csname RKPublicationPackage@\rk@publicationtype\endcsname}
+\ifx\rk@pubtypepackage\@empty\else
   \expandafter\RequirePackage\expandafter{\rk@pubtypepackage}%
-}
+\fi
 
 % Semantic modules are part of the class contract.
 \RequirePackage{reportkit-boxes}

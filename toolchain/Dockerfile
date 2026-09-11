@@ -1,17 +1,26 @@
 FROM debian:13-slim@sha256:d7e12182ce18b85b93007c1dedf31f2d29e01ccf3182cc4017c709b6259bc132
 
 ARG DEBIAN_FRONTEND=noninteractive
+# The pinned slim base intentionally has no CA bundle. Bootstrap the exact
+# pinned ca-certificates package from Debian's signed snapshot metadata over
+# HTTP, then use HTTPS for the rest of the toolchain downloads.
 RUN rm -f /etc/apt/sources.list.d/debian.sources \
+ && printf '%s\n' \
+      'deb [check-valid-until=no] http://snapshot.debian.org/archive/debian/20260901T000000Z trixie main contrib non-free non-free-firmware' \
+      > /etc/apt/sources.list \
+ && apt-get -o Acquire::Check-Valid-Until=false update \
+ && apt-get install -y --no-install-recommends ca-certificates=20250419 \
  && printf '%s\n' \
       'deb [check-valid-until=no] https://snapshot.debian.org/archive/debian/20260901T000000Z trixie main contrib non-free non-free-firmware' \
       > /etc/apt/sources.list \
  && apt-get -o Acquire::Check-Valid-Until=false update \
  && apt-get install -y --no-install-recommends \
-      ca-certificates=20250419 fontconfig=2.15.0-2.3 git=1:2.47.3-0+deb13u1 \
+      fontconfig=2.15.0-2.3 git=1:2.47.3-0+deb13u1 \
       pandoc=3.1.11.1+ds-2 \
       python3=3.13.5-1 python3-pip=25.1.1+dfsg-1 python3-venv=3.13.5-1 \
       texlive-bibtex-extra=2024.20250309-2 texlive-fonts-recommended=2024.20250309-1 \
       texlive-latex-extra=2024.20250309-2 texlive-luatex=2024.20250309-1 \
+      texlive-science=2024.20250309-2 \
  && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /opt/reportkit
@@ -22,6 +31,7 @@ RUN printf '%s  %s\n' \
       'a0936e8e2b28f990fd0472c07a8db9128a874b40e79e87853585f08c8106f114' 'font_data/GoogleSans-Bold.ttf' \
       '4de69940330e5783c678b94809c68b44f1e4af544ae7d7638d3c659b83895867' 'font_data/GoogleSans-Medium.ttf' \
       '9bbea74c7b2717525b76f0631ca03574cf672030c64f3961e8d54bfe0bc4b68a' 'font_data/GoogleSans-Regular.ttf' \
+      '37e34c5ac60ef91ba2fc032fafc160d76e3fab3769a3823d17ba250aad41c2fe' 'font_data/LinBiolinum_K.otf' \
       '3f02be1a2c269af8c5ea95b2b93a8337e8cc1147f17f8f607923e189939fa7c9' 'font_data/reportkit-libertinus-fonts.tar.gz' \
     | sha256sum --check --strict
 RUN python3 -m venv /opt/reportkit/.venv \
@@ -33,14 +43,20 @@ RUN install -d /usr/local/share/fonts/reportkit \
       font_data/GoogleSans-Regular.ttf /usr/local/share/fonts/reportkit/ \
  && fc-cache -f \
  && mkdir -p /usr/local/share/texmf \
+ && install -d /usr/local/share/texmf/fonts/opentype/public/libertine-stub \
+ && install -m 0644 font_data/LinBiolinum_K.otf \
+      /usr/local/share/texmf/fonts/opentype/public/libertine-stub/ \
  && tar -xzf font_data/reportkit-libertinus-fonts.tar.gz -C /usr/local/share/texmf \
- && mktexlsr /usr/local/share/texmf
+ && mktexlsr /usr/local/share/texmf \
+ && updmap-sys --enable Map=libertinus.map \
+      --enable Map=libertinust1math.map \
+ && TERM=xterm luaotfload-tool --update --force
 
 ENV PATH="/opt/reportkit/.venv/bin:${PATH}" \
     SOURCE_DATE_EPOCH=1 \
     TZ=UTC \
     PYTHONHASHSEED=0 \
     MPLBACKEND=Agg \
-    REPORTKIT_TOOLCHAIN_FINGERPRINT=74513be7e9578e0bc9ec84bcb12a1edf43743a32b967ee6b8b8b4288e96fe50c
+    REPORTKIT_TOOLCHAIN_FINGERPRINT=6e0fc8ea7889634d3c337eacc4e4f68adb10c2c968e2e7e683f5c24de07408e5
 
 ENTRYPOINT ["/opt/reportkit/reportkit"]

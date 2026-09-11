@@ -64,7 +64,8 @@ fi
 # reportnetwork collision compiled successfully while reversing every arrow,
 # so log-grep alone cannot be the visual grammar gate.
 TEST_PYTHON="${REPORTKIT_TEST_PYTHON:-}"
-if [[ -z "$TEST_PYTHON" && -x "$ROOT/build/.venv-tests/bin/python" ]]; then
+if [[ -z "$TEST_PYTHON" && -x "$ROOT/build/.venv-tests/bin/python" ]] \
+   && "$ROOT/build/.venv-tests/bin/python" -c 'import pytest' >/dev/null 2>&1; then
   TEST_PYTHON="$ROOT/build/.venv-tests/bin/python"
 fi
 if [[ -z "$TEST_PYTHON" ]] && command -v python3 >/dev/null 2>&1 \
@@ -90,8 +91,13 @@ fi
 # Themes and publication types each live one directory deeper
 # (latex_templates/themes/, latex_templates/publication_types/); flatten
 # them into WORKDIR too so \documentclass{reportkit} can find a non-default
-# theme= or publication-type= file.
-cp "$ROOT"/latex_templates/*.cls "$ROOT"/latex_templates/*.sty "$ROOT"/latex_templates/themes/*.sty "$ROOT"/latex_templates/publication_types/*.sty "$WORKDIR"/
+# theme= or publication-type= file, plus the generated registry and shared
+# option parser used by reportkit.cls.
+cp "$ROOT"/latex_templates/*.cls "$ROOT"/latex_templates/*.def "$ROOT"/latex_templates/reportkit-*.tex "$ROOT"/latex_templates/*.sty "$ROOT"/latex_templates/themes/*.sty "$ROOT"/latex_templates/publication_types/*.sty "$WORKDIR"/
+if [[ -d "$ROOT/font_data" ]]; then
+  mkdir -p "$WORKDIR/font_data"
+  cp "$ROOT"/font_data/GoogleSans-*.ttf "$WORKDIR/font_data"/
+fi
 status=0
 : > "$WORKDIR/compile.log"
 for test_tex in "${TEST_TEXES[@]}"; do

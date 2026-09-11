@@ -237,6 +237,79 @@ class PublicationRegistryError(ValueError):
         )
 
 
+def render_latex_registry() -> str:
+    """Render the generated LaTeX backstop for the publication registry.
+
+    ``publications.py`` remains the only hand-maintained compatibility
+    catalog.  The emitted file is deliberately plain TeX: hand-written
+    documents can validate their class options without importing Python, and
+    the class option parser can keep forwarding unrelated base-class options.
+    Keep this output deterministic; a drift test compares it with the
+    checked-in ``reportkit-publication-registry.def`` file.
+    """
+    def csdef(name: str, value: str) -> str:
+        # Registry identifiers contain hyphens, which terminate a normal TeX
+        # control sequence name. \csname keeps the generated lookup keys
+        # faithful to their Python names.
+        return rf"\expandafter\def\csname {name}\endcsname{{{value}}}"
+
+    lines = [
+        "% Generated from python_scripts/reportkit/publications.py; do not edit.",
+        "% Regenerate with: python -c 'from reportkit.publications import write_latex_registry; write_latex_registry(...)'",
+        r"\def\RKPublicationRegistryVersion{1}",
+        r"\def\RKValidThemes{" + ",".join(sorted(THEMES)) + "}",
+        r"\def\RKValidPublicationTypes{" + ",".join(sorted(PUBLICATION_TYPES)) + "}",
+        r"\def\RKValidRenderers{" + ",".join(sorted(RENDERERS)) + "}",
+    ]
+
+    for name, record in sorted(RENDERERS.items()):
+        lines.extend([
+            csdef(f"RKRendererClass@{name}", str(record["class_adapter"])),
+            csdef(f"RKRendererClassFile@{name}", str(record["class_file"])),
+            csdef(f"RKRendererTemplateBase@{name}", str(record["template_base"])),
+            csdef(f"RKRendererPandocWriter@{name}", str(record["pandoc_writer"])),
+            csdef(f"RKRendererGeometryKind@{name}", str(record["geometry"]["kind"])),
+        ])
+
+    for name, record in sorted(THEMES.items()):
+        canonical = _canonical_theme_name(name)
+        canonical_record = THEMES[canonical]
+        lines.extend([
+            csdef(f"RKThemeCanonical@{name}", canonical),
+            csdef(f"RKThemePackage@{name}", str(canonical_record["common_package"])),
+            csdef(f"RKThemeRenderers@{name}", ",".join(sorted(str(value) for value in record["renderers"]))),
+            csdef(f"RKThemeRequiredEngine@{name}", str(canonical_record["required_engine"])),
+        ])
+        for renderer in sorted(str(value) for value in record["renderers"]):
+            adapter = (canonical_record.get("renderer_adapters") or {}).get(renderer, "")
+            lines.append(csdef(f"RKThemeAdapter@{name}@{renderer}", str(adapter)))
+        # The option declarations are generated alongside the data so adding
+        # a registry value cannot leave the class parser one release behind.
+        lines.append(rf"\DeclareOption{{theme={name}}}{{\RKSetTheme{{{name}}}{{{canonical}}}}}")
+
+    for name, record in sorted(PUBLICATION_TYPES.items()):
+        themes = [str(value) for value in record["themes"]]
+        package = str(record.get("package") or "")
+        lines.extend([
+            csdef(f"RKPublicationRenderer@{name}", str(record["renderer"])),
+            csdef(f"RKPublicationClass@{name}", str(RENDERERS[record["renderer"]]["class_adapter"])),
+            csdef(f"RKPublicationThemes@{name}", ",".join(themes)),
+            csdef(f"RKPublicationDefaultTheme@{name}", str(record["default_target"]["theme"])),
+            csdef(f"RKPublicationPackage@{name}", package),
+            rf"\DeclareOption{{publication-type={name}}}{{\RKSetPublicationType{{{name}}}}}",
+        ])
+        for theme in themes:
+            lines.append(rf"\expandafter\def\csname RKPublicationTheme@{name}@{theme}\endcsname{{1}}")
+
+    return "\n".join(lines) + "\n"
+
+
+def write_latex_registry(path: Path) -> None:
+    """Write the deterministic generated LaTeX registry to ``path``."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(render_latex_registry(), encoding="utf-8")
+
+
 def _registry_error(
     message: str, *, candidates: list[str] | None = None,
     details: dict[str, Any] | None = None,

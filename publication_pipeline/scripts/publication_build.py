@@ -39,7 +39,7 @@ DEFAULT_SOURCE_ROOT = PIPELINE_ROOT / "example_publication"
 
 
 def template_files() -> list[Path]:
-    """Every .cls/.sty ReportKit ships, flattened for TEXINPUTS by filename.
+    """Every ReportKit TeX input, flattened for TEXINPUTS by filename.
 
     Themes and publication types live in latex_templates/themes/ and
     latex_templates/publication_types/ respectively (see reportkit.cls's
@@ -53,6 +53,8 @@ def template_files() -> list[Path]:
     templates = REPO_ROOT / "latex_templates"
     return (
         sorted(templates.glob("*.cls"))
+        + sorted(templates.glob("*.def"))
+        + sorted(templates.glob("reportkit-*.tex"))
         + sorted(templates.glob("*.sty"))
         + sorted(templates.glob("themes/*.sty"))
         + sorted(templates.glob("publication_types/*.sty"))

@@ -27,7 +27,7 @@ Migrating an existing content branch out of this repo is covered in
 [`references/migrating-content-branches.md`](references/migrating-content-branches.md).
 
 ## 1. latex_templates/
-- `reportkit.cls` (v1.9.2), `reportkit-core.sty`, `reportkit-boxes.sty`,
+- `reportkit.cls` (v1.9.3), `reportkit-core.sty`, `reportkit-boxes.sty`,
   `reportkit-code.sty`, `reportkit-diagrams.sty`, `reportkit-grammar.sty`,
   `reportkit-pandoc.sty`, and `reportkit-longform.sty` — the core document
   class and style files. The public diagram DSL covers positioning, risk,
@@ -53,6 +53,9 @@ Migrating an existing content branch out of this repo is covered in
 - `examples/{primitive_acceptance_test,visual_grammar_acceptance_test}.tex` —
   compile the legacy and v1.4 public APIs respectively; use the acceptance
   check after any core-file change.
+- `examples/institutional_equity_acceptance_test.tex` — compact LuaLaTeX
+  coverage for the institutional-research/equity-research pair; the acceptance
+  check stages the licensed Google Sans fixtures from `font_data/`.
 - `examples/career_guide_en/` — full 7-page worked example (pdflatex).
 - `examples/career_guide_vi/` — full 4-page worked example with Vietnamese content
   (lualatex; see `references/font-setup.md` for the extra setup this needs).
@@ -88,6 +91,9 @@ See [`publication_pipeline/README.md`](publication_pipeline/README.md).
 ## 4. font_data/
 - `reportkit-libertinus-fonts.tar.gz` — the ~26MB Libertinus font subset harvested
   from `texlive-fonts-extra` (a 1.7GB package), for fast `bootstrap.sh` setup.
+- `GoogleSans-{Regular,Medium,Bold}.ttf` — licensed fixtures for the
+  institutional-research theme's local `font_path` and acceptance smoke test;
+  see `GOOGLE_SANS_LICENSE.md`.
 - `LinBiolinum_K.otf` + `LinBiolinum_K_stub_README.md` — stub font and explanation
   for the lualatex-only upstream packaging gap in `libertinus-otf.sty`.
 
@@ -140,7 +146,7 @@ you're a person cloning this locally or a Claude session bootstrapping it.
 
 ## Versioning
 
-Releases are git tags (for example `v1.9.2`) on this repo, not a zip or package
+Releases are git tags (for example `v1.9.3`) on this repo, not a zip or package
 registry. The ReportKit release version and machine-contract version are
 independent; see [`references/agent-contract.md`](references/agent-contract.md)
 and `CHANGELOG.md`.

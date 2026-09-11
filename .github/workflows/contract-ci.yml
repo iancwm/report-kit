@@ -37,7 +37,8 @@ jobs:
       - name: Verify contract, schemas, diagnostics, and renderers
         run: >-
           docker run --rm --entrypoint /bin/bash reportkit-ci -lc
-          './reportkit doctor --require pinned-toolchain --json &&
+          'export PATH="/opt/reportkit/.venv/bin:$PATH" &&
+          ./reportkit doctor --require pinned-toolchain --json &&
           ./reportkit docs --check --json &&
           python -m pytest tests publication_pipeline/tests -q &&
           bash scripts/acceptance_check.sh --require-tex &&

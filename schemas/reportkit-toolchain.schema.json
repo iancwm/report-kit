@@ -11,7 +11,16 @@
     "python_packages": {"type": "object", "additionalProperties": {"type": "string"}},
     "python_lock_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
     "fonts": {"type": "object", "additionalProperties": {"type": "string", "pattern": "^[a-f0-9]{64}$"}},
-    "renderer": {"type": "object"}, "normalization": {"type": "object"}
+    "renderer": {"type": "object"}, "normalization": {"type": "object"},
+    "font_database": {
+      "type": "object",
+      "required": ["generator", "mode"],
+      "properties": {
+        "generator": {"const": "luaotfload-tool"},
+        "mode": {"const": "update --force"}
+      },
+      "additionalProperties": false
+    }
   },
   "additionalProperties": false
 }

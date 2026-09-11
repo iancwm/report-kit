@@ -63,6 +63,13 @@
 % margin) built the same way.
 \documentclass[theme=institutional-research,publication-type=equity-research]{reportkit}
 
+% Keep the visual-regression fixture self-contained when the repository's
+% licensed Google Sans fixtures are staged beside it. Consumer projects can
+% omit this directory and exercise the theme's configured fallback policy.
+\IfFileExists{font_data/GoogleSans-Regular.ttf}{%
+  \setreportkitfontpath{font_data/}%
+}{}
+
 \setreportkitleftheader{Nexa Cloud Solutions, Inc. (NXCL)}
 \setreportkitfooter{ReportKit Research -- Fictional demonstration publication}
 \setreportkitversion{v1.0}
@@ -78,7 +85,7 @@
 
 \begin{researchfrontpage}
 \researchkicker{Enterprise Software / North America}
-\researchheadline{AI Infrastructure Demand Is Holding Up Better Than Feared; Services Mix Provides an Offset}
+\researchheadline{AI Infrastructure Demand Is Holding Up Better\\Than Feared; Services Mix Provides an Offset}
 \researchdeck{We trim FY27 infrastructure growth assumptions after channel checks point to slower enterprise deployments, but raise our services estimates as AI orchestration usage remains resilient. Lower hardware-linked contribution is more than offset by recurring platform revenue, keeping our price target at \$245.}
 
 \begin{ratingstrip}[itemcount=4]

@@ -12,6 +12,13 @@
 % question 1), not a bug in this fixture.
 \documentclass[theme=institutional-research,publication-type=equity-research]{reportkit}
 
+% Keep the checked-in smoke fixture self-contained when the repository's
+% licensed Google Sans fixtures are staged beside it. Consumer projects can
+% omit this directory and exercise the theme's configured fallback policy.
+\IfFileExists{font_data/GoogleSans-Regular.ttf}{%
+  \setreportkitfontpath{font_data/}%
+}{}
+
 \setreportkitleftheader{REPORTKIT / INSTITUTIONAL-EQUITY ACCEPTANCE TEST}
 \setreportkitfooter{Institutional-research theme + equity-research acceptance test}
 \setreportkitversion{v1.8.0}

@@ -73,11 +73,19 @@ def compile_fixture(workdir: Path) -> tuple[Path, str, int]:
     """Compile report.tex with lualatex; return the PDF, combined log, and exit status."""
     for src in (
         list(TEMPLATES.glob("*.cls"))
+        + list(TEMPLATES.glob("*.def"))
+        + list(TEMPLATES.glob("reportkit-*.tex"))
         + list(TEMPLATES.glob("*.sty"))
         + list((TEMPLATES / "themes").glob("*.sty"))
         + list((TEMPLATES / "publication_types").glob("*.sty"))
     ):
         shutil.copy(src, workdir / src.name)
+    font_data = ROOT / "font_data"
+    if font_data.is_dir():
+        staged_fonts = workdir / "font_data"
+        staged_fonts.mkdir()
+        for source in sorted(font_data.glob("GoogleSans-*.ttf")):
+            shutil.copy(source, staged_fonts / source.name)
     shutil.copy(EXAMPLE / "report.tex", workdir / "report.tex")
     shutil.copytree(EXAMPLE / "figures", workdir / "figures", dirs_exist_ok=True)
 
@@ -93,7 +101,10 @@ def compile_fixture(workdir: Path) -> tuple[Path, str, int]:
             memory_limit_mb=2048,
             env={
                 **os.environ,
-                "openin_any": "p",
+                # LuaLaTeX must read its installed article class and Unicode
+                # data files; the fixture itself is checked in and shell
+                # escape remains disabled by run_limited().
+                "openin_any": "a",
                 "openout_any": "p",
                 "SOURCE_DATE_EPOCH": "1",
                 "FORCE_SOURCE_DATE": "1",

@@ -6,6 +6,23 @@ tags on this repository, not a published package registry.
 
 ## [Unreleased]
 
+## [1.9.3] - 2026-09-11
+
+### Added
+- Hand-written LaTeX documents now use a generated publication registry and
+  shared class-option parser, so unknown themes, unknown publication types,
+  unsupported theme/publication pairs, and renderer mismatches fail with a
+  class error instead of producing a plausible document under the wrong target.
+
+### Changed
+- Publication template staging and acceptance checks now include generated
+  registry/parser inputs and the licensed Google Sans fixtures used by the
+  institutional-research smoke test.
+
+### For contributors
+- Registry drift and compile coverage exercise the `technical` alias, supported
+  publication pairs, and invalid selections.
+
 ## [1.9.2] - 2026-09-11
 
 ### Added
