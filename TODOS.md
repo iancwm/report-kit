@@ -1,6 +1,6 @@
 # ReportKit — Outstanding Work
 
-**Last updated:** 2026-09-11
+**Last updated:** 2026-09-12
 
 This is an index, not an audit. Each spec/plan under `docs/superpowers/`
 carries its own `**Status:**` line, updated at the workflow checkpoint that
@@ -24,6 +24,7 @@ for why.
 | [2026-09-09-reportkit-multi-format-publication-architecture-spec.md](docs/superpowers/specs/2026-09-09-reportkit-multi-format-publication-architecture-spec.md) | Draft — Phase A1 landed in v1.9.2; A2 implemented in the current tree; A0 and A3–A5 remain | P2 |
 | [2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md](docs/superpowers/specs/2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md) | Implemented for v1.9.0 — Phase A′ and paged-renderer B′ complete; renderer-dependent work deferred | P2 |
 | [2026-09-10-reportkit-fork-port-fixes-spec.md](docs/superpowers/specs/2026-09-10-reportkit-fork-port-fixes-spec.md) | Implemented in v1.9.1 via PR #19; all 11 applicable fixes landed | Complete |
+| [2026-09-12-reportkit-code-quality-and-dependency-remediation-spec.md](docs/superpowers/specs/2026-09-12-reportkit-code-quality-and-dependency-remediation-spec.md) | Draft v0.1 — 17 findings banded into three phases; Phase 0 is user-facing breakage; 3 open questions | P0 |
 
 ## Open work
 
@@ -35,6 +36,17 @@ for why.
   [references/migrating-content-branches.md](references/migrating-content-branches.md)
   already dispositions it as "Superseded and stale… then delete". Branch the
   next tooling slice fresh from `main`.
+
+- **P0-2 — the documented quick start is broken.** `shell_scripts/bootstrap.sh`
+  crashes at its doctor step with `ModuleNotFoundError: No module named
+  'reportkit'` (it copies `reportkit_doctor.py`/`reportkit_viz.py` but not the
+  package they import), then prints `== bootstrap complete ==` anyway because
+  `set -uo pipefail` omits `-e`. `SKILL.md`'s Quick start documents that exact
+  invocation. Its copied TeX set is also missing three files `reportkit.cls`
+  requires unconditionally. Decision taken: retire `bootstrap.sh` in favour of
+  `reportkit init` + `--source-root`. Ships with the LaTeX-escaper divergence,
+  the missing `LICENSE`, and the absent dependency-install docs as Phase 0 of
+  [2026-09-12-reportkit-code-quality-and-dependency-remediation-spec.md](docs/superpowers/specs/2026-09-12-reportkit-code-quality-and-dependency-remediation-spec.md).
 
 ### P1
 
