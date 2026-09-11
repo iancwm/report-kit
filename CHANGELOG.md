@@ -13,13 +13,15 @@ tags on this repository, not a published package registry.
   shared class-option parser, so unknown themes, unknown publication types,
   unsupported theme/publication pairs, and renderer mismatches fail with a
   class error instead of producing a plausible document under the wrong target.
-- Registry drift and compile coverage now exercise the `technical` alias,
-  supported publication pairs, and invalid selections.
 
 ### Changed
 - Publication template staging and acceptance checks now include generated
   registry/parser inputs and the licensed Google Sans fixtures used by the
   institutional-research smoke test.
+
+### For contributors
+- Registry drift and compile coverage exercise the `technical` alias, supported
+  publication pairs, and invalid selections.
 
 ## [1.9.2] - 2026-09-11
 
