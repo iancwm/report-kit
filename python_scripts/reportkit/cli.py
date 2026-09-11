@@ -21,13 +21,17 @@ from .config import (
     resolve_document,
     resolve_identity,
     resolve_theme,
-    theme_engine_conflict,
     theme_font_policy_conflict,
 )
 from .context import build_context
 from .diagnostics import diagnostic_envelope, inspect_log, load_allowlist, load_maps, make_diagnostic, suggest
 from .documentation import check_documentation, write_documentation
-from .publications import PUBLICATION_TYPES, THEMES, compatibility_error
+from .publications import (
+    PUBLICATION_TYPES,
+    THEMES,
+    PublicationRegistryError,
+    resolve_build_target,
+)
 from .registry import COMMANDS, COMMAND_CONTRACT, PRIMITIVE_KINDS, ContractError, generate_registry
 from .version import CONTRACT_VERSION, REPORTKIT_VERSION
 
@@ -167,6 +171,17 @@ def _run_context(args: argparse.Namespace) -> int:
         )
         _json_or_print(diagnostic_envelope([diagnostic], passed=False), True)
         return EXIT_VALIDATION
+    except PublicationRegistryError as exc:
+        diagnostic = dict(exc.diagnostic)
+        # Keep the registry API's complete valid-value list, while preserving
+        # the CLI's long-standing typo-focused candidate suggestions.
+        message = str(diagnostic.get("message", ""))
+        if args.publication_type and message.startswith("unknown publication type"):
+            diagnostic["candidates"] = sorted(set(suggest(args.publication_type, PUBLICATION_TYPES)))
+        elif args.theme and message.startswith("unknown theme"):
+            diagnostic["candidates"] = sorted(set(suggest(args.theme, THEMES)))
+        _json_or_print(diagnostic_envelope([diagnostic], passed=False), True)
+        return EXIT_CONFIG
     except ValueError as exc:
         candidates: list[str] = []
         if args.publication_type:
@@ -236,12 +251,16 @@ def _run_check(args: argparse.Namespace) -> int:
     engine_override = getattr(args, "engine", None) or os.environ.get("REPORTKIT_TEX_ENGINE")
     if engine_override:
         document = {**document, "engine": engine_override}
-    conflict = theme_engine_conflict(document)
-    if conflict:
-        diagnostics.append(make_diagnostic("configuration_error", conflict, code="RK_CONFIG_ENGINE", primitive="document.engine", docs="#/selection"))
-    pairing = compatibility_error(str(document.get("publication_type")), str(document.get("theme")))
-    if pairing:
-        diagnostics.append(make_diagnostic("configuration_error", pairing, code="RK_CONFIG_COMPATIBILITY", primitive="document.theme", docs="#/capabilities/publication_types"))
+    try:
+        resolve_build_target(
+            str(document.get("publication_type")),
+            str(document.get("theme")),
+            explicit_paper=str(document.get("paper")),
+            engine=str(document.get("engine")),
+            repo_root=REPO_ROOT,
+        )
+    except PublicationRegistryError as exc:
+        diagnostics.append(exc.diagnostic)
     font_policy_conflict = theme_font_policy_conflict(resolve_theme(config, args.profile))
     if font_policy_conflict:
         diagnostics.append(make_diagnostic("configuration_error", font_policy_conflict, code="RK_CONFIG_FONT_POLICY", primitive="theme.font_policy"))

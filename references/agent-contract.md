@@ -17,9 +17,10 @@ reportkit docs --check --json
 ```
 
 Contract schema `1.0.0` describes only the combinations that ship today:
-`technical-report/default/paged` and
+`technical-report/{default,technical}/paged` and
 `equity-research/institutional-research/paged`. Theme entries expose semantic
-capability names, not visual values. English with Latin script is verified;
+capability names, not visual values; `technical` resolves to the same
+implementation as `default`. English with Latin script is verified;
 Vietnamese is metadata-only pending the i18n phase, and RTL is unsupported.
 
 The contract and the ReportKit release have independent versions. `check` and

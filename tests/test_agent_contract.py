@@ -138,11 +138,28 @@ def test_context_is_versioned_filterable_and_legacy_compatible() -> None:
     context = build_context(REPO, kinds=["chart"], publication_type="equity-research")
     assert context["schema_version"] == "1.0.0"
     assert context["contract_version"] == "1.0.0"
-    assert context["reportkit_version"] == "1.9.1"
+    assert context["reportkit_version"] == "1.9.2"
     assert context["selection"] == {
-        "engine": "lualatex", "theme": "institutional-research",
-        "publication_type": "equity-research", "renderer": "paged",
-        "paper": "letter", "profile": "draft",
+        "publication_type": "equity-research", "requested_theme": "institutional-research",
+        "requested_name": "institutional-research",
+        "theme": "institutional-research", "alias_of": None, "renderer": "paged",
+        "class": "reportkit", "template": "publication-template.tex", "writer": "latex",
+        "engine": "lualatex", "paper": "letter", "canvas": None,
+        "geometry": {"kind": "paper", "papers": ["a4", "letter"], "paper": "letter"},
+        "accessibility": {
+            "pdf_metadata": "supported", "catalog_language": "supported", "bookmarks": "supported",
+            "meaningful_links": "supported", "diagram_actual_text": "supported",
+            "tagged_pdf": "unsupported",
+            "tagged_pdf_reason": "The pinned LaTeX format has not yet passed the documented tagging spike.",
+        },
+        "common_package": "reportkit-theme-institutional-research",
+        "renderer_adapter": "reportkit-theme-institutional-research",
+        "publication_package": "reportkit-equity-research", "brand_overrides": False,
+        "language_support": {
+            "verified": ["en"], "metadata_only": ["vi"],
+            "scripts": {"verified": ["Latn"], "metadata_only": []}, "rtl": "unsupported",
+        },
+        "profile": "draft",
     }
     assert "theme=institutional-research,publication-type=equity-research" in context["capabilities"]["authoring"]["document_template"]
     assert "apply_theme('institutional-research')" in context["capabilities"]["authoring"]["chart_prelude"]
@@ -196,9 +213,10 @@ def test_full_build_emits_schema_v3_report_and_lock(tmp_path: Path) -> None:
 def test_context_catalog_contains_only_the_current_publication_matrix() -> None:
     capabilities = build_context(REPO)["capabilities"]
     assert set(capabilities["publication_types"]) == {"technical-report", "equity-research"}
-    assert capabilities["publication_types"]["technical-report"]["themes"] == ["default"]
+    assert capabilities["publication_types"]["technical-report"]["themes"] == ["default", "technical"]
     assert capabilities["publication_types"]["equity-research"]["themes"] == ["institutional-research"]
     assert set(capabilities["renderers"]) == {"paged"}
+    assert set(capabilities["themes"]) == {"default", "technical", "institutional-research"}
     assert all(theme["language_support"]["rtl"] == "unsupported" for theme in capabilities["themes"].values())
     assert all(theme["language_support"]["scripts"]["verified"] == ["Latn"] for theme in capabilities["themes"].values())
 
@@ -473,7 +491,7 @@ def test_toolchain_fingerprint_and_release_version_are_stable() -> None:
     assert set(lock["apt_packages"]) == set(lock["apt_package_versions"])
     fingerprint = toolchain_fingerprint(lock)
     assert fingerprint == "74513be7e9578e0bc9ec84bcb12a1edf43743a32b967ee6b8b8b4288e96fe50c"
-    assert REPORTKIT_VERSION == "1.9.1"
+    assert REPORTKIT_VERSION == "1.9.2"
     assert generate_registry(REPO)["class_version"] == REPORTKIT_VERSION
     assert load_toolchain_lock(REPO)["apt_package_versions"]
     dockerfile = (REPO / "toolchain" / "Dockerfile").read_text()

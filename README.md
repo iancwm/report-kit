@@ -27,7 +27,7 @@ Migrating an existing content branch out of this repo is covered in
 [`references/migrating-content-branches.md`](references/migrating-content-branches.md).
 
 ## 1. latex_templates/
-- `reportkit.cls` (v1.9.1), `reportkit-core.sty`, `reportkit-boxes.sty`,
+- `reportkit.cls` (v1.9.2), `reportkit-core.sty`, `reportkit-boxes.sty`,
   `reportkit-code.sty`, `reportkit-diagrams.sty`, `reportkit-grammar.sty`,
   `reportkit-pandoc.sty`, and `reportkit-longform.sty` — the core document
   class and style files. The public diagram DSL covers positioning, risk,
@@ -62,7 +62,8 @@ Migrating an existing content branch out of this repo is covered in
   context, check, build, diagnose, inspect, docs, analyse-history, and package; its importable
   implementation lives under `python_scripts/reportkit/`, including
   `reportkit/themes/` — per-theme Python tokens (`default`,
-  `institutional-research`) that `reportkit_viz.py` resolves by name.
+  `institutional-research`) plus the `technical` compatibility alias for
+  `default` that `reportkit_viz.py` and the publication context resolve by name.
 - `reportkit_viz.py` — Matplotlib analytical chart theme, switchable at
   runtime via `apply_theme(name)` (palette/geometry/fonts synced with the
   matching `latex_templates/themes/*.sty` file; `check-theme --theme <name>`
@@ -139,7 +140,7 @@ you're a person cloning this locally or a Claude session bootstrapping it.
 
 ## Versioning
 
-Releases are git tags (for example `v1.9.1`) on this repo, not a zip or package
+Releases are git tags (for example `v1.9.2`) on this repo, not a zip or package
 registry. The ReportKit release version and machine-contract version are
 independent; see [`references/agent-contract.md`](references/agent-contract.md)
 and `CHANGELOG.md`.

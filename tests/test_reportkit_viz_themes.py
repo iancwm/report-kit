@@ -40,8 +40,8 @@ def _restore_default_theme():
     rkv.apply_theme("default")
 
 
-def test_available_themes_lists_both() -> None:
-    assert available_themes() == ("default", "institutional-research")
+def test_available_themes_lists_declared_aliases() -> None:
+    assert available_themes() == ("default", "institutional-research", "technical")
 
 
 def test_get_theme_unknown_name_raises_with_known_themes_listed() -> None:

@@ -5,6 +5,8 @@ from pathlib import Path
 import re
 from typing import Any
 
+from .publications import THEMES, engine_conflict
+
 CONFIG_NAME = "publication.yaml"
 REQUIRED = ("title",)
 IDENTITY_KEYS = (
@@ -13,13 +15,13 @@ IDENTITY_KEYS = (
 )
 DOCUMENT_KEYS = ("main", "class", "engine", "theme", "publication_type", "paper")
 LICENSE_KEYS = ("content_license", "content_license_url", "classification")
-# Themes that require a specific engine. Selecting the theme without
-# configuring that engine must fail validation rather than silently degrade
-# the PDF (for example, falling back off Google Sans under pdfTeX). See
-# docs/superpowers/specs/2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md,
-# open question 1.
+# Compatibility view retained for callers that imported this constant before
+# the publication registry became canonical. Values are derived from the
+# registry; there is no second hand-maintained engine table.
 THEME_ENGINE_REQUIREMENTS: dict[str, str] = {
-    "institutional-research": "lualatex",
+    name: str(record["required_engine"])
+    for name, record in THEMES.items()
+    if record.get("required_engine")
 }
 # Optional theme-level knobs (spec §3). These are validated and resolved
 # here so `reportkit check`/`reportkit context` know about them, but nothing
@@ -384,18 +386,8 @@ def theme_engine_conflict(document: dict[str, Any]) -> str | None:
     into ``document["engine"]``) so an explicit override is honoured the
     same way a config-file value would be.
     """
-    theme = str(document.get("theme") or "default")
-    required = THEME_ENGINE_REQUIREMENTS.get(theme)
-    if required is None:
-        return None
     engine = str(document.get("engine") or "pdflatex")
-    if engine == required:
-        return None
-    return (
-        f"theme {theme!r} requires engine {required!r}, but the resolved engine is "
-        f"{engine!r}. Set document.engine: {required} in publication.yaml, or pass "
-        f"--engine {required}."
-    )
+    return engine_conflict(str(document.get("theme") or "default"), engine)
 
 
 def resolve_theme(config: dict[str, Any], profile: str | None = None) -> dict[str, Any]:

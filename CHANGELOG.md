@@ -6,6 +6,16 @@ tags on this repository, not a published package registry.
 
 ## [Unreleased]
 
+## [1.9.2] - 2026-09-11
+
+### Added
+- Publication authors can now resolve the current paged publication matrix
+  into one immutable build target, including the renderer, class, template,
+  writer, engine, geometry, accessibility, and package choices.
+- `reportkit context`, `check`, and `build` now share registry-backed target
+  validation, including the `technical` compatibility alias, engine checks,
+  candidate suggestions, and structured configuration diagnostics.
+
 ## [1.9.1] - 2026-09-10
 
 ### Fixed
