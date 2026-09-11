@@ -13,7 +13,8 @@
     "texlive-bibtex-extra",
     "texlive-fonts-recommended",
     "texlive-latex-extra",
-    "texlive-luatex"
+    "texlive-luatex",
+    "texlive-science"
   ],
   "apt_package_versions": {
     "ca-certificates": "20250419",
@@ -26,7 +27,8 @@
     "texlive-bibtex-extra": "2024.20250309-2",
     "texlive-fonts-recommended": "2024.20250309-1",
     "texlive-latex-extra": "2024.20250309-2",
-    "texlive-luatex": "2024.20250309-1"
+    "texlive-luatex": "2024.20250309-1",
+    "texlive-science": "2024.20250309-2"
   },
   "python_version": "3.13.5",
   "python_packages": {
@@ -42,6 +44,7 @@
     "font_data/GoogleSans-Bold.ttf": "a0936e8e2b28f990fd0472c07a8db9128a874b40e79e87853585f08c8106f114",
     "font_data/GoogleSans-Medium.ttf": "4de69940330e5783c678b94809c68b44f1e4af544ae7d7638d3c659b83895867",
     "font_data/GoogleSans-Regular.ttf": "9bbea74c7b2717525b76f0631ca03574cf672030c64f3961e8d54bfe0bc4b68a",
+    "font_data/LinBiolinum_K.otf": "37e34c5ac60ef91ba2fc032fafc160d76e3fab3769a3823d17ba250aad41c2fe",
     "font_data/reportkit-libertinus-fonts.tar.gz": "3f02be1a2c269af8c5ea95b2b93a8337e8cc1147f17f8f607923e189939fa7c9"
   },
   "renderer": {
@@ -52,5 +55,9 @@
     "matplotlib_backend": "Agg",
     "source_date_epoch": 1,
     "timezone": "UTC"
+  },
+  "font_database": {
+    "generator": "luaotfload-tool",
+    "mode": "update --force"
   }
 }

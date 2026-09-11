@@ -51,10 +51,14 @@
   \else
     \edef\RK@selectedrenderer{\csname RKPublicationRenderer@\rk@publicationtype\endcsname}%
     \edef\RK@expectedclass{\csname RKPublicationClass@\rk@publicationtype\endcsname}%
-    \ifx\RK@selectedrenderer\rk@classrenderer\else
+    % Expand class declarations into the same macro shape as registry values
+    % before comparing them; direct \ifx also compares TeX macro flags.
+    \edef\RK@classrenderervalue{\rk@classrenderer}%
+    \edef\RK@classnamevalue{\rk@classname}%
+    \ifx\RK@selectedrenderer\RK@classrenderervalue\else
       \ClassError{reportkit}{Publication type '\rk@publicationtype' uses renderer '\RK@selectedrenderer', not the '\rk@classrenderer' renderer provided by this class}{Use the class selected by the publication registry.}%
     \fi
-    \ifx\RK@expectedclass\rk@classname\else
+    \ifx\RK@expectedclass\RK@classnamevalue\else
       \ClassError{reportkit}{Publication type '\rk@publicationtype' belongs to class '\RK@expectedclass', not '\rk@classname'}{Use the class selected by the publication registry.}%
     \fi
     % \string supplies the literal separator without accidentally extending

@@ -1,14 +1,14 @@
 {
-  "schema_version": 1,
-  "toolchain_fingerprint": "74513be7e9578e0bc9ec84bcb12a1edf43743a32b967ee6b8b8b4288e96fe50c",
-  "expected_toolchain_fingerprint": "74513be7e9578e0bc9ec84bcb12a1edf43743a32b967ee6b8b8b4288e96fe50c",
-  "resolved_toolchain_fingerprint": "74513be7e9578e0bc9ec84bcb12a1edf43743a32b967ee6b8b8b4288e96fe50c",
   "dpi": 150,
-  "pixel_difference_threshold": 0.01,
+  "expected_toolchain_fingerprint": "6e0fc8ea7889634d3c337eacc4e4f68adb10c2c968e2e7e683f5c24de07408e5",
   "pages": [
     "page-01.png",
     "page-02.png",
     "page-03.png",
     "page-04.png"
-  ]
+  ],
+  "pixel_difference_threshold": 0.01,
+  "resolved_toolchain_fingerprint": "6e0fc8ea7889634d3c337eacc4e4f68adb10c2c968e2e7e683f5c24de07408e5",
+  "schema_version": 1,
+  "toolchain_fingerprint": "6e0fc8ea7889634d3c337eacc4e4f68adb10c2c968e2e7e683f5c24de07408e5"
 }

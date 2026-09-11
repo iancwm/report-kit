@@ -490,7 +490,7 @@ def test_toolchain_fingerprint_and_release_version_are_stable() -> None:
     lock = load_toolchain_lock(REPO)
     assert set(lock["apt_packages"]) == set(lock["apt_package_versions"])
     fingerprint = toolchain_fingerprint(lock)
-    assert fingerprint == "74513be7e9578e0bc9ec84bcb12a1edf43743a32b967ee6b8b8b4288e96fe50c"
+    assert fingerprint == "6e0fc8ea7889634d3c337eacc4e4f68adb10c2c968e2e7e683f5c24de07408e5"
     assert REPORTKIT_VERSION == "1.9.3"
     assert generate_registry(REPO)["class_version"] == REPORTKIT_VERSION
     assert load_toolchain_lock(REPO)["apt_package_versions"]

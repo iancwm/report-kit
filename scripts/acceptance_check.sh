@@ -64,7 +64,8 @@ fi
 # reportnetwork collision compiled successfully while reversing every arrow,
 # so log-grep alone cannot be the visual grammar gate.
 TEST_PYTHON="${REPORTKIT_TEST_PYTHON:-}"
-if [[ -z "$TEST_PYTHON" && -x "$ROOT/build/.venv-tests/bin/python" ]]; then
+if [[ -z "$TEST_PYTHON" && -x "$ROOT/build/.venv-tests/bin/python" ]] \
+   && "$ROOT/build/.venv-tests/bin/python" -c 'import pytest' >/dev/null 2>&1; then
   TEST_PYTHON="$ROOT/build/.venv-tests/bin/python"
 fi
 if [[ -z "$TEST_PYTHON" ]] && command -v python3 >/dev/null 2>&1 \
