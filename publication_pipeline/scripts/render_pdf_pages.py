@@ -12,10 +12,14 @@ import shutil
 import sys
 import tempfile
 
+try:
+    from _bootstrap import ensure_reportkit_importable
+except ImportError:  # imported as publication_pipeline.scripts.render_pdf_pages
+    from ._bootstrap import ensure_reportkit_importable
+
+ensure_reportkit_importable()
+
 REPO_ROOT = Path(__file__).resolve().parents[2]
-PYTHON_ROOT = REPO_ROOT / "python_scripts"
-if str(PYTHON_ROOT) not in sys.path:
-    sys.path.insert(0, str(PYTHON_ROOT))
 
 from reportkit.toolchain import toolchain_context  # noqa: E402
 

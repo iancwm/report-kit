@@ -61,23 +61,24 @@ Migrating an existing content branch out of this repo is covered in
   (lualatex; see `references/font-setup.md` for the extra setup this needs).
 
 ## 2. python_scripts/
-- `reportkit` (from the repository root) — stdlib CLI facade for init, doctor,
-  context, check, build, diagnose, inspect, docs, analyse-history, and package; its importable
+- `reportkit` (from the repository root) — stdlib CLI facade for doctor,
+  init, context, check, build, diagnose, inspect, docs, analyse-history, and package; its importable
   implementation lives under `python_scripts/reportkit/`, including
   `reportkit/themes/` — per-theme Python tokens (`default`,
   `institutional-research`) plus the `technical` compatibility alias for
   `default` that `reportkit_viz.py` and the publication context resolve by name.
-- `reportkit_viz.py` — Matplotlib analytical chart theme, switchable at
-  runtime via `apply_theme(name)` (palette/geometry/fonts synced with the
-  matching `latex_templates/themes/*.sty` file; `check-theme --theme <name>`
-  verifies the sync), including treemap, waterfall, tornado, bubble-matrix,
+- `reportkit/viz/` — the packaged Matplotlib analytical chart implementation,
+  split into theme, figure, formatter, chart, and CLI concerns. The
+  `reportkit_viz.py` compatibility facade remains switchable at runtime via
+  `apply_theme(name)` (palette/geometry/fonts synced with the matching
+  `latex_templates/themes/*.sty` file; `check-theme --theme <name>` verifies
+  the sync), including treemap, waterfall, tornado, bubble-matrix,
   risk/reward, and dated timeline figures alongside standard analytical
   charts.
 - `reportkit_doctor.py` — environment check (FULL BUILD / SOURCE BUILD detection).
 - `publication_config.py` — compatibility import for the nested or legacy
   consumer `publication.yaml` loader;
   `license_metadata.py` — reads this repo's own `metadata/licenses.yml`.
-- `career_guide_en_make_figures.py` — example figure generator using `reportkit_viz`.
 
 ## 3. publication_pipeline/
 Reusable build/validate/inspect harness for a consumer publication project —
@@ -90,8 +91,7 @@ See [`publication_pipeline/README.md`](publication_pipeline/README.md).
 
 ## 4. font_data/
 - `reportkit-libertinus-fonts.tar.gz` — the ~26MB Libertinus font subset harvested
-  from `texlive-fonts-extra` (a 1.7GB package), for fast `reportkit init --install-fonts`
-  setup.
+  from `texlive-fonts-extra` (a 1.7GB package), for `reportkit init --install-fonts`.
 - `GoogleSans-{Regular,Medium,Bold}.ttf` — licensed fixtures for the
   institutional-research theme's local `font_path` and acceptance smoke test;
   see `GOOGLE_SANS_LICENSE.md`.
@@ -134,17 +134,18 @@ requirements are documented in [`CONTRIBUTING.md`](CONTRIBUTING.md) and
 
 ## Setup
 
-Initialize a consumer project and install the pinned Python build environment:
+Use `reportkit init <publication-project>` to scaffold a consumer project,
+then install the pinned Python dependencies into its build environment:
 
 ```bash
-<skill-directory>/reportkit init <report-directory> --install-fonts
-python3 -m venv <report-directory>/build/.venv
-<report-directory>/build/.venv/bin/python -m pip install --require-hashes \
-  -r <skill-directory>/toolchain/requirements.lock
+python3 -m venv <publication-project>/build/.venv
+<publication-project>/build/.venv/bin/python -m pip install --require-hashes \
+  --requirement toolchain/requirements.lock
 ```
 
-The test-only additions for repository contributors are in
-`tests/requirements.txt`; see [`CONTRIBUTING.md`](CONTRIBUTING.md).
+Use `reportkit init --install-fonts <publication-project>` when the bundled
+Libertinus subset is needed. See `SKILL.md`'s setup section for the complete
+doctor/build flow.
 
 ## Versioning
 

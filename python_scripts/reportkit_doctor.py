@@ -18,10 +18,14 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
 REPO_ROOT = ROOT.parent
+PYTHON_DEPENDENCY_INSTALL = (
+    "Install the pinned Python dependencies with: "
+    f"python3 -m pip install --requirement {REPO_ROOT / 'toolchain' / 'requirements.lock'}"
+)
 
 from reportkit.diagnostics import diagnostic_envelope, make_diagnostic  # noqa: E402
 from reportkit.context import month_end_freq  # noqa: E402
-from reportkit.toolchain import resolved_toolchain  # noqa: E402
+from reportkit.toolchain import resolved_toolchain, version_line  # noqa: E402
 
 
 def check_import(name: str) -> tuple[bool, str]:
@@ -40,12 +44,7 @@ def check_executable(name: str) -> tuple[bool, str]:
     path = shutil.which(name)
     if not path:
         return False, "not found"
-    try:
-        proc = subprocess.run([path, "--version"], capture_output=True, text=True, timeout=8)
-        line = (proc.stdout or proc.stderr).splitlines()[0]
-        return True, line.strip()
-    except Exception:
-        return True, path
+    return True, version_line(name) or path
 
 
 def check_pymupdf() -> tuple[bool, str]:
@@ -94,7 +93,6 @@ def check_kpse(name: str) -> tuple[bool, str]:
 
 def check_vector_export() -> tuple[bool, str]:
     try:
-        sys.path.insert(0, str(ROOT))
         import reportkit_viz as rkv
         import pandas as pd
 
@@ -165,6 +163,20 @@ def main() -> int:
     pinned_ok = toolchain["status"] == "pinned"
     mode = "FULL BUILD" if full_ok else ("SOURCE BUILD + FIGURES" if py_ok and viz_ok else "SOURCE BUILD")
     diagnostics = []
+    missing_python = [
+        str(check["name"])
+        for check in checks
+        if check["name"] in {"matplotlib", "numpy", "pandas"} and not check["available"]
+    ]
+    if missing_python:
+        diagnostics.append(make_diagnostic(
+            "environment_error",
+            f"Python build dependencies are missing: {', '.join(missing_python)}",
+            code="RK_PYTHON_DEPENDENCIES_MISSING",
+            severity="warning" if not args.require else "error",
+            remediation=PYTHON_DEPENDENCY_INSTALL,
+            details={"missing": missing_python, "requirements": "toolchain/requirements.lock"},
+        ))
     if toolchain["status"] == "mismatch":
         diagnostics.append(make_diagnostic(
             "toolchain_mismatch", "resolved toolchain identity or dependency versions differ from the checked-in lock",
@@ -204,6 +216,8 @@ def main() -> int:
     else:
         print("MODE: SOURCE BUILD")
         print("Generate a portable ReportKit source bundle; do not promise compiled output.")
+        if missing_python:
+            print(PYTHON_DEPENDENCY_INSTALL)
     print(f"TOOLCHAIN: {toolchain['status']} ({toolchain['expected_fingerprint']})")
     if args.require and not requirement_ok:
         print(f"REQUIREMENT FAILED: {args.require}", file=sys.stderr)

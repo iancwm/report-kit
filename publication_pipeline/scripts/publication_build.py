@@ -11,7 +11,6 @@ import argparse
 from contextlib import redirect_stderr, redirect_stdout
 from datetime import datetime, timezone
 import hashlib
-import importlib.util
 import io
 import json
 import os
@@ -26,7 +25,14 @@ try:
 except ImportError:  # pragma: no cover - ReportKit's pinned environment is Linux
     resource = None  # type: ignore[assignment]
 
-from publication_validation import validate_publication
+try:
+    from _bootstrap import ensure_reportkit_importable
+except ImportError:  # imported as publication_pipeline.scripts.publication_build
+    from ._bootstrap import ensure_reportkit_importable
+
+ensure_reportkit_importable()
+
+from reportkit.publication_validation import validate_publication
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 PIPELINE_ROOT = SCRIPT_DIR.parent
@@ -61,32 +67,6 @@ def template_files() -> list[Path]:
     )
 
 
-def _load_reportkit_package() -> None:
-    if "reportkit" in sys.modules:
-        return
-    package = REPO_ROOT / "python_scripts" / "reportkit"
-    spec = importlib.util.spec_from_file_location(
-        "reportkit", package / "__init__.py", submodule_search_locations=[str(package)]
-    )
-    if not spec or not spec.loader:
-        raise ImportError(f"cannot load ReportKit package from {package}")
-    module = importlib.util.module_from_spec(spec)
-    sys.modules["reportkit"] = module
-    spec.loader.exec_module(module)
-
-
-def _load_module(name: str, path: Path):
-    spec = importlib.util.spec_from_file_location(name, path)
-    if not spec or not spec.loader:
-        raise ImportError(f"cannot load {path}")
-    module = importlib.util.module_from_spec(spec)
-    sys.modules[name] = module
-    spec.loader.exec_module(module)
-    return module
-
-
-_load_reportkit_package()
-
 from reportkit.authoring import render_links_tex, validate_authoring  # noqa: E402
 from reportkit.config import (  # noqa: E402
     CONFIG_NAME,
@@ -94,6 +74,7 @@ from reportkit.config import (  # noqa: E402
     resolve_license,
     resolve_document,
     resolve_identity,
+    resolve_output,
     resolve_theme,
     resolve_validation,
     theme_font_policy_conflict,
@@ -103,11 +84,9 @@ from reportkit.diagnostics import diagnostic_envelope, inspect_log, make_diagnos
 from reportkit.latex import tex_escape  # noqa: E402
 from reportkit.publications import PublicationRegistryError, resolve_build_target  # noqa: E402
 from reportkit.toolchain import toolchain_context  # noqa: E402
+from reportkit.toolchain import version_line  # noqa: E402
 from reportkit.version import BUILD_REPORT_SCHEMA_VERSION  # noqa: E402
-
-_license_module = _load_module("reportkit_license_metadata", REPO_ROOT / "python_scripts" / "license_metadata.py")
-load_license_metadata = _license_module.load_license_metadata
-validate_license_metadata = _license_module.validate_license_metadata
+from reportkit.license_metadata import load_license_metadata, validate_license_metadata  # noqa: E402
 
 
 def sha256(path: Path) -> str:
@@ -132,14 +111,6 @@ def stage_project_assets(source_root: Path, output: Path) -> list[dict[str, str]
             shutil.copy2(source, destination)
             staged.append({"path": str(relative), "sha256": sha256(source)})
     return staged
-
-
-def version_line(name: str) -> str:
-    executable = shutil.which(name)
-    if not executable:
-        return "not found"
-    proc = subprocess.run([executable, "--version"], capture_output=True, text=True, timeout=10)
-    return ((proc.stdout or proc.stderr).splitlines() or [executable])[0].strip()
 
 
 def order_entries(root: Path) -> list[str]:
@@ -290,6 +261,25 @@ def write_lock(path: Path, *, engine: str, tool_versions: dict[str, str], toolch
     path.write_text(json.dumps(lock, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
+def _fail(
+    report: dict[str, object], diagnostics: dict[str, object], code: int,
+    *, report_path: Path | None = None, history_root: Path | None = None,
+) -> int:
+    """Finalize a failed build and optionally persist its report.
+
+    Keeping this transition in one place makes every compile, gate, render,
+    and inspection failure produce the same terminal report shape. The path
+    arguments stay optional so stage-level callers and unit tests can use the
+    state transition without touching the filesystem.
+    """
+    report["status"] = "failed"
+    report["diagnostics"] = diagnostics
+    report["finished_at"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    if report_path is not None:
+        write_report(report, report_path, history_root)
+    return code
+
+
 def run(command: list[str], cwd: Path, log: Path, *, timeout: int = 120, memory_limit_mb: int = 2048) -> int:
     with log.open("a", encoding="utf-8") as stream:
         stream.write("$ " + " ".join(command) + "\n")
@@ -304,7 +294,11 @@ def resolve_roots(args: argparse.Namespace) -> tuple[Path, Path]:
     build cannot silently write publication output back into the engine.
     """
     source_root = Path(args.source_root).resolve() if args.source_root else DEFAULT_SOURCE_ROOT
-    output_root = Path(args.output_root).resolve() if args.output_root else source_root / "build"
+    if args.output_root:
+        output_root = Path(args.output_root).resolve()
+    else:
+        config = load_publication_config(source_root / CONFIG_NAME)
+        output_root = resolve_output(config, source_root, getattr(args, "profile", None)) or source_root / "build"
     return source_root, output_root
 
 
@@ -457,10 +451,11 @@ def build(args: argparse.Namespace) -> int:
         "inputs": [{"path": str(path), "sha256": sha256(source_root / "manuscript" / path)} for path in manuscripts],
         "templates": [{"path": str(path.relative_to(REPO_ROOT)), "sha256": sha256(path)} for path in (template_files() + [TEMPLATE, LICENSE_FILE])],
         "assets": staged_assets,
-        "tool_versions": {"python": sys.version.split()[0], "pandoc": version_line("pandoc"), "tex": version_line(engine)},
+        "tool_versions": {"python": sys.version.split()[0], "pandoc": version_line("pandoc") or "not found", "tex": version_line(engine) or "not found"},
         "toolchain": toolchain_context(REPO_ROOT),
         "commands": [], "exit_codes": [], "diagnostics": {}, "figures": figure_count, "tables": table_count, "pdf_sha256": None,
     }
+    report_path = output / "build-report.json"
     texinputs = f"{output}:{REPO_ROOT / 'latex_templates'}//:"
     for pass_number in range(1, 3):
         command = [engine, "-file-line-error", "-interaction=nonstopmode", "-halt-on-error", tex.name]
@@ -483,37 +478,26 @@ def build(args: argparse.Namespace) -> int:
                     env=env, stdout=stream, stderr=subprocess.STDOUT, text=True,
                 )
             except subprocess.TimeoutExpired:
-                report["status"] = "failed"
-                report["diagnostics"] = diagnostic_envelope([
+                return _fail(report, diagnostic_envelope([
                     make_diagnostic("compile_timeout", f"{engine} pass {pass_number} exceeded {timeout} seconds", code="RK_COMPILE_TIMEOUT")
-                ], passed=False)
-                report["finished_at"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
-                write_report(report, output / "build-report.json", history_root)
-                return 4
+                ], passed=False), 4, report_path=report_path, history_root=history_root)
             except FileNotFoundError:
-                report["status"] = "failed"
-                report["diagnostics"] = diagnostic_envelope([
+                return _fail(report, diagnostic_envelope([
                     make_diagnostic("environment_error", f"TeX engine {engine!r} is not installed", code="RK_TEX_ENGINE_MISSING")
-                ], passed=False)
-                report["finished_at"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
-                write_report(report, output / "build-report.json", history_root)
-                return 5
+                ], passed=False), 5, report_path=report_path, history_root=history_root)
         report["exit_codes"].append({"command": " ".join(command), "code": proc.returncode})
         if proc.returncode:
-            report["status"] = "failed"
-            report["diagnostics"] = inspect_log(pass_log.read_text(encoding="utf-8", errors="replace"))
-            if not report["diagnostics"]["diagnostics"]:
+            diagnostics = inspect_log(pass_log.read_text(encoding="utf-8", errors="replace"))
+            if not diagnostics["diagnostics"]:
                 memory_failure = proc.returncode < 0 or proc.returncode in {134, 137}
-                report["diagnostics"] = diagnostic_envelope([
+                diagnostics = diagnostic_envelope([
                     make_diagnostic(
                         "compile_memory" if memory_failure else "compile_failure",
                         f"{engine} exited with status {proc.returncode}",
                         code="RK_COMPILE_MEMORY" if memory_failure else "RK_COMPILE_FAILURE",
                     )
                 ], passed=False)
-            report["finished_at"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
-            write_report(report, output / "build-report.json", history_root)
-            return 4
+            return _fail(report, diagnostics, 4, report_path=report_path, history_root=history_root)
         if pass_number == 2:
             shutil.copy2(pass_log, log)
     gate = SCRIPT_DIR / "check_build_log.py"
@@ -534,13 +518,9 @@ def build(args: argparse.Namespace) -> int:
             capture_output=True, text=True,
         )
     except subprocess.TimeoutExpired:
-        report["diagnostics"] = diagnostic_envelope([
+        return _fail(report, diagnostic_envelope([
             make_diagnostic("compile_timeout", "diagnostic gate timed out", code="RK_DIAGNOSTIC_TIMEOUT")
-        ], passed=False)
-        report["status"] = "failed"
-        report["finished_at"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
-        write_report(report, output / "build-report.json", history_root)
-        return 4
+        ], passed=False), 4, report_path=report_path, history_root=history_root)
     report["exit_codes"].append({"command": f"{sys.executable} {gate} {log}", "code": gate_result.returncode})
     report["diagnostics"] = json.loads((output / "diagnostics.json").read_text(encoding="utf-8"))
     report["gate"] = "passed" if gate_result.returncode == 0 else "failed"
@@ -549,10 +529,7 @@ def build(args: argparse.Namespace) -> int:
     if compiled_pdf.is_file() and compiled_pdf != pdf:
         shutil.copy2(compiled_pdf, pdf)
     if gate_result.returncode or not pdf.is_file():
-        report["status"] = "failed"
-        report["finished_at"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
-        write_report(report, output / "build-report.json", history_root)
-        return 3
+        return _fail(report, report["diagnostics"], 3, report_path=report_path, history_root=history_root)  # type: ignore[arg-type]
     report["pdf"] = pdf.name
     report["pdf_sha256"] = sha256(pdf)
     renderer = Path(os.environ["REPORTKIT_PDF_PYTHON"]).expanduser() if os.environ.get("REPORTKIT_PDF_PYTHON") else output_root / ".venv" / "bin" / "python"
@@ -569,25 +546,17 @@ def build(args: argparse.Namespace) -> int:
         )
     except (subprocess.TimeoutExpired, FileNotFoundError) as exc:
         kind = "compile_timeout" if isinstance(exc, subprocess.TimeoutExpired) else "environment_error"
-        report["diagnostics"] = diagnostic_envelope([
+        return _fail(report, diagnostic_envelope([
             make_diagnostic(kind, f"page rendering failed: {exc}", code="RK_RENDER_FAILED")
-        ], passed=False)
-        report["status"] = "failed"
-        report["finished_at"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
-        write_report(report, output / "build-report.json", history_root)
-        return 4 if isinstance(exc, subprocess.TimeoutExpired) else 5
+        ], passed=False), 4 if isinstance(exc, subprocess.TimeoutExpired) else 5, report_path=report_path, history_root=history_root)
     report["exit_codes"].append({"command": f"{renderer} {SCRIPT_DIR / 'render_pdf_pages.py'} {pdf}", "code": render.returncode})
     if render.returncode:
-        report["diagnostics"] = diagnostic_envelope([
+        return _fail(report, diagnostic_envelope([
             make_diagnostic(
                 "pdf_geometry", f"page renderer exited with status {render.returncode}",
                 code="RK_RENDER_FAILED", details={"stderr": (render.stderr or "")[-4000:]},
             )
-        ], passed=False)
-        report["status"] = "failed"
-        report["finished_at"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
-        write_report(report, output / "build-report.json", history_root)
-        return 3
+        ], passed=False), 3, report_path=report_path, history_root=history_root)
     report["page_count"] = json.loads((output / "page-manifest.json").read_text(encoding="utf-8")).get("page_count")
     inspection_command = [str(renderer), str(SCRIPT_DIR / "inspect_pdf.py"), str(pdf), "--json", str(output / "pdf-inspection.json")]
     try:
@@ -597,28 +566,21 @@ def build(args: argparse.Namespace) -> int:
         )
     except (subprocess.TimeoutExpired, FileNotFoundError) as exc:
         kind = "compile_timeout" if isinstance(exc, subprocess.TimeoutExpired) else "environment_error"
-        report["diagnostics"] = diagnostic_envelope([
+        return _fail(report, diagnostic_envelope([
             make_diagnostic(kind, f"PDF inspection failed: {exc}", code="RK_INSPECTION_FAILED")
-        ], passed=False)
-        report["status"] = "failed"
-        report["finished_at"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
-        write_report(report, output / "build-report.json", history_root)
-        return 4 if isinstance(exc, subprocess.TimeoutExpired) else 5
+        ], passed=False), 4 if isinstance(exc, subprocess.TimeoutExpired) else 5, report_path=report_path, history_root=history_root)
     report["exit_codes"].append({"command": f"{renderer} {SCRIPT_DIR / 'inspect_pdf.py'} {pdf}", "code": inspection.returncode})
     if (output / "pdf-inspection.json").is_file():
         report["pdf_inspection"] = json.loads((output / "pdf-inspection.json").read_text(encoding="utf-8"))
     if inspection.returncode:
         nested = report.get("pdf_inspection", {})
-        report["diagnostics"] = nested if isinstance(nested, dict) and nested.get("diagnostics") else diagnostic_envelope([
+        diagnostics = nested if isinstance(nested, dict) and nested.get("diagnostics") else diagnostic_envelope([
             make_diagnostic(
                 "pdf_geometry", f"PDF inspector exited with status {inspection.returncode}",
                 code="RK_INSPECTION_FAILED", details={"stderr": (inspection.stderr or "")[-4000:]},
             )
         ], passed=False)
-        report["status"] = "failed"
-        report["finished_at"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
-        write_report(report, output / "build-report.json", history_root)
-        return 5 if inspection.returncode == 5 else 3
+        return _fail(report, diagnostics, 5 if inspection.returncode == 5 else 3, report_path=report_path, history_root=history_root)
     report["commands"].append(f"{renderer} {SCRIPT_DIR / 'inspect_pdf.py'} {pdf}")
     report["finished_at"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
     report["status"] = "passed" if render.returncode == 0 and inspection.returncode == 0 else "failed"

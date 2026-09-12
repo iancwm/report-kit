@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 
-_TEX_ESCAPES = {
+_TEXT_ESCAPES = {
     "\\": r"\textbackslash{}",
     "&": r"\&",
     "%": r"\%",
@@ -18,7 +18,7 @@ _TEX_ESCAPES = {
 
 def tex_escape(value: str) -> str:
     """Escape all ten LaTeX text-mode metacharacters in *value*."""
-    return "".join(_TEX_ESCAPES.get(char, char) for char in value)
+    return "".join(_TEXT_ESCAPES.get(char, char) for char in value)
 
 
 def tex_escape_url(value: str) -> str:

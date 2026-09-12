@@ -46,9 +46,9 @@ my-publication/
   reportkit.lock         # written by publication_build.py on a passing build
 ```
 
-Initialize this structure with `<report-kit-clone>/reportkit init
-<publication-dir>` — it refuses to run if `<publication-dir>` resolves inside
-the ReportKit clone.
+Bootstrap this structure with `<report-kit-clone>/reportkit init
+<publication-dir>` — it refuses to initialize if `<publication-dir>` resolves
+inside the ReportKit clone.
 
 ## Guardrails
 

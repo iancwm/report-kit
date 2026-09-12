@@ -4,6 +4,9 @@ on:
   pull_request:
     paths:
       - ".github/workflows/contract-ci.yml"
+      - ".github/dependabot.yml"
+      - "pyproject.toml"
+      - "LICENSE"
       - "latex_templates/**"
       - "publication_pipeline/**"
       - "python_scripts/**"
@@ -16,6 +19,9 @@ on:
   push:
     branches: [main]
     paths:
+      - ".github/dependabot.yml"
+      - "pyproject.toml"
+      - "LICENSE"
       - "latex_templates/**"
       - "publication_pipeline/**"
       - "python_scripts/**"
@@ -41,6 +47,10 @@ jobs:
           ./reportkit doctor --require pinned-toolchain --json &&
           ./reportkit docs --check --json &&
           python -m pytest tests publication_pipeline/tests -q &&
+          python -m pip install --disable-pip-version-check --no-cache-dir ruff &&
+          ruff check python_scripts publication_pipeline/scripts scripts tests &&
+          python -m pip install --disable-pip-version-check --no-cache-dir pip-audit &&
+          (pip-audit -r toolchain/requirements.lock || true) &&
           bash scripts/acceptance_check.sh --require-tex &&
           python scripts/contract_acceptance.py --json &&
           PYTHONPATH=python_scripts python latex_templates/examples/equity-research/figures.py &&

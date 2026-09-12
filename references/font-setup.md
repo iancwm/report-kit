@@ -6,11 +6,10 @@ ship in the `texlive-fonts-extra` package on Debian/Ubuntu, a 1.7GB,
 ~106,000-file package. Only ~26MB (2,122 files) of that package is ever
 used.
 
-## Fast path: the portable bundle
+## Fast path: the portable bundle (optional)
 
 `font_data/reportkit-libertinus-fonts.tar.gz` is that ~26MB subset,
-pre-harvested. `reportkit init <report-directory> --install-fonts` installs
-it when requested:
+pre-harvested. `reportkit init --install-fonts <consumer-project>` installs it:
 extracts the tarball into `TEXMFLOCAL` (a system texmf directory returned
 by `kpsewhich -var-value TEXMFLOCAL`) and runs `mktexlsr`.
 
@@ -24,7 +23,7 @@ calls with nothing to remember, and was verified to resolve via plain
 
 ## Fallback: apt-get
 
-If no bundle is present, `reportkit init --install-fonts` reports this fallback:
+If no bundle is present, `reportkit init --install-fonts` prints:
 ```bash
 apt-get update && apt-get install -y --no-install-recommends texlive-fonts-extra
 ```

@@ -28,25 +28,46 @@ TEST_TEXES=(
 
 echo "== ReportKit acceptance check =="
 
+WORKDIR="$(mktemp -d)"
+trap 'rm -rf "$WORKDIR"' EXIT
+
+# Exercise the documented clone -> init -> build path in a disposable
+# consumer project. The compile portion is conditional below, but scaffolding
+# and static validation still catch a stale quick-start command on machines
+# without TeX.
+FRESH_PROJECT="$WORKDIR/fresh-publication"
+if ! "$ROOT/reportkit" init "$FRESH_PROJECT" > "$WORKDIR/init.log" 2>&1; then
+  echo "FAIL: reportkit init fresh-project dry run failed:" >&2
+  cat "$WORKDIR/init.log" >&2
+  hit=1
+else
+  cp -a "$ROOT/publication_pipeline/example_publication/." "$FRESH_PROJECT/"
+  if ! "$ROOT/reportkit" check --source-root "$FRESH_PROJECT" > "$WORKDIR/check.log" 2>&1; then
+    echo "FAIL: initialized project did not pass reportkit check:" >&2
+    cat "$WORKDIR/check.log" >&2
+    hit=1
+  else
+    echo "-- fresh-project init/check dry run: OK --"
+  fi
+fi
+
 if ! command -v pdflatex >/dev/null 2>&1; then
   echo "WARN: pdflatex not found on PATH -- skipping acceptance check (not blocking)." >&2
   echo "      Real enforcement happens the next time this runs somewhere with TeX installed." >&2
+  if [[ "${hit:-0}" -ne 0 ]]; then
+    exit 1
+  fi
   [[ "$require_tex" -eq 0 ]] && exit 0
   echo "FAIL: --require-tex was requested but pdflatex is unavailable." >&2
   exit 1
 fi
 
-WORKDIR="$(mktemp -d)"
-trap 'rm -rf "$WORKDIR"' EXIT
-
-hit=0
+hit="${hit:-0}"
 
 # python_scripts/** also triggers this check via the pre-commit hook, so
 # make sure the Python files actually import cleanly.
 if command -v python3 >/dev/null 2>&1; then
-  if ! python3 -c "
-import sys
-sys.path.insert(0, '$ROOT/python_scripts')
+  if ! PYTHONPATH="$ROOT/python_scripts${PYTHONPATH:+:$PYTHONPATH}" python3 -c "
 import reportkit_viz
 import reportkit_doctor
 " > "$WORKDIR/python-check.log" 2>&1; then
@@ -64,9 +85,10 @@ fi
 # reportnetwork collision compiled successfully while reversing every arrow,
 # so log-grep alone cannot be the visual grammar gate.
 TEST_PYTHON="${REPORTKIT_TEST_PYTHON:-}"
-if [[ -z "$TEST_PYTHON" && -x "$ROOT/build/.venv-tests/bin/python" ]] \
-   && "$ROOT/build/.venv-tests/bin/python" -c 'import pytest' >/dev/null 2>&1; then
-  TEST_PYTHON="$ROOT/build/.venv-tests/bin/python"
+TEST_VENV="${REPORTKIT_TEST_VENV:-}"
+if [[ -z "$TEST_PYTHON" && -n "$TEST_VENV" && -x "$TEST_VENV/bin/python" ]] \
+   && "$TEST_VENV/bin/python" -c 'import pytest' >/dev/null 2>&1; then
+  TEST_PYTHON="$TEST_VENV/bin/python"
 fi
 if [[ -z "$TEST_PYTHON" ]] && command -v python3 >/dev/null 2>&1 \
   && python3 -c 'import pytest' >/dev/null 2>&1; then
@@ -82,18 +104,29 @@ if [[ -n "$TEST_PYTHON" ]]; then
   fi
 elif [[ "$require_tex" -eq 1 ]]; then
   echo "FAIL: strict acceptance requires the geometry-test environment." >&2
-  echo "      Install it: python3 -m venv build/.venv-tests && build/.venv-tests/bin/pip install -r tests/requirements.txt" >&2
+  echo "      Install it in a consumer project: python3 -m venv <publication-project>/build/.venv-tests && <publication-project>/build/.venv-tests/bin/pip install -r <report-kit-clone>/tests/requirements.txt" >&2
   hit=1
 else
   echo "WARN: no geometry-test environment -- skipping rendered-geometry tests (not blocking)." >&2
 fi
 
-# Themes and publication types each live one directory deeper
-# (latex_templates/themes/, latex_templates/publication_types/); flatten
-# them into WORKDIR too so \documentclass{reportkit} can find a non-default
-# theme= or publication-type= file, plus the generated registry and shared
-# option parser used by reportkit.cls.
-cp "$ROOT"/latex_templates/*.cls "$ROOT"/latex_templates/*.def "$ROOT"/latex_templates/reportkit-*.tex "$ROOT"/latex_templates/*.sty "$ROOT"/latex_templates/themes/*.sty "$ROOT"/latex_templates/publication_types/*.sty "$WORKDIR"/
+# template_files() is the single canonical TeX input list. It includes the
+# themes/ and publication_types/ directories, then flattens them into
+# WORKDIR so \documentclass{reportkit} can resolve every selected component.
+if ! PYTHONPATH="$ROOT/python_scripts:$ROOT/publication_pipeline/scripts${PYTHONPATH:+:$PYTHONPATH}" \
+  python3 -c 'from publication_build import template_files; print("\n".join(str(path) for path in template_files()))' \
+  > "$WORKDIR/template-files.txt"; then
+  echo "FAIL: could not resolve the canonical TeX template list." >&2
+  hit=1
+else
+  mapfile -t template_files < "$WORKDIR/template-files.txt"
+  if [[ "${#template_files[@]}" -eq 0 ]]; then
+    echo "FAIL: canonical TeX template list is empty." >&2
+    hit=1
+  else
+    cp "${template_files[@]}" "$WORKDIR"/
+  fi
+fi
 if [[ -d "$ROOT/font_data" ]]; then
   mkdir -p "$WORKDIR/font_data"
   cp "$ROOT"/font_data/GoogleSans-*.ttf "$WORKDIR/font_data"/
@@ -113,6 +146,23 @@ for test_tex in "${TEST_TEXES[@]}"; do
 done
 
 echo "-- compile exit status: $status --"
+
+if command -v pandoc >/dev/null 2>&1 && command -v python3 >/dev/null 2>&1 \
+  && python3 -c 'import pymupdf' >/dev/null 2>&1; then
+  if ! "$ROOT/reportkit" build --source-root "$FRESH_PROJECT" --json > "$WORKDIR/fresh-build.json" 2> "$WORKDIR/fresh-build.err"; then
+    echo "FAIL: fresh-project build dry run failed:" >&2
+    cat "$WORKDIR/fresh-build.err" >&2
+    hit=1
+  elif ! python3 -c 'import json, sys; payload=json.load(open(sys.argv[1])); assert payload.get("passed")' "$WORKDIR/fresh-build.json"; then
+    echo "FAIL: fresh-project build dry run did not pass:" >&2
+    cat "$WORKDIR/fresh-build.json" >&2
+    hit=1
+  else
+    echo "-- fresh-project full build dry run: OK --"
+  fi
+else
+  echo "WARN: pandoc or PyMuPDF unavailable -- skipping fresh-project full build dry run." >&2
+fi
 
 # The institutional-research theme requires lualatex (spec section 4 /
 # open question 1) -- it cannot be added to TEST_TEXES above, which

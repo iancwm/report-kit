@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import argparse
-import importlib.util
 import json
 import os
 from pathlib import Path
@@ -19,22 +18,23 @@ from .config import (
     CONFIG_NAME,
     load_publication_config,
     resolve_document,
-    resolve_identity,
+    resolve_output,
     resolve_theme,
     theme_font_policy_conflict,
 )
 from .context import build_context
 from .diagnostics import diagnostic_envelope, inspect_log, load_allowlist, load_maps, make_diagnostic, suggest
 from .documentation import check_documentation, write_documentation
-from .initialization import initialize_project, install_fonts
+from .initialization import initialize, install_fonts
 from .publications import (
     PUBLICATION_TYPES,
     THEMES,
     PublicationRegistryError,
     resolve_build_target,
 )
-from .registry import COMMANDS, COMMAND_CONTRACT, PRIMITIVE_KINDS, ContractError, generate_registry
-from .version import CONTRACT_VERSION, REPORTKIT_VERSION
+from .registry import COMMAND_CONTRACT, PRIMITIVE_KINDS, ContractError, generate_registry
+from .version import CONTRACT_VERSION
+from .publication_validation import validate_publication
 
 PACKAGE_ROOT = Path(__file__).resolve().parent
 PYTHON_ROOT = PACKAGE_ROOT.parent
@@ -104,22 +104,16 @@ def _failure(kind: str, message: str, *, code: str, **payload: Any) -> dict[str,
     return diagnostic_envelope([make_diagnostic(kind, message, code=code)], passed=False, **payload)
 
 
-def _load_module(name: str, path: Path) -> Any:
-    spec = importlib.util.spec_from_file_location(name, path)
-    if not spec or not spec.loader:
-        raise ImportError(f"cannot load {path}")
-    module = importlib.util.module_from_spec(spec)
-    sys.modules[name] = module
-    spec.loader.exec_module(module)
-    return module
-
-
 def _source_root(args: argparse.Namespace) -> Path:
     return Path(args.source_root).resolve() if args.source_root else DEFAULT_SOURCE_ROOT.resolve()
 
 
 def _output_root(args: argparse.Namespace, source_root: Path) -> Path:
-    return Path(args.output_root).resolve() if args.output_root else source_root / "build"
+    if args.output_root:
+        return Path(args.output_root).resolve()
+    config = load_publication_config(source_root / CONFIG_NAME)
+    configured = resolve_output(config, source_root, getattr(args, "profile", None))
+    return configured or source_root / "build"
 
 
 def _add_publication_paths(parser: argparse.ArgumentParser) -> None:
@@ -155,14 +149,25 @@ def _run_doctor(args: argparse.Namespace) -> int:
     return proc.returncode
 
 
+def _default_init_target() -> Path:
+    """Choose a safe default target outside the engine checkout."""
+    cwd = Path.cwd().resolve()
+    if cwd == REPO_ROOT or REPO_ROOT in cwd.parents:
+        return REPO_ROOT.parent / f"{REPO_ROOT.name}-publication"
+    return cwd / "publication"
+
+
 def _run_init(args: argparse.Namespace) -> int:
+    """Scaffold a consumer project, optionally install fonts, then report readiness."""
+    target_value = getattr(args, "target_option", None) or getattr(args, "target", None)
+    target = Path(target_value).expanduser() if target_value else _default_init_target()
     try:
-        target, created = initialize_project(Path(args.target), REPO_ROOT)
+        result = initialize(target, REPO_ROOT)
     except (OSError, ValueError) as exc:
         diagnostic = make_diagnostic(
             "configuration_error", str(exc), code="RK_INIT_FAILED", docs="#/commands/init",
         )
-        payload = diagnostic_envelope([diagnostic], passed=False, target=str(Path(args.target).expanduser().resolve()))
+        payload = diagnostic_envelope([diagnostic], passed=False, target=str(target.resolve()))
         if args.json:
             _json_or_print(payload, True)
         else:
@@ -200,15 +205,15 @@ def _run_init(args: argparse.Namespace) -> int:
         payload = diagnostic_envelope(
             diagnostics,
             passed=doctor_payload.get("passed", not diagnostics),
-            target=str(target), created=created, fonts=font_status,
+            target=str(result.target), created=list(result.created), fonts=font_status,
             mode=doctor_payload.get("mode"), toolchain=doctor_payload.get("toolchain"),
             checks=doctor_payload.get("checks", []),
         )
         _json_or_print(payload, True)
     else:
         print("== ReportKit init ==")
-        print(f"consumer project: {target}")
-        print("created: " + (", ".join(created) if created else "nothing (already initialized)"))
+        print(f"consumer project: {result.target}")
+        print("created: " + (", ".join(result.created) if result.created else "nothing (already initialized)"))
         if font_status:
             print(font_status)
         if doctor.stdout:
@@ -300,8 +305,7 @@ def _run_check(args: argparse.Namespace) -> int:
         if not args.json:
             print(payload["errors"][0], file=sys.stderr)
         return version_exit
-    module = _load_module("reportkit_publication_validation", PIPELINE_ROOT / "scripts" / "publication_validation.py")
-    result = module.validate_publication(root)
+    result = validate_publication(root)
     authoring = validate_authoring(root)
     diagnostics.extend(result.diagnostics)
     diagnostics.extend(authoring.diagnostics)
@@ -484,8 +488,8 @@ def _run_inspect(args: argparse.Namespace) -> int:
             return subprocess.run([str(candidate), str(inspector), str(pdf)]).returncode
     else:
         try:
-            module = _load_module("reportkit_inspect_pdf", inspector)
-            result = module.inspect(pdf)
+            from publication_pipeline.scripts.inspect_pdf import inspect as inspect_pdf
+            result = inspect_pdf(pdf)
         except ModuleNotFoundError as exc:
             message = f"PDF inspection requires PyMuPDF; run publication_pipeline/scripts/setup.sh or set REPORTKIT_PDF_PYTHON ({exc})"
             payload = _failure("environment_error", message, code="RK_PYMUPDF_MISSING")
@@ -576,16 +580,17 @@ def build_parser() -> argparse.ArgumentParser:
     parser = ReportKitArgumentParser(prog="reportkit", description="Deterministic ReportKit publication engine")
     sub = parser.add_subparsers(dest="command", required=True)
 
-    init = sub.add_parser("init", help=COMMAND_CONTRACT["init"]["summary"], description=COMMAND_CONTRACT["init"]["summary"])
-    init.add_argument("target", nargs="?", default=".", help="consumer publication project to scaffold")
-    init.add_argument("--install-fonts", action="store_true", help="install the bundled Libertinus fonts into TEXMFLOCAL")
-    init.add_argument("--json", action="store_true")
-    init.set_defaults(handler=_run_init)
-
     doctor = sub.add_parser("doctor", help=COMMAND_CONTRACT["doctor"]["summary"], description=COMMAND_CONTRACT["doctor"]["summary"])
     doctor.add_argument("--require", choices=("full-build", "pinned-toolchain"))
     doctor.add_argument("--json", action="store_true")
     doctor.set_defaults(handler=_run_doctor)
+
+    init = sub.add_parser("init", help=COMMAND_CONTRACT["init"]["summary"], description=COMMAND_CONTRACT["init"]["summary"])
+    init.add_argument("target", nargs="?", help="consumer publication project to scaffold")
+    init.add_argument("--target", dest="target_option", help="consumer publication project to scaffold")
+    init.add_argument("--install-fonts", action="store_true", help="install the bundled Libertinus fonts into TEXMFLOCAL")
+    init.add_argument("--json", action="store_true")
+    init.set_defaults(handler=_run_init)
 
     context = sub.add_parser("context", help=COMMAND_CONTRACT["context"]["summary"], description=COMMAND_CONTRACT["context"]["summary"])
     _add_publication_paths(context)

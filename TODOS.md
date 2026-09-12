@@ -37,16 +37,9 @@ for why.
   already dispositions it as "Superseded and stale… then delete". Branch the
   next tooling slice fresh from `main`.
 
-- **P0-2 — the documented quick start is broken.** `shell_scripts/bootstrap.sh`
-  crashes at its doctor step with `ModuleNotFoundError: No module named
-  'reportkit'` (it copies `reportkit_doctor.py`/`reportkit_viz.py` but not the
-  package they import), then prints `== bootstrap complete ==` anyway because
-  `set -uo pipefail` omits `-e`. `SKILL.md`'s Quick start documents that exact
-  invocation. Its copied TeX set is also missing three files `reportkit.cls`
-  requires unconditionally. Decision taken: retire `bootstrap.sh` in favour of
-  `reportkit init` + `--source-root`. Ships with the LaTeX-escaper divergence,
-  the missing `LICENSE`, and the absent dependency-install docs as Phase 0 of
-  [2026-09-12-reportkit-code-quality-and-dependency-remediation-spec.md](docs/superpowers/specs/2026-09-12-reportkit-code-quality-and-dependency-remediation-spec.md).
+The documented quick-start remediation and the associated Phase 0 findings
+are implemented in the current worktree; the spec remains the detailed
+change record.
 
 ### P1
 

@@ -48,12 +48,18 @@ EXAMPLE = ROOT / "latex_templates" / "examples" / "equity-research"
 EXPECTED = EXAMPLE / "expected"
 TEMPLATES = ROOT / "latex_templates"
 
-sys.path.insert(0, str(ROOT / "python_scripts"))
-sys.path.insert(0, str(ROOT / "publication_pipeline" / "scripts"))
+# Direct execution places only scripts/ on sys.path; add the clone root so the
+# importable publication_pipeline package can load the shared bootstrap.
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
-from reportkit.diagnostics import diagnostic_envelope, make_diagnostic  # noqa: E402
-from reportkit.toolchain import toolchain_context  # noqa: E402
-from publication_build import run_limited  # noqa: E402
+from publication_pipeline.scripts._bootstrap import ensure_reportkit_importable
+
+ensure_reportkit_importable()
+
+from reportkit.diagnostics import diagnostic_envelope, make_diagnostic
+from reportkit.toolchain import toolchain_context
+from publication_pipeline.scripts.publication_build import run_limited
 
 
 def _warn_exit0(message: str, *, as_json: bool = False) -> int:

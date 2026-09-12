@@ -10,11 +10,8 @@ doesn't (real Google Sans, an actual rendered PDF page to eyeball).
 from __future__ import annotations
 
 from pathlib import Path
-import sys
 
 import pytest
-
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "python_scripts"))
 
 mpl = pytest.importorskip("matplotlib")
 pytest.importorskip("numpy")

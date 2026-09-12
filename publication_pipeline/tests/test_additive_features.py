@@ -1,12 +1,10 @@
 import json
 from pathlib import Path
-import sys
 
 import pytest
 
 from python_scripts.reportkit.analysis import analyse_history
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 from publication_pipeline.scripts.publication_build import stage_project_assets
 
 

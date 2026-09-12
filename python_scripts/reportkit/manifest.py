@@ -7,6 +7,7 @@ from typing import Any
 
 
 def write_report(report: dict[str, Any], path: Path, history_root: Path | None = None) -> None:
+    """Write a sorted JSON build report and optionally archive its history copy."""
     path.parent.mkdir(parents=True, exist_ok=True)
     payload = json.dumps(report, indent=2, sort_keys=True) + "\n"
     path.write_text(payload, encoding="utf-8")
@@ -17,6 +18,7 @@ def write_report(report: dict[str, Any], path: Path, history_root: Path | None =
 
 
 def unique_build_id(mode: str, stamp: str, history_root: Path) -> str:
+    """Return a collision-free build identifier for a mode and timestamp."""
     candidate = f"{mode}-{stamp}"
     index = 1
     while (history_root / f"{candidate}.json").exists():

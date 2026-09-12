@@ -10,16 +10,27 @@ tags on this repository, not a published package registry.
 - `reportkit init` now scaffolds a consumer publication project outside the
   engine clone, with optional bundled Libertinus font installation.
 - The repository now includes the GPL-3.0-or-later license text.
+- Dependabot, Ruff, and an advisory pip-audit gate now signal dependency and
+  code-quality drift in CI.
 
 ### Changed
 - The CLI contract is versioned at 1.1.0, and LaTeX text escaping is shared
   across publication and authoring generators.
 - The setup documentation now explains the pinned Python environment needed
   for full publication builds.
+- Consumer output configuration is honored, pipeline scripts use the
+  consumer project's build environment, and direct script execution uses the
+  shared ReportKit package bootstrap.
+- Analytical visualization helpers now live under `reportkit.viz`, while the
+  legacy `reportkit_viz.py` import remains compatible.
+- Failed build stages now produce one consistent structured report shape, and
+  the doctor includes actionable Python dependency remediation.
 
 ### Removed
 - The obsolete file-copying `shell_scripts/bootstrap.sh` workflow is retired
   in favor of `reportkit init` and `--source-root`.
+- Obsolete shell wrappers and the duplicate career-guide figure generator are
+  retired in favor of the Python CLI and shared pipeline entry points.
 
 ## [1.9.3] - 2026-09-11
 
