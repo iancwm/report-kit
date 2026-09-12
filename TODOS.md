@@ -24,14 +24,14 @@ for why.
 | [2026-09-09-reportkit-multi-format-publication-architecture-spec.md](docs/superpowers/specs/2026-09-09-reportkit-multi-format-publication-architecture-spec.md) | Draft — Phase A1 landed in v1.9.2; A2 implemented in the current tree; A0 and A3–A5 remain | P2 |
 | [2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md](docs/superpowers/specs/2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md) | Implemented for v1.9.0 — Phase A′ and paged-renderer B′ complete; renderer-dependent work deferred | P2 |
 | [2026-09-10-reportkit-fork-port-fixes-spec.md](docs/superpowers/specs/2026-09-10-reportkit-fork-port-fixes-spec.md) | Implemented in v1.9.1 via PR #19; all 11 applicable fixes landed | Complete |
-| [2026-09-12-reportkit-code-quality-and-dependency-remediation-spec.md](docs/superpowers/specs/2026-09-12-reportkit-code-quality-and-dependency-remediation-spec.md) | Draft v0.1 — 17 findings banded into three phases; Phase 0 is user-facing breakage; 3 open questions | P0 |
+| [2026-09-12-reportkit-code-quality-and-dependency-remediation-spec.md](docs/superpowers/specs/2026-09-12-reportkit-code-quality-and-dependency-remediation-spec.md) | Draft v0.1 — Phase 0 landed; Phase 1 is mostly landed; structural Phase 2 work remains; 3 open questions | P1 |
 
 ## Open work
 
 ### P0
 
 - **P0-1 — delete `tooling`, don't re-cut it.** `git rev-list --left-right
-  --count main...tooling` returns `86 0` (verified 2026-09-10): the branch has
+  --count main...tooling` returns `107 0` (verified 2026-09-12): the branch has
   no unique commits, so there is nothing to preserve, and
   [references/migrating-content-branches.md](references/migrating-content-branches.md)
   already dispositions it as "Superseded and stale… then delete". Branch the
@@ -47,6 +47,14 @@ change record.
   contrast/grayscale audit, then measure the publication build before deciding
   whether to implement bounded parallelism or incremental builds for the
   existing `--workers`/F2 hook.
+
+- **P1-2 — close the code-quality remediation record.** The user-facing Phase 0
+  fixes and the concrete Phase 1 fixes are in the current tree; the remaining
+  work is to complete the dependency-audit signal (the repository has
+  Dependabot configuration but no non-blocking `pip-audit` gate), resolve the
+  three open questions in the spec, and either finish or explicitly defer its
+  structural Phase 2 items. See
+  [the remediation spec](docs/superpowers/specs/2026-09-12-reportkit-code-quality-and-dependency-remediation-spec.md).
 
 ### P2
 
@@ -113,7 +121,11 @@ change record.
   The current tree also implements Phase A2: a generated LaTeX compatibility
   registry, shared hard-failing class-option parser, pair/renderer validation,
   drift coverage, and staging for the new `.def`/`.tex` infrastructure. The
-  remaining Phase A work is ordered in the plan:
+  shipped capability matrix still contains only the `paged` renderer and the
+  `technical-report` and `equity-research` publication types, both producing
+  PDF through LaTeX. There is no slide class, presentation target, HTML,
+  DOCX, PPTX, or EPUB renderer in the current tree; presentations remain the
+  planned Phase B slice. The remaining Phase A work is ordered in the plan:
   capture the pinned compatibility baseline (A0), split shared/paged mechanics
   (A3), move component appearance behind theme hooks (A4), and make pipeline
   templates target-aware (A5). The original architecture risk remains in
@@ -161,6 +173,13 @@ change record.
 - Libertinus fonts: installed to `TEXMFHOME` (`~/.TinyTeX/texmf-local`) from `font_data/reportkit-libertinus-fonts.tar.gz`.
 
 ## History
+
+- 2026-09-12: synchronized this index with the post-v1.9.3 tree. The
+  code-quality remediation's user-facing Phase 0 and concrete Phase 1 changes
+  are landed; its dependency-audit and structural follow-up remain open. The
+  local `tooling` branch still has no commits unique to it and is now 107
+  commits behind `main`. The multi-format registry remains paged-PDF-only;
+  the planned slide renderer has not started.
 
 - 2026-09-11: synchronized this index with the v1.9.2 publication-registry
   commits and shipped Phase A2 in v1.9.3: a generated LaTeX compatibility
