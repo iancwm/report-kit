@@ -25,18 +25,22 @@ From a clone of this skill, initialize a separate report directory:
 
 ```bash
 git clone https://github.com/iancwm/report-kit.git <skill-directory>
-<skill-directory>/reportkit init <report-directory>
+<skill-directory>/reportkit init <report-directory> --install-fonts
+python3 -m venv <report-directory>/build/.venv
+<report-directory>/build/.venv/bin/python -m pip install --require-hashes \
+  -r <skill-directory>/toolchain/requirements.lock
+<report-directory>/build/.venv/bin/python <skill-directory>/reportkit doctor \
+  --require full-build
 ```
 
-`reportkit init` refuses to run if `<report-directory>` resolves inside `<skill-directory>` — pick a directory outside the clone. It scaffolds `manuscript/`, `fragments/`, `assets/`, `figures/`, `build/`, `output/`, and a `publication.yaml` stub without copying engine files. Install the pinned Python dependencies before generating figures or running the full test suite, then check the environment and build:
-
-```bash
-python3 -m pip install --requirement <skill-directory>/toolchain/requirements.lock
-<skill-directory>/reportkit doctor
-<skill-directory>/reportkit build --source-root <report-directory>
-```
-
-Use `reportkit init --install-fonts <report-directory>` when the bundled Libertinus font subset is needed. Trust the actual `MODE:` line from `reportkit doctor`:
+`reportkit init` refuses to run if `<report-directory>` resolves inside
+`<skill-directory>` — pick a directory outside the clone. It scaffolds
+`manuscript/`, `fragments/`, `assets/`, `figures/`, `build/`, `output/`, and a
+`publication.yaml` stub without copying engine files. `--install-fonts` is
+optional and installs the bundled Libertinus fonts into `TEXMFLOCAL`; it may
+require system write permission. The pinned `toolchain/requirements.lock`
+set supplies the Python dependencies for a full build. Trust the actual
+`MODE:` line:
 
 - `FULL BUILD`: TeX and ReportKit's required fonts work; a compiled PDF may be delivered.
 - `SOURCE BUILD + FIGURES`: create source and figures, but do not claim that the PDF compiled.

@@ -1,4 +1,4 @@
-"""LaTeX escaping helpers shared by ReportKit's text emitters."""
+"""LaTeX escaping helpers shared by ReportKit's generators."""
 from __future__ import annotations
 
 
@@ -17,16 +17,16 @@ _TEXT_ESCAPES = {
 
 
 def tex_escape(value: str) -> str:
-    """Escape all ten LaTeX text-mode metacharacters in ``value``."""
+    """Escape all ten LaTeX text-mode metacharacters in *value*."""
     return "".join(_TEXT_ESCAPES.get(char, char) for char in value)
 
 
 def tex_escape_url(value: str) -> str:
-    """Escape a URL for ``href`` without applying text-mode escaping.
+    """Escape URL characters that remain special inside ``\\href`` braces.
 
-    URLs have different rules from ordinary text: percent escapes must remain
-    intact, while the URL characters ``%``, ``#``, and ``&`` need protection
-    in the generated macro. Callers validate the URL separately before using
-    this helper; it is intentionally not a general-purpose URL sanitizer.
+    URLs have different rules from ordinary text: percent signs, fragments,
+    and query-string ampersands must be escaped, while characters such as
+    underscores are valid URL content and should not be treated as prose.
+    Callers must still validate URL schemes and reject unsafe TeX controls.
     """
     return value.replace("%", r"\%").replace("#", r"\#").replace("&", r"\&")

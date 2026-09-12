@@ -81,10 +81,10 @@ from reportkit.config import (  # noqa: E402
 )
 from reportkit.manifest import unique_build_id, write_report  # noqa: E402
 from reportkit.diagnostics import diagnostic_envelope, inspect_log, make_diagnostic  # noqa: E402
+from reportkit.latex import tex_escape  # noqa: E402
 from reportkit.publications import PublicationRegistryError, resolve_build_target  # noqa: E402
 from reportkit.toolchain import toolchain_context  # noqa: E402
 from reportkit.toolchain import version_line  # noqa: E402
-from reportkit.latex import tex_escape  # noqa: E402
 from reportkit.version import BUILD_REPORT_SCHEMA_VERSION  # noqa: E402
 from reportkit.license_metadata import load_license_metadata, validate_license_metadata  # noqa: E402
 

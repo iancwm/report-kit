@@ -34,3 +34,18 @@ def test_source_model_and_links_validate(tmp_path: Path) -> None:
     render_links_tex(tmp_path / "links.yaml", output)
     assert "Documentation" in output.read_text(encoding="utf-8")
     assert "\\RKLink" in output.read_text(encoding="utf-8")
+
+
+def test_link_labels_use_the_full_latex_text_escaper(tmp_path: Path) -> None:
+    (tmp_path / "links.yaml").write_text(
+        "links:\n"
+        "  special:\n"
+        "    url: https://example.com/docs\n"
+        "    label: 'A~B^C_D'\n"
+        "    type: documentation\n",
+        encoding="utf-8",
+    )
+    output = tmp_path / "links.tex"
+    render_links_tex(tmp_path / "links.yaml", output)
+    text = output.read_text(encoding="utf-8")
+    assert r"A\textasciitilde{}B\textasciicircum{}C\_D" in text

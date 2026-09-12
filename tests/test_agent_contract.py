@@ -16,6 +16,7 @@ from reportkit.cli import _contract_diagnostics, build_parser  # noqa: E402
 from reportkit.context import build_context  # noqa: E402
 from reportkit.diagnostics import DIAGNOSTIC_DEFINITIONS, make_diagnostic  # noqa: E402
 from reportkit.documentation import check_documentation  # noqa: E402
+from reportkit.latex import tex_escape as shared_tex_escape  # noqa: E402
 from reportkit.registry import (  # noqa: E402
     COMMAND_CONTRACT,
     ContractError,
@@ -27,7 +28,7 @@ from reportkit.registry import (  # noqa: E402
 )
 from reportkit.toolchain import load_toolchain_lock, toolchain_fingerprint  # noqa: E402
 from reportkit.version import REPORTKIT_VERSION  # noqa: E402
-from publication_build import _reproducible_datetime, run_limited  # noqa: E402
+from publication_build import _reproducible_datetime, run_limited, tex_escape as pipeline_tex_escape  # noqa: E402
 from publication_validation import validate_publication  # noqa: E402
 from scripts.contract_acceptance import acceptance_source, run_acceptance  # noqa: E402
 
@@ -42,6 +43,12 @@ def test_xparse_signature_handles_nested_defaults_and_supported_tokens() -> None
 def test_xparse_signature_rejects_unknown_tokens() -> None:
     with pytest.raises(ContractError, match="unsupported xparse"):
         parse_xparse_signature("r()")
+
+
+@pytest.mark.parametrize("character", list(r"\&%$#_{}~^"))
+def test_all_latex_metacharacters_use_one_shared_escaper(character: str) -> None:
+    assert pipeline_tex_escape is shared_tex_escape
+    assert pipeline_tex_escape(character) == shared_tex_escape(character)
 
 
 def test_python_signature_is_extracted_from_ast() -> None:

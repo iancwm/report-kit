@@ -6,7 +6,11 @@ Run it from the engine clone after initializing the consumer project:
 ```bash
 <report-kit-clone>/reportkit doctor
 ```
-It always exits 0 — the report is the `MODE:` line, not the exit code.
+If using the consumer project's pinned environment, run:
+```bash
+<report-directory>/build/.venv/bin/python <skill-directory>/reportkit doctor
+```
+Without `--require`, the report is the `MODE:` line, not the exit code.
 Two modes:
 - **FULL BUILD** — pdflatex/lualatex/bibtex present *and* the Libertinus
   font packages resolve via `kpsewhich`. Compiling will work.
@@ -22,7 +26,8 @@ because "TeX is installed" — see the false-positive fix in
 
 1. `git clone` this repo (see `SKILL.md` for the URL/tag pattern), then
    run `<cloned_dir>/reportkit init <work_dir>`.
-2. `cd` into the consumer project.
+2. Create the pinned Python environment in `<work_dir>/build/.venv` as
+   described in `SKILL.md`, then `cd` into the consumer project.
 3. Run `<cloned_dir>/reportkit doctor` and check the `MODE:` line before
    trusting a compile will succeed.
 4. Build the report bundle:
@@ -55,7 +60,8 @@ because "TeX is installed" — see the false-positive fix in
 ## Environment notes
 
 - A claude.ai code-execution sandbox's filesystem resets between
-  sessions — nothing persists, so re-clone and rerun `reportkit init` each session.
+sessions — nothing persists, so re-clone and rerun `reportkit init` each session.
+sessions — nothing persists, so re-clone and re-initialize each session.
 - Python 3, matplotlib, numpy, and pandas are expected present alongside
   TeX Live; `biber` is not — avoid `biblatex`+`biber`, use `bibtex`/
   `natbib` if a bibliography is needed.

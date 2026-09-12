@@ -6,6 +6,21 @@ tags on this repository, not a published package registry.
 
 ## [Unreleased]
 
+### Added
+- `reportkit init` now scaffolds a consumer publication project outside the
+  engine clone, with optional bundled Libertinus font installation.
+- The repository now includes the GPL-3.0-or-later license text.
+
+### Changed
+- The CLI contract is versioned at 1.1.0, and LaTeX text escaping is shared
+  across publication and authoring generators.
+- The setup documentation now explains the pinned Python environment needed
+  for full publication builds.
+
+### Removed
+- The obsolete file-copying `shell_scripts/bootstrap.sh` workflow is retired
+  in favor of `reportkit init` and `--source-root`.
+
 ## [1.9.3] - 2026-09-11
 
 ### Added

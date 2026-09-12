@@ -158,43 +158,69 @@ def _default_init_target() -> Path:
 
 
 def _run_init(args: argparse.Namespace) -> int:
+    """Scaffold a consumer project, optionally install fonts, then report readiness."""
     target_value = getattr(args, "target_option", None) or getattr(args, "target", None)
     target = Path(target_value).expanduser() if target_value else _default_init_target()
     try:
         result = initialize(target, REPO_ROOT)
     except (OSError, ValueError) as exc:
-        diagnostic = make_diagnostic("configuration_error", str(exc), code="RK_INIT_TARGET")
+        diagnostic = make_diagnostic(
+            "configuration_error", str(exc), code="RK_INIT_FAILED", docs="#/commands/init",
+        )
         payload = diagnostic_envelope([diagnostic], passed=False, target=str(target.resolve()))
         if args.json:
             _json_or_print(payload, True)
         else:
-            print(f"FAIL: {exc}", file=sys.stderr)
+            print(f"FAIL [{diagnostic['code']}]: {diagnostic['message']}", file=sys.stderr)
         return EXIT_CONFIG
 
-    diagnostics: list[dict[str, Any]] = []
-    font_message = None
+    font_status = None
     if args.install_fonts:
-        fonts_ok, font_message = install_fonts(REPO_ROOT)
-        if not fonts_ok:
-            diagnostics.append(make_diagnostic(
-                "environment_error", font_message, code="RK_INIT_FONTS",
-                remediation="Install the Libertinus font bundle or run the apt command named above, then rerun reportkit init --install-fonts.",
-            ))
-    payload = diagnostic_envelope(
-        diagnostics, passed=not diagnostics, target=str(result.target), created=list(result.created),
-        fonts=font_message,
-    )
+        try:
+            font_status = install_fonts(REPO_ROOT)
+        except (OSError, ValueError) as exc:
+            diagnostic = make_diagnostic(
+                "environment_error", str(exc), code="RK_INIT_FONT_INSTALL", docs="#/commands/init",
+            )
+            payload = diagnostic_envelope([diagnostic], passed=False, target=str(target))
+            if args.json:
+                _json_or_print(payload, True)
+            else:
+                print(f"FAIL [{diagnostic['code']}]: {diagnostic['message']}", file=sys.stderr)
+            return EXIT_ENVIRONMENT
+
+    doctor_command = [sys.executable, str(REPO_ROOT / "python_scripts" / "reportkit_doctor.py")]
     if args.json:
+        doctor_command.append("--json")
+    doctor = subprocess.run(doctor_command, text=True, capture_output=True)
+    if args.json:
+        try:
+            doctor_payload = json.loads(doctor.stdout)
+            diagnostics = doctor_payload.get("diagnostics", [])
+        except json.JSONDecodeError:
+            diagnostics = [make_diagnostic(
+                "internal_error", doctor.stderr or doctor.stdout or "environment doctor failed", code="RK_DOCTOR_OUTPUT",
+            )]
+            doctor_payload = {}
+        payload = diagnostic_envelope(
+            diagnostics,
+            passed=doctor_payload.get("passed", not diagnostics),
+            target=str(result.target), created=list(result.created), fonts=font_status,
+            mode=doctor_payload.get("mode"), toolchain=doctor_payload.get("toolchain"),
+            checks=doctor_payload.get("checks", []),
+        )
         _json_or_print(payload, True)
     else:
-        print(f"PASS: initialized consumer project at {result.target}")
-        for item in result.created:
-            print(f"- created {item}")
-        if font_message:
-            print(f"- fonts: {font_message}")
-        if diagnostics:
-            print(f"FAIL: {font_message}", file=sys.stderr)
-    return EXIT_OK if not diagnostics else EXIT_ENVIRONMENT
+        print("== ReportKit init ==")
+        print(f"consumer project: {result.target}")
+        print("created: " + (", ".join(result.created) if result.created else "nothing (already initialized)"))
+        if font_status:
+            print(font_status)
+        if doctor.stdout:
+            print(doctor.stdout, end="")
+        if doctor.stderr:
+            print(doctor.stderr, end="", file=sys.stderr)
+    return doctor.returncode
 
 
 def _run_context(args: argparse.Namespace) -> int:

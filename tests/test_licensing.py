@@ -17,6 +17,10 @@ def test_repository_license_metadata_is_complete():
     assert metadata["content_license"] == "CC-BY-4.0"
     assert metadata["content_license_url"].startswith("https://")
     assert "third-party" in rights_notice(metadata)
+    license_path = repo / "LICENSE"
+    assert license_path.is_file()
+    assert license_path.read_text(encoding="utf-8").strip()
+    assert "GNU GENERAL PUBLIC LICENSE" in license_path.read_text(encoding="utf-8")
 
 
 def test_license_url_rejects_unescaped_latex_metacharacters():
