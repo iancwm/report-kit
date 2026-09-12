@@ -100,6 +100,7 @@ from reportkit.config import (  # noqa: E402
 )
 from reportkit.manifest import unique_build_id, write_report  # noqa: E402
 from reportkit.diagnostics import diagnostic_envelope, inspect_log, make_diagnostic  # noqa: E402
+from reportkit.latex import tex_escape  # noqa: E402
 from reportkit.publications import PublicationRegistryError, resolve_build_target  # noqa: E402
 from reportkit.toolchain import toolchain_context  # noqa: E402
 from reportkit.version import BUILD_REPORT_SCHEMA_VERSION  # noqa: E402
@@ -131,10 +132,6 @@ def stage_project_assets(source_root: Path, output: Path) -> list[dict[str, str]
             shutil.copy2(source, destination)
             staged.append({"path": str(relative), "sha256": sha256(source)})
     return staged
-
-
-def tex_escape(value: str) -> str:
-    return "".join({"\\": r"\textbackslash{}", "&": r"\&", "%": r"\%", "$": r"\$", "#": r"\#", "_": r"\_", "{": r"\{", "}": r"\}", "~": r"\textasciitilde{}", "^": r"\textasciicircum{}"}.get(char, char) for char in value)
 
 
 def version_line(name: str) -> str:

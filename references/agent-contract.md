@@ -1,6 +1,8 @@
 # Agent contract, diagnostics, and trusted build boundary
 
 ReportKit 1.9 exposes its host-neutral interface through the `reportkit` CLI.
+`reportkit init` scaffolds a consumer project outside the engine clone; its
+font installation is opt-in because `TEXMFLOCAL` may be system-owned.
 `reportkit context --json` is the authoritative capability catalog; generated
 Markdown is explanatory and must not be used as a second source of primitive
 signatures.

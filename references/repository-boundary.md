@@ -22,7 +22,7 @@ Before editing anything, know which side of the line you are on:
 | `latex_templates/` — `.cls`, `.sty` | `manuscript/` — Markdown + `order.txt` |
 | `python_scripts/` — viz, doctor, licence/config loaders | `fragments/` — LaTeX diagram fragments |
 | `publication_pipeline/` — build/validate/inspect harness | `assets/` — cover art, images, source data |
-| `shell_scripts/`, `scripts/`, `.githooks/` | `figures/` — generated chart PDF/PNG |
+| `scripts/`, `.githooks/` | `figures/` — generated chart PDF/PNG |
 | `references/`, `metadata/` | `publication.yaml` — title, author, version, identity |
 | `tests/` — engine regression suites | `build/`, `output/` — build artefacts, QA logs, final PDF |
 | `font_data/` | `reportkit.lock` — pinned engine ref + toolchain versions |
@@ -46,7 +46,7 @@ my-publication/
   reportkit.lock         # written by publication_build.py on a passing build
 ```
 
-Bootstrap this structure with `shell_scripts/bootstrap.sh <report-kit-clone>
+Initialize this structure with `<report-kit-clone>/reportkit init
 <publication-dir>` — it refuses to run if `<publication-dir>` resolves inside
 the ReportKit clone.
 
@@ -75,8 +75,8 @@ the ReportKit clone.
 - `publication_build.py --source-root <dir>` builds a project outside this
   repo; `--output-root` (default `<source-root>/build`) keeps every artefact
   there too. Neither defaults into this repository.
-- `shell_scripts/bootstrap.sh` refuses to scaffold a publication directory
-  that resolves inside the ReportKit clone.
+- `reportkit init` refuses to scaffold a publication directory that resolves
+  inside the ReportKit clone.
 - `.gitignore` blocks the publication directories from ever being committed
   here by accident.
 - `.githooks/pre-commit` validates only `publication_pipeline/`'s own generic
