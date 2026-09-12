@@ -1,6 +1,0 @@
-jsonschema==4.25.1
-matplotlib==3.10.6
-numpy==2.3.3
-pandas==2.3.2
-PyMuPDF==1.28.2
-pytest==8.3.4

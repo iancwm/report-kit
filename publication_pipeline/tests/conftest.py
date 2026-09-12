@@ -1,7 +1,1 @@
-"""Make the repository packages importable when this suite runs alone."""
-from pathlib import Path
-import sys
-
-ROOT = Path(__file__).resolve().parents[2]
-if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
+"""Pytest configuration is provided by the repository pyproject."""

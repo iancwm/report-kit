@@ -17,10 +17,12 @@ DEFAULT_RENDER_DPI = 150
 
 
 def lock_path(repo_root: Path) -> Path:
+    """Return the canonical machine-readable toolchain lock path."""
     return repo_root / "toolchain" / "toolchain.lock.json"
 
 
 def load_toolchain_lock(repo_root: Path) -> dict[str, Any]:
+    """Load and validate the toolchain lock object for ``repo_root``."""
     path = lock_path(repo_root)
     if not path.is_file():
         return {"schema_version": TOOLCHAIN_SCHEMA_VERSION, "missing": True}
@@ -31,12 +33,14 @@ def load_toolchain_lock(repo_root: Path) -> dict[str, Any]:
 
 
 def toolchain_fingerprint(lock: dict[str, Any]) -> str:
+    """Calculate the stable SHA-256 fingerprint of a lock object."""
     value = {key: item for key, item in lock.items() if key != "fingerprint"}
     payload = json.dumps(value, sort_keys=True, separators=(",", ":")).encode("utf-8")
     return hashlib.sha256(payload).hexdigest()
 
 
-def _version_line(command: str) -> str | None:
+def version_line(command: str) -> str | None:
+    """Return the first version-output line for an executable, if present."""
     executable = shutil.which(command)
     if not executable:
         return None
@@ -99,10 +103,18 @@ def _tex_file(name: str) -> str | None:
 
 
 def resolved_toolchain(repo_root: Path) -> dict[str, Any]:
+    """Resolve installed tools against the lock and classify their status.
+
+    ``pinned`` means the declared fingerprint, required runtime dependencies,
+    and versions all match. ``unverified`` means the environment is available
+    and version-compatible but no fingerprint was declared. ``mismatch`` means
+    an integrity, fingerprint, or version check failed. ``unavailable`` means
+    one or more required tools, packages, or fonts cannot be resolved.
+    """
     lock = load_toolchain_lock(repo_root)
     expected_fingerprint = toolchain_fingerprint(lock)
     declared_fingerprint = os.environ.get("REPORTKIT_TOOLCHAIN_FINGERPRINT")
-    commands = {name: _version_line(name) for name in ("pdflatex", "lualatex", "pandoc", "bibtex", "git")}
+    commands = {name: version_line(name) for name in ("pdflatex", "lualatex", "pandoc", "bibtex", "git")}
     packages = {name: _package_version(name) for name in lock.get("python_packages", {})}
     expected_packages = lock.get("python_packages", {})
     expected_apt_packages = lock.get("apt_package_versions", {})
@@ -151,6 +163,7 @@ def resolved_toolchain(repo_root: Path) -> dict[str, Any]:
 
 
 def toolchain_context(repo_root: Path) -> dict[str, Any]:
+    """Return expected lock data, resolved status, and its fingerprint."""
     lock = load_toolchain_lock(repo_root)
     return {
         "expected": lock,

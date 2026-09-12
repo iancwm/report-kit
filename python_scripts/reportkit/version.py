@@ -1,7 +1,7 @@
 """ReportKit public and machine-contract version identifiers."""
 
 REPORTKIT_VERSION = "1.9.3"
-CONTRACT_VERSION = "1.0.0"
+CONTRACT_VERSION = "1.1.0"
 CONTEXT_SCHEMA_VERSION = "1.0.0"
 DIAGNOSTIC_SCHEMA_VERSION = "1.0.0"
 TOOLCHAIN_SCHEMA_VERSION = 1

@@ -16,7 +16,7 @@ reportkit context --schema diagnostic
 reportkit docs --check --json
 ```
 
-Contract schema `1.0.0` describes only the combinations that ship today:
+Contract schema `1.1.0` describes only the combinations that ship today:
 `technical-report/{default,technical}/paged` and
 `equity-research/institutional-research/paged`. Theme entries expose semantic
 capability names, not visual values; `technical` resolves to the same

@@ -4,29 +4,18 @@ from __future__ import annotations
 
 import argparse
 import json
-import importlib.util
 from pathlib import Path
 import sys
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-PYTHON_ROOT = REPO_ROOT / "python_scripts"
 
 
-def _load_reportkit_package() -> None:
-    if "reportkit" in sys.modules:
-        return
-    package = PYTHON_ROOT / "reportkit"
-    spec = importlib.util.spec_from_file_location(
-        "reportkit", package / "__init__.py", submodule_search_locations=[str(package)]
-    )
-    if not spec or not spec.loader:
-        raise ImportError(f"cannot load ReportKit package from {package}")
-    module = importlib.util.module_from_spec(spec)
-    sys.modules["reportkit"] = module
-    spec.loader.exec_module(module)
+try:
+    from _bootstrap import ensure_reportkit_importable
+except ImportError:  # imported as publication_pipeline.scripts.check_build_log
+    from ._bootstrap import ensure_reportkit_importable
 
-
-_load_reportkit_package()
+ensure_reportkit_importable()
 
 from reportkit.diagnostics import (  # noqa: E402
     DEFAULT_UNDERFULL_BADNESS,

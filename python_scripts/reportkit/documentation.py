@@ -19,7 +19,11 @@ def _arguments(record: dict[str, Any]) -> str:
     for argument in record["arguments"]:
         required = "required" if argument["required"] else "optional"
         default = "" if argument.get("default") is None else f"={argument['default']}"
-        values.append(f"`{argument['name']}` ({_cell(argument['type'])}, {required}{_cell(default)}) — {_cell(argument['description'])}")
+        description = str(argument.get("description", "")).strip()
+        normalized_name = " ".join(str(argument["name"]).replace("_", " ").split()).casefold()
+        normalized_description = " ".join(description.rstrip(".").split()).casefold()
+        suffix = "" if normalized_description == normalized_name else f" — {_cell(description)}"
+        values.append(f"`{argument['name']}` ({_cell(argument['type'])}, {required}{_cell(default)}){suffix}")
     return "<br>".join(values) if values else "—"
 
 
@@ -28,6 +32,7 @@ def _constraints(record: dict[str, Any]) -> str:
 
 
 def render_reference(registry: dict[str, Any], *, publication_type: str | None = None) -> str:
+    """Render the generated primitive-contract section for a registry."""
     lines = [
         START,
         "## Generated primitive contract",
@@ -67,8 +72,9 @@ def _replace_generated(text: str, generated: str) -> str:
 
 
 def generated_documents(repo_root: Path, registry: dict[str, Any]) -> dict[Path, str]:
+    """Return expected contents for all registry-derived Markdown files."""
     targets = {
-        repo_root / "SKILL.md": render_reference(registry),
+        repo_root / "references" / "primitive-contract.md": render_reference(registry),
         repo_root / "references" / "institutional-research-theme.md": render_reference(registry, publication_type="equity-research"),
     }
     return {
@@ -78,6 +84,7 @@ def generated_documents(repo_root: Path, registry: dict[str, Any]) -> dict[Path,
 
 
 def check_documentation(repo_root: Path, *, registry: dict[str, Any]) -> list[str]:
+    """Report generated-document drift without modifying the repository."""
     errors = []
     for path, expected in generated_documents(repo_root, registry).items():
         if path.read_text(encoding="utf-8") != expected:
@@ -86,6 +93,7 @@ def check_documentation(repo_root: Path, *, registry: dict[str, Any]) -> list[st
 
 
 def write_documentation(repo_root: Path, *, registry: dict[str, Any]) -> list[str]:
+    """Write changed registry-derived Markdown files and return their paths."""
     changed = []
     for path, expected in generated_documents(repo_root, registry).items():
         if path.read_text(encoding="utf-8") != expected:

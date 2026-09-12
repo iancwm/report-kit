@@ -19,7 +19,7 @@ consumer project**, built against a clone of this repo.
 | report-kit (this repo) | Consumer publication project |
 |---|---|
 | `latex_templates/`, `python_scripts/`, `publication_pipeline/` | `manuscript/`, `fragments/`, `assets/`, `figures/` |
-| `shell_scripts/`, `scripts/`, `references/` | `publication.yaml`, `build/`, `output/`, `reportkit.lock` |
+| `scripts/`, `references/` | `publication.yaml`, `build/`, `output/`, `reportkit.lock` |
 
 Full guardrails and the recommended consumer project structure are in
 [`references/repository-boundary.md`](references/repository-boundary.md).
@@ -62,22 +62,23 @@ Migrating an existing content branch out of this repo is covered in
 
 ## 2. python_scripts/
 - `reportkit` (from the repository root) — stdlib CLI facade for doctor,
-  context, check, build, diagnose, inspect, docs, analyse-history, and package; its importable
+  init, context, check, build, diagnose, inspect, docs, analyse-history, and package; its importable
   implementation lives under `python_scripts/reportkit/`, including
   `reportkit/themes/` — per-theme Python tokens (`default`,
   `institutional-research`) plus the `technical` compatibility alias for
   `default` that `reportkit_viz.py` and the publication context resolve by name.
-- `reportkit_viz.py` — Matplotlib analytical chart theme, switchable at
-  runtime via `apply_theme(name)` (palette/geometry/fonts synced with the
-  matching `latex_templates/themes/*.sty` file; `check-theme --theme <name>`
-  verifies the sync), including treemap, waterfall, tornado, bubble-matrix,
+- `reportkit/viz/` — the packaged Matplotlib analytical chart implementation,
+  split into theme, figure, formatter, chart, and CLI concerns. The
+  `reportkit_viz.py` compatibility facade remains switchable at runtime via
+  `apply_theme(name)` (palette/geometry/fonts synced with the matching
+  `latex_templates/themes/*.sty` file; `check-theme --theme <name>` verifies
+  the sync), including treemap, waterfall, tornado, bubble-matrix,
   risk/reward, and dated timeline figures alongside standard analytical
   charts.
 - `reportkit_doctor.py` — environment check (FULL BUILD / SOURCE BUILD detection).
 - `publication_config.py` — compatibility import for the nested or legacy
   consumer `publication.yaml` loader;
   `license_metadata.py` — reads this repo's own `metadata/licenses.yml`.
-- `career_guide_en_make_figures.py` — example figure generator using `reportkit_viz`.
 
 ## 3. publication_pipeline/
 Reusable build/validate/inspect harness for a consumer publication project —
@@ -90,22 +91,14 @@ See [`publication_pipeline/README.md`](publication_pipeline/README.md).
 
 ## 4. font_data/
 - `reportkit-libertinus-fonts.tar.gz` — the ~26MB Libertinus font subset harvested
-  from `texlive-fonts-extra` (a 1.7GB package), for fast `bootstrap.sh` setup.
+  from `texlive-fonts-extra` (a 1.7GB package), for `reportkit init --install-fonts`.
 - `GoogleSans-{Regular,Medium,Bold}.ttf` — licensed fixtures for the
   institutional-research theme's local `font_path` and acceptance smoke test;
   see `GOOGLE_SANS_LICENSE.md`.
 - `LinBiolinum_K.otf` + `LinBiolinum_K_stub_README.md` — stub font and explanation
   for the lualatex-only upstream packaging gap in `libertinus-otf.sty`.
 
-## 5. shell_scripts/
-- `bootstrap.sh` — one-command session setup: copies core files, installs fonts to
-  `TEXMFLOCAL` (persists across tool calls, no env var needed), scaffolds a
-  consumer publication project (`manuscript/`, `fragments/`, `assets/`,
-  `figures/`, `build/`, `output/`, `publication.yaml`), and runs the doctor.
-  Refuses to run if the target directory is inside this clone. Covers the
-  pdflatex path; see `references/font-setup.md` for the lualatex additions.
-
-## 6. references/
+## 5. references/
 - [`repository-boundary.md`](references/repository-boundary.md),
   [`migrating-content-branches.md`](references/migrating-content-branches.md) —
   the engine/publication boundary and how to move existing content out of this
@@ -133,7 +126,7 @@ The machine-readable defaults are in `metadata/licenses.yml`; contributor
 requirements are documented in [`CONTRIBUTING.md`](CONTRIBUTING.md) and
 [`references/licensing.md`](references/licensing.md).
 
-## 7. scripts/ and .githooks/
+## 6. scripts/ and .githooks/
 - `scripts/acceptance_check.sh` — compiles the legacy and visual-grammar
   acceptance tests and checks for known failure signatures; run by hand, or
   automatically via `.githooks/pre-commit` once enabled (see
@@ -141,8 +134,16 @@ requirements are documented in [`CONTRIBUTING.md`](CONTRIBUTING.md) and
 
 ## Setup
 
-See `SKILL.md`'s Quick start section — the commands are the same whether
-you're a person cloning this locally or a Claude session bootstrapping it.
+Use `reportkit init <publication-project>` to scaffold a consumer project,
+then install the pinned Python dependencies before generating figures:
+
+```bash
+python3 -m pip install --requirement toolchain/requirements.lock
+```
+
+See `SKILL.md`'s Quick start section for the complete doctor/build flow — the
+commands are the same whether you're a person cloning this locally or a Claude
+session using the engine.
 
 ## Versioning
 

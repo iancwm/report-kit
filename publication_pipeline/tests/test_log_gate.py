@@ -1,7 +1,4 @@
 from pathlib import Path
-import sys
-
-sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "python_scripts"))
 from reportkit.diagnostics import inspect_log as inspect_diagnostics
 
 

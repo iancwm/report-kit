@@ -6,7 +6,14 @@ import argparse
 from pathlib import Path
 import sys
 
-from publication_validation import validate_publication
+try:
+    from _bootstrap import ensure_reportkit_importable
+except ImportError:  # pragma: no cover - package execution path
+    from ._bootstrap import ensure_reportkit_importable
+
+ensure_reportkit_importable()
+
+from reportkit.publication_validation import validate_publication
 
 
 def main() -> int:

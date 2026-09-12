@@ -3,8 +3,6 @@ from __future__ import annotations
 from pathlib import Path
 import tempfile
 
-import sys
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 from publication_validation import validate_publication
 
 

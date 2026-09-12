@@ -1,10 +1,10 @@
 # Troubleshooting
 
-## Reading `reportkit_doctor.py`'s output
+## Reading `reportkit doctor`'s output
 
-Run it from the working directory after bootstrapping:
+Run it from the engine clone after initializing the consumer project:
 ```bash
-python3 reportkit_doctor.py
+<report-kit-clone>/reportkit doctor
 ```
 It always exits 0 — the report is the `MODE:` line, not the exit code.
 Two modes:
@@ -21,9 +21,9 @@ because "TeX is installed" — see the false-positive fix in
 ## Standard task flow
 
 1. `git clone` this repo (see `SKILL.md` for the URL/tag pattern), then
-   run `shell_scripts/bootstrap.sh <cloned_dir> <work_dir>`.
-2. `cd` into the work directory the bootstrap printed.
-3. Run `python3 reportkit_doctor.py` and check the `MODE:` line before
+   run `<cloned_dir>/reportkit init <work_dir>`.
+2. `cd` into the consumer project.
+3. Run `<cloned_dir>/reportkit doctor` and check the `MODE:` line before
    trusting a compile will succeed.
 4. Build the report bundle:
    ```text
@@ -55,7 +55,7 @@ because "TeX is installed" — see the false-positive fix in
 ## Environment notes
 
 - A claude.ai code-execution sandbox's filesystem resets between
-  sessions — nothing persists, so re-clone and re-bootstrap each session.
+  sessions — nothing persists, so re-clone and rerun `reportkit init` each session.
 - Python 3, matplotlib, numpy, and pandas are expected present alongside
   TeX Live; `biber` is not — avoid `biblatex`+`biber`, use `bibtex`/
   `natbib` if a bibliography is needed.

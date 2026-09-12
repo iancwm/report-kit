@@ -18,20 +18,22 @@ publication to build on.
 ## Commands
 
 ```bash
-bash scripts/setup.sh
+<report-kit-clone>/publication_pipeline/scripts/setup.sh <publication-project>/build/.venv
 <report-kit-clone>/reportkit check --source-root <publication-project>
 <report-kit-clone>/reportkit build --mode section --section manuscript/01-introduction.md --source-root <publication-project>
 <report-kit-clone>/reportkit build --source-root <publication-project> --output-root <publication-project>/build
 ```
 
-The `reportkit` facade also exposes `doctor`, `context`, `diagnose`, `inspect`,
+The `reportkit` facade also exposes `doctor`, `init`, `context`, `diagnose`, `inspect`,
 `docs`, `analyse-history`, and `package`. Add `--profile release` to resolve a release
 profile from a nested `publication.yaml`; `--engine` is an explicit TeX-engine
 override. Optional `sources.yaml` and `links.yaml` files are validated during
 `check` and `build`; the latter renders named `\RKLink{key}` links into the
 generated document. `inspect` reports page dimensions, bookmarks, fonts, blank
-pages, and near-margin content. The shell wrappers and direct
-`publication_build.py` invocation remain supported.
+pages, and near-margin content. Direct `publication_build.py` invocation
+remains supported. Set `REPORTKIT_PDF_PYTHON` to override the consumer
+project's default `<output-root>/.venv/bin/python` for page rendering and PDF
+inspection.
 
 `<publication-project>/publication.yaml` supplies the title, subtitle, author,
 and version; `--title`/`--author`/`--version` on the CLI override it. An
@@ -44,7 +46,7 @@ Before TeX runs, optional consumer-project `figures/` and `assets/` files are
 copied into the isolated build directory. Their relative paths and SHA-256
 hashes are recorded in `build-report.json` for build provenance.
 
-`combine.sh` is the canonical full-document build and is driven by
+`reportkit build --mode combined` is the canonical full-document build and is driven by
 `manuscript/order.txt`. It validates the publication before Pandoc runs,
 compiles twice with `-file-line-error`, applies the strict log gate, renders
 pages into an atomic directory, writes `build/combined/build-report.json`,

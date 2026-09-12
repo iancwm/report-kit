@@ -82,22 +82,10 @@ def _scalar(raw: str, path: Path, line_number: int) -> Any:
     return value
 
 
-def _next_content(lines: list[str], index: int) -> tuple[int, str] | None:
-    for next_index in range(index + 1, len(lines)):
-        content = _strip_comment(lines[next_index].strip())
-        if content:
-            indent = len(lines[next_index]) - len(lines[next_index].lstrip(" "))
-            return indent, content
-    return None
-
-
-def _parse_yaml(path: Path) -> dict[str, Any]:
-    """Parse the deliberately small YAML subset supported by ReportKit."""
-    lines = path.read_text(encoding="utf-8").splitlines()
-    root: dict[str, Any] = {}
-    stack: list[tuple[int, dict[str, Any] | list[Any]]] = [(-1, root)]
-    for index, raw in enumerate(lines):
-        line_number = index + 1
+def _yaml_tokens(path: Path) -> list[tuple[int, int, str]]:
+    """Tokenize the supported YAML subset for both config grammars."""
+    tokens: list[tuple[int, int, str]] = []
+    for line_number, raw in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
         leading = raw[: len(raw) - len(raw.lstrip(" \t"))]
         if "\t" in leading:
             raise ValueError(f"{path}:{line_number}: tabs are not supported for indentation")
@@ -107,6 +95,16 @@ def _parse_yaml(path: Path) -> dict[str, Any]:
         indent = len(raw) - len(raw.lstrip(" "))
         if indent % 2:
             raise ValueError(f"{path}:{line_number}: indentation must use multiples of two spaces")
+        tokens.append((line_number, indent, content))
+    return tokens
+
+
+def _parse_yaml(path: Path) -> dict[str, Any]:
+    """Parse the deliberately small YAML subset supported by ReportKit."""
+    lines = _yaml_tokens(path)
+    root: dict[str, Any] = {}
+    stack: list[tuple[int, dict[str, Any] | list[Any]]] = [(-1, root)]
+    for index, (line_number, indent, content) in enumerate(lines):
         while stack[-1][0] >= indent:
             stack.pop()
         parent = stack[-1][1]
@@ -126,8 +124,8 @@ def _parse_yaml(path: Path) -> dict[str, Any]:
         if raw_value.strip():
             parent[key] = _scalar(raw_value, path, line_number)
         else:
-            next_content = _next_content(lines, index)
-            child: dict[str, Any] | list[Any] = [] if next_content and next_content[0] > indent and next_content[1].startswith("- ") else {}
+            next_content = lines[index + 1] if index + 1 < len(lines) else None
+            child: dict[str, Any] | list[Any] = [] if next_content and next_content[1] > indent and next_content[2].startswith("- ") else {}
             parent[key] = child
             stack.append((indent, child))
     return root
@@ -141,18 +139,7 @@ def _parse_subset(path: Path) -> dict[str, Any]:
     scalar lists. Keep this parser additive so legacy config behaviour stays
     unchanged.
     """
-    lines: list[tuple[int, int, str]] = []
-    for line_number, raw in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
-        leading = raw[: len(raw) - len(raw.lstrip(" \t"))]
-        if "\t" in leading:
-            raise ValueError(f"{path}:{line_number}: tabs are not supported for indentation")
-        content = _strip_comment(raw.strip())
-        if not content:
-            continue
-        indent = len(raw) - len(raw.lstrip(" "))
-        if indent % 2:
-            raise ValueError(f"{path}:{line_number}: indentation must use multiples of two spaces")
-        lines.append((line_number, indent, content))
+    lines = _yaml_tokens(path)
 
     def block(position: int, indent: int) -> tuple[Any, int]:
         if position >= len(lines) or lines[position][1] != indent:
@@ -421,5 +408,6 @@ def resolve_validation(config: dict[str, Any], profile: str | None = None) -> di
 
 
 def resolve_output(config: dict[str, Any], source_root: Path, profile: str | None = None) -> Path | None:
+    """Resolve the optional output directory relative to the consumer root."""
     directory = _profile_section(config, "output", profile).get("directory")
     return (source_root / str(directory)).resolve() if directory else None

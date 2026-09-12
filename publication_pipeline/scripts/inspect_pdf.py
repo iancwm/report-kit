@@ -8,17 +8,19 @@ from pathlib import Path
 import sys
 
 try:
+    from _bootstrap import ensure_reportkit_importable
+except ImportError:  # imported as publication_pipeline.scripts.inspect_pdf
+    from ._bootstrap import ensure_reportkit_importable
+
+ensure_reportkit_importable()
+
+try:
     import pymupdf as fitz
 except ImportError:  # PyMuPDF < 1.26
     try:
         import fitz  # type: ignore
     except ImportError:
         fitz = None  # type: ignore[assignment]
-
-REPO_ROOT = Path(__file__).resolve().parents[2]
-PYTHON_ROOT = REPO_ROOT / "python_scripts"
-if str(PYTHON_ROOT) not in sys.path:
-    sys.path.insert(0, str(PYTHON_ROOT))
 
 from reportkit.diagnostics import diagnostic_envelope, make_diagnostic  # noqa: E402
 

@@ -11,8 +11,6 @@ import sys
 import pytest
 
 REPO = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(REPO / "python_scripts"))
-sys.path.insert(0, str(REPO / "publication_pipeline" / "scripts"))
 
 from reportkit.cli import _contract_diagnostics, build_parser  # noqa: E402
 from reportkit.context import build_context  # noqa: E402
@@ -137,7 +135,7 @@ def test_duplicate_primitive_with_conflicting_signature_is_reported() -> None:
 def test_context_is_versioned_filterable_and_legacy_compatible() -> None:
     context = build_context(REPO, kinds=["chart"], publication_type="equity-research")
     assert context["schema_version"] == "1.0.0"
-    assert context["contract_version"] == "1.0.0"
+    assert context["contract_version"] == "1.1.0"
     assert context["reportkit_version"] == "1.9.3"
     assert context["selection"] == {
         "publication_type": "equity-research", "requested_theme": "institutional-research",
@@ -252,7 +250,6 @@ def test_generated_documentation_is_current() -> None:
 def test_every_chart_contract_example_executes_in_isolation() -> None:
     pd = pytest.importorskip("pandas")
     np = pytest.importorskip("numpy")
-    sys.path.insert(0, str(REPO / "python_scripts"))
     import reportkit_viz as rkv
 
     for record in generate_registry(REPO, strict=True)["primitives"]["chart"].values():
@@ -310,7 +307,7 @@ def test_contract_major_mismatch_is_structured_exit_two() -> None:
 def test_newer_same_major_contract_is_structured_exit_two() -> None:
     result = subprocess.run(
         [str(REPO / "reportkit"), "check", "--source-root", str(REPO / "publication_pipeline" / "example_publication"),
-         "--contract-version", "1.1.0", "--json"],
+         "--contract-version", "1.2.0", "--json"],
         capture_output=True, text=True,
     )
     payload = json.loads(result.stdout)

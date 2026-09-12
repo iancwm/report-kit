@@ -1,10 +1,7 @@
 from pathlib import Path
 import re
-import sys
 
 import pytest
-
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "python_scripts"))
 
 from reportkit.config import (
     load_publication_config,

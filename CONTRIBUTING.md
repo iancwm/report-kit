@@ -32,8 +32,20 @@ Run the acceptance check directly and confirm it passes:
 bash scripts/acceptance_check.sh
 ```
 Then do a fresh-clone dry run: clone the repo into a scratch directory,
-run `shell_scripts/bootstrap.sh`, and confirm `reportkit_doctor.py`
-reports `MODE: FULL BUILD` before tagging.
+run `reportkit init <publication-project>` and `reportkit build
+--source-root <publication-project>`, and confirm the doctor reports
+`MODE: FULL BUILD` before tagging.
+
+For Python tooling outside the pinned container, install the supported set:
+```bash
+python3 -m pip install --requirement toolchain/requirements.lock
+```
+The test-only addition is `tests/requirements.txt`; the PDF pipeline's
+consumer-project renderer uses `publication_pipeline/requirements.txt`.
+
+When refreshing dependencies, update `toolchain/requirements.lock` and
+`toolchain/toolchain.lock.json` together, then run `python3 -m pytest` and
+`reportkit doctor --require pinned-toolchain --json` in the pinned toolchain.
 
 ## What belongs in this repository
 

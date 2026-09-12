@@ -32,9 +32,11 @@ COMMANDS = {
     "doctor": "reportkit doctor", "context": "reportkit context", "check": "reportkit check",
     "build": "reportkit build", "diagnose": "reportkit diagnose", "inspect": "reportkit inspect",
     "package": "reportkit package", "analyse-history": "reportkit analyse-history", "docs": "reportkit docs",
+    "init": "reportkit init",
 }
 COMMAND_CONTRACT: dict[str, dict[str, Any]] = {
     "doctor": {"summary": "Inspect build dependencies and pinned-toolchain drift.", "arguments": ["--require", "--json"], "exit_codes": [0, 5, 70]},
+    "init": {"summary": "Scaffold a consumer publication project outside the ReportKit clone.", "arguments": ["target", "--target", "--install-fonts", "--json"], "exit_codes": [0, 2, 5, 70]},
     "context": {"summary": "Print the versioned ReportKit capability contract.", "arguments": ["--source-root", "--output-root", "--profile", "--publication-type", "--theme", "--kind", "--schema", "--json"], "exit_codes": [0, 2, 70]},
     "check": {"summary": "Validate publication structure without invoking TeX.", "arguments": ["--source-root", "--output-root", "--profile", "--engine", "--contract-version", "--json"], "exit_codes": [0, 2, 3, 70]},
     "build": {"summary": "Validate, convert, compile, diagnose, render, and inspect a publication.", "arguments": ["--source-root", "--output-root", "--profile", "--mode", "--section", "--chapter", "--engine", "--title", "--author", "--version", "--cover", "--contract-version", "--compile-timeout-seconds", "--memory-limit-mb", "--json"], "exit_codes": [0, 2, 3, 4, 5, 70]},
@@ -342,45 +344,6 @@ def _chart_primitives(path: Path, repo_root: Path) -> tuple[list[dict[str, Any]]
     return records, errors
 
 
-def _declared_python_primitives(path: Path, repo_root: Path) -> tuple[list[dict[str, Any]], list[str]]:
-    text = path.read_text(encoding="utf-8")
-    records: list[dict[str, Any]] = []
-    errors: list[str] = []
-    for start, _, metadata in _metadata_blocks(text, python=True):
-        if not metadata.get("name"):
-            continue
-        name = str(metadata["name"])
-        kind = str(metadata.get("kind", "command"))
-        try:
-            parsed = parse_xparse_signature(str(metadata.get("signature", "")))
-        except ContractError as exc:
-            errors.append(f"{path.relative_to(repo_root)}:{text.count(chr(10), 0, start) + 1}: {exc}")
-            continue
-        declared = metadata.get("arguments", [])
-        if len(declared) != len(parsed):
-            errors.append(f"{path.relative_to(repo_root)}: generated primitive {name!r} argument metadata does not match its signature")
-        arguments = []
-        for index, syntax in enumerate(parsed):
-            value = declared[index] if index < len(declared) else {}
-            arguments.append({
-                **syntax, "name": value.get("name", f"argument_{index + 1}"),
-                "type": value.get("type", "text"), "description": value.get("description", "Undocumented argument."),
-            })
-        required = sum(bool(value["required"]) for value in parsed)
-        records.append({
-            "name": name, "kind": kind, "signature": " ".join(str(metadata.get("signature", "")).split()),
-            "source_signature": str(metadata.get("signature", "")),
-            "arity": {"required": required, "optional": len(parsed) - required}, "arguments": arguments,
-            "constraints": metadata.get("constraints", []), "example": metadata["example"],
-            "available_in": metadata.get("available_in") or availability_for(),
-            "stability": metadata.get("stability", "stable"), "since": metadata.get("since", "1.0.0"),
-            "description": metadata.get("description", name),
-            "contract_pointer": _pointer(kind, name), "docs": _pointer(kind, name),
-            "source": {"file": str(path.relative_to(repo_root)), "line": text.count("\n", 0, start) + 1},
-        })
-    return records, errors
-
-
 def _primitive_files(repo_root: Path) -> list[Path]:
     templates = repo_root / "latex_templates"
     return [
@@ -416,7 +379,8 @@ def generate_registry(repo_root: Path | None = None, *, strict: bool = False) ->
         errors.extend(file_errors)
         for record in records:
             _merge_record(primitives, record, errors)
-    chart_records, chart_errors = _chart_primitives(repo_root / "python_scripts" / "reportkit_viz.py", repo_root)
+    chart_path = repo_root / "python_scripts" / "reportkit" / "viz" / "core.py"
+    chart_records, chart_errors = _chart_primitives(chart_path, repo_root)
     errors.extend(chart_errors)
     for record in chart_records:
         _merge_record(primitives, record, errors)
@@ -434,7 +398,7 @@ def generate_registry(repo_root: Path | None = None, *, strict: bool = False) ->
         },
         "charts": sorted(name for name in primitives["chart"] if name in LEGACY_CHART_NAMES), "commands": dict(COMMANDS),
         "command_contract": COMMAND_CONTRACT, "class_version": class_version,
-        "sources": {"primitives": "source-adjacent <reportkit-contract> blocks", "charts": "python_scripts/reportkit_viz.py"},
+        "sources": {"primitives": "source-adjacent <reportkit-contract> blocks", "charts": "python_scripts/reportkit/viz/core.py"},
     }
 
 

@@ -4,22 +4,19 @@ Resolves open question 8 from the institutional-research theme + equity-
 research profile spec
 (docs/superpowers/specs/2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md):
 theme modules live inside the `reportkit` package, matching that spec's
-target tree (§2). `reportkit_viz.py`, which sits outside the package at
-`python_scripts/reportkit_viz.py`, imports *from* this package when it
-needs a theme's tokens. That dependency is one-directional --
-`reportkit.themes` must never import `reportkit_viz`, and nothing here
-depends on matplotlib being installed (font *resolution* -- turning a list
-of candidate names into the one that's actually available -- stays in
-`reportkit_viz.py`, which already owns `matplotlib.font_manager`; this
-package only supplies the candidate lists).
+target tree (§2). The chart implementation imports these tokens without
+making the theme package depend on matplotlib (font *resolution* -- turning a
+list of candidate names into the one that's actually available -- stays in
+`reportkit.viz`, which owns `matplotlib.font_manager`; this package supplies
+the candidate lists).
 
 Each theme submodule (`default`, `institutional_research`) builds and
 exports a module-level `THEME: Theme` constant. `reportkit_viz.apply_theme
 (name)` resolves a name to its module via `get_theme()` and applies every
-field to both `matplotlib.rcParams` and reportkit_viz's own module-level
+field to both `matplotlib.rcParams` and the chart implementation's module-level
 color/geometry constants (`INK`, `MUTED`, `FIGURE_SIZES`, ...), which the
 rest of that module's ~20 chart functions already read as plain globals --
-see reportkit_viz.py's `apply_theme()` docstring for why that's the
+see `reportkit.viz`'s `apply_theme()` docstring for why that's the
 integration point rather than threading a `Theme` argument through every
 chart function.
 """
@@ -31,9 +28,9 @@ import importlib
 
 @dataclass(frozen=True)
 class Theme:
-    """Everything `reportkit_viz.py` needs to render one ReportKit theme.
+    """Everything `reportkit.viz` needs to render one ReportKit theme.
 
-    `latex_colors` mirrors `reportkit_viz.py`'s historical `LATEX_THEME_COLORS`
+    `latex_colors` mirrors the chart implementation's historical `LATEX_THEME_COLORS`
     dict exactly -- the same 14 keys, checked against the matching LaTeX
     theme file's `\\definecolor` block by `reportkit_viz.py check-theme` /
     `validate_palette_against_latex()`. The remaining color fields
@@ -65,7 +62,7 @@ class Theme:
     mono_candidates: tuple[str, ...]
     base_font_size: float
     # "stix" (matplotlib's default math font, serif) or "custom". Only
-    # "custom" additionally needs reportkit_viz.py's apply_theme() to point
+    # "custom" additionally needs reportkit.viz's apply_theme() to point
     # mathtext.rm/it/bf at the theme's own resolved sans font -- see spec
     # §14 and that function's implementation.
     mathtext_fontset: str

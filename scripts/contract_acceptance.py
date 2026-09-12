@@ -12,11 +12,18 @@ import sys
 import tempfile
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / "python_scripts"))
-sys.path.insert(0, str(ROOT / "publication_pipeline" / "scripts"))
 
-from publication_build import run_limited  # noqa: E402
-from reportkit.diagnostics import diagnostic_envelope, inspect_log, make_diagnostic  # noqa: E402
+# Direct execution places only scripts/ on sys.path; add the clone root so the
+# importable publication_pipeline package can load the shared bootstrap.
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from publication_pipeline.scripts._bootstrap import ensure_reportkit_importable
+
+ensure_reportkit_importable()
+
+from publication_pipeline.scripts.publication_build import run_limited
+from reportkit.diagnostics import diagnostic_envelope, inspect_log, make_diagnostic
 
 
 def acceptance_source(context: dict, chart_file: str = "contract-chart.pdf") -> str:
