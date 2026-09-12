@@ -9,6 +9,7 @@ from urllib.parse import urlparse
 
 from .config import _parse_subset
 from .diagnostics import make_diagnostic, suggest
+from .latex import tex_escape, tex_escape_url
 
 LINK_TYPES = {"citation", "documentation", "repository", "dataset", "further_reading", "interactive_resource"}
 
@@ -146,10 +147,6 @@ def validate_authoring(root: Path, *, model_name: str = "sources.yaml", links_na
     return result
 
 
-def _tex_escape(value: str) -> str:
-    return "".join({"\\": r"\textbackslash{}", "&": r"\&", "%": r"\%", "$": r"\$", "#": r"\#", "_": r"\_", "{": r"\{", "}": r"\}"}.get(char, char) for char in value)
-
-
 def render_links_tex(path: Path, output: Path) -> None:
     """Generate link macros from a consumer link registry."""
     raw = _read(path) or {}
@@ -166,8 +163,8 @@ def render_links_tex(path: Path, output: Path) -> None:
         parsed = urlparse(raw_url)
         if parsed.scheme not in {"http", "https", "ftp", "mailto"} or any(char in raw_url for char in "\\{}\r\n"):
             raise ValueError(f"{path}: link {key!r} has an unsafe or unsupported URL")
-        url = raw_url.replace("%", r"\%").replace("#", r"\#").replace("&", r"\&")
-        label = _tex_escape(str(value["label"]))
+        url = tex_escape_url(raw_url)
+        label = tex_escape(str(value["label"]))
         lines.append(rf"\expandafter\def\csname rk@link@{key}@url\endcsname{{{url}}}")
         lines.append(rf"\expandafter\def\csname rk@link@{key}@label\endcsname{{{label}}}")
     lines.append(r"\renewcommand{\RKLink}[1]{\ifcsname rk@link@#1@url\endcsname\href{\csname rk@link@#1@url\endcsname}{\csname rk@link@#1@label\endcsname}\else\href{#1}{#1}\fi}")

@@ -26,6 +26,7 @@ from .config import (
 from .context import build_context
 from .diagnostics import diagnostic_envelope, inspect_log, load_allowlist, load_maps, make_diagnostic, suggest
 from .documentation import check_documentation, write_documentation
+from .initialization import initialize_project, install_fonts
 from .publications import (
     PUBLICATION_TYPES,
     THEMES,
@@ -152,6 +153,69 @@ def _run_doctor(args: argparse.Namespace) -> int:
         if proc.stderr:
             print(proc.stderr, end="", file=sys.stderr)
     return proc.returncode
+
+
+def _run_init(args: argparse.Namespace) -> int:
+    try:
+        target, created = initialize_project(Path(args.target), REPO_ROOT)
+    except (OSError, ValueError) as exc:
+        diagnostic = make_diagnostic(
+            "configuration_error", str(exc), code="RK_INIT_FAILED", docs="#/commands/init",
+        )
+        payload = diagnostic_envelope([diagnostic], passed=False, target=str(Path(args.target).expanduser().resolve()))
+        if args.json:
+            _json_or_print(payload, True)
+        else:
+            print(f"FAIL [{diagnostic['code']}]: {diagnostic['message']}", file=sys.stderr)
+        return EXIT_CONFIG
+
+    font_status = None
+    if args.install_fonts:
+        try:
+            font_status = install_fonts(REPO_ROOT)
+        except (OSError, ValueError) as exc:
+            diagnostic = make_diagnostic(
+                "environment_error", str(exc), code="RK_INIT_FONT_INSTALL", docs="#/commands/init",
+            )
+            payload = diagnostic_envelope([diagnostic], passed=False, target=str(target))
+            if args.json:
+                _json_or_print(payload, True)
+            else:
+                print(f"FAIL [{diagnostic['code']}]: {diagnostic['message']}", file=sys.stderr)
+            return EXIT_ENVIRONMENT
+
+    doctor_command = [sys.executable, str(REPO_ROOT / "python_scripts" / "reportkit_doctor.py")]
+    if args.json:
+        doctor_command.append("--json")
+    doctor = subprocess.run(doctor_command, text=True, capture_output=True)
+    if args.json:
+        try:
+            doctor_payload = json.loads(doctor.stdout)
+            diagnostics = doctor_payload.get("diagnostics", [])
+        except json.JSONDecodeError:
+            diagnostics = [make_diagnostic(
+                "internal_error", doctor.stderr or doctor.stdout or "environment doctor failed", code="RK_DOCTOR_OUTPUT",
+            )]
+            doctor_payload = {}
+        payload = diagnostic_envelope(
+            diagnostics,
+            passed=doctor_payload.get("passed", not diagnostics),
+            target=str(target), created=created, fonts=font_status,
+            mode=doctor_payload.get("mode"), toolchain=doctor_payload.get("toolchain"),
+            checks=doctor_payload.get("checks", []),
+        )
+        _json_or_print(payload, True)
+    else:
+        print("== ReportKit init ==")
+        print(f"consumer project: {target}")
+        print("created: " + (", ".join(created) if created else "nothing (already initialized)"))
+        if font_status:
+            print(font_status)
+        if doctor.stdout:
+            print(doctor.stdout, end="")
+        if doctor.stderr:
+            print(doctor.stderr, end="", file=sys.stderr)
+    return doctor.returncode
 
 
 def _run_context(args: argparse.Namespace) -> int:
@@ -511,6 +575,12 @@ def _run_analysis(args: argparse.Namespace) -> int:
 def build_parser() -> argparse.ArgumentParser:
     parser = ReportKitArgumentParser(prog="reportkit", description="Deterministic ReportKit publication engine")
     sub = parser.add_subparsers(dest="command", required=True)
+
+    init = sub.add_parser("init", help=COMMAND_CONTRACT["init"]["summary"], description=COMMAND_CONTRACT["init"]["summary"])
+    init.add_argument("target", nargs="?", default=".", help="consumer publication project to scaffold")
+    init.add_argument("--install-fonts", action="store_true", help="install the bundled Libertinus fonts into TEXMFLOCAL")
+    init.add_argument("--json", action="store_true")
+    init.set_defaults(handler=_run_init)
 
     doctor = sub.add_parser("doctor", help=COMMAND_CONTRACT["doctor"]["summary"], description=COMMAND_CONTRACT["doctor"]["summary"])
     doctor.add_argument("--require", choices=("full-build", "pinned-toolchain"))

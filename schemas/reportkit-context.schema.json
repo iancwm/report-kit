@@ -67,7 +67,7 @@
     "schema_version": {"const": "1.0.0"},
     "passed": {"const": true},
     "diagnostics": {"type": "array", "items": {"$ref": "#/$defs/diagnostic"}},
-    "contract_version": {"const": "1.0.0"},
+    "contract_version": {"const": "1.1.0"},
     "reportkit_version": {"const": "1.9.3"},
     "revision": {"type": "string"},
     "selection": {"type": "object"},

@@ -168,6 +168,45 @@ for sig in "${SIGNATURES[@]}"; do
   fi
 done
 
+# Exercise the documented consumer setup from a clone-shaped checkout. The
+# diagnostic acceptance mode remains useful on hosts without the full Python
+# and TeX toolchain, so skip this integration run there rather than turning a
+# missing optional environment into a source regression.
+if command -v git >/dev/null 2>&1 && command -v pandoc >/dev/null 2>&1 \
+  && command -v pdflatex >/dev/null 2>&1 \
+  && python3 -c 'import matplotlib, numpy, pandas, pymupdf' >/dev/null 2>&1; then
+  FRESH_CLONE="$(mktemp -d)"
+  FRESH_PROJECT="$(mktemp -d)"
+  if ! git clone --quiet --no-local "$ROOT" "$FRESH_CLONE"; then
+    echo "FAIL: could not create fresh-clone acceptance checkout." >&2
+    hit=1
+  elif ! "$FRESH_CLONE/reportkit" init "$FRESH_PROJECT" --install-fonts > "$WORKDIR/fresh-init.log" 2>&1; then
+    echo "FAIL: documented reportkit init failed:" >&2
+    cat "$WORKDIR/fresh-init.log" >&2
+    hit=1
+  else
+    # The initializer creates an empty consumer; use the repository's generic
+    # fixture as content so this check reaches the full publication build.
+    cp -R "$FRESH_CLONE/publication_pipeline/example_publication/." "$FRESH_PROJECT/"
+    if ! "$FRESH_CLONE/reportkit" doctor --require full-build > "$WORKDIR/fresh-doctor.log" 2>&1 \
+      || ! grep -q "MODE: FULL BUILD" "$WORKDIR/fresh-doctor.log"; then
+      echo "FAIL: fresh-clone doctor did not reach MODE: FULL BUILD:" >&2
+      cat "$WORKDIR/fresh-doctor.log" >&2
+      hit=1
+    elif ! "$FRESH_CLONE/reportkit" build --source-root "$FRESH_PROJECT" \
+      --output-root "$FRESH_PROJECT/build" > "$WORKDIR/fresh-build.log" 2>&1; then
+      echo "FAIL: fresh-clone publication build failed:" >&2
+      tail -80 "$WORKDIR/fresh-build.log" >&2
+      hit=1
+    else
+      echo "-- fresh-clone init/doctor/build: OK --"
+    fi
+  fi
+  rm -rf "$FRESH_CLONE" "$FRESH_PROJECT"
+else
+  echo "WARN: full Python/TeX publication environment unavailable -- skipping fresh-clone dry run (not blocking)." >&2
+fi
+
 if [ "$status" -ne 0 ] || [ "$lua_status" -ne 0 ] || [ "$hit" -ne 0 ]; then
   echo "FAIL: acceptance check did not pass. Full log:" >&2
   cat "$WORKDIR/compile.log" >&2

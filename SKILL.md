@@ -21,16 +21,26 @@ and trust boundary are in
 
 **This repository is a reusable engine, not a place for report content.** Keep generated TeX files, figures, and any publication's manuscript outside this repository — in a separate report or publication directory. See [references/repository-boundary.md](references/repository-boundary.md) for the full boundary and guardrails.
 
-From a clone of this skill, bootstrap a separate report directory:
+From a clone of this skill, initialize a separate report directory:
 
 ```bash
 git clone https://github.com/iancwm/report-kit.git <skill-directory>
-bash <skill-directory>/shell_scripts/bootstrap.sh <skill-directory> <report-directory>
-cd <report-directory>
-python3 reportkit_doctor.py
+<skill-directory>/reportkit init <report-directory> --install-fonts
+python3 -m venv <report-directory>/build/.venv
+<report-directory>/build/.venv/bin/python -m pip install --require-hashes \
+  -r <skill-directory>/toolchain/requirements.lock
+<report-directory>/build/.venv/bin/python <skill-directory>/reportkit doctor \
+  --require full-build
 ```
 
-`bootstrap.sh` refuses to run if `<report-directory>` resolves inside `<skill-directory>` — pick a directory outside the clone. It copies the required class, style files, and Python modules; scaffolds `manuscript/`, `fragments/`, `assets/`, `figures/`, `build/`, `output/`, and a `publication.yaml` stub; and installs the bundled Libertinus fonts when needed. Trust the actual `MODE:` line:
+`reportkit init` refuses to run if `<report-directory>` resolves inside
+`<skill-directory>` — pick a directory outside the clone. It scaffolds
+`manuscript/`, `fragments/`, `assets/`, `figures/`, `build/`, `output/`, and a
+`publication.yaml` stub without copying engine files. `--install-fonts` is
+optional and installs the bundled Libertinus fonts into `TEXMFLOCAL`; it may
+require system write permission. The pinned `toolchain/requirements.lock`
+set supplies the Python dependencies for a full build. Trust the actual
+`MODE:` line:
 
 - `FULL BUILD`: TeX and ReportKit's required fonts work; a compiled PDF may be delivered.
 - `SOURCE BUILD + FIGURES`: create source and figures, but do not claim that the PDF compiled.

@@ -6,10 +6,11 @@ ship in the `texlive-fonts-extra` package on Debian/Ubuntu, a 1.7GB,
 ~106,000-file package. Only ~26MB (2,122 files) of that package is ever
 used.
 
-## Fast path: the portable bundle (default)
+## Fast path: the portable bundle
 
 `font_data/reportkit-libertinus-fonts.tar.gz` is that ~26MB subset,
-pre-harvested. `shell_scripts/bootstrap.sh` installs it automatically:
+pre-harvested. `reportkit init <report-directory> --install-fonts` installs
+it when requested:
 extracts the tarball into `TEXMFLOCAL` (a system texmf directory returned
 by `kpsewhich -var-value TEXMFLOCAL`) and runs `mktexlsr`.
 
@@ -23,7 +24,7 @@ calls with nothing to remember, and was verified to resolve via plain
 
 ## Fallback: apt-get
 
-If no bundle is present, `bootstrap.sh` prints:
+If no bundle is present, `reportkit init --install-fonts` reports this fallback:
 ```bash
 apt-get update && apt-get install -y --no-install-recommends texlive-fonts-extra
 ```
@@ -66,5 +67,5 @@ this repo but needing manual setup per session:
    mktexlsr /usr/local/share/texmf
    ```
 
-`bootstrap.sh` does not yet automate these two lualatex-only steps — do
+`reportkit init --install-fonts` does not automate these two lualatex-only steps — do
 them manually before compiling Unicode content.

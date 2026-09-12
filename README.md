@@ -19,7 +19,7 @@ consumer project**, built against a clone of this repo.
 | report-kit (this repo) | Consumer publication project |
 |---|---|
 | `latex_templates/`, `python_scripts/`, `publication_pipeline/` | `manuscript/`, `fragments/`, `assets/`, `figures/` |
-| `shell_scripts/`, `scripts/`, `references/` | `publication.yaml`, `build/`, `output/`, `reportkit.lock` |
+| `scripts/`, `references/` | `publication.yaml`, `build/`, `output/`, `reportkit.lock` |
 
 Full guardrails and the recommended consumer project structure are in
 [`references/repository-boundary.md`](references/repository-boundary.md).
@@ -61,7 +61,7 @@ Migrating an existing content branch out of this repo is covered in
   (lualatex; see `references/font-setup.md` for the extra setup this needs).
 
 ## 2. python_scripts/
-- `reportkit` (from the repository root) — stdlib CLI facade for doctor,
+- `reportkit` (from the repository root) — stdlib CLI facade for init, doctor,
   context, check, build, diagnose, inspect, docs, analyse-history, and package; its importable
   implementation lives under `python_scripts/reportkit/`, including
   `reportkit/themes/` — per-theme Python tokens (`default`,
@@ -90,22 +90,15 @@ See [`publication_pipeline/README.md`](publication_pipeline/README.md).
 
 ## 4. font_data/
 - `reportkit-libertinus-fonts.tar.gz` — the ~26MB Libertinus font subset harvested
-  from `texlive-fonts-extra` (a 1.7GB package), for fast `bootstrap.sh` setup.
+  from `texlive-fonts-extra` (a 1.7GB package), for fast `reportkit init --install-fonts`
+  setup.
 - `GoogleSans-{Regular,Medium,Bold}.ttf` — licensed fixtures for the
   institutional-research theme's local `font_path` and acceptance smoke test;
   see `GOOGLE_SANS_LICENSE.md`.
 - `LinBiolinum_K.otf` + `LinBiolinum_K_stub_README.md` — stub font and explanation
   for the lualatex-only upstream packaging gap in `libertinus-otf.sty`.
 
-## 5. shell_scripts/
-- `bootstrap.sh` — one-command session setup: copies core files, installs fonts to
-  `TEXMFLOCAL` (persists across tool calls, no env var needed), scaffolds a
-  consumer publication project (`manuscript/`, `fragments/`, `assets/`,
-  `figures/`, `build/`, `output/`, `publication.yaml`), and runs the doctor.
-  Refuses to run if the target directory is inside this clone. Covers the
-  pdflatex path; see `references/font-setup.md` for the lualatex additions.
-
-## 6. references/
+## 5. references/
 - [`repository-boundary.md`](references/repository-boundary.md),
   [`migrating-content-branches.md`](references/migrating-content-branches.md) —
   the engine/publication boundary and how to move existing content out of this
@@ -133,7 +126,7 @@ The machine-readable defaults are in `metadata/licenses.yml`; contributor
 requirements are documented in [`CONTRIBUTING.md`](CONTRIBUTING.md) and
 [`references/licensing.md`](references/licensing.md).
 
-## 7. scripts/ and .githooks/
+## 6. scripts/ and .githooks/
 - `scripts/acceptance_check.sh` — compiles the legacy and visual-grammar
   acceptance tests and checks for known failure signatures; run by hand, or
   automatically via `.githooks/pre-commit` once enabled (see
@@ -141,8 +134,17 @@ requirements are documented in [`CONTRIBUTING.md`](CONTRIBUTING.md) and
 
 ## Setup
 
-See `SKILL.md`'s Quick start section — the commands are the same whether
-you're a person cloning this locally or a Claude session bootstrapping it.
+Initialize a consumer project and install the pinned Python build environment:
+
+```bash
+<skill-directory>/reportkit init <report-directory> --install-fonts
+python3 -m venv <report-directory>/build/.venv
+<report-directory>/build/.venv/bin/python -m pip install --require-hashes \
+  -r <skill-directory>/toolchain/requirements.lock
+```
+
+The test-only additions for repository contributors are in
+`tests/requirements.txt`; see [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 ## Versioning
 

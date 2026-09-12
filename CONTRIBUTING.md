@@ -25,6 +25,19 @@ bash scripts/acceptance_check.sh --require-tex
 python3 python_scripts/reportkit_doctor.py --require full-build
 ```
 
+The supported pinned Python environment is created inside the consumer
+project's `build/` directory:
+```bash
+python3 -m venv <report-directory>/build/.venv
+<report-directory>/build/.venv/bin/python -m pip install --require-hashes \
+  -r <reportkit-clone>/toolchain/requirements.lock
+```
+For repository tests, the test-only environment is:
+```bash
+python3 -m venv build/.venv-tests
+build/.venv-tests/bin/python -m pip install -r tests/requirements.txt
+```
+
 ## Before tagging a release
 
 Run the acceptance check directly and confirm it passes:
@@ -32,8 +45,10 @@ Run the acceptance check directly and confirm it passes:
 bash scripts/acceptance_check.sh
 ```
 Then do a fresh-clone dry run: clone the repo into a scratch directory,
-run `shell_scripts/bootstrap.sh`, and confirm `reportkit_doctor.py`
-reports `MODE: FULL BUILD` before tagging.
+run `reportkit init <report-directory> --install-fonts`, install
+`toolchain/requirements.lock` into `<report-directory>/build/.venv`, and
+confirm `reportkit doctor --require full-build` reports `MODE: FULL BUILD`
+before tagging.
 
 ## What belongs in this repository
 

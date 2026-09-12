@@ -7,6 +7,8 @@ import re
 from urllib.parse import urlparse
 
 REQUIRED = ("software_license", "content_license", "content_license_url")
+# This validator complements reportkit.latex.tex_escape_url: reject controls
+# and prose-only metacharacters rather than trying to escape an untrusted URL.
 INVALID_URL_LATEX_RE = re.compile(r"[\\{}$^~_]")
 INVALID_PERCENT_ESCAPE_RE = re.compile(r"%(?![0-9A-Fa-f]{2})")
 

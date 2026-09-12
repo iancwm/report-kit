@@ -12,11 +12,16 @@ from publication_build import write_metadata
 
 
 def test_repository_license_metadata_is_complete():
-    metadata = load_license_metadata(Path(__file__).resolve().parents[1] / "metadata" / "licenses.yml")
+    repo = Path(__file__).resolve().parents[1]
+    metadata = load_license_metadata(repo / "metadata" / "licenses.yml")
     assert metadata["software_license"] == "GPL-3.0-or-later"
     assert metadata["content_license"] == "CC-BY-4.0"
     assert metadata["content_license_url"].startswith("https://")
     assert "third-party" in rights_notice(metadata)
+    license_path = repo / "LICENSE"
+    assert license_path.is_file()
+    assert license_path.read_text(encoding="utf-8").strip()
+    assert "GNU GENERAL PUBLIC LICENSE" in license_path.read_text(encoding="utf-8")
 
 
 def test_license_url_rejects_unescaped_latex_metacharacters():
