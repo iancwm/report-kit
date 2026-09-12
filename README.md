@@ -135,15 +135,17 @@ requirements are documented in [`CONTRIBUTING.md`](CONTRIBUTING.md) and
 ## Setup
 
 Use `reportkit init <publication-project>` to scaffold a consumer project,
-then install the pinned Python dependencies before generating figures:
+then install the pinned Python dependencies into its build environment:
 
 ```bash
-python3 -m pip install --requirement toolchain/requirements.lock
+python3 -m venv <publication-project>/build/.venv
+<publication-project>/build/.venv/bin/python -m pip install --require-hashes \
+  --requirement toolchain/requirements.lock
 ```
 
-See `SKILL.md`'s Quick start section for the complete doctor/build flow — the
-commands are the same whether you're a person cloning this locally or a Claude
-session using the engine.
+Use `reportkit init --install-fonts <publication-project>` when the bundled
+Libertinus subset is needed. See `SKILL.md`'s setup section for the complete
+doctor/build flow.
 
 ## Versioning
 

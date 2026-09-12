@@ -60,7 +60,6 @@ because "TeX is installed" — see the false-positive fix in
 ## Environment notes
 
 - A claude.ai code-execution sandbox's filesystem resets between
-sessions — nothing persists, so re-clone and rerun `reportkit init` each session.
 sessions — nothing persists, so re-clone and re-initialize each session.
 - Python 3, matplotlib, numpy, and pandas are expected present alongside
   TeX Live; `biber` is not — avoid `biblatex`+`biber`, use `bibtex`/
