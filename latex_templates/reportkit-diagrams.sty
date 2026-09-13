@@ -5,14 +5,18 @@
 %   * section-opening diagrams can use \RKDiagramSection from reportkit-core.sty;
 %   * node labels are native LaTeX text with align=center and explicit \\ breaks;
 %   * dashed lines are reserved for typed handoff/optional semantics.
+% v1.6.0 (Phase A3): space reservation, diagram placement, caption, and
+% source now go through renderer hooks (\RKReserveSpace,
+% \RKDiagramPlacementBegin/End, \RKDiagramCaption, \RKDiagramSource) instead
+% of calling needspace/caption/center/\source directly, so this module no
+% longer requires needspace or caption itself and compiles unchanged under
+% any renderer core.
 \NeedsTeXFormat{LaTeX2e}
-\ProvidesPackage{reportkit-diagrams}[2026/09/06 v1.5.0 ReportKit diagrams]
+\ProvidesPackage{reportkit-diagrams}[2026/09/13 v1.6.0 ReportKit diagrams]
 \RequirePackage{tikz}
 \usetikzlibrary{arrows.meta,positioning,calc,fit,backgrounds}
 \RequirePackage{xparse}
 \RequirePackage{pgfkeys}
-\RequirePackage{needspace}
-\RequirePackage{caption}
 \RequirePackage{etoolbox}
 \RequirePackage{pdftexcmds}
 
@@ -118,8 +122,9 @@
 }
 
 % Non-floating by design. A conceptual diagram should not drift away from the
-% prose that introduces it. Needspace moves the entire diagram/caption block to
-% the next page when the remaining space is too small.
+% prose that introduces it. \RKReserveSpace moves the entire diagram/caption
+% block to the next page (under the paged renderer) when the remaining space
+% is too small.
 % <reportkit-contract>
 % {"kind":"composition","description":"Diagram","arguments":[{"name":"options","type":"options","description":"Options."}],"constraints":[],"example":"\\begin{diagram}[]\nExample content.\n\\end{diagram}","stability":"stable","since":"1.0.0"}
 % </reportkit-contract>
@@ -128,9 +133,9 @@
     type=network,caption={},label={},source={Conceptual diagram.},description={},
     minspace={0.27\textheight},width={},scale={},#1}%
   \typeout{ReportKit diagram type: \rk@diagramtype}%
-  \par\Needspace{\rk@diagramminspace}%
+  \par\RKReserveSpace{\rk@diagramminspace}%
   \vspace{4pt}%
-  \begin{center}%
+  \RKDiagramPlacementBegin%
   \begin{lrbox}{\rk@diagrambox}%
   \begin{tikzpicture}[x=1cm,y=1cm]
 }{%
@@ -151,13 +156,13 @@
     \resizebox{\rk@diagramwidth}{!}{\usebox{\rk@diagrambox}}%
   \fi
   \ifx\rk@diagramdescription\@empty\else\rk@actualtextend\fi
-  \end{center}%
+  \RKDiagramPlacementEnd%
   \vspace{-2pt}%
   \expandafter\ifstrempty\expandafter{\rk@diagramcaption}{}{%
-    \captionof{figure}{\rk@diagramcaption}%
+    \RKDiagramCaption{\rk@diagramcaption}%
     \expandafter\ifstrempty\expandafter{\rk@diagramlabel}{}{\label{\rk@diagramlabel}}%
   }%
-  \expandafter\ifstrempty\expandafter{\rk@diagramsource}{}{\source{\rk@diagramsource}}%
+  \expandafter\ifstrempty\expandafter{\rk@diagramsource}{}{\RKDiagramSource{\rk@diagramsource}}%
   \par\vspace{5pt}%
 }
 

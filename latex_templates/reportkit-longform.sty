@@ -1,11 +1,15 @@
 % ReportKit long-form document helpers: front matter, contents, pagination,
 % breakable technical paths, and compact-listing controls.
+% v1.6.0 (Phase A3): section-opener space reservation now goes through the
+% renderer hook \RKReserveSpace instead of calling \Needspace directly; see
+% reportkit-core.sty/reportkit-paged-core.sty. This package is only ever
+% used inside a reportkit.cls document (`\documentclass{reportkit}` loads a
+% renderer core before the body's \usepackage{reportkit-longform} runs), so
+% it no longer requires titlesec/fancyhdr/needspace itself -- the loaded
+% renderer core already guarantees them.
 \NeedsTeXFormat{LaTeX2e}
-\ProvidesPackage{reportkit-longform}[2026/09/06 v1.5.0 ReportKit long-form support]
+\ProvidesPackage{reportkit-longform}[2026/09/13 v1.6.0 ReportKit long-form support]
 \RequirePackage{reportkit-pandoc}
-\RequirePackage{titlesec}
-\RequirePackage{fancyhdr}
-\RequirePackage{needspace}
 \RequirePackage{xparse}
 
 \makeatletter
@@ -81,7 +85,7 @@
 % Give section openers a compact visual anchor in the whitespace recovered by
 % the page-break rule, without changing the document's semantic hierarchy.
 \newcommand{\RKSectionOpener}[1]{%
-  \par\Needspace{0.22\textheight}\vspace*{4mm}%
+  \par\RKReserveSpace{0.22\textheight}\vspace*{4mm}%
   {\sffamily\fontsize{7.5}{9}\selectfont\bfseries\color{LinkBlue}\MakeUppercase{#1}\par\vspace{2mm}%
   \color{Hairline}\rule{\linewidth}{0.45pt}\color{Ink}\vspace{4mm}}%
 }

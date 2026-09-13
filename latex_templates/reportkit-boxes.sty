@@ -1,9 +1,12 @@
-% ReportKit v1.3.0 -- semantic callouts and metric object
+% ReportKit v1.4.0 -- semantic callouts and metric object
+% v1.4.0 (Phase A3): space reservation now goes through the renderer hook
+% \RKReserveSpace (see reportkit-core.sty/reportkit-paged-core.sty) instead
+% of calling \Needspace directly, so this module no longer requires
+% needspace itself and compiles unchanged under any renderer core.
 \NeedsTeXFormat{LaTeX2e}
-\ProvidesPackage{reportkit-boxes}[2026/09/09 v1.3.0 ReportKit semantic boxes]
+\ProvidesPackage{reportkit-boxes}[2026/09/13 v1.4.0 ReportKit semantic boxes]
 \RequirePackage[most]{tcolorbox}
 \RequirePackage{xparse}
-\RequirePackage{needspace}
 \RequirePackage{etoolbox}
 
 % \rk@theme is set by reportkit.cls before any semantic module loads (see
@@ -65,35 +68,35 @@
 % <reportkit-contract>
 % {"kind":"callout","description":"Principle","arguments":[{"name":"title","type":"text","description":"Title."}],"constraints":[],"example":"\\begin{principle}{Example}\nExample content.\n\\end{principle}","stability":"stable","since":"1.0.0"}
 % </reportkit-contract>
-\NewDocumentEnvironment{principle}{m}{\Needspace{6\baselineskip}\begin{rk@callout}{Principle}{PRINCIPLE\quad #1}}{\end{rk@callout}}
+\NewDocumentEnvironment{principle}{m}{\RKReserveSpace{6\baselineskip}\begin{rk@callout}{Principle}{PRINCIPLE\quad #1}}{\end{rk@callout}}
 % <reportkit-contract>
 % {"kind":"callout","description":"Decisionpoint","arguments":[{"name":"title","type":"text","description":"Title."}],"constraints":[],"example":"\\begin{decisionpoint}{Example}\nExample content.\n\\end{decisionpoint}","stability":"stable","since":"1.0.0"}
 % </reportkit-contract>
-\NewDocumentEnvironment{decisionpoint}{m}{\Needspace{6\baselineskip}\begin{rk@callout}{Decision}{DECISION POINT\quad #1}}{\end{rk@callout}}
+\NewDocumentEnvironment{decisionpoint}{m}{\RKReserveSpace{6\baselineskip}\begin{rk@callout}{Decision}{DECISION POINT\quad #1}}{\end{rk@callout}}
 % <reportkit-contract>
 % {"kind":"callout","description":"Researchproblem","arguments":[{"name":"title","type":"text","description":"Title."}],"constraints":[],"example":"\\begin{researchproblem}{Example}\nExample content.\n\\end{researchproblem}","stability":"stable","since":"1.0.0"}
 % </reportkit-contract>
-\NewDocumentEnvironment{researchproblem}{m}{\Needspace{6\baselineskip}\begin{rk@callout}{Research}{RESEARCH PROBLEM\quad #1}}{\end{rk@callout}}
+\NewDocumentEnvironment{researchproblem}{m}{\RKReserveSpace{6\baselineskip}\begin{rk@callout}{Research}{RESEARCH PROBLEM\quad #1}}{\end{rk@callout}}
 % <reportkit-contract>
 % {"kind":"callout","description":"Assumption","arguments":[{"name":"title","type":"text","description":"Title."}],"constraints":[],"example":"\\begin{assumption}{Example}\nExample content.\n\\end{assumption}","stability":"stable","since":"1.0.0"}
 % </reportkit-contract>
-\NewDocumentEnvironment{assumption}{m}{\Needspace{6\baselineskip}\begin{rk@callout}{Assumption}{ASSUMPTION\quad #1}}{\end{rk@callout}}
+\NewDocumentEnvironment{assumption}{m}{\RKReserveSpace{6\baselineskip}\begin{rk@callout}{Assumption}{ASSUMPTION\quad #1}}{\end{rk@callout}}
 % <reportkit-contract>
 % {"kind":"callout","description":"Redflag","arguments":[{"name":"title","type":"text","description":"Title."}],"constraints":[],"example":"\\begin{redflag}{Example}\nExample content.\n\\end{redflag}","stability":"stable","since":"1.0.0"}
 % </reportkit-contract>
-\NewDocumentEnvironment{redflag}{m}{\Needspace{6\baselineskip}\begin{rk@callout}{RedFlag}{RED FLAG\quad #1}}{\end{rk@callout}}
+\NewDocumentEnvironment{redflag}{m}{\RKReserveSpace{6\baselineskip}\begin{rk@callout}{RedFlag}{RED FLAG\quad #1}}{\end{rk@callout}}
 % <reportkit-contract>
 % {"kind":"callout","description":"Evidencenote","arguments":[{"name":"title","type":"text","description":"Title."}],"constraints":[],"example":"\\begin{evidencenote}{Example}\nExample content.\n\\end{evidencenote}","stability":"stable","since":"1.0.0"}
 % </reportkit-contract>
-\NewDocumentEnvironment{evidencenote}{m}{\Needspace{5\baselineskip}\begin{rk@callout}{Evidence}{EVIDENCE\quad #1}}{\end{rk@callout}}
+\NewDocumentEnvironment{evidencenote}{m}{\RKReserveSpace{5\baselineskip}\begin{rk@callout}{Evidence}{EVIDENCE\quad #1}}{\end{rk@callout}}
 % <reportkit-contract>
 % {"kind":"callout","description":"Limitationnote","arguments":[{"name":"title","type":"text","description":"Title."}],"constraints":[],"example":"\\begin{limitationnote}{Example}\nExample content.\n\\end{limitationnote}","stability":"stable","since":"1.0.0"}
 % </reportkit-contract>
-\NewDocumentEnvironment{limitationnote}{m}{\Needspace{5\baselineskip}\begin{rk@callout}{Limitation}{LIMITATION\quad #1}}{\end{rk@callout}}
+\NewDocumentEnvironment{limitationnote}{m}{\RKReserveSpace{5\baselineskip}\begin{rk@callout}{Limitation}{LIMITATION\quad #1}}{\end{rk@callout}}
 % <reportkit-contract>
 % {"kind":"callout","description":"Tipnote","arguments":[{"name":"title","type":"text","description":"Title."}],"constraints":[],"example":"\\begin{tipnote}{Example}\nExample content.\n\\end{tipnote}","stability":"stable","since":"1.0.0"}
 % </reportkit-contract>
-\NewDocumentEnvironment{tipnote}{m}{\Needspace{5\baselineskip}\begin{rk@callout}{Tip}{TIP\quad #1}}{\end{rk@callout}}
+\NewDocumentEnvironment{tipnote}{m}{\RKReserveSpace{5\baselineskip}\begin{rk@callout}{Tip}{TIP\quad #1}}{\end{rk@callout}}
 
 % v1.2 addition: many process/workflow reports end a module with a named
 % output artifact (a brief, a matrix, a tracker) that the reader is meant to
@@ -105,7 +108,7 @@
 % <reportkit-contract>
 % {"kind":"callout","description":"Deliverablenote","arguments":[{"name":"title","type":"text","description":"Title."}],"constraints":[],"example":"\\begin{deliverablenote}{Example}\nExample content.\n\\end{deliverablenote}","stability":"stable","since":"1.0.0"}
 % </reportkit-contract>
-\NewDocumentEnvironment{deliverablenote}{m}{\Needspace{5\baselineskip}\begin{rk@callout}{Deliverable}{DELIVERABLE\quad #1}}{\end{rk@callout}}
+\NewDocumentEnvironment{deliverablenote}{m}{\RKReserveSpace{5\baselineskip}\begin{rk@callout}{Deliverable}{DELIVERABLE\quad #1}}{\end{rk@callout}}
 
 % Compatibility aliases.
 % <reportkit-contract>
@@ -125,7 +128,7 @@
 % {"kind":"callout","description":"Metric","arguments":[{"name":"label","type":"text","description":"Label."},{"name":"value","type":"text","description":"Value."}],"constraints":[],"example":"\\begin{metric}{Example}{1}\nExample content.\n\\end{metric}","stability":"stable","since":"1.0.0"}
 % </reportkit-contract>
 \NewDocumentEnvironment{metric}{m m}{%
-  \par\Needspace{9\baselineskip}%
+  \par\RKReserveSpace{9\baselineskip}%
   \begin{tcolorbox}[
     enhanced,breakable,colback=white,colframe=Hairline,boxrule=.45pt,
     arc=0pt,outer arc=0pt,left=10pt,right=10pt,top=8pt,bottom=8pt,

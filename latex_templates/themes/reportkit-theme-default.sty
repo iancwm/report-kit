@@ -10,7 +10,7 @@
 % publication uses this theme; its output is unchanged by the theme split --
 % nothing below was rewritten, only relocated.
 \NeedsTeXFormat{LaTeX2e}
-\ProvidesPackage{reportkit-theme-default}[2026/09/09 v1.6.0 ReportKit default theme]
+\ProvidesPackage{reportkit-theme-default}[2026/09/13 v1.6.1 ReportKit default theme]
 
 % -----------------------------------------------------------------------------
 % Fonts
@@ -93,9 +93,9 @@
 \newcommand{\RKSectionNeed}{14\baselineskip}
 \newcommand{\RKSubsectionNeed}{7\baselineskip}
 
-\titleformat{\section}{\Needspace{\RKSectionNeed}\sffamily\bfseries\Large\color{Ink}}{\color{LinkBlue}\thesection}{0.7em}{}
+\titleformat{\section}{\RKReserveSpace{\RKSectionNeed}\sffamily\bfseries\Large\color{Ink}}{\color{LinkBlue}\thesection}{0.7em}{}
 \titlespacing*{\section}{0pt}{15pt plus 3pt minus 2pt}{6pt}
-\titleformat{\subsection}{\Needspace{\RKSubsectionNeed}\sffamily\bfseries\large\color{Ink}}{\color{LinkBlue}\thesubsection}{0.65em}{}
+\titleformat{\subsection}{\RKReserveSpace{\RKSubsectionNeed}\sffamily\bfseries\large\color{Ink}}{\color{LinkBlue}\thesubsection}{0.65em}{}
 \titlespacing*{\subsection}{0pt}{12pt plus 2pt minus 2pt}{4pt}
 
 % -----------------------------------------------------------------------------
@@ -117,7 +117,7 @@
 % {"kind":"callout","description":"Execsummary","arguments":[],"constraints":[],"example":"\\begin{execsummary}\nExample content.\n\\end{execsummary}","stability":"stable","since":"1.0.0"}
 % </reportkit-contract>
 \NewDocumentEnvironment{execsummary}{}{%
-  \par\Needspace{8\baselineskip}%
+  \par\RKReserveSpace{8\baselineskip}%
   \begin{list}{}{\setlength{\leftmargin}{0pt}\setlength{\rightmargin}{0pt}}\item\relax
   \color{Ink}\sffamily\small\textbf{EXECUTIVE SUMMARY}\par\vspace{2pt}\rmfamily\normalsize
 }{%

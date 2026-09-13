@@ -16,12 +16,11 @@
 % "publication-type=equity-research, theme=modern-minimal" both work without
 % rewriting this file.
 \NeedsTeXFormat{LaTeX2e}
-\ProvidesPackage{reportkit-equity-research}[2026/09/09 v1.0.0 ReportKit equity-research publication type]
+\ProvidesPackage{reportkit-equity-research}[2026/09/13 v1.0.1 ReportKit equity-research publication type]
 
 \RequirePackage{xparse}
 \RequirePackage{pgfkeys}
 \RequirePackage{etoolbox}
-\RequirePackage{needspace}
 \RequirePackage{tabularx}
 \RequirePackage{array}
 \RequirePackage{ragged2e}
@@ -70,7 +69,7 @@
 % {"kind":"composition","description":"Financialtable","arguments":[],"constraints":[],"example":"\\begin{financialtable}\nExample content.\n\\end{financialtable}","stability":"stable","since":"1.8.0"}
 % </reportkit-contract>
 \NewDocumentEnvironment{financialtable}{}{%
-  \par\Needspace{5\baselineskip}\noindent
+  \par\RKReserveSpace{5\baselineskip}\noindent
   \sffamily\rktablebodysize\color{Ink}
   \renewcommand{\arraystretch}{1.05}
   \addtolength{\linewidth}{-2pt}% Reserve a small gutter for wide tabularx tables.
@@ -117,7 +116,7 @@
 % {"kind":"composition","description":"Ratingstrip","arguments":[{"name":"item_count","type":"options","description":"Item count."}],"constraints":[],"example":"\\begin{ratingstrip}[]\nExample content.\n\\end{ratingstrip}","stability":"stable","since":"1.8.0"}
 % </reportkit-contract>
 \NewDocumentEnvironment{ratingstrip}{o}{%
-  \par\Needspace{4\baselineskip}\noindent
+  \par\RKReserveSpace{4\baselineskip}\noindent
   \setcounter{rkratingitem}{0}%
   % Optional parameter: [itemcount=N] for explicit N (3 or 4).
   % Default: 3 (backward compatible with existing 3-item usage).
@@ -222,7 +221,7 @@
 % {"kind":"composition","description":"Analystblock","arguments":[],"constraints":[],"example":"\\begin{analystblock}\nExample content.\n\\end{analystblock}","stability":"stable","since":"1.8.0"}
 % </reportkit-contract>
 \NewDocumentEnvironment{analystblock}{}{%
-  \par\Needspace{4\baselineskip}\noindent\sffamily\rksidebarsize\color{Ink}\ignorespaces
+  \par\RKReserveSpace{4\baselineskip}\noindent\sffamily\rksidebarsize\color{Ink}\ignorespaces
 }{%
   \par\vspace{6pt}%
 }
@@ -253,7 +252,7 @@
 % {"kind":"composition","description":"Whatschanged","arguments":[],"constraints":[],"example":"\\begin{whatschanged}\nExample content.\n\\end{whatschanged}","stability":"stable","since":"1.8.0"}
 % </reportkit-contract>
 \NewDocumentEnvironment{whatschanged}{}{%
-  \par\Needspace{5\baselineskip}\vspace{3pt}%
+  \par\RKReserveSpace{5\baselineskip}\vspace{3pt}%
   {\sffamily\bfseries\rksidebarsize\color{Accent}\MakeUppercase{What's Changed?}\par}%
   \vspace{3pt}{\color{Hairline}\hrule height 0.4pt}\vspace{4pt}\noindent
   \sffamily\rksidebarsize\color{Ink}\ignorespaces
@@ -292,7 +291,7 @@
   \expandafter\ifstrempty\expandafter{\rk@exhibittitle}{%
     \PackageWarningNoLine{reportkit-equity-research}{exhibit used without title= -- spec section 11 requires one}%
   }{}%
-  \par\Needspace{9\baselineskip}%
+  \par\RKReserveSpace{9\baselineskip}%
   \refstepcounter{rkexhibit}%
   \noindent{\sffamily\bfseries\rkexhibitheadlinesize\color{Ink}%
     Exhibit \expandafter\ifstrempty\expandafter{\rk@exhibitnumber}{\therkexhibit}{\rk@exhibitnumber}: \rk@exhibittitle\par}%

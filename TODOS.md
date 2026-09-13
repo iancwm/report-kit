@@ -24,8 +24,8 @@ The PR-time synchronization directive is in
 | [2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md](docs/superpowers/specs/2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md) | Implemented (Steps 1–5); open questions resolved in the plan below | P2 |
 | [2026-09-09-reportkit-institutional-theme-implementation-plan.md](docs/superpowers/plans/2026-09-09-reportkit-institutional-theme-implementation-plan.md) | Complete — Steps 1–5 implemented; local LuaLaTeX verification passes; pinned visual QA remains | P2 |
 | [2026-09-09-reportkit-fix-post-implementation-findings.md](docs/superpowers/plans/2026-09-09-reportkit-fix-post-implementation-findings.md) | Complete — all 8 tasks done and reviewed clean; fixture verification complete | Complete |
-| [2026-09-09-reportkit-multi-format-publication-architecture-spec.md](docs/superpowers/specs/2026-09-09-reportkit-multi-format-publication-architecture-spec.md) | Phase A in progress — A1 landed in v1.9.2, A2 in v1.9.3; A0 and A3–A5 remain | P2 |
-| [2026-09-10-reportkit-multi-format-publication-implementation-plan.md](docs/superpowers/plans/2026-09-10-reportkit-multi-format-publication-implementation-plan.md) | Phase A in progress — A1 and A2 complete; A0 and A3–A5 remain | P2 |
+| [2026-09-09-reportkit-multi-format-publication-architecture-spec.md](docs/superpowers/specs/2026-09-09-reportkit-multi-format-publication-architecture-spec.md) | Phase A in progress — A1 landed in v1.9.2, A2 in v1.9.3; A3 implemented in the working tree, pending the pinned-toolchain CI gate; A0 and A4–A5 remain | P2 |
+| [2026-09-10-reportkit-multi-format-publication-implementation-plan.md](docs/superpowers/plans/2026-09-10-reportkit-multi-format-publication-implementation-plan.md) | Phase A in progress — A1 and A2 complete; A3 implemented, pending the pinned-toolchain CI gate; A0 and A4–A5 remain | P2 |
 | [2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md](docs/superpowers/specs/2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md) | Implemented for v1.9.0 — Phase A′ and paged-renderer B′ complete; renderer-dependent work deferred | P2 |
 | [2026-09-10-reportkit-fork-port-fixes-spec.md](docs/superpowers/specs/2026-09-10-reportkit-fork-port-fixes-spec.md) | Implemented in v1.9.1 via PR #19; all 11 applicable fixes landed | Complete |
 | [2026-09-12-reportkit-code-quality-and-dependency-remediation-spec.md](docs/superpowers/specs/2026-09-12-reportkit-code-quality-and-dependency-remediation-spec.md) | Draft v0.1 — Phase 0 landed; most concrete Phase 1 fixes landed; structural Phase 2 work remains; 3 open questions | P1 |
@@ -129,12 +129,26 @@ change record.
   `technical-report` and `equity-research` publication types, both producing
   PDF through LaTeX. There is no slide class, presentation target, HTML,
   DOCX, PPTX, or EPUB renderer in the current tree; presentations remain the
-  planned Phase B slice. The remaining Phase A work is ordered in the plan:
-  capture the pinned compatibility baseline (A0), split shared/paged mechanics
-  (A3), move component appearance behind theme hooks (A4), and make pipeline
-  templates target-aware (A5). The original architecture risk remains in
-  scope: the Markdown pipeline must eventually pass the resolved
-  theme/publication selection to LaTeX. See [the spec](docs/superpowers/specs/2026-09-09-reportkit-multi-format-publication-architecture-spec.md)
+  planned Phase B slice. **A3 (split shared/paged mechanics) is now
+  implemented**: `reportkit-core.sty` is engine-neutral (no more
+  geometry/fancyhdr/titlesec/needspace/caption), a new
+  `reportkit-paged-core.sty` owns those plus hyperref (see the plan's A3
+  section for why hyperref's require moved there, not to core — a
+  measured, not stylistic, byte-hash constraint), and every semantic module's
+  direct `\Needspace`/`\begin{center}`/`\captionof`/`\source` call went
+  through the new renderer hooks (`RKReserveSpace`,
+  `RKDiagramPlacementBegin`/`End`, `RKDiagramCaption`, `RKDiagramSource`) a
+  future slides core will implement differently. Verified byte-identical
+  against the default, institutional/equity, and longform fixtures in a
+  local (non-pinned) toolchain — see the plan's A3 section for the full
+  verification record; the pinned-toolchain CI gate is still authoritative
+  and has not run against it yet. The remaining Phase A work is ordered in
+  the plan: capture the pinned compatibility baseline (A0 — attempted and
+  blocked by sandbox networking, see the plan), move component appearance
+  behind theme hooks (A4), and make pipeline templates target-aware (A5).
+  The original architecture risk remains in scope: the Markdown pipeline
+  must eventually pass the resolved theme/publication selection to LaTeX.
+  See [the spec](docs/superpowers/specs/2026-09-09-reportkit-multi-format-publication-architecture-spec.md)
   and [the implementation plan](docs/superpowers/plans/2026-09-10-reportkit-multi-format-publication-implementation-plan.md).
 
 - **Agent interface & platform contract — Phase A′ and the

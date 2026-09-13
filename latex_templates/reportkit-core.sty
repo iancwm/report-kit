@@ -1,12 +1,31 @@
 % ReportKit Core -- engine-neutral packages and structural mechanism shared by
-% every theme. Extracted from reportkit.cls v1.5.0 by the theme architecture
-% in docs/superpowers/specs/2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md.
-% Visual identity -- typography, geometry, palette, running furniture, and
-% title layout -- is theme-owned; see latex_templates/themes/. Nothing in
-% this file may reference a theme color or length: reportkit.cls loads this
-% before it loads the selected theme.
+% every theme and every renderer. Extracted from reportkit.cls v1.5.0 by the
+% theme architecture in
+% docs/superpowers/specs/2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md.
+% Split again by the renderer architecture in
+% docs/superpowers/specs/2026-09-09-reportkit-multi-format-publication-architecture-spec.md
+% (Phase A3): paged-only mechanism -- geometry, fancyhdr, titlesec, needspace,
+% caption, and everything semantic modules used to call directly for page
+% break/placement/caption behavior -- moved to reportkit-paged-core.sty. A
+% future slides core supplies the same renderer hooks with frame-based
+% behavior. Visual identity -- typography, geometry, palette, running
+% furniture, and title layout -- is theme-owned; see latex_templates/themes/.
+% Nothing in this file may reference a theme color/length or a paged-only
+% package: reportkit.cls loads this before it loads a renderer core or the
+% selected theme.
+%
+% hyperref is deliberately NOT required here even though this file owns
+% hyperref's *setup* (the metadata/catalog-language block below, and RKLink).
+% hyperref's own documentation asks to be loaded after other formatting
+% packages -- notably geometry -- and geometry is paged-only (a slides core
+% will size its canvas differently). Requiring hyperref from a renderer core,
+% right after that renderer's page/canvas package, keeps that contract true
+% for every renderer while this file keeps owning what hyperref is
+% configured to do. Verified empirically: requiring hyperref here instead
+% (before geometry) changes computed named-destination coordinates and
+% breaks the pinned default-theme PDF hash even though nothing else changed.
 \NeedsTeXFormat{LaTeX2e}
-\ProvidesPackage{reportkit-core}[2026/09/09 v1.6.0 ReportKit engine-neutral core]
+\ProvidesPackage{reportkit-core}[2026/09/13 v1.7.0 ReportKit engine-neutral core]
 
 \RequirePackage{iftex}
 \RequirePackage{microtype}
@@ -15,12 +34,6 @@
 \RequirePackage{booktabs}
 \RequirePackage{siunitx}
 \RequirePackage{enumitem}
-\RequirePackage{titlesec}
-\RequirePackage{fancyhdr}
-\RequirePackage{needspace}
-\RequirePackage{caption}
-\RequirePackage{geometry}
-\RequirePackage{hyperref}
 \RequirePackage{xparse}
 \RequirePackage{etoolbox}
 
@@ -48,7 +61,19 @@
 % Keep PDF metadata coupled to the document's normal title and author fields.
 % hyperref performs the necessary PDF-string sanitisation for bookmarks and
 % metadata, so callers can continue using ordinary LaTeX in \title/\author.
-\AtBeginDocument{%
+%
+% This is defined here (what to do) but scheduled with \AtBeginDocument by
+% the renderer core (when to do it; see reportkit-paged-core.sty), not here.
+% hyperref itself registers an \AtBeginDocument hook when it loads (for
+% /PageMode, /ViewerPreferences, ...), and \AtBeginDocument hooks run in
+% registration order: registering this one before a renderer core has
+% required hyperref put it ahead of hyperref's own hook and produced a
+% different /Catalog key order in the pinned default-theme PDF than before
+% this file existed, even though the visible document was unchanged.
+% Requiring hyperref right before scheduling this (both in the renderer
+% core, mirroring the original single-file load order exactly) reproduces
+% the pinned hash.
+\newcommand{\RKRegisterDocumentMetadata}{%
   \hypersetup{
     pdftitle={\@title},
     pdfauthor={\@author},
@@ -66,6 +91,38 @@
 }
 
 % -----------------------------------------------------------------------------
+% Renderer hooks (mechanism only -- no visual behavior lives here)
+% -----------------------------------------------------------------------------
+% Every renderer core (reportkit-paged-core.sty today; a slides core in a
+% later phase) must define each hook below before any theme or semantic
+% module loads. Semantic modules call only these names, never a paged-only
+% package directly, so the same callout/code/diagram/section source compiles
+% under any renderer. Left here as loud sentinels: if a renderer core is
+% missing or a semantic module is loaded out of order, authoring fails
+% immediately instead of silently reserving no space or emitting no caption.
+\newcommand{\rk@rendererhookerror}[1]{%
+  \PackageError{reportkit-core}{No renderer core has defined \string#1}%
+    {Load a renderer core (e.g. reportkit-paged-core) right after reportkit-core, before any theme or semantic module.}%
+}
+% Renderer-implementation mechanism, not an authoring primitive -- no
+% <reportkit-contract> block, same as \Needspace itself never had one.
+\newcommand{\RKReserveSpace}[1]{\rk@rendererhookerror{\RKReserveSpace}}
+\newcommand{\RKDiagramPlacementBegin}{\rk@rendererhookerror{\RKDiagramPlacementBegin}}
+\newcommand{\RKDiagramPlacementEnd}{\rk@rendererhookerror{\RKDiagramPlacementEnd}}
+\newcommand{\RKDiagramCaption}[1]{\rk@rendererhookerror{\RKDiagramCaption}}
+\newcommand{\RKDiagramSource}[1]{\rk@rendererhookerror{\RKDiagramSource}}
+\newif\ifrk@rendererhooksloaded
+\rk@rendererhooksloadedfalse
+% Called by reportkit.cls (or a future slides class) immediately after its
+% renderer core loads, before any theme or semantic module.
+\newcommand{\RKAssertRendererHooks}{%
+  \ifrk@rendererhooksloaded\else
+    \PackageError{reportkit-core}{No renderer core was loaded}%
+      {Load a renderer core (e.g. reportkit-paged-core) right after reportkit-core.}%
+  \fi
+}
+
+% -----------------------------------------------------------------------------
 % Anti-stranding page-break mechanism (structural, not visual -- every theme
 % shares the same heuristic fractions of \textheight)
 % -----------------------------------------------------------------------------
@@ -76,7 +133,7 @@
 % {"kind":"command","description":"Rkdiagramsection","arguments":[{"name":"title","type":"text","description":"Title."}],"constraints":[],"example":"\\RKDiagramSection{Example}","stability":"stable","since":"1.0.0"}
 % </reportkit-contract>
 \NewDocumentCommand{\RKDiagramSection}{m}{%
-  \par\Needspace{0.46\textheight}%
+  \par\RKReserveSpace{0.46\textheight}%
   \section{#1}%
 }
 
@@ -85,7 +142,7 @@
 % {"kind":"command","description":"Rkdiagramsubsection","arguments":[{"name":"title","type":"text","description":"Title."}],"constraints":[],"example":"\\RKDiagramSubsection{Example}","stability":"stable","since":"1.0.0"}
 % </reportkit-contract>
 \NewDocumentCommand{\RKDiagramSubsection}{m}{%
-  \par\Needspace{0.38\textheight}%
+  \par\RKReserveSpace{0.38\textheight}%
   \subsection{#1}%
 }
 
