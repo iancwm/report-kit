@@ -159,7 +159,7 @@ def test_context_is_versioned_filterable_and_legacy_compatible() -> None:
             "tagged_pdf_reason": "The pinned LaTeX format has not yet passed the documented tagging spike.",
         },
         "common_package": "reportkit-theme-institutional-research",
-        "renderer_adapter": "reportkit-theme-institutional-research",
+        "renderer_adapter": "reportkit-theme-institutional-research-paged",
         "publication_package": "reportkit-equity-research", "brand_overrides": False,
         "language_support": {
             "verified": ["en"], "metadata_only": ["vi"],

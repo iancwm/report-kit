@@ -1,15 +1,17 @@
 # ReportKit Multi-Format Publication Architecture — Implementation Plan
 
-**Status:** Phase A in progress. Architecture decisions are resolved; A1 and
-A2 are complete, and A3 is implemented in the working tree (pending the
-pinned-toolchain CI gate), while A0 and A4–A5 remain. Task sizing and visual
+**Status:** Phase A in progress. Architecture decisions are resolved; A1, A2
+and A3 are complete (A3 pending the pinned-toolchain CI gate); A4 is
+partially implemented in the working tree (theme/adapter split and
+callout/metric token work; diagram work and the Python/theme-contract
+extension remain), while A0 and A5 remain untouched. Task sizing and visual
 design details should receive engineering/design review before execution.
 **Last updated:** 2026-09-13
 **Plans:** [2026-09-09-reportkit-multi-format-publication-architecture-spec.md](../specs/2026-09-09-reportkit-multi-format-publication-architecture-spec.md)
 **Amended by:** [2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md](../specs/2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md)
 **Baseline:** planning baseline `main` at `4f2b27f`, ReportKit v1.9.1.
-**Current status:** verified against `main` at `bb15d05`, ReportKit v1.9.3,
-on 2026-09-13.
+**Current status:** verified against `main` at `70f0aba` (this branch's
+merge base), ReportKit v1.9.3, on 2026-09-13.
 
 ---
 
@@ -329,7 +331,10 @@ renderer supplies the required capability fields.
 ReportKit v1.9.2 and v1.9.3. A3 is implemented in the working tree (see its
 section below for verification detail and scope actually covered — not yet
 released as a version bump, and the pinned-toolchain CI gate has not run
-against it). A0 and A4–A5 remain open; Phase B has not started.
+against it). A4 is partially implemented in the working tree, also not yet
+released — see its section below for exactly what landed (theme/adapter
+split, callout/metric style tokens) and what remains (diagram tokens, the
+Python `Theme` extension). A0 and A5 remain open; Phase B has not started.
 
 Phase A lands before any released new theme. Use small commits in the order
 below; do not combine the registry, core split and pipeline rewrite into one
@@ -635,6 +640,133 @@ run against this change yet and is the authoritative check.
     rg for theme-name string literals in semantic modules returns no matches
 
 Compile and pixel/hash gates from A3 remain mandatory.
+
+**Implemented 2026-09-13 -- theme/adapter split and callout/metric token work
+only; diagram work and the Python/theme-contract extension remain open:**
+
+- **Theme/adapter split (D11), for both existing themes:** geometry, running
+  furniture (fancyhdr), section-heading placement (titlesec), and
+  `\maketitle` moved verbatim out of `reportkit-theme-default.sty` and
+  `reportkit-theme-institutional-research.sty` into two new files,
+  `reportkit-theme-default-paged.sty` and
+  `reportkit-theme-institutional-research-paged.sty`. What remains in each
+  common file is fonts, palette, typography defaults (parindent/parskip/
+  setlist/sisetup/captionsetup -- judged renderer-neutral, not page-specific,
+  so kept common rather than moved), the style-token contract (below),
+  `execsummary` (an ordinary list environment, no page machinery), and the
+  `\source` helper.
+  `python_scripts/reportkit/publications.py`'s `_theme()` helper gained an
+  explicit `renderer_adapters` parameter (previously always defaulted to
+  `{renderer: common_package}`, i.e. the adapter was always the same file as
+  the common package -- the registry's `RKThemeAdapter@name@renderer` csname
+  already existed from A1/A2 but nothing populated it with a distinct value
+  or read it); `default`/`technical` and `institutional-research` now pass
+  their real `-paged` adapter names.
+  `reportkit.cls` loads the adapter package right after the common package,
+  looked up the same way (`RKThemeAdapter@\rk@theme@\rk@classrenderer` via
+  `\csname`, using the same `\string @`-insertion trick
+  `reportkit-options.tex`'s `RKValidateSelection` already used, to avoid the
+  literal `@` being absorbed into the preceding control word under
+  `\makeatletter`).
+  `reportkit-publication-registry.def` regenerated (drift test passes).
+- **Callout/metric token work:** `reportkit-core.sty` gained the style-token
+  contract the plan's D2 describes: ~30 `RKTok...` sentinel macros (listed in
+  `tests/test_theme_contract.py`'s `REQUIRED_STYLE_TOKENS`), an
+  `\rk@styletokensloaded` flag, and `\RKAssertStyleTokens` -- the same
+  loud-sentinel pattern A3's `\RKAssertRendererHooks` already established for
+  renderer hooks. Both theme common files `\renewcommand` every token (the
+  institutional-research theme's quiet chrome -- spec §21, no fill, no frame
+  -- and the default theme's boxed chrome are exactly the pre-existing
+  hardcoded values, just relocated) and set the loaded flag.
+  `reportkit-boxes.sty`'s `\ifdefstring{\rk@theme}{institutional-research}`
+  branch is gone: one `\newtcolorbox{rk@callout}` definition and one `metric`
+  environment, both reading tokens (`colback=\RKTokCalloutColBack`, etc.).
+  Font-role tokens (`RKTokCalloutTitleFont`, the metric card's label/value/
+  subtitle/why fonts) bundle their own `\fontsize{}{}\selectfont` since they
+  execute as ordinary TeX inside a tcolorbox title/body, not as a pgfkeys
+  value.
+  A real risk before compiling: whether tcolorbox's `colback=`/`colframe=`
+  keys, which end up inside `\colorlet`, would resolve a macro standing in
+  for a color name (as opposed to the literal identifier) -- confirmed empirically
+  by compiling, not assumed; see the verification below.
+- **New test coverage:** `tests/test_theme_contract.py` (static; no
+  toolchain assumed) -- every required token has a core sentinel, every
+  canonical theme's common package populates every token and sets the
+  loaded flag, and `reportkit-boxes.sty` neither branches on `\rk@theme` nor
+  names a theme directly (comments excluded) and asserts the tokens before
+  reading them. Updated `tests/test_reportkit_vnext.py` (the old
+  `test_reportkit_boxes_default_theme_unchanged`, which asserted the
+  `\ifdefstring` branch existed, is replaced by
+  `test_reportkit_boxes_reads_style_tokens_not_theme_name` plus two
+  theme-specific token assertions; `test_institutional_theme_uses_letter_geometry_and_type_scale`
+  now reads geometry from the `-paged` file) and `tests/test_agent_contract.py`
+  (`renderer_adapter` for institutional-research is now
+  `reportkit-theme-institutional-research-paged`, not the common package
+  name).
+- **Verified 2026-09-13** in a throwaway, unpinned local toolchain (this
+  session's sandbox has direct network access, unlike the one that wrote
+  A3's verification -- `apt-get install texlive-luatex texlive-latex-extra
+  texlive-bibtex-extra texlive-fonts-recommended texlive-science pandoc` plus
+  the checked-in Google Sans/Libertinus fixtures staged the same way
+  `toolchain/Dockerfile` does; not the pinned image itself, same caveat as
+  A0/A3's non-pinned verification):
+  - `latex_templates/examples/career_guide_en/report.tex` (default theme,
+    pdfLaTeX) -- PDF SHA-256 byte-identical across baseline, theme-split-only,
+    and theme-split-plus-tokens, with `SOURCE_DATE_EPOCH=1 TZ=UTC` set to
+    match `toolchain/Dockerfile`'s determinism environment (without it, even
+    the unmodified baseline is not self-reproducible across two pdfLaTeX
+    runs -- a sandbox/toolchain-version quirk, not a ReportKit determinism
+    bug: SOURCE_DATE_EPOCH fixes it completely for pdfLaTeX).
+  - `latex_templates/examples/equity-research/report.tex`
+    (institutional-research theme, equity-research publication type,
+    LuaLaTeX): raw PDF bytes are **not** hash-identical even baseline-to-baseline
+    on this toolchain (confirmed: two back-to-back baseline compiles of the
+    unmodified tree, both with `SOURCE_DATE_EPOCH=1 TZ=UTC`, differ near the
+    end of the file -- almost certainly font-subsetting/object-ordering
+    nondeterminism inside this LuaLaTeX version, not something
+    `SOURCE_DATE_EPOCH` reaches). Given that, verification here is
+    content-level rather than hash-level: PyMuPDF text extraction is
+    identical, and 150 DPI PNG renders of all 4 pages are pixel-identical
+    (SHA-256 of raw pixel samples) across baseline, theme-split-only, and
+    theme-split-plus-tokens. This also means A3's own recorded
+    "byte-identical" LuaLaTeX result was specific to whatever toolchain build
+    wrote it; this session's toolchain does not reproduce that property for
+    unrelated reasons, so later sessions on yet another local toolchain
+    should expect to re-derive which comparison (hash vs. pixel) is
+    trustworthy rather than assume hash-identical is always available
+    off the pinned image.
+  - Compiled `institutional_equity_acceptance_test.tex` (LuaLaTeX) and
+    `primitive_acceptance_test.tex` (pdfLaTeX) fresh and inspected rendered
+    PNGs by eye: the institutional-research callout is the quiet thin-rule
+    variant with no fill; the default-theme callout and metric card keep
+    their boxed chrome. Not just "it compiled" -- the actual chrome
+    difference the token migration must preserve was checked visually.
+  - `bash scripts/acceptance_check.sh --require-tex`,
+    `reportkit docs --check --json`, and `scripts/contract_acceptance.py
+    --json` all pass with no blocking diagnostics.
+  - `python -m pytest tests publication_pipeline/tests`: 195 passed, 2
+    failed, same two pre-existing environment-specific failures TODOS.md
+    already documents (`test_full_build_emits_schema_v3_report_and_lock`,
+    `test_doctor_dependency_remediation_is_present_in_text_and_json`) --
+    confirmed pre-existing by running the same two tests against the
+    unmodified tree in the same venv before making any change. `ruff check`
+    is clean on every file this slice touched (repo-wide `ruff check` has 3
+    pre-existing findings in `tests/test_acceptance_venv_detection.py`,
+    untouched by this slice).
+
+The pinned-toolchain CI gate has not run against this change yet and is
+still the authoritative check, per A0.
+
+**Remaining A4 scope, not started:** the diagram work (theme-populated TikZ
+styles across `reportkit-diagrams.sty`, `reportkit-structure.sty`,
+`reportkit-process.sty`, `reportkit-spatial.sty`) and the Python/theme-contract
+extension (`Theme` typography/chart/geometry/rule/table/diagram/script-coverage
+records; `check-theme` validating common *and* adapter token layers -- today
+it only reasons about the common package). `SEMANTIC_MODULES` in
+`tests/test_theme_contract.py` is deliberately just
+`["reportkit-boxes.sty"]` right now; adding a diagram module to that list
+before its migration lands would fail for the wrong reason, and is the
+signal that the next slice should flip it in.
 
 ### A5 — make the pipeline target-aware
 

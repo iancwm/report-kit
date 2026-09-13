@@ -14,6 +14,12 @@
 % package: reportkit.cls loads this before it loads a renderer core or the
 % selected theme.
 %
+% Phase A4 adds the style token contract below: the theme-owned values a
+% semantic module (reportkit-boxes.sty today) reads instead of branching on
+% \rk@theme. Mechanism only, same rule as the renderer hooks above -- no
+% visual value is defined here, only the sentinel that fires if a theme
+% forgot to populate one.
+%
 % hyperref is deliberately NOT required here even though this file owns
 % hyperref's *setup* (the metadata/catalog-language block below, and RKLink).
 % hyperref's own documentation asks to be loaded after other formatting
@@ -25,7 +31,7 @@
 % (before geometry) changes computed named-destination coordinates and
 % breaks the pinned default-theme PDF hash even though nothing else changed.
 \NeedsTeXFormat{LaTeX2e}
-\ProvidesPackage{reportkit-core}[2026/09/13 v1.7.0 ReportKit engine-neutral core]
+\ProvidesPackage{reportkit-core}[2026/09/13 v1.8.0 ReportKit engine-neutral core]
 
 \RequirePackage{iftex}
 \RequirePackage{microtype}
@@ -119,6 +125,70 @@
   \ifrk@rendererhooksloaded\else
     \PackageError{reportkit-core}{No renderer core was loaded}%
       {Load a renderer core (e.g. reportkit-paged-core) right after reportkit-core.}%
+  \fi
+}
+
+% -----------------------------------------------------------------------------
+% Style token contract (mechanism only -- no visual value lives here)
+% -----------------------------------------------------------------------------
+% Phase A4 of the multi-format publication architecture spec (decision D2)
+% moves component appearance behind theme-owned tokens instead of a semantic
+% module branching on \rk@theme. The selected theme's common package (loaded
+% right after this file, before any semantic module) must renew every token
+% below and then set \rk@styletokensloadedtrue. Left here as loud sentinels,
+% the same pattern as the renderer hooks above: calling an unset token fails
+% immediately with a clear diagnostic instead of silently falling back to
+% some other theme's appearance.
+\newcommand{\rk@styletokenerror}[1]{%
+  \PackageError{reportkit-core}{No theme has defined \string#1}%
+    {Load a theme package (e.g. reportkit-theme-default) before any semantic module.}%
+}
+% Callout chrome (reportkit-boxes.sty's principle/decisionpoint/redflag/...).
+% Category colors (Principle, Decision, RedFlag, ...) are separate,
+% pre-existing named colors -- these tokens style the box itself.
+\newcommand{\RKTokCalloutColBack}{\rk@styletokenerror{\RKTokCalloutColBack}}
+\newcommand{\RKTokCalloutColFrame}{\rk@styletokenerror{\RKTokCalloutColFrame}}
+\newcommand{\RKTokCalloutBoxRule}{\rk@styletokenerror{\RKTokCalloutBoxRule}}
+\newcommand{\RKTokCalloutLeftRule}{\rk@styletokenerror{\RKTokCalloutLeftRule}}
+\newcommand{\RKTokCalloutArc}{\rk@styletokenerror{\RKTokCalloutArc}}
+\newcommand{\RKTokCalloutOuterArc}{\rk@styletokenerror{\RKTokCalloutOuterArc}}
+\newcommand{\RKTokCalloutPadLeft}{\rk@styletokenerror{\RKTokCalloutPadLeft}}
+\newcommand{\RKTokCalloutPadRight}{\rk@styletokenerror{\RKTokCalloutPadRight}}
+\newcommand{\RKTokCalloutPadTop}{\rk@styletokenerror{\RKTokCalloutPadTop}}
+\newcommand{\RKTokCalloutPadBottom}{\rk@styletokenerror{\RKTokCalloutPadBottom}}
+\newcommand{\RKTokCalloutBeforeSkip}{\rk@styletokenerror{\RKTokCalloutBeforeSkip}}
+\newcommand{\RKTokCalloutAfterSkip}{\rk@styletokenerror{\RKTokCalloutAfterSkip}}
+% A theme's font-role tokens are executed as ordinary TeX code (they sit
+% inside a tcolorbox title's token list, typeset when the box renders, not
+% parsed as a pgfkeys value), so each bundles its own \fontsize{}{}\selectfont
+% -- callers never guess a leading independently of its size.
+\newcommand{\RKTokCalloutTitleFont}{\rk@styletokenerror{\RKTokCalloutTitleFont}}
+% Metric card (reportkit-boxes.sty's \metric environment).
+\newcommand{\RKTokMetricColBack}{\rk@styletokenerror{\RKTokMetricColBack}}
+\newcommand{\RKTokMetricColFrame}{\rk@styletokenerror{\RKTokMetricColFrame}}
+\newcommand{\RKTokMetricBoxRule}{\rk@styletokenerror{\RKTokMetricBoxRule}}
+\newcommand{\RKTokMetricArc}{\rk@styletokenerror{\RKTokMetricArc}}
+\newcommand{\RKTokMetricOuterArc}{\rk@styletokenerror{\RKTokMetricOuterArc}}
+\newcommand{\RKTokMetricPadLeft}{\rk@styletokenerror{\RKTokMetricPadLeft}}
+\newcommand{\RKTokMetricPadRight}{\rk@styletokenerror{\RKTokMetricPadRight}}
+\newcommand{\RKTokMetricPadTop}{\rk@styletokenerror{\RKTokMetricPadTop}}
+\newcommand{\RKTokMetricPadBottom}{\rk@styletokenerror{\RKTokMetricPadBottom}}
+\newcommand{\RKTokMetricBeforeSkip}{\rk@styletokenerror{\RKTokMetricBeforeSkip}}
+\newcommand{\RKTokMetricAfterSkip}{\rk@styletokenerror{\RKTokMetricAfterSkip}}
+\newcommand{\RKTokMetricBorderLineWidth}{\rk@styletokenerror{\RKTokMetricBorderLineWidth}}
+\newcommand{\RKTokMetricLabelFont}{\rk@styletokenerror{\RKTokMetricLabelFont}}
+\newcommand{\RKTokMetricValueFont}{\rk@styletokenerror{\RKTokMetricValueFont}}
+\newcommand{\RKTokMetricSubtitleFont}{\rk@styletokenerror{\RKTokMetricSubtitleFont}}
+\newcommand{\RKTokMetricSubtitleSpacing}{\rk@styletokenerror{\RKTokMetricSubtitleSpacing}}
+\newcommand{\RKTokMetricWhyFont}{\rk@styletokenerror{\RKTokMetricWhyFont}}
+\newif\ifrk@styletokensloaded
+\rk@styletokensloadedfalse
+% Called by reportkit-boxes.sty (or any future style-token consumer)
+% immediately before defining anything that reads a token above.
+\newcommand{\RKAssertStyleTokens}{%
+  \ifrk@styletokensloaded\else
+    \PackageError{reportkit-core}{No theme has populated the required style tokens}%
+      {Load a theme package (e.g. reportkit-theme-default) before any semantic module.}%
   \fi
 }
 

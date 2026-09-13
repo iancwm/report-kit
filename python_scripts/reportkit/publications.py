@@ -153,6 +153,7 @@ def _theme(
     stability: str,
     since: str,
     alias_of: str | None = None,
+    renderer_adapters: dict[str, str] | None = None,
 ) -> dict[str, Any]:
     return {
         "name": name,
@@ -160,7 +161,13 @@ def _theme(
         "renderers": renderers,
         "required_engine": required_engine,
         "common_package": common_package,
-        "renderer_adapters": {renderer: common_package for renderer in renderers},
+        # Phase A4 (decision D11): a theme's common package owns only
+        # renderer-neutral appearance; page geometry, running furniture and
+        # other renderer-specific values live in a per-renderer adapter
+        # package. Callers that have not yet split their theme file default
+        # to the common package acting as its own (only) adapter.
+        "renderer_adapters": dict(renderer_adapters) if renderer_adapters is not None
+        else {renderer: common_package for renderer in renderers},
         "brand_overrides": False,
         "semantic_tokens": [
             "ink", "muted", "hairline", "surface", "primary", "secondary",
@@ -185,15 +192,18 @@ THEMES: dict[str, dict[str, Any]] = {
     "default": _theme(
         "default", renderers=["paged"], required_engine="pdflatex",
         common_package="reportkit-theme-default", stability="stable", since="1.0.0",
+        renderer_adapters={"paged": "reportkit-theme-default-paged"},
     ),
     "technical": _theme(
         "technical", renderers=["paged"], required_engine="pdflatex",
         common_package="reportkit-theme-default", stability="stable", since="1.9.2",
         alias_of="default",
+        renderer_adapters={"paged": "reportkit-theme-default-paged"},
     ),
     "institutional-research": _theme(
         "institutional-research", renderers=["paged"], required_engine="lualatex",
         common_package="reportkit-theme-institutional-research", stability="stable", since="1.7.0",
+        renderer_adapters={"paged": "reportkit-theme-institutional-research-paged"},
     ),
 }
 

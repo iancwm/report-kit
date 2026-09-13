@@ -142,12 +142,41 @@ change record.
   against the default, institutional/equity, and longform fixtures in a
   local (non-pinned) toolchain — see the plan's A3 section for the full
   verification record; the pinned-toolchain CI gate is still authoritative
-  and has not run against it yet. The remaining Phase A work is ordered in
-  the plan: capture the pinned compatibility baseline (A0 — attempted and
-  blocked by sandbox networking, see the plan), move component appearance
-  behind theme hooks (A4), and make pipeline templates target-aware (A5).
-  The original architecture risk remains in scope: the Markdown pipeline
-  must eventually pass the resolved theme/publication selection to LaTeX.
+  and has not run against it yet. **A4 (move component appearance behind
+  theme tokens) is partially implemented**: both existing themes are now
+  split per decision D11 into a renderer-neutral common package
+  (`reportkit-theme-default.sty`, `reportkit-theme-institutional-research.sty`
+  — fonts, palette, style tokens) and a paged adapter package
+  (`reportkit-theme-default-paged.sty`,
+  `reportkit-theme-institutional-research-paged.sty` — geometry, running
+  furniture, section-heading placement, `\maketitle`), both loaded by
+  `reportkit.cls` and resolved from the publication registry
+  (`publications.py`'s `_theme()` gained a real `renderer_adapters`
+  parameter). `reportkit-core.sty` gained the style-token contract decision
+  D2 describes (~30 `RKTok...` sentinels plus `\RKAssertStyleTokens`), and
+  `reportkit-boxes.sty`'s `\ifdefstring{\rk@theme}{institutional-research}`
+  branch is gone — callout and metric chrome now read theme-populated
+  tokens, with no semantic-module theme-name branch left (new
+  `tests/test_theme_contract.py` enforces this statically). Verified in a
+  local (non-pinned) toolchain: the default fixture is PDF-hash-identical
+  before/after (with `SOURCE_DATE_EPOCH=1 TZ=UTC`, required for
+  reproducibility even at baseline on this toolchain); the institutional/
+  equity fixture's raw bytes are not hash-reproducible even baseline-to-
+  baseline on this particular LuaLaTeX build (a toolchain quirk, confirmed
+  independent of this change), so it was verified by identical extracted
+  text and identical rendered-page pixel hashes instead, plus a visual check
+  that the quiet vs. boxed chrome difference the migration must preserve is
+  actually still there — see the plan's A4 section for the full record.
+  **Not yet done**: the diagram work (theme-populated TikZ styles across
+  `reportkit-diagrams.sty`/`-structure.sty`/`-process.sty`/`-spatial.sty`)
+  and the Python `Theme` contract extension (typography/chart/geometry/
+  rule/table/diagram/script-coverage records; `check-theme` validating
+  adapter as well as common tokens). The remaining Phase A work is ordered
+  in the plan: capture the pinned compatibility baseline (A0 — attempted
+  and blocked by sandbox networking, see the plan), finish A4, and make
+  pipeline templates target-aware (A5). The original architecture risk
+  remains in scope: the Markdown pipeline must eventually pass the resolved
+  theme/publication selection to LaTeX.
   See [the spec](docs/superpowers/specs/2026-09-09-reportkit-multi-format-publication-architecture-spec.md)
   and [the implementation plan](docs/superpowers/plans/2026-09-10-reportkit-multi-format-publication-implementation-plan.md).
 
@@ -191,6 +220,26 @@ change record.
 - Libertinus fonts: installed to `TEXMFHOME` (`~/.TinyTeX/texmf-local`) from `font_data/reportkit-libertinus-fonts.tar.gz`.
 
 ## History
+
+- 2026-09-13: multi-format A4's theme/adapter split (decision D11) and
+  callout/metric style-token work (decision D2) implemented on
+  `claude/multi-format-publication-ur4n82`, on top of `main` at `70f0aba`
+  (A3 merged via PR #27). New `tests/test_theme_contract.py`; updated
+  `tests/test_agent_contract.py` and `tests/test_reportkit_vnext.py` for the
+  new adapter package names and the removed `\rk@theme` branch. Verified in
+  a local (non-pinned, but this session's sandbox has direct network access,
+  unlike the session that wrote A3's own verification) toolchain: the
+  default fixture is PDF-hash-identical before/after; the institutional/
+  equity fixture is verified by identical text and pixel-identical renders
+  instead, because this toolchain's LuaLaTeX turned out not to be
+  byte-reproducible even baseline-to-baseline (a toolchain quirk unrelated
+  to this change, confirmed before concluding that). `python -m pytest
+  tests publication_pipeline/tests`: 195 passed, 2 failed (both pre-existing
+  and environment-specific, confirmed against the unmodified tree in the
+  same venv). `bash scripts/acceptance_check.sh --require-tex`, `reportkit
+  docs --check --json`, and `scripts/contract_acceptance.py --json` all
+  pass. Diagram-token work and the Python `Theme` contract extension (the
+  rest of A4) remain open; see the plan's A4 section.
 
 - 2026-09-13: synchronized this index against `main` at `bb15d05`. Since the
   previous checkpoint, `911db87` cleaned empty title-page metadata and added
