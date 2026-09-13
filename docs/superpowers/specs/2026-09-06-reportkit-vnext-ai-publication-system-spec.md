@@ -3,12 +3,12 @@
 **Status:** Draft / roadmap. **Reconciled — read the plan first.** This document
 remains the source of *intent*; the source of *work* is
 [2026-09-07-reportkit-vnext-implementation-plan.md](../plans/2026-09-07-reportkit-vnext-implementation-plan.md),
-which audits every section below against the working tree. Six of the seventeen
-are already implemented, and several premises here are wrong for this
-repository — §3 assumes `lualatex`, §5 assumes `.tex` chapter files, §6 assumes
-a `\chapter` the class does not have, and §9's `dist/` violates the repository
-boundary. Do not implement from this document alone.
-**Last updated:** 2026-09-07
+which records Phase 1 and additive Phases 2–4 as complete. Several premises
+here are wrong for this repository — §3 assumes `lualatex`, §5 assumes `.tex`
+chapter files, §6 assumes a `\chapter` the class does not have, and §9's
+`dist/` violates the repository boundary. Do not implement from this document
+alone.
+**Last updated:** 2026-09-13
 
 ## Objective
 

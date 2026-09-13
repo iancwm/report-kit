@@ -1,8 +1,9 @@
 # ReportKit Tooling Hardening
 
-**Status:** Approved, implementation slice landed on `main`; tooling follow-up
-remains.
-**Last updated:** 2026-09-07
+**Status:** Approved. The implementation slice and acceptance-environment fix
+are landed on `main`; the B4 contrast/grayscale audit and F2 performance
+measurement remain.
+**Last updated:** 2026-09-13
 
 Amended 2026-09-06 — see Amendments below.
 

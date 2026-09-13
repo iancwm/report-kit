@@ -1,12 +1,13 @@
 # ReportKit — Multi-Format Publication Architecture
 
-**Status:** Draft / not started. Supersedes nothing; extends the architecture
+**Status:** Phase A in progress. A1 landed in v1.9.2 and A2 in v1.9.3; A0 and
+A3–A5 remain. Phases B–F have not started. Supersedes nothing; extends the architecture
 introduced by
 [2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md](2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md)
-(Steps 1–5 implemented, `reportkit.cls` v1.8.0).
-**Last updated:** 2026-09-09
-**Current-state claims:** verified against the working tree at `7d8c0fe`
-(see [Current state](#1-current-state-verified-2026-09-09)). Every premise below
+(Steps 1–5 implemented, `reportkit.cls` v1.9.3).
+**Last updated:** 2026-09-13
+**Current-state claims:** verified against the working tree at `bb15d05`
+(see [Current state](#1-current-state-verified-2026-09-13)). Every premise below
 carries a `file:line` anchor so the implementer does not re-derive it.
 **Priority:** P2 — architectural hardening, ahead of any new theme.
 **Companion:** [2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md](2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md)
@@ -24,6 +25,10 @@ converts a two-case proof into an N-case architecture, then adds exactly one new
 axis — the renderer — because slides are the first format the current article
 backend genuinely cannot express.
 
+The publication registry and LaTeX option boundary from Phase A are now in
+place. The remaining Phase A work is the renderer/core split, theme-token
+refactor, compatibility baseline, and target-aware pipeline described below.
+
 The sequencing matters more than the content. Executive, venture and editorial
 each introduce a fresh opportunity for special-case coupling; if they land
 before the abstraction hardens, ReportKit acquires four more generations of the
@@ -32,9 +37,8 @@ before the abstraction hardens, ReportKit acquires four more generations of the
 
 So the next implementation task is **not** "build the executive theme". It is:
 
-> Generalize the v1.8 institutional/equity implementation into a renderer- and
-> theme-safe architecture, prove backward compatibility, then add the slide
-> renderer.
+> Finish the renderer- and theme-safe architecture, prove backward compatibility,
+> make the pipeline target-aware, then add the slide renderer.
 
 ### The design model
 
@@ -54,14 +58,16 @@ whole specification; everything below is its consequences.
 
 ---
 
-## 1. Current state (verified 2026-09-09)
+## 1. Current state (verified 2026-09-13)
 
 ### 1.1 What exists — do not reimplement
 
 | Component | Location |
 | --- | --- |
-| Core class with theme/publication-type options | `latex_templates/reportkit.cls` (v1.8.0) |
+| Core class with theme/publication-type options | `latex_templates/reportkit.cls` (v1.9.3) |
 | Shared core | `latex_templates/reportkit-core.sty` |
+| Canonical publication/renderer/theme registry | `python_scripts/reportkit/publications.py` (`BuildTarget`, `resolve_build_target()`) |
+| Generated LaTeX compatibility registry and option parser | `latex_templates/reportkit-publication-registry.def`, `latex_templates/reportkit-options.tex` |
 | `theme=default` | `latex_templates/themes/reportkit-theme-default.sty` |
 | `theme=institutional-research` | `latex_templates/themes/reportkit-theme-institutional-research.sty` |
 | `publication-type=technical-report` | implicit — loads no extra file |
@@ -75,40 +81,37 @@ whole specification; everything below is its consequences.
 
 | Premise | Verified at |
 | --- | --- |
-| Class enumerates themes as fixed `\DeclareOption` lines | `reportkit.cls:42-43` |
-| Class enumerates publication types the same way | `reportkit.cls:44-45` |
-| Unknown options are forwarded to `article` | `reportkit.cls:46` — `\DeclareOption*{\PassOptionsToClass{\CurrentOption}{article}}` |
-| Theme name reaches modules as a bare macro | `reportkit.cls:40` — `\newcommand{\rk@theme}{default}` |
-| Publication type loads by literal name substitution | `reportkit.cls:70-72` |
+| Registry generates known theme and publication options | `reportkit-publication-registry.def` and `reportkit-options.tex:1-18` |
+| Unknown `theme=`/`publication-type=` values hard-fail | `reportkit-options.tex:20-46` — `\ClassError`, before base-class forwarding |
+| Theme/publication pair and renderer are validated | `reportkit-options.tex:48-70` |
+| `technical` resolves as a `default` alias | `publications.py:184-197`, `reportkit-publication-registry.def` |
+| Publication type loads through the generated package mapping | `reportkit.cls:46-58` |
 | `reportkit-boxes.sty` branches on theme name | `reportkit-boxes.sty:20` — `\ifdefstring{\rk@theme}{institutional-research}` |
 | Core loads paged-only packages | `reportkit-core.sty:18-22` — `titlesec`, `fancyhdr`, `needspace`, `caption`, `geometry` |
 | Diagram styling is hardcoded in the semantic module | `reportkit-diagrams.sty:22-39` — node font/corners/dimensions, edge widths and colors, label typography |
 | Further hardcoded diagram typography | `reportkit-diagrams.sty:195-307` — matrix axes, swimlanes, layers, timeline nodes |
 | Pipeline template hardcodes the class and long-form package | `publication_pipeline/templates/publication-template.tex:1,4` |
-| That template is the pipeline's only template | `publication_pipeline/scripts/publication_build.py:28` — `TEMPLATE = PIPELINE_ROOT / "templates" / "publication-template.tex"` |
+| That template is the pipeline's only template | `publication_pipeline/scripts/publication_build.py:40` — `TEMPLATE = PIPELINE_ROOT / "templates" / "publication-template.tex"` |
 | Config resolves `document.theme` / `.publication_type` / `.paper` | `config.py:resolve_document()` |
 | Theme→engine requirements are enforced | `config.py:THEME_ENGINE_REQUIREMENTS`, `theme_engine_conflict()` |
 
 ### 1.3 Corrections to the source draft
 
-Four premises in the source draft are stale or understate the problem. The
-requirements below are written against the verified state, not the draft.
+The source draft captured four risks. A2 resolved the first one; the other
+findings remain part of the verified implementation status below. The
+requirements remain normative for the work still open.
 
-**(a) Unknown themes do not fail — they silently fall back.** The draft calls
-the current enumerated-option chain "acceptable for the current
-implementation". It is worse than that. Because `reportkit.cls:46` forwards
-unrecognized options to `article`, `\documentclass[theme=venture]{reportkit}`
-does not error: `article` ignores the option, LaTeX emits a
-`Unused global option(s)` **warning** at `\begin{document}`, and the document
-compiles to completion under `theme=default`. A typo'd or not-yet-implemented
-theme therefore produces a plausible-looking PDF in the wrong design system.
-[§3.1](#31-the-class-does-not-scale-and-fails-open)'s hard-failure requirement
-is a bug fix, not only a scalability improvement.
+**(a) Unknown themes used to fail open.** Before A2, `reportkit.cls` forwarded
+unrecognized options to `article`, so `theme=venture` produced a warning and a
+plausible PDF under `theme=default`. A2 now intercepts unknown theme and
+publication-type values and validates unsupported pairs with `\ClassError` in
+`reportkit-options.tex:20-70`; the negative compile tests cover these cases.
+The hard-failure requirement is implemented, not open.
 
-**(b) The pipeline never passes the theme to LaTeX at all.** The draft frames
+**(b) The pipeline still never passes the theme to LaTeX.** The draft frames
 §7 as "the pipeline hardcodes a single long-form template". The deeper defect
 is that `document.theme` and `document.publication_type` are resolved and
-validated in Python (`publication_build.py:268-274`) but **never reach
+validated in Python (`publication_build.py:352-364`) but **never reach
 `\documentclass`** — the template's line 1 is an unparameterized
 `\documentclass{reportkit}`. A `publication.yaml` requesting
 `theme: institutional-research` passes engine validation and then builds a
@@ -199,15 +202,16 @@ Themes                          Publication types
 
 ### 3.1 The class does not scale, and fails open
 
-`reportkit.cls:40-46` enumerates every theme and publication type as a literal
-`\DeclareOption`, then forwards anything else to `article`. At five themes and
-six publication types this is a 13-line chain whose failure mode is a silent
-wrong-theme build (see [§1.3(a)](#13-corrections-to-the-source-draft)).
+A2 replaced the original hand-written option chain with a generated registry
+and shared parser. `reportkit.cls:29-42` loads the generated declarations and
+validates them through `reportkit-options.tex:20-70`; unknown values no longer
+fall through to `article`, and unsupported pairs fail with `\ClassError` (see
+[§1.3(a)](#13-corrections-to-the-source-draft)).
 
-Replace the chain with a systematic registry/loading mechanism. The exact
-mechanism is the implementer's choice — `\IfFileExists` probing on the
-convention-derived filename, an explicit manifest file, or `expl3` key
-handling all qualify.
+Keep this registry-backed mechanism as the renderer and publication matrix
+grows. The exact implementation may continue to use generated declarations,
+`\IfFileExists` probing on convention-derived filenames, an explicit manifest,
+or `expl3` key handling, provided the failure behavior below remains intact.
 
 **Requirements (all hard failures — `\ClassError`, not `\ClassWarning`):**
 
@@ -355,10 +359,14 @@ line is a backward-compatibility risk against [§19](#19-backward-compatibility)
 
 ## 6. Publication registry
 
-Add a Python-side registry as the **canonical source of truth** for
+The Python-side registry is now the **canonical source of truth** for
 renderer/theme/publication compatibility. LaTeX-side checks
 ([§3.1](#31-the-class-does-not-scale-and-fails-open)) are a backstop for
 hand-written `.tex` files; the Python registry is what the pipeline consults.
+
+Phase A1 implemented this registry in `python_scripts/reportkit/publications.py`.
+The remaining registry requirements below are retained as the contract for
+future renderers and publication types.
 
 **Naming:** `python_scripts/reportkit/registry.py` is already taken by the
 visual-primitive inventory (see [§1.3(d)](#13-corrections-to-the-source-draft)).
@@ -425,7 +433,7 @@ Two defects, one work item (see
 1. `publication_pipeline/templates/publication-template.tex:1` hardcodes
    `\documentclass{reportkit}` with **no options**, so the resolved theme and
    publication type never reach LaTeX.
-2. `publication_build.py:28` binds a single long-form template regardless of
+2. `publication_build.py:40` binds a single long-form template regardless of
    publication type.
 
 **Requirement:** template selection and class-option plumbing both become
@@ -910,6 +918,11 @@ in the changelog.
 
 ### Phase A — Architecture hardening
 
+**Current status (verified 2026-09-13):** A1 and A2 are complete. A0 and A3–A5
+remain open. The capability matrix is still paged-PDF-only, with
+`technical-report` and `equity-research` as the only registered publication
+types.
+
 Before any new theme:
 
 1. introduce the publication/renderer registry ([§6](#6-publication-registry));
@@ -1030,11 +1043,12 @@ Target architecture:
 
 ---
 
-## 23. Open questions
+## 23. Resolved design questions
 
-Resolve these before or during Phase A; record resolutions in the
-implementation plan, following the convention the institutional-theme spec and
-plan established.
+These questions were resolved in the companion implementation plan before
+Phase A execution. They remain here as decision history; they are not current
+blockers. See plan decisions D1, D2, D3, D5, D6, and D10 respectively for the
+recorded choices.
 
 1. **`default` versus `technical`.** [§6](#6-publication-registry)'s registry
    lists both as themes for `technical-report`, but only `default` exists

@@ -14,6 +14,8 @@ tags on this repository, not a published package registry.
   code-quality drift in CI.
 
 ### Changed
+- Contributor workflow now documents automatic synchronization of implementation
+  status with specs and the project work index when opening a pull request.
 - The CLI contract is versioned at 1.1.0, and LaTeX text escaping is shared
   across publication and authoring generators.
 - The setup documentation now explains the pinned Python environment needed
