@@ -36,7 +36,9 @@ project's default `<output-root>/.venv/bin/python` for page rendering and PDF
 inspection.
 
 `<publication-project>/publication.yaml` supplies the title, subtitle, author,
-and version; `--title`/`--author`/`--version` on the CLI override it. An
+date, and version; set `date: build` to print the local calendar date for each
+build, or provide a literal date for a fixed publication date. The
+`--title`/`--author`/`--version` CLI flags override their corresponding fields. An
 optional `license:` section can override `content_license`,
 `content_license_url`, and `classification` for that publication; omitted
 values retain the engine defaults. A missing title (in both the config and

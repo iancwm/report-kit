@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import ast
+from datetime import datetime, timezone
 import json
 import os
 from pathlib import Path
@@ -28,7 +29,7 @@ from reportkit.registry import (  # noqa: E402
 )
 from reportkit.toolchain import load_toolchain_lock, toolchain_fingerprint  # noqa: E402
 from reportkit.version import REPORTKIT_VERSION  # noqa: E402
-from publication_build import run_limited, tex_escape as pipeline_tex_escape, write_metadata  # noqa: E402
+from publication_build import _resolve_publication_date, run_limited, tex_escape as pipeline_tex_escape, write_metadata  # noqa: E402
 from publication_validation import validate_publication  # noqa: E402
 from scripts.contract_acceptance import acceptance_source, run_acceptance  # noqa: E402
 
@@ -491,6 +492,12 @@ def test_pdf_visible_date_comes_from_publication_identity(tmp_path: Path) -> Non
         uses_code=False,
     )
     assert r"\newcommand{\RKPubDate}{13 September 2026}" in output.read_text(encoding="utf-8")
+
+
+def test_pdf_visible_date_can_follow_build_date() -> None:
+    build_time = datetime(2026, 12, 5, 23, 30, tzinfo=timezone.utc)
+    assert _resolve_publication_date("build", now=build_time) == "5 December 2026"
+    assert _resolve_publication_date("13 September 2026", now=build_time) == "13 September 2026"
 
 
 def test_section_build_rejects_path_escape_before_conversion() -> None:
