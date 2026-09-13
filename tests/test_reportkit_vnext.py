@@ -23,13 +23,14 @@ REPO = Path(__file__).resolve().parents[1]
 def test_nested_config_resolves_profile_and_document(tmp_path: Path) -> None:
     path = tmp_path / "publication.yaml"
     path.write_text(
-        "publication:\n  title: Nested Report\n  author: Author\n"
+        "publication:\n  title: Nested Report\n  author: Author\n  date: 13 September 2026\n"
         "document:\n  engine: lualatex\nprofiles:\n  release:\n    version: 2.0\n"
         "validation:\n  underfull_badness_threshold: 1200\n",
         encoding="utf-8",
     )
     config = load_publication_config(path)
     assert resolve_identity(config, {}, tmp_path, profile="release")["version"] == "2.0"
+    assert resolve_identity(config, {}, tmp_path)["date"] == "13 September 2026"
     assert resolve_document(config)["engine"] == "lualatex"
 
 

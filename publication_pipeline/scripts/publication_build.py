@@ -195,11 +195,6 @@ def render_markdown(
     sidecar.write_text(json.dumps({"source": str(manuscript.relative_to(root)), "fragments": fragments}, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
-def _reproducible_datetime() -> datetime:
-    """Return the fixed build time used in PDF-visible generated metadata."""
-    return datetime.fromtimestamp(1, timezone.utc)
-
-
 def write_metadata(path: Path, *, identity: dict[str, str], combined: bool, license_values: dict[str, str], cover_name: str | None, uses_tables: bool, uses_code: bool) -> None:
     """Emit the publication's identity as LaTeX macros.
 
@@ -220,7 +215,7 @@ def write_metadata(path: Path, *, identity: dict[str, str], combined: bool, lice
         f"\\newcommand{{\\RKPubSubtitle}}{{{tex_escape(identity['subtitle'])}}}",
         f"\\newcommand{{\\RKPubAuthor}}{{{tex_escape(identity['author'])}}}",
         f"\\newcommand{{\\RKPubVersion}}{{{tex_escape(identity['version'])}}}",
-        "\\newcommand{\\RKPubDate}{" + _reproducible_datetime().strftime("%-d %B %Y") + "}",
+        f"\\newcommand{{\\RKPubDate}}{{{tex_escape(identity.get('date', ''))}}}",
         f"\\newcommand{{\\RKPubLeftHeader}}{{{tex_escape(identity['left_header'])}}}",
         f"\\newcommand{{\\RKPubFooter}}{{{tex_escape(identity['footer'])}}}",
         f"\\newcommand{{\\RKPubSubject}}{{{tex_escape(identity['subject'])}}}",

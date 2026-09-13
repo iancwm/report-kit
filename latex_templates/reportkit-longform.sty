@@ -46,9 +46,17 @@
     \vspace{10mm}
     {\sffamily\bfseries\fontsize{27}{32}\selectfont\color{Ink}#2\par}
     \ifstrempty{#1}{}{\vspace{4mm}{\sffamily\large\color{Muted}#1\par}}
-    \vspace{10mm}\color{Hairline}\rule{0.62\textwidth}{0.5pt}\color{Ink}
-    \vspace{8mm}{\sffamily\color{Muted}\@author\par}
-    \vspace{2mm}{\sffamily\color{Muted}\@date\par}
+    \ifx\@author\@empty
+      \ifx\@date\@empty\else
+        \vspace{20mm}{\sffamily\color{Muted}\@date\par}
+      \fi
+    \else
+      \vspace{10mm}\color{Hairline}\rule{0.62\textwidth}{0.5pt}\color{Ink}
+      \vspace{8mm}{\sffamily\color{Muted}\@author\par}
+      \ifx\@date\@empty\else
+        \vspace{2mm}{\sffamily\color{Muted}\@date\par}
+      \fi
+    \fi
   \end{center}
   \clearpage
 }

@@ -28,7 +28,7 @@ from reportkit.registry import (  # noqa: E402
 )
 from reportkit.toolchain import load_toolchain_lock, toolchain_fingerprint  # noqa: E402
 from reportkit.version import REPORTKIT_VERSION  # noqa: E402
-from publication_build import _reproducible_datetime, run_limited, tex_escape as pipeline_tex_escape  # noqa: E402
+from publication_build import run_limited, tex_escape as pipeline_tex_escape, write_metadata  # noqa: E402
 from publication_validation import validate_publication  # noqa: E402
 from scripts.contract_acceptance import acceptance_source, run_acceptance  # noqa: E402
 
@@ -475,9 +475,22 @@ def test_invalid_resource_environment_override_is_structured_exit_two() -> None:
     assert payload["diagnostics"][0]["code"] == "RK_CLI_USAGE"
 
 
-def test_pdf_visible_build_date_uses_fixed_source_date_epoch(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("SOURCE_DATE_EPOCH", "999999999")
-    assert _reproducible_datetime().timestamp() == 1
+def test_pdf_visible_date_comes_from_publication_identity(tmp_path: Path) -> None:
+    output = tmp_path / "metadata.tex"
+    write_metadata(
+        output,
+        identity={
+            "title": "Test", "subtitle": "Test", "author": "", "version": "draft",
+            "date": "13 September 2026", "left_header": "Test", "footer": "Test",
+            "subject": "", "keywords": "", "project_url": "", "disclaimer": "",
+        },
+        combined=True,
+        license_values={"content_license": "Internal", "content_license_url": "https://example.com", "classification": ""},
+        cover_name=None,
+        uses_tables=False,
+        uses_code=False,
+    )
+    assert r"\newcommand{\RKPubDate}{13 September 2026}" in output.read_text(encoding="utf-8")
 
 
 def test_section_build_rejects_path_escape_before_conversion() -> None:

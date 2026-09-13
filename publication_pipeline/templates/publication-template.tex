@@ -9,8 +9,8 @@
 \setreportkitsubject{\RKPubSubject}
 \setreportkitkeywords{\RKPubKeywords}
 \title{\RKPubTitle}
-\author{\RKPubAuthor}
-\date{\RKPubDate}
+\if\relax\detokenize\expandafter{\RKPubAuthor}\relax\author{}\else\author{\RKPubAuthor}\fi
+\if\relax\detokenize\expandafter{\RKPubDate}\relax\date{}\else\date{\RKPubDate}\fi
 
 \newcommand{\RKPubPublicationDetails}{%
   \thispagestyle{empty}\phantomsection

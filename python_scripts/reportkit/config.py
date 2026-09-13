@@ -10,7 +10,7 @@ from .publications import THEMES, engine_conflict
 CONFIG_NAME = "publication.yaml"
 REQUIRED = ("title",)
 IDENTITY_KEYS = (
-    "title", "subtitle", "author", "language", "version", "left_header",
+    "title", "subtitle", "author", "language", "version", "date", "left_header",
     "footer", "subject", "keywords", "disclaimer", "project_url",
 )
 DOCUMENT_KEYS = ("main", "class", "engine", "theme", "publication_type", "paper")
@@ -314,7 +314,7 @@ def resolve_identity(config: dict[str, Any], overrides: dict[str, Any], source_r
             f"Set it in {source_root / CONFIG_NAME} or pass --{missing[0]}.")
     title = str(values["title"])
     defaults = {
-        "subtitle": title, "author": "", "version": "draft",
+        "subtitle": title, "author": "", "version": "draft", "date": "",
         "left_header": f"REPORTKIT / {title.upper()}", "footer": title,
         "subject": "", "keywords": "", "disclaimer": "", "project_url": "",
     }
