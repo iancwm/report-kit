@@ -86,6 +86,12 @@ fi
 # so log-grep alone cannot be the visual grammar gate.
 TEST_PYTHON="${REPORTKIT_TEST_PYTHON:-}"
 TEST_VENV="${REPORTKIT_TEST_VENV:-}"
+
+# Auto-detect test venv at build/.venv-tests if not explicitly set
+if [[ -z "$TEST_VENV" && -d "$ROOT/build/.venv-tests" ]]; then
+  TEST_VENV="$ROOT/build/.venv-tests"
+fi
+
 if [[ -z "$TEST_PYTHON" && -n "$TEST_VENV" && -x "$TEST_VENV/bin/python" ]] \
    && "$TEST_VENV/bin/python" -c 'import pytest' >/dev/null 2>&1; then
   TEST_PYTHON="$TEST_VENV/bin/python"
