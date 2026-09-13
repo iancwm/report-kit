@@ -1,11 +1,14 @@
 # ReportKit Multi-Format Publication Architecture — Implementation Plan
 
-**Status:** Draft v0.1. Architecture decisions are resolved; task sizing and
-visual design details should receive engineering/design review before execution.
-**Last updated:** 2026-09-10
+**Status:** Phase A in progress. Architecture decisions are resolved; A1 and
+A2 are complete, while A0 and A3–A5 remain. Task sizing and visual design
+details should receive engineering/design review before execution.
+**Last updated:** 2026-09-13
 **Plans:** [2026-09-09-reportkit-multi-format-publication-architecture-spec.md](../specs/2026-09-09-reportkit-multi-format-publication-architecture-spec.md)
 **Amended by:** [2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md](../specs/2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md)
-**Baseline:** main at 4f2b27f, ReportKit v1.9.1.
+**Baseline:** planning baseline `main` at `4f2b27f`, ReportKit v1.9.1.
+**Current status:** verified against `main` at `bb15d05`, ReportKit v1.9.3,
+on 2026-09-13.
 
 ---
 
@@ -320,6 +323,10 @@ registry. Add references/renderer-contract.md and test that each registered
 renderer supplies the required capability fields.
 
 ## 4. Phase A — architecture hardening
+
+**Execution status (verified 2026-09-13):** A1 and A2 are complete in
+ReportKit v1.9.2 and v1.9.3. A0 and A3–A5 remain open; Phase B has not
+started.
 
 Phase A lands before any released new theme. Use small commits in the order
 below; do not combine the registry, core split and pipeline rewrite into one

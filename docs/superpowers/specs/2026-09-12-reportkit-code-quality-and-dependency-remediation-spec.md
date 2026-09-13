@@ -1,9 +1,11 @@
 # ReportKit Code Quality and Dependency Remediation
 
-**Status:** Draft v0.1 — findings verified against the tree; phase sequencing
-and the Phase 2 scope should receive review before execution. Four scoping
-decisions are resolved (see *Resolved decisions*); three questions remain open.
-**Baseline:** `main` at `83a5e83`, ReportKit v1.9.3, contract v1.0.0.
+**Status:** Draft v0.1 — the user-facing Phase 0 fixes and most concrete Phase 1
+fixes are landed in `main`; the dependency-audit signal and structural Phase 2
+work remain. Four scoping decisions are resolved (see *Resolved decisions*);
+three questions remain open.
+**Baseline:** review baseline `main` at `83a5e83`, ReportKit v1.9.3, contract v1.0.0.
+**Current status:** verified against `main` at `bb15d05` on 2026-09-13.
 **Source:** a full-repository code quality review covering folder structure,
 modularity, documentation, and dependency management. Every item below was
 verified in this tree — by file:line, by executing the code, or by static
@@ -353,9 +355,10 @@ must fail it.
 
 ## I. No dependency staleness or vulnerability signal
 
-**Evidence.** No `.github/dependabot.yml`, no Renovate config, no
-`pip-audit`/`safety` step in `contract-ci.yml`, no SBOM. `.github/` contains
-only `workflows/contract-ci.yml`.
+**Evidence.** `.github/dependabot.yml` now exists for toolchain dependency
+updates, but there is no Renovate config, no `pip-audit`/`safety` step in
+`contract-ci.yml`, and no SBOM. `.github/` contains the Dependabot config and
+`workflows/contract-ci.yml`.
 
 **Verdict.** Gap, made sharper by how good the pinning is. A hash-pinned
 `snapshot.debian.org` toolchain will sit unchanged and unexamined

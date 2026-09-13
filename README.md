@@ -47,8 +47,8 @@ Migrating an existing content branch out of this repo is covered in
   page, rating strip, sidebar blocks, an exhibit system, table grammar, a
   dense financial-model mode, and risk/reward primitives; see
   `docs/superpowers/specs/2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md`
-  for the architecture and the visualization-integration/fixtures work still
-  in progress on top of it.
+  for the architecture and current verification record; pinned visual QA
+  remains a release-gate concern.
 - `REPORT_TEMPLATE.tex` — minimal report skeleton.
 - `examples/{primitive_acceptance_test,visual_grammar_acceptance_test}.tex` —
   compile the legacy and v1.4 public APIs respectively; use the acceptance
@@ -113,6 +113,8 @@ See [`publication_pipeline/README.md`](publication_pipeline/README.md).
 - [`agent-contract.md`](references/agent-contract.md) — the v1.9 contract
   versioning policy, diagnostic exits, pinned toolchain, and security/trust
   boundary.
+- [`documentation-status.md`](references/documentation-status.md) — the
+  required PR-time workflow for keeping specs, plans, and the work index current.
 
 ## Licensing scope
 

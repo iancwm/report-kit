@@ -5,7 +5,9 @@
 publication profile, visualization integration) implemented on
 `claude/institutional-template-spec-m6imf7`. Step 5 (fixtures, QA, skill
 guidance) implemented on `claude/institutional-theme-step-5-gi0ptf`.
-**Last updated:** 2026-09-09
+Subsequent equity verification work closed the compile gap; pinned visual
+review remains a release-gate concern.
+**Last updated:** 2026-09-13
 
 **Spec:** [2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md](../specs/2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md)
 
@@ -926,12 +928,12 @@ so it's actually exercised, with synthetic images, by
 `tests/test_visual_qa_equity_research.py` (6 tests, including the
 missing-lualatex WARN-and-exit-0 path).
 
-`examples/equity-research/expected/` ships with only a `README.md`, not
-placeholder PNGs — this session had no `lualatex` to produce a genuine
-baseline, and a fabricated one would look like an accepted render while
-being nothing of the kind. The README explains exactly how to populate it
-for real (`--update-expected` after a human reviews the checklist) on a
-machine that has the toolchain.
+At implementation time, `examples/equity-research/expected/` held only a
+`README.md`, not placeholder PNGs: that session had no `lualatex` to produce a
+genuine baseline, and a fabricated one would look like an accepted render
+while being nothing of the kind. A later pinned-toolchain verification added
+the reviewed baseline assets; the README still documents how to regenerate
+them with `--update-expected`.
 
 **`tests/test_institutional_equity_theme_compile.py`** (new) — the actual
 `lualatex` compile every prior step's plan flagged as "not performed":
@@ -1004,16 +1006,13 @@ alongside its `pdflatex` one.
   cleanly end to end (the last of these regenerates the full demo figure
   set, including `risk_reward.pdf`, confirming the label-position fix
   didn't regress the existing demo).
-- **Not performed, and should be before this lands anywhere that
-  matters:** an actual `lualatex` compile of
+- At implementation time, an actual `lualatex` compile of
   `examples/equity-research/report.tex` and
-  `examples/institutional_equity_acceptance_test.tex`, and a run of
-  `scripts/visual_qa_equity_research.py --update-expected` followed by a
-  human review of the resulting render against spec §25's checklist (the
-  checklist itself is printed by the script, and reproduced in
-  `references/institutional-research-theme.md`, precisely so that review
-  isn't skipped once a machine with the toolchain is available). Until
-  that happens, `examples/equity-research/expected/` intentionally holds
-  no baseline PNGs — see that directory's `README.md`. This is the last
-  of the "not performed" items every earlier step in this plan deferred
-  to Step 5; closing it is real, unfinished follow-up work, not a formality.
+  `examples/institutional_equity_acceptance_test.tex`, plus the pinned visual
+  review, were not performed because the implementing environment lacked the
+  toolchain. The compile follow-up was subsequently closed by later equity
+  verification work and the 2026-09-13 local recheck: the institutional
+  acceptance fixture and full equity fixture compile successfully, and
+  `bash scripts/acceptance_check.sh --require-tex` passes. The pinned OCI
+  visual comparison and human §25 review remain open; do not regenerate the
+  expected pixels from this host.

@@ -1,22 +1,23 @@
 # ReportKit — Institutional Research Theme + Equity Research Profile
 
-**Status:** Implemented (Steps 1-5). Current-state claims verified against the
-working tree on 2026-09-09 (see [Current state](#current-state-verified-2026-09-09)).
-The eight open questions below are resolved — see
+**Status:** Implemented (Steps 1–5). Implementation status verified against
+`main` at `bb15d05` on 2026-09-13. The §1 table remains the historical
+pre-implementation baseline verified on 2026-09-09. The eight open questions
+below are resolved — see
 [2026-09-09-reportkit-institutional-theme-implementation-plan.md](../plans/2026-09-09-reportkit-institutional-theme-implementation-plan.md),
 which also tracks execution. That plan's Step 1 (theme infrastructure),
 Step 2 (the institutional theme itself), Step 3 (the equity-research
 publication profile), Step 4 (visualization integration), and Step 5
-(fixtures, QA, and skill guidance) are all implemented. No implementing
-session had a TeX Live install with `lualatex`, so the LaTeX-level
-compile of Steps 1-3 and the visual-regression baseline Step 5 sets up
-are both still genuinely unverified by compilation — see the plan's Step
-5 section, "Not performed", before treating this as compile-clean.
-**This gap is not hypothetical:** the first real compile against this spec
+(fixtures, QA, and skill guidance) are all implemented. The institutional
+ acceptance fixture and the full four-page equity fixture now compile with
+ LuaLaTeX. The checked-in visual baseline still requires the pinned OCI
+ toolchain and human review; do not update pixels from this host.
+**The original compile gap was not hypothetical:** the first real compile
+against this spec
 (the ACN initiation-of-coverage report, 9 September 2026) surfaced three
 defects that only show up when `lualatex` actually runs the templates —
 see [§29, Post-implementation findings](#29-post-implementation-findings-first-production-report-2026-09-09).
-**Last updated:** 2026-09-09
+**Last updated:** 2026-09-13
 **Visual reference:** Appendix A — the `meridian_equity_research_mockup_v3`
 prototype, embedded verbatim. The prototype is a hand-coded proof of the target
 visual language; it is **not** the target implementation (see §28, Definition of
@@ -1284,8 +1285,9 @@ That is the architectural bar for vNext.
 
 # 29. Post-implementation findings (first production report, 2026-09-09)
 
-Steps 1-5 were verified by inspection, not by compilation (no implementing
-session had `lualatex` available — see the Status line above). The first
+At implementation time, Steps 1-5 were verified by inspection because no
+implementing session had `lualatex` available. Subsequent LuaLaTeX verification
+is recorded in the implementation plan above. The first
 real document built against this spec — an equity-research initiation
 report for Accenture (ACN), compiled the same day — surfaced three defects
 that inspection missed because each one only manifests once real content

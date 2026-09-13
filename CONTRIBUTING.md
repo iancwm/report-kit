@@ -25,6 +25,10 @@ bash scripts/acceptance_check.sh --require-tex
 python3 python_scripts/reportkit_doctor.py --require full-build
 ```
 
+Before creating a pull request, follow the
+[documentation status and PR directive](references/documentation-status.md).
+Affected specs or plans and `TODOS.md` status updates belong in the same PR.
+
 The supported pinned Python environment is created inside the consumer
 project's `build/` directory:
 ```bash
