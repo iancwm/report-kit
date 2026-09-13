@@ -1,8 +1,9 @@
 # ReportKit — Multi-Format Publication Architecture
 
-**Status:** Phase A in progress. A1 landed in v1.9.2 and A2 in v1.9.3; A0 and
-A3–A5 remain. Phases B–F have not started. Supersedes nothing; extends the architecture
-introduced by
+**Status:** Phase A in progress. A1 landed in v1.9.2 and A2 in v1.9.3; A3
+(shared/paged core split and renderer hooks) is implemented in the working
+tree, pending a version bump. A0 and A4–A5 remain. Phases B–F have not
+started. Supersedes nothing; extends the architecture introduced by
 [2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md](2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md)
 (Steps 1–5 implemented, `reportkit.cls` v1.9.3).
 **Last updated:** 2026-09-13
@@ -918,10 +919,25 @@ in the changelog.
 
 ### Phase A — Architecture hardening
 
-**Current status (verified 2026-09-13):** A1 and A2 are complete. A0 and A3–A5
-remain open. The capability matrix is still paged-PDF-only, with
-`technical-report` and `equity-research` as the only registered publication
-types.
+**Current status (verified 2026-09-13):** A1 and A2 are complete. A3 (item 3
+below: shared/paged core split, item 5's `\Needspace`/`\captionof` half via
+renderer hooks) is implemented in the working tree — see
+`reportkit-core.sty`/`reportkit-paged-core.sty` — verified to reproduce the
+default-theme and institutional/equity-theme PDFs byte-for-byte and to leave
+the full test suite, `reportkit docs --check`, `contract_acceptance.py`, and
+`acceptance_check.sh --require-tex` unaffected, in a local (non-pinned)
+LuaLaTeX/pdfLaTeX toolchain; the pinned-toolchain CI gate still needs to run
+and, if it passes, stand as the recorded baseline. A0 and A4–A5 remain open.
+A0 specifically (building the pinned toolchain image and capturing baseline
+PDF hashes/metadata) could not be attempted from the sandbox this phase was
+executed in: `toolchain/Dockerfile` fetches `ca-certificates` and the rest of
+its pinned packages over HTTPS from `snapshot.debian.org`/`pypi.org`, and
+that sandbox's network path TLS-intercepts those hosts with a proxy CA the
+image's minimal Debian base does not trust — a sandbox limitation, not a
+toolchain defect; A0 needs to run somewhere with a trusted direct path to
+those hosts (this repository's own `contract-ci.yml` runner, for one). The
+capability matrix is still paged-PDF-only, with `technical-report` and
+`equity-research` as the only registered publication types.
 
 Before any new theme:
 

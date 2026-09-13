@@ -28,7 +28,7 @@
 % present and future. Recorded here, not just in the plan, because the
 % mismatch is easy to "fix" by accident later.
 \NeedsTeXFormat{LaTeX2e}
-\ProvidesPackage{reportkit-theme-institutional-research}[2026/09/09 v1.7.0 ReportKit institutional-research theme]
+\ProvidesPackage{reportkit-theme-institutional-research}[2026/09/13 v1.7.1 ReportKit institutional-research theme]
 
 % -----------------------------------------------------------------------------
 % Engine guard (spec §4 / open question 1)
@@ -248,9 +248,9 @@
 \newcommand{\RKSectionNeed}{13\baselineskip}
 \newcommand{\RKSubsectionNeed}{6\baselineskip}
 
-\titleformat{\section}{\Needspace{\RKSectionNeed}\sffamily\bfseries\rksectionheadingsize\color{Ink}}{\thesection}{0.7em}{}
+\titleformat{\section}{\RKReserveSpace{\RKSectionNeed}\sffamily\bfseries\rksectionheadingsize\color{Ink}}{\thesection}{0.7em}{}
 \titlespacing*{\section}{0pt}{14pt plus 3pt minus 2pt}{6pt}
-\titleformat{\subsection}{\Needspace{\RKSubsectionNeed}\sffamily\bfseries\rksubsectionsize\color{Ink}}{\thesubsection}{0.6em}{}
+\titleformat{\subsection}{\RKReserveSpace{\RKSubsectionNeed}\sffamily\bfseries\rksubsectionsize\color{Ink}}{\thesubsection}{0.6em}{}
 \titlespacing*{\subsection}{0pt}{11pt plus 2pt minus 2pt}{4pt}
 
 % -----------------------------------------------------------------------------
@@ -276,7 +276,7 @@
 % {"kind":"callout","description":"Execsummary","arguments":[],"constraints":[],"example":"\\begin{execsummary}\nExample content.\n\\end{execsummary}","stability":"stable","since":"1.7.0"}
 % </reportkit-contract>
 \NewDocumentEnvironment{execsummary}{}{%
-  \par\Needspace{7\baselineskip}%
+  \par\RKReserveSpace{7\baselineskip}%
   \begin{list}{}{\setlength{\leftmargin}{0pt}\setlength{\rightmargin}{0pt}}\item\relax
   \color{Ink}\sffamily\rksubsectionsize\textbf{EXECUTIVE SUMMARY}\par\vspace{2pt}\rmfamily\rkbodysize
 }{%

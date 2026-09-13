@@ -20,8 +20,21 @@
 % latex_templates/publication_types/ directory alongside themes/.
 % publication-type=technical-report (the default) loads no extra file, same
 % as before -- only equity-research adds one.
+% Phase A3 of the multi-format architecture spec splits reportkit-core.sty
+% into an engine-neutral shared core and a new reportkit-paged-core.sty
+% owning geometry/fancyhdr/titlesec/needspace/caption and the renderer-hook
+% implementations (RKReserveSpace, RKDiagramPlacementBegin/End,
+% RKDiagramCaption, RKDiagramSource) that semantic modules now call instead
+% of those packages directly. This class still only produces paged output --
+% it loads reportkit-paged-core right after reportkit-core -- but a future
+% slides class can load a slides core supplying the same hooks. Output is
+% unchanged; only the mechanism moved (verified: identical PDF bytes on the
+% default and institutional/equity fixtures). Not yet its own version bump --
+% \ProvidesClass stays v1.9.3 until a release commit moves it, matching
+% version.py's REPORTKIT_VERSION (see test_agent_contract.py's
+% test_toolchain_fingerprint_and_release_version_are_stable).
 \NeedsTeXFormat{LaTeX2e}
-\ProvidesClass{reportkit}[2026/09/11 v1.9.3 ReportKit technical report class]
+\ProvidesClass{reportkit}[2026/09/13 v1.9.3 ReportKit technical report class]
 
 % -----------------------------------------------------------------------------
 % Theme / publication-type selection
@@ -44,6 +57,11 @@
 \LoadClass[10pt,a4paper]{article}
 
 \RequirePackage{reportkit-core}
+% This class only produces paged output, so it loads the paged renderer core
+% immediately after the shared core and before any theme or semantic module.
+% A future slides class loads a slides core in this same position instead.
+\RequirePackage{reportkit-paged-core}
+\RKAssertRendererHooks
 % The registry resolves aliases to the canonical implementation package before
 % any theme code is loaded (theme=technical uses the default package).
 \edef\rk@themepackage{\csname RKThemePackage@\rk@theme\endcsname}

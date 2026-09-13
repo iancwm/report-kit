@@ -1,8 +1,9 @@
 # ReportKit Multi-Format Publication Architecture — Implementation Plan
 
 **Status:** Phase A in progress. Architecture decisions are resolved; A1 and
-A2 are complete, while A0 and A3–A5 remain. Task sizing and visual design
-details should receive engineering/design review before execution.
+A2 are complete, and A3 is implemented in the working tree (pending the
+pinned-toolchain CI gate), while A0 and A4–A5 remain. Task sizing and visual
+design details should receive engineering/design review before execution.
 **Last updated:** 2026-09-13
 **Plans:** [2026-09-09-reportkit-multi-format-publication-architecture-spec.md](../specs/2026-09-09-reportkit-multi-format-publication-architecture-spec.md)
 **Amended by:** [2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md](../specs/2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md)
@@ -325,8 +326,10 @@ renderer supplies the required capability fields.
 ## 4. Phase A — architecture hardening
 
 **Execution status (verified 2026-09-13):** A1 and A2 are complete in
-ReportKit v1.9.2 and v1.9.3. A0 and A3–A5 remain open; Phase B has not
-started.
+ReportKit v1.9.2 and v1.9.3. A3 is implemented in the working tree (see its
+section below for verification detail and scope actually covered — not yet
+released as a version bump, and the pinned-toolchain CI gate has not run
+against it). A0 and A4–A5 remain open; Phase B has not started.
 
 Phase A lands before any released new theme. Use small commits in the order
 below; do not combine the registry, core split and pipeline rewrite into one
@@ -355,6 +358,22 @@ unreviewable diff.
 
 **Gate:** no architecture code starts until both current fixtures compile in the
 pinned environment and the baseline metadata is checked in.
+
+**Attempted 2026-09-13, blocked by sandbox networking, not deferred by choice:**
+`docker build -f toolchain/Dockerfile` fails inside this workflow's sandbox —
+its outbound network path TLS-intercepts `snapshot.debian.org` and
+`pypi.org` (the two hosts the Dockerfile fetches the pinned `ca-certificates`
+package and Python requirements from) with a proxy CA the container's
+minimal Debian base does not trust, so `apt-get`/`pip install` both fail
+`certificate verify failed`. A throwaway, unpinned variant (current
+`deb.debian.org` mirror, no version pins, proxy CA imported) does build in
+this sandbox and was used to verify A3 below by compiling fixtures and
+running the test suite — but it does not carry the pinned toolchain
+fingerprint, so it cannot produce A0's actual deliverable (a baseline
+checked in against the real pinned image). A0 still needs to run somewhere
+with a trusted direct path to those two hosts — this repository's own
+`contract-ci.yml` runner is the natural place — before its baseline is
+checked in.
 
 ### A1 — turn publications.py into a build-target registry
 
@@ -481,6 +500,74 @@ implementation is supplied in Phase B and must not load needspace.
 
 **Gate:** the default fixture retains its pinned PDF hash. The institutional
 fixture retains approved pixels, fonts, dimensions and diagnostics.
+
+**Implemented 2026-09-13, one deviation from "shared core retains ...
+hyperref setup" above, recorded because it is load-bearing:** the actual
+`\RequirePackage{hyperref}` call, and the scheduling (`\AtBeginDocument{...}`)
+of the metadata/catalog-language block that consumes it, moved to
+`reportkit-paged-core.sty`, right after that file's `geometry` require —
+not into `reportkit-core.sty`. `reportkit-core.sty` still owns *what* that
+block does (`\RKRegisterDocumentMetadata`, `RKLink`) — only the `\RequirePackage`
+call and the one-line `\AtBeginDocument{\RKRegisterDocumentMetadata}` moved.
+
+This was not a style choice: hyperref's own documentation asks it to be
+loaded after other formatting packages, and it also registers its own
+`\AtBeginDocument` hook when it loads. `\AtBeginDocument` hooks run in
+registration order, so loading hyperref (and scheduling reportkit's hook)
+before a paged-only package such as `geometry` — which is what "shared core
+retains hyperref setup" reads as, since shared core loads before any
+renderer core — measurably changes the pinned default-theme PDF: named
+destination coordinates shift by tens of points, and the `/Catalog`
+dictionary's key order changes, even though nothing about the visible
+document changed. Verified empirically, twice (isolated single-line-reorder
+repro, then the actual split), against a local LuaLaTeX/pdfLaTeX toolchain:
+reordering hyperref's require earlier reproduces the hash break by itself;
+requiring hyperref (and scheduling the AtBeginDocument hook) from
+`reportkit-paged-core.sty` instead, immediately after `geometry`, reproduces
+the original bytes exactly.
+
+A slides core must require hyperref, and schedule
+`\AtBeginDocument{\RKRegisterDocumentMetadata}`, the same way — right after
+its own canvas/frame package — for the same reason (Beamer also loads
+formatting machinery hyperref should follow, and a slides-core hook
+registering ahead of Beamer's own `\AtBeginDocument` calls is the same class
+of bug even though there is no pinned hash to catch it there yet).
+
+**Verified 2026-09-13** against a local (non-pinned — see A0's note above)
+LuaLaTeX/pdfLaTeX toolchain, not yet against the pinned-toolchain CI gate:
+
+- `latex_templates/examples/career_guide_en/report.tex` (default theme,
+  pdfLaTeX, uses `principle`/`metric`/`diagram`/`execsummary`) — PDF SHA-256
+  byte-identical before/after the split.
+- `latex_templates/examples/equity-research/report.tex`
+  (institutional-research theme, equity-research publication type,
+  LuaLaTeX) — PDF SHA-256 byte-identical before/after.
+- `latex_templates/examples/longform_acceptance_test.tex`
+  (`reportkit-longform`, pdfLaTeX) — PDF SHA-256 byte-identical before/after.
+- `python -m pytest tests publication_pipeline/tests` — same pass/fail set
+  before and after, once one real regression this change introduced was
+  found and fixed: `test_toolchain_fingerprint_and_release_version_are_stable`
+  checks that `reportkit.cls`'s `\ProvidesClass` version string matches
+  `version.py`'s `REPORTKIT_VERSION`; an early draft of this change bumped
+  the class's declared version (to document the split) without bumping
+  `REPORTKIT_VERSION`, and the test caught it correctly. Fixed by leaving
+  `\ProvidesClass` at `v1.9.3` — a version bump is a separate release commit
+  by this project's convention, not something a feature change does on its
+  own. Three failures remain and are pre-existing, unrelated to this change,
+  and specific to this non-pinned sandbox (reproduce identically against the
+  unmodified tree): `test_acceptance_check_uses_venv`,
+  `test_every_json_capable_command_uses_the_common_envelope[arguments1-0]`,
+  `test_doctor_dependency_remediation_is_present_in_text_and_json`. One
+  `test_reporttimeline.py` compile test failed once, only in a combined,
+  writable-mount, full-suite run, and passed cleanly both standalone and in
+  every other full-suite run (read-only mount) on this same tree — treated
+  as a one-off sandbox flake (resource contention under that specific run
+  shape), not a regression, but called out rather than silently discarded.
+- `reportkit docs --check --json`, `scripts/contract_acceptance.py --json`,
+  and `scripts/acceptance_check.sh --require-tex` all pass.
+
+The pinned-toolchain CI gate (`.github/workflows/contract-ci.yml`) has not
+run against this change yet and is the authoritative check.
 
 ### A4 — move component appearance behind theme tokens
 

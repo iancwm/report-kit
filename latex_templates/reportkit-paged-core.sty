@@ -1,0 +1,50 @@
+% ReportKit Paged Core -- packages and renderer-hook implementations owned by
+% the paged (article-based) renderer. Split out of reportkit-core.sty by the
+% renderer architecture in
+% docs/superpowers/specs/2026-09-09-reportkit-multi-format-publication-architecture-spec.md
+% (Phase A3). reportkit.cls loads this immediately after reportkit-core.sty
+% and before any theme or semantic module, so every renderer hook declared as
+% a sentinel in reportkit-core.sty is real before anything can call it.
+%
+% This is a relocation, not a behavior change: every package here was already
+% required (by reportkit-core.sty) at the same point in the load order, and
+% every hook below expands to exactly the paged-only call it replaces
+% (\Needspace, \captionof, \begin/\end{center}, \source), so the paged
+% renderer's output is unchanged.
+%
+% A future slides core (reportkit-slides-core.sty) supplies the same hook
+% names with frame-appropriate behavior and loads none of these packages --
+% geometry, fancyhdr, titlesec, needspace, and paged caption placement have
+% no meaning inside a Beamer frame.
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{reportkit-paged-core}[2026/09/13 v1.0.0 ReportKit paged renderer core]
+
+\RequirePackage{titlesec}
+\RequirePackage{fancyhdr}
+\RequirePackage{needspace}
+\RequirePackage{caption}
+\RequirePackage{geometry}
+% hyperref asks to be loaded after other formatting packages; reportkit-core
+% owns its setup (metadata/catalog-language block, RKLink) but the load
+% itself belongs to the renderer core that owns page/canvas geometry. See
+% reportkit-core.sty's comment on this. A slides core requires hyperref the
+% same way, right after its own canvas package.
+\RequirePackage{hyperref}
+% Schedule reportkit-core's metadata/catalog-language setup right after
+% requiring hyperref, in the same relative order the pre-split
+% reportkit-core.sty used, so it registers behind hyperref's own
+% \AtBeginDocument hook exactly as before. See RKRegisterDocumentMetadata's
+% definition in reportkit-core.sty for why this must not move earlier.
+\AtBeginDocument{\RKRegisterDocumentMetadata}
+
+% -----------------------------------------------------------------------------
+% Renderer hook implementations (paged renderer)
+% -----------------------------------------------------------------------------
+\renewcommand{\RKReserveSpace}[1]{\Needspace{#1}}
+\renewcommand{\RKDiagramPlacementBegin}{\begin{center}}
+\renewcommand{\RKDiagramPlacementEnd}{\end{center}}
+\renewcommand{\RKDiagramCaption}[1]{\captionof{figure}{#1}}
+\renewcommand{\RKDiagramSource}[1]{\source{#1}}
+\rk@rendererhooksloadedtrue
+
+\endinput

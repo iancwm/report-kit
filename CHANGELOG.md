@@ -14,6 +14,16 @@ tags on this repository, not a published package registry.
   code-quality drift in CI.
 
 ### Changed
+- `reportkit-core.sty` split into an engine-neutral shared core and a new
+  `reportkit-paged-core.sty` owning geometry/fancyhdr/titlesec/needspace/
+  caption/hyperref (Phase A3 of the multi-format publication architecture).
+  Semantic modules now reserve space and place/caption/source diagrams
+  through renderer hooks (`RKReserveSpace`, `RKDiagramPlacementBegin`/`End`,
+  `RKDiagramCaption`, `RKDiagramSource`) instead of calling those paged-only
+  packages directly, so a future slide renderer can supply the same hooks
+  without inheriting page furniture it has no use for. Output is unchanged:
+  verified byte-identical against the default, institutional/equity, and
+  long-form fixtures.
 - Contributor workflow now documents automatic synchronization of implementation
   status with specs and the project work index when opening a pull request.
 - The CLI contract is versioned at 1.1.0, and LaTeX text escaping is shared
