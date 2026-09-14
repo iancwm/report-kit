@@ -1,22 +1,29 @@
 % ReportKit slides base -- shared preamble/body-inclusion for every slides
 % (Beamer) entrypoint. The slides counterpart of publication-template.tex
-% (today's single monolithic paged entrypoint) once Phase A5 splits that
-% file into paged-base.tex plus one entrypoint per publication type
-% (decision D7). Added by Phase B (B1's file list) so A5 has a real file to
-% consume; publication_pipeline/scripts/publication_build.py does not yet
-% select or stage this file -- it still only knows the one hardcoded
-% publication-template.tex (see the implementation plan's A5 section). Do
-% not treat `reportkit build` as slides-capable until A5 lands.
+% (today's single monolithic paged entrypoint; Phase A5 has not yet split
+% that file into paged-base.tex plus one entrypoint per publication type --
+% decision D7 -- since publication-template.tex already handles combined/
+% section-mode and cover-page complexity this file deliberately does not
+% need to). publication_pipeline/scripts/publication_build.py (Phase A5)
+% selects and stages this file whenever the resolved BuildTarget's renderer
+% is "slides" (today: publication-type=presentation only).
 %
 % Consumes the same \RKPub... metadata macros write_metadata() already
 % generates into metadata.tex for the paged renderer (title/author/date/
-% license/etc. are renderer-neutral); no change there is needed for this
-% file to work once A5 selects it. \RKFrontMatter is defined by the
-% including entrypoint (e.g. presentation.tex), per D7's "entrypoint owns
-% ... the publication-specific front matter hook" -- \input this file only
-% after that macro is defined.
+% license/etc. are renderer-neutral); no change there was needed for this
+% file to work under A5. \RKFrontMatter is defined by the including
+% entrypoint (e.g. presentation.tex), per D7's "entrypoint owns ... the
+% publication-specific front matter hook" -- \input this file only after
+% that macro is defined.
 \input{metadata.tex}
 \IfFileExists{links.tex}{\input{links.tex}}{}
+% Markdown-driven content (Pandoc's Beamer writer, --slide-level=1 -- see
+% publication_build.py's render_markdown()) needs the same compatibility
+% layer the paged pipeline requires via reportkit-longform.sty
+% (\tightlist, syntax-highlighting token commands, proportional image
+% sizing). Renderer-neutral (\linewidth/\textheight, no paged-only
+% package), so reused directly rather than duplicated.
+\RequirePackage{reportkit-pandoc}
 \setreportkitleftheader{\RKPubLeftHeader}
 \setreportkitfooter{\RKPubFooter}
 \setreportkitversion{\RKPubVersion}

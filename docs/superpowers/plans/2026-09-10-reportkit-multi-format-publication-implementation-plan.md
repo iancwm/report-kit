@@ -1,23 +1,26 @@
 # ReportKit Multi-Format Publication Architecture — Implementation Plan
 
 **Status:** Phase A in progress; Phase B started out of the plan's own
-recommended order (see below). Architecture decisions are resolved; A1, A2
-and A3 are complete (A3 pending the pinned-toolchain CI gate); A4 is
-partially implemented in the working tree (theme/adapter split and
+recommended order (see below), then A5 followed it. Architecture decisions
+are resolved; A1, A2 and A3 are complete (A3 pending the pinned-toolchain
+CI gate); A4 is partially implemented (theme/adapter split and
 callout/metric token work; diagram work and the Python/theme-contract
-extension remain), while A0 and A5 remain untouched. B1 and B2 are
-essentially complete via direct-TeX authoring (not through `reportkit
-build`, which needs A5 first); B3 is implemented for the one existing slide
-theme; B4 is verified by manual PDF inspection, not yet an automated gate.
-**Note on sequencing:** §13's recommended PR sequence puts A5 (pipeline
-target selection) before Phase B (slide class/renderer) specifically so a
-presentation could be built through the normal pipeline once the renderer
-exists. Phase B was implemented first here at the user's explicit direction
-(A4 remains incomplete too); the direct-TeX proof this section describes
-substitutes for pipeline-driven verification, exactly as it already does
-for institutional-research/equity-research, but `reportkit build` still
-cannot produce a presentation until A5 lands. Task sizing and visual
-design details should receive engineering/design review before execution.
+extension remain); A5 is essentially complete (every "Work" item but
+materializing theme/brand overrides, which nothing yet needs, and the
+equity-pipeline-acceptance sub-item); A0 remains untouched. B1 and B2 are
+essentially complete, now proven through `reportkit build` itself (not
+just direct-TeX authoring) for the "plain Markdown frames" authoring path;
+B3 is implemented for the one existing slide theme; B4 is verified by
+manual PDF inspection, not yet an automated gate. **`reportkit build` can
+now produce both a technical-report/equity-research-style paged
+publication and a presentation** -- see A5's own section for the
+verification record. **Note on sequencing:** §13's recommended PR sequence
+puts A5 before Phase B specifically so a presentation could be built
+through the normal pipeline once the renderer existed; Phase B was
+implemented first here at explicit request, and A5 followed once B's own
+status notes kept naming it as the biggest remaining gap. Task sizing and
+visual design details should receive engineering/design review before
+execution.
 **Last updated:** 2026-09-14
 **Plans:** [2026-09-09-reportkit-multi-format-publication-architecture-spec.md](../specs/2026-09-09-reportkit-multi-format-publication-architecture-spec.md)
 **Amended by:** [2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md](../specs/2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md)
@@ -339,14 +342,18 @@ renderer supplies the required capability fields.
 
 ## 4. Phase A — architecture hardening
 
-**Execution status (verified 2026-09-13):** A1 and A2 are complete in
+**Execution status (verified 2026-09-14):** A1 and A2 are complete in
 ReportKit v1.9.2 and v1.9.3. A3 is implemented in the working tree (see its
 section below for verification detail and scope actually covered — not yet
 released as a version bump, and the pinned-toolchain CI gate has not run
 against it). A4 is partially implemented in the working tree, also not yet
 released — see its section below for exactly what landed (theme/adapter
 split, callout/metric style tokens) and what remains (diagram tokens, the
-Python `Theme` extension). A0 and A5 remain open; Phase B has not started.
+Python `Theme` extension). A5 is essentially complete (see its section
+below for the one deferred sub-item and the two work items judged
+out-of-scope for now). A0 remains open. Phase B (slide renderer and
+presentation semantics) is essentially complete too, implemented before A5
+at explicit request — see its own section.
 
 Phase A lands before any released new theme. Use small commits in the order
 below; do not combine the registry, core split and pipeline rewrite into one
@@ -821,6 +828,119 @@ compatibility witness. Both paths must render the same theme/publication
 identity; the pipeline version need not be byte-identical if Pandoc changes
 source ordering, but it must pass the same visual and semantic checks.
 
+**Implemented 2026-09-14 -- every "Work" item above except "Materialize
+class options, theme font settings and future overrides into generated
+preamble files" (no publication type/theme needs that yet: brand overrides
+are Phase D's venture theme; institutional-research's font settings are
+already resolved through `resolve_theme()`/`theme_font_policy_conflict()`
+independently of this slice). The equity pipeline acceptance sub-item
+(Markdown source + trusted fragments for the equity-research fixture) was
+not attempted -- see "Not done" below.**
+
+- `publication_build.py`'s `build()` now calls `resolve_build_target(...)`
+  and keeps the result (`target`) instead of discarding it after validation.
+  `target.template` resolves the entrypoint file
+  (`PIPELINE_ROOT / "templates" / target.template`); `target.pandoc_writer`
+  is threaded into `render_markdown()`'s new `writer` parameter (`"latex"`
+  for paged, unchanged; `"beamer"` for slides). `target.engine` replaces
+  the local `engine` variable from that point on (decision D3: Python is
+  canonical) -- same value in every case that reaches this point today,
+  since `engine` is never empty when passed in, but now there is one source
+  of truth instead of two variables that happened to agree.
+- The staged/compiled entrypoint is always named `publication.tex`
+  (`publication.pdf` once compiled), regardless of which entrypoint
+  filename the registry selected -- "downstream packaging remains
+  independent of the source template name," exactly as asked. The one
+  place that depended on the old literal `"publication-template.pdf"` name
+  (`cli.py`'s `_find_pdf()` fallback filter, used only when
+  `build-report.json`'s own `pdf` field lookup fails) was updated to match.
+- Per-renderer shared base files (`*-base.tex` under
+  `publication_pipeline/templates/` -- today just `slides-base.tex`) are
+  staged unconditionally alongside the entrypoint, so an entrypoint that
+  `\input{}`s one (every entrypoint but the still-self-contained
+  `publication-template.tex`) finds it.
+- `build-report.json` gained a `"selection"` key: `target.as_dict()`
+  verbatim (publication_type, requested vs. canonical theme, alias_of,
+  renderer, class, template, writer, engine, paper/canvas, accessibility,
+  language_support, common_package, renderer_adapter, brand_overrides).
+  The schema (`schemas/reportkit-build-report.schema.json`) is
+  `additionalProperties: true` with five required keys, none of which this
+  touches, so this is schema-safe by construction, not by coincidence.
+- The resolved-selection marker
+  (`REPORTKIT-SELECTED publication_type=... theme=... renderer=... ...`) is
+  both printed to stdout (visible in non-`--json` runs) and appended to
+  `publication.log` after a successful compile (so `--json` mode, whose
+  stdout capture is not surfaced in the payload on success, still has a
+  log-visible copy) -- appended after `shutil.copy2(pass_log, log)`, not
+  written into `pass_log` itself, so it cannot affect
+  `inspect_log()`/`check_build_log.py`'s diagnostic parsing.
+- **`reportkit build` can now actually produce a presentation** -- the
+  headline gap every prior Phase A4/B status note called out. Verified with
+  a real end-to-end build (`publication_type: presentation, theme:
+  executive, engine: lualatex`, plain Markdown manuscript, no
+  `reportkit-presentation.sty` compositions): resolves `renderer=slides`,
+  `class=reportkit-slides`, `template=presentation.tex`, `writer=beamer`;
+  Pandoc's Beamer writer (`--slide-level=1`, added to `render_markdown()`
+  only for the beamer writer -- without it, Pandoc's own heuristic for
+  which heading level becomes a frame is ambiguous and content-dependent)
+  converts each top-level Markdown heading directly into a literal
+  `\begin{frame}{Title}...\end{frame}` block, which compiles cleanly
+  through `\input{body.tex}` (this is `\input`, not macro expansion, so
+  B1's "Beamer's frame environment cannot be opened across macro
+  boundaries" finding does not apply here -- confirmed by it actually
+  compiling, not just argued). This is B1's "plain Markdown frames"
+  authoring path; directive/fragment-based composition authoring (the
+  *other* path B1 names, using `reportkit-presentation.sty`'s compositions
+  from Markdown) remains unimplemented -- see "Not done" below.
+  `slides-base.tex` gained `\RequirePackage{reportkit-pandoc}` (the same
+  `\tightlist`/syntax-highlighting/proportional-image compatibility layer
+  the paged pipeline already requires via `reportkit-longform.sty`;
+  confirmed renderer-neutral -- `\linewidth`/`\textheight`, no paged-only
+  package -- so reused directly rather than duplicated) and its own header
+  comment was corrected (previously said A5 had not landed yet).
+- **New test coverage:**
+  `publication_pipeline/tests/test_build_target_selection.py` -- every
+  registered publication type's entrypoint file exists; the renderer
+  records' writers are real Pandoc writers; `resolve_build_target()` drives
+  template/writer selection for both a paged and a slides target; a real
+  end-to-end paged build (`example_publication`) produces a stable
+  `publication.tex`/`publication.pdf`, a correctly populated `selection`
+  key, and a log-visible marker; a real end-to-end presentation build
+  produces the declared 160mm x 90mm canvas (verified via PyMuPDF, not
+  assumed) and the right page count; an explicit `document.paper` for
+  `publication_type: presentation` is rejected at exit 2 before any
+  manuscript is read (decision D5, enforced at the pipeline entrypoint, not
+  just the registry function directly -- `tests/test_slide_renderer.py`
+  already covers that layer).
+- **Verified 2026-09-14** in the same local, unpinned toolchain prior
+  sessions used: `python -m pytest tests publication_pipeline/tests`: 222
+  passed, 2 failed (the same two pre-existing, environment-dependent
+  failures every prior verification record in this plan documents; +6 vs.
+  the prior checkpoint, all from the new test file). `bash
+  scripts/acceptance_check.sh --require-tex` (both its pdflatex and
+  lualatex compile blocks report exit status 0; the script's overall exit
+  still reflects the two pre-existing pytest cases), `reportkit docs
+  --check --json`, and `scripts/contract_acceptance.py --json` all pass.
+  `ruff check` is clean on every file this slice touched.
+
+**Not done:** the equity pipeline acceptance sub-item (Markdown source +
+trusted fragments for `latex_templates/examples/equity-research/`, so that
+fixture's existing `publication.yaml` can be passed directly to `reportkit
+build` -- `report.tex` remains the only proven path for it); the D7
+paged-base.tex/technical-report.tex/equity-research.tex split
+(`publication-template.tex` remains the single, self-contained,
+combined/section/cover-page-capable entrypoint both paged publication
+types resolve to -- splitting it was judged too high-risk for this slice
+given how much existing pipeline-test behavior depends on its current
+combined-mode branching, and D7 does not strictly require every renderer
+to have a split entrypoint on day one); directive/fragment-based
+presentation composition authoring from Markdown (only "plain Markdown
+frames" is proven); materializing theme font settings/brand overrides into
+generated preamble files (no current theme/publication type needs it, see
+above); PDF inspection actually reading the resolved-selection marker to
+flag default-theme leakage (the marker exists and is machine-readable, but
+nothing consumes it yet).
+
 ### Phase A definition of done
 
 - Python and LaTeX reject unknown names and unsupported pairs before producing
@@ -1184,14 +1304,22 @@ A presentation builds from publication.yaml through the normal pipeline, uses
 reportkit-slides.cls and Pandoc's Beamer writer, has the declared canvas, carries
 the paged accessibility features, and loads no paged-only mechanics.
 
-**Status:** canvas ✅ (verified via PDF inspection), paged-only-mechanics-free
-✅ (reportkit-slides-core.sty's own header documents the absence), accessibility
-features ✅ for the ones checked (title/author/subject/keywords/catalog
-language/outline/bookmarks/diagram ActualText), reportkit-slides.cls + Pandoc's
-Beamer writer ✅ for the class (Pandoc's writer selection is registered but
-unexercised, since nothing drives it yet). **Not met:** "builds from
-publication.yaml through the normal pipeline" -- that is Phase A5's
-deliverable, not Phase B's, and remains open.
+**Status (updated 2026-09-14, after A5):** canvas ✅ (verified via PDF
+inspection), paged-only-mechanics-free ✅ (reportkit-slides-core.sty's own
+header documents the absence), accessibility features ✅ for the ones
+checked (title/author/subject/keywords/catalog language/outline/bookmarks/
+diagram ActualText), reportkit-slides.cls + Pandoc's Beamer writer ✅, and
+**"builds from publication.yaml through the normal pipeline" ✅** -- A5
+made `reportkit build` resolve and stage `presentation.tex`, select the
+Beamer writer, and compile through `reportkit-slides.cls`; verified with a
+real end-to-end build (see A5's own section). One caveat: only the "plain
+Markdown frames" authoring path (Pandoc's native heading-based frame
+splitting) is proven through the pipeline; directive/fragment-based
+authoring using `reportkit-presentation.sty`'s own compositions from
+Markdown remains unimplemented, so Phase B's compositions are today
+provably reachable through direct-TeX authoring (the smoke fixture) but
+not yet through `reportkit build`. Phase B's definition of done is
+otherwise met.
 
 ## 6. Phase C — executive theme
 

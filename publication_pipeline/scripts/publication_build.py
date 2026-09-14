@@ -37,7 +37,11 @@ from reportkit.publication_validation import validate_publication
 SCRIPT_DIR = Path(__file__).resolve().parent
 PIPELINE_ROOT = SCRIPT_DIR.parent
 REPO_ROOT = PIPELINE_ROOT.parent
-TEMPLATE = PIPELINE_ROOT / "templates" / "publication-template.tex"
+# Phase A5: the entrypoint template is no longer a fixed module constant --
+# build() resolves it per build from the publication registry's BuildTarget
+# (publications.py's `template` field, selected by publication_type/theme)
+# and stages/compiles it under a stable "publication.tex" name regardless of
+# which entrypoint filename was selected. See build()'s `entrypoint` local.
 LICENSE_FILE = REPO_ROOT / "metadata" / "licenses.yml"
 # With no --source-root the pipeline builds its own generic example, so a bare
 # invocation exercises the toolchain without assuming any real publication.
@@ -144,13 +148,28 @@ def render_markdown(
     output: Path,
     map_path: Path | None = None,
     *,
+    writer: str = "latex",
     timeout: int = 120,
     memory_limit_mb: int = 2048,
 ) -> None:
+    # --slide-level=1 (Beamer writer only): without it, Pandoc's own
+    # heuristic ("the highest header level immediately followed by content")
+    # can make a level-1 heading a section-navigation slide instead of a
+    # frame, depending on whether any level-2 headings exist anywhere in the
+    # document -- ambiguous and content-dependent. Forcing level 1 makes
+    # every top-level heading an unambiguous \begin{frame}{...}, matching
+    # B1's "plain Markdown frames" authoring path (reportkit-presentation.sty
+    # compositions are the separate directive/fragment-based path -- see
+    # that file's own header). Meaningless for the latex writer, so only
+    # added for beamer.
+    slide_level = ["--slide-level=1"] if writer == "beamer" else []
     proc = run_limited(
         # Raw TeX is deliberately disabled in Markdown. Trusted TeX belongs in
         # a validated fragment or a direct .tex document, never a content field.
-        ["pandoc", "-f", "markdown-raw_tex", "-t", "latex", str(manuscript)],
+        # `writer` comes from the resolved BuildTarget's pandoc_writer (Phase
+        # A5, decision D3: Python is canonical) -- "latex" for the paged
+        # renderer (unchanged), "beamer" for slides.
+        ["pandoc", "-f", "markdown-raw_tex", "-t", writer, *slide_level, str(manuscript)],
         cwd=root.parent, timeout=timeout, memory_limit_mb=memory_limit_mb, capture_output=True, text=True,
     )
     if proc.returncode:
@@ -352,7 +371,7 @@ def build(args: argparse.Namespace) -> int:
     document = resolve_document(config, profile)
     engine = str(getattr(args, "engine", None) or os.environ.get("REPORTKIT_TEX_ENGINE") or document.get("engine", "pdflatex"))
     try:
-        resolve_build_target(
+        target = resolve_build_target(
             str(document.get("publication_type")),
             str(document.get("theme")),
             explicit_paper=document.get("paper"),
@@ -362,6 +381,30 @@ def build(args: argparse.Namespace) -> int:
     except PublicationRegistryError as exc:
         print(f"publication config: {exc}", file=sys.stderr)
         return 2
+    # Phase A5: the resolved BuildTarget is canonical (decision D3) --
+    # `engine` above is the same value once resolve_build_target accepts it
+    # (it never falls back to the theme's required engine here, since
+    # `engine` is never empty), but target.engine is used from this point on
+    # so the compiled command and the reported selection can never diverge.
+    engine = target.engine
+    entrypoint = PIPELINE_ROOT / "templates" / target.template
+    if not entrypoint.is_file():
+        print(f"publication config: resolved template does not exist: {entrypoint}", file=sys.stderr)
+        return 2
+    # Machine-readable and log-visible resolved-selection marker (A5): PDF
+    # inspection / a human reviewing the compile log can use this line to
+    # catch default-theme leakage -- a build that silently fell back to
+    # "default"/"technical-report" when something else was requested.
+    selection_marker = (
+        f"REPORTKIT-SELECTED publication_type={target.publication_type} "
+        f"requested_theme={target.requested_theme} theme={target.theme} "
+        f"renderer={target.renderer} class={target.class_name} "
+        f"template={target.template} writer={target.pandoc_writer} "
+        f"engine={target.engine} "
+        f"paper={target.paper if target.paper else '-'} "
+        f"canvas={target.canvas if target.canvas else '-'}"
+    )
+    print(selection_marker)
     font_policy_conflict = theme_font_policy_conflict(resolve_theme(config, profile))
     if font_policy_conflict:
         print(f"publication config: {font_policy_conflict}", file=sys.stderr)
@@ -392,7 +435,17 @@ def build(args: argparse.Namespace) -> int:
     output.mkdir(parents=True, exist_ok=True)
     for path in template_files():
         shutil.copy2(path, output / path.name)
-    shutil.copy2(TEMPLATE, output / TEMPLATE.name)
+    # Stable staged/compiled filename (A5), independent of which entrypoint
+    # source template was selected -- downstream packaging/inspection reads
+    # "publication.tex"/"publication.pdf" regardless of publication_type.
+    shutil.copy2(entrypoint, output / "publication.tex")
+    # Per-renderer shared base files an entrypoint may \input{} (D7) -- e.g.
+    # slides-base.tex for presentation.tex. publication-template.tex is
+    # still self-contained (no *-base.tex dependency), so this is a no-op
+    # for the paged renderer today; staged unconditionally (cheap, and every
+    # renderer eventually gets one) rather than special-cased per renderer.
+    for base_file in (PIPELINE_ROOT / "templates").glob("*-base.tex"):
+        shutil.copy2(base_file, output / base_file.name)
     staged_assets = stage_project_assets(source_root, output)
     cover_name = None
     if args.cover:
@@ -413,7 +466,7 @@ def build(args: argparse.Namespace) -> int:
         try:
             render_markdown(
                 source_root, source_root / "manuscript" / manuscript, rendered,
-                timeout=timeout, memory_limit_mb=memory_limit_mb,
+                writer=target.pandoc_writer, timeout=timeout, memory_limit_mb=memory_limit_mb,
             )
         except subprocess.TimeoutExpired:
             print(f"compile timeout: pandoc exceeded {timeout} seconds", file=sys.stderr)
@@ -438,7 +491,7 @@ def build(args: argparse.Namespace) -> int:
         except (OSError, ValueError) as exc:
             print(f"link registry: {exc}", file=sys.stderr)
             return 2
-    tex = output / TEMPLATE.name
+    tex = output / "publication.tex"
     log = output / "publication.log"
     validation_config = resolve_validation(config, profile)
     figure_count = sum(len(re.findall(r"REPORTKIT-VISUAL:fig:[a-z0-9]+(?:-[a-z0-9]+)*", text)) for text in ((source_root / "manuscript" / path).read_text(encoding="utf-8") for path in manuscripts))
@@ -453,10 +506,15 @@ def build(args: argparse.Namespace) -> int:
         "status": "running",
         "started_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "inputs": [{"path": str(path), "sha256": sha256(source_root / "manuscript" / path)} for path in manuscripts],
-        "templates": [{"path": str(path.relative_to(REPO_ROOT)), "sha256": sha256(path)} for path in (template_files() + [TEMPLATE, LICENSE_FILE])],
+        "templates": [{"path": str(path.relative_to(REPO_ROOT)), "sha256": sha256(path)} for path in (template_files() + [entrypoint, LICENSE_FILE])],
         "assets": staged_assets,
         "tool_versions": {"python": sys.version.split()[0], "pandoc": version_line("pandoc") or "not found", "tex": version_line(engine) or "not found"},
         "toolchain": toolchain_context(REPO_ROOT),
+        # Phase A5: the resolved build target, so a build report is self-
+        # describing about which renderer/theme/template/writer actually
+        # produced it (requested vs. canonical theme distinguishes an alias
+        # like "technical" from what actually rendered).
+        "selection": target.as_dict(),
         "commands": [], "exit_codes": [], "diagnostics": {}, "figures": figure_count, "tables": table_count, "pdf_sha256": None,
     }
     report_path = output / "build-report.json"
@@ -504,6 +562,13 @@ def build(args: argparse.Namespace) -> int:
             return _fail(report, diagnostics, 4, report_path=report_path, history_root=history_root)
         if pass_number == 2:
             shutil.copy2(pass_log, log)
+            # Log-visible half of the resolved-selection marker (the other
+            # half is the stdout print() above, which --json mode's stdout
+            # capture does not surface in the payload). Appended after the
+            # copy, not written into pass_log, so it cannot affect
+            # inspect_log()'s/check_build_log.py's diagnostic parsing.
+            with log.open("a", encoding="utf-8") as stream:
+                stream.write("\n" + selection_marker + "\n")
     gate = SCRIPT_DIR / "check_build_log.py"
     gate_command = [sys.executable, str(gate), str(log), "--json", str(output / "diagnostics.json"), "--map-dir", str(output), "--source-root", str(source_root)]
     threshold = validation_config.get("underfull_badness_threshold")
@@ -528,7 +593,7 @@ def build(args: argparse.Namespace) -> int:
     report["exit_codes"].append({"command": f"{sys.executable} {gate} {log}", "code": gate_result.returncode})
     report["diagnostics"] = json.loads((output / "diagnostics.json").read_text(encoding="utf-8"))
     report["gate"] = "passed" if gate_result.returncode == 0 else "failed"
-    compiled_pdf = output / f"{TEMPLATE.stem}.pdf"
+    compiled_pdf = output / "publication.pdf"
     pdf = output / (f"{identity['slug']}.pdf" if args.mode == "combined" else "section.pdf")
     if compiled_pdf.is_file() and compiled_pdf != pdf:
         shutil.copy2(compiled_pdf, pdf)
