@@ -22,9 +22,21 @@ import pandas as pd  # noqa: E402
 
 import reportkit_viz as rkv  # noqa: E402
 from reportkit.context import month_end_freq  # noqa: E402
+from reportkit.publications import THEMES as PUBLICATION_THEMES  # noqa: E402
 from reportkit.themes import Theme, available_themes, get_theme  # noqa: E402
 
 REPO = Path(__file__).resolve().parents[1]
+
+# Phase B added a slide-only theme (executive); a slide theme's figure_sizes
+# intentionally carries only its own slide-main/slide-half/slide-hero keys
+# (see tests/test_slide_renderer.py's own figure-size tests), not the seven
+# paged names these older tests assume "every theme" has. Derived from the
+# publication registry (which renderer(s) a theme supports) rather than a
+# hardcoded name, so a future slide-only theme (Phase D's venture) is
+# excluded automatically too.
+PAGED_THEMES = tuple(
+    name for name in available_themes() if "paged" in PUBLICATION_THEMES.get(name, {}).get("renderers", [])
+)
 
 
 @pytest.fixture(autouse=True)
@@ -38,7 +50,8 @@ def _restore_default_theme():
 
 
 def test_available_themes_lists_declared_aliases() -> None:
-    assert available_themes() == ("default", "institutional-research", "technical")
+    # Phase B added the experimental, slide-only "executive" theme.
+    assert available_themes() == ("default", "executive", "institutional-research", "technical")
 
 
 def test_get_theme_unknown_name_raises_with_known_themes_listed() -> None:
@@ -70,8 +83,8 @@ def test_figure_sizes_keep_wide_and_add_dominant_and_half() -> None:
     """Open question 3's resolution: `wide` stays (public API, existing
     publications call new_figure("wide")); `dominant` is spec §15's
     proposed name for the same size, added as an alias rather than a
-    replacement, for both themes."""
-    for name in available_themes():
+    replacement, for both (paged) themes."""
+    for name in PAGED_THEMES:
         sizes = get_theme(name).figure_sizes
         assert "wide" in sizes
         assert sizes["dominant"] == sizes["wide"]
@@ -253,8 +266,8 @@ def test_risk_reward_chart_renders_and_labels_bear_base_bull() -> None:
 def test_figure_sizes_add_sidebar_square_preset() -> None:
     """§29.3 post-implementation finding: a "sidebar" figure preset (~2in
     square) sized for proportional-data charts (pie/donut) in the ~28%-wide
-    sidebar column, present on both themes with a 1:1 aspect ratio."""
-    for name in available_themes():
+    sidebar column, present on both (paged) themes with a 1:1 aspect ratio."""
+    for name in PAGED_THEMES:
         sizes = get_theme(name).figure_sizes
         assert "sidebar" in sizes
         width, height = sizes["sidebar"]

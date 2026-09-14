@@ -323,7 +323,7 @@ def _run_check(args: argparse.Namespace) -> int:
         resolve_build_target(
             str(document.get("publication_type")),
             str(document.get("theme")),
-            explicit_paper=str(document.get("paper")),
+            explicit_paper=document.get("paper"),
             engine=str(document.get("engine")),
             repo_root=REPO_ROOT,
         )

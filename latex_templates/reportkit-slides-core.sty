@@ -1,0 +1,99 @@
+% ReportKit Slides Core -- packages and renderer-hook implementations owned by
+% the slides (Beamer-based) renderer. The slides counterpart to
+% reportkit-paged-core.sty, added by Phase B of
+% docs/superpowers/specs/2026-09-09-reportkit-multi-format-publication-architecture-spec.md
+% (decisions D5 and D8). reportkit-slides.cls loads this immediately after
+% reportkit-core.sty and before any theme or semantic module, so every
+% renderer hook declared as a sentinel in reportkit-core.sty is real before
+% anything can call it -- the same contract reportkit-paged-core.sty upholds
+% for the paged renderer.
+%
+% Loads none of the paged-only packages (geometry, fancyhdr, titlesec,
+% needspace, the caption package): Beamer owns its own page/frame mechanics,
+% head/foot line, section formatting, and caption/figure counter, and none of
+% those paged concepts has meaning inside a frame.
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{reportkit-slides-core}[2026/09/13 v1.0.0 ReportKit slides renderer core]
+
+% hyperref: reportkit-slides.cls's \LoadClass{beamer} already requires
+% hyperref (beamer.cls, unconditionally, with [implicit=false]) before this
+% file loads, so this is a no-op confirming the same contract
+% reportkit-paged-core.sty documents -- present for the pattern's sake, not
+% because beamer would otherwise be missing it. \AtBeginDocument hooks run in
+% registration order; registering reportkit-core's metadata hook here, after
+% \LoadClass{beamer} has already registered beamer's own hooks, keeps the
+% same relative ordering reportkit-paged-core.sty establishes for the paged
+% renderer (see reportkit-core.sty's comment on why that order matters there;
+% there is no pinned slides hash to break yet, but the same class of bug
+% applies on principle).
+\RequirePackage{hyperref}
+\AtBeginDocument{\RKRegisterDocumentMetadata}
+% Beamer's own \title/\subtitle/\author (beamerbasetitle.sty) schedule a
+% \hypersetup{pdftitle=...}/\hypersetup{pdfauthor=...} call of their own, via
+% \beamer@firstminutepatches, registered (during \LoadClass{beamer}, so
+% before reportkit-slides-core even loads) to run at \begin{document} --
+% specifically at the LaTeX2e kernel's "begindocument" hook, the same one
+% plain \AtBeginDocument feeds into. hyperref then reports "Option
+% `pdftitle' has already been used, setting the option has no effect" for
+% pdftitle/pdfauthor/pdfsubject/pdfkeywords/pdfdisplaydoctitle: whichever of
+% these five keys gets \hypersetup'd there FIRST wins; every later attempt,
+% from any source, is silently dropped (verified empirically). Since
+% \AtBeginDocument hooks run in registration order and beamer's is
+% registered earlier, \RKRegisterDocumentMetadata's own attempt above always
+% loses that race -- pdftitle/pdfauthor still come out correct in practice
+% (beamer's own values, derived from \title/\subtitle/\author, are exactly
+% what reportkit-core would have produced), but pdfsubject/pdfkeywords lose
+% to beamer's empty defaults, silently turning
+% \setreportkitsubject/\setreportkitkeywords into no-ops under this renderer.
+% The fix is not registration order within "begindocument" (nothing can
+% out-order code that already loaded before this file does) but a different,
+% earlier hook: the kernel also provides "begindocument/before", which fires
+% before "begindocument" regardless of load order. Beamer provides \subject{}
+% and \keywords{} (beamerbasetitle.sty) for exactly this purpose, each also
+% calling \hypersetup{...} when invoked; calling them from
+% "begindocument/before" -- late enough that \rk@subject/\rk@keywords
+% already reflect any \setreportkitsubject/\setreportkitkeywords call
+% anywhere in the preamble, but early enough to win the race against
+% beamer's "begindocument"-hooked attempt -- is the first time anything sets
+% these two keys, so hyperref accepts them (verified: pdfsubject/pdfkeywords
+% both come out correctly populated with this fix; without it, both come out
+% empty regardless of \setreportkitsubject/\setreportkitkeywords).
+\AddToHook{begindocument/before}{\subject{\rk@subject}\keywords{\rk@keywords}}
+
+% Decision D8: disable decorative navigation and animation-heavy features in
+% the public composition API. Raw-TeX escape (calling Beamer's own commands
+% directly, outside reportkit-presentation.sty) can still opt back in to
+% overlays/animation; ReportKit's own compositions never emit \pause,
+% \onslide, or overlay specifications.
+\setbeamertemplate{navigation symbols}{}
+
+% -----------------------------------------------------------------------------
+% Renderer hook implementations (slides renderer)
+% -----------------------------------------------------------------------------
+% \RKReserveSpace is a no-op under slides. It is a paged-pagination heuristic
+% ("reserve room for this unit or start a fresh page"); a Beamer frame is
+% already the unit of composition reportkit-presentation.sty's compositions
+% target one-per-frame, so there is no page flow to reserve space in, and
+% content that overflows a frame is an authoring problem (split it across
+% frames) that a hook cannot silently fix by reserving space.
+\renewcommand{\RKReserveSpace}[1]{}
+% \begin{center}/\end{center} works identically inside a Beamer frame (it is
+% ordinary vertical-mode content); no frame-specific replacement is needed.
+\renewcommand{\RKDiagramPlacementBegin}{\begin{center}}
+\renewcommand{\RKDiagramPlacementEnd}{\end{center}}
+% The paged renderer's \RKDiagramCaption uses \captionof{figure}{...} from
+% the external "caption" package, which this core deliberately does not load
+% (D8: no paged caption behavior). Beamer already defines its own numbered
+% \figure counter (beamerbaselocalstructure.sty) with no external package
+% needed, so \refstepcounter{figure} plus a directly styled caption line
+% reproduces the same "Figure N. text" contract with no such package.
+\renewcommand{\RKDiagramCaption}[1]{%
+  \refstepcounter{figure}%
+  {\sffamily\RKTokPresentationCaptionFont\color{Muted}\textbf{Figure \thefigure.}~#1\par}%
+}
+% \source is theme-owned (reportkit-core.sty's contract; every theme's
+% common package defines it) and renderer-neutral already -- reused as-is.
+\renewcommand{\RKDiagramSource}[1]{\source{#1}}
+\rk@rendererhooksloadedtrue
+
+\endinput

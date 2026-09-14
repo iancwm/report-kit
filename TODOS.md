@@ -1,6 +1,6 @@
 # ReportKit — Outstanding Work
 
-**Last updated:** 2026-09-13
+**Last updated:** 2026-09-14
 
 This is an index, not an audit. Each spec/plan under `docs/superpowers/`
 carries its own `**Status:**` line, updated at the workflow checkpoint that
@@ -125,11 +125,10 @@ change record.
   The current tree also implements Phase A2: a generated LaTeX compatibility
   registry, shared hard-failing class-option parser, pair/renderer validation,
   drift coverage, and staging for the new `.def`/`.tex` infrastructure. The
-  shipped capability matrix still contains only the `paged` renderer and the
-  `technical-report` and `equity-research` publication types, both producing
-  PDF through LaTeX. There is no slide class, presentation target, HTML,
-  DOCX, PPTX, or EPUB renderer in the current tree; presentations remain the
-  planned Phase B slice. **A3 (split shared/paged mechanics) is now
+  shipped capability matrix also now contains the `slides` renderer and the
+  experimental `presentation` publication type (Phase B, below); there is
+  still no HTML, DOCX, PPTX, or EPUB renderer in the current tree.
+  **A3 (split shared/paged mechanics) is now
   implemented**: `reportkit-core.sty` is engine-neutral (no more
   geometry/fancyhdr/titlesec/needspace/caption), a new
   `reportkit-paged-core.sty` owns those plus hyperref (see the plan's A3
@@ -180,6 +179,62 @@ change record.
   See [the spec](docs/superpowers/specs/2026-09-09-reportkit-multi-format-publication-architecture-spec.md)
   and [the implementation plan](docs/superpowers/plans/2026-09-10-reportkit-multi-format-publication-implementation-plan.md).
 
+- **Multi-format publication architecture — Phase B (slide renderer and
+  presentation semantics) started out of the plan's own recommended order**
+  (§13 puts A5 before B; done first here at explicit request, with A4 and
+  A5 both still incomplete). **B1 and B2 are essentially complete** via
+  direct-TeX authoring: `reportkit-slides.cls` (mirrors `reportkit.cls`
+  over `\LoadClass[aspectratio=169]{beamer}` — Beamer's own 16:9 table
+  already produces the declared 160mm x 90mm canvas natively, no dimension
+  override needed), `reportkit-slides-core.sty` (implements all five
+  renderer hooks; `\RKReserveSpace` is a documented no-op, `\RKDiagramCaption`
+  reimplements Beamer's own figure counter instead of loading the external
+  `caption` package), and `reportkit-presentation.sty` (all thirteen named
+  B2 compositions, plus three thin aliases, delegating to a new,
+  separately-gated presentation-token contract in `reportkit-core.sty` so
+  paged themes are never forced to populate slide-only tokens). An
+  experimental `executive` theme (`reportkit-theme-executive(-slides).sty`,
+  `python_scripts/reportkit/themes/executive.py`) exists so the renderer
+  and composition API have something real to compile against — LuaLaTeX,
+  Libertinus (a documented placeholder, not the eventual Google Sans),
+  marked `stability: "experimental"` throughout, per D8. **B3 implemented
+  for executive only**: `slide-main`/`slide-half`/`slide-hero` figure
+  sizes, derived from the canvas and the slides adapter's safe margin, with
+  regression coverage that no paged theme gained slide keys. **B4 verified
+  by direct PDF inspection** on a compiled smoke fixture (title/author/
+  subject/keywords metadata, catalog language, PDF outline/bookmarks,
+  diagram ActualText — not yet an automated gate). Two real bugs were found
+  and fixed along the way, not just new code written: (1) A3's own semantic-
+  module migration had missed `reportkit-code.sty`, which still called
+  `\Needspace` directly — harmless under paged, fatal under slides, no
+  fixture had ever exercised `codeblock`/`outputblock` before; fixed and
+  covered. (2) An initial composition design opened Beamer's
+  `\begin{frame}...\end{frame}` from inside each composition's own
+  start/end code, which fails outright (`Runaway argument?`) because
+  Beamer's frame environment scans the raw input stream for a literal
+  `\end{frame}`, not a macro-expanded one — the shipped design makes every
+  composition content-only, wrapped in an explicit frame by the author.
+  (3) Beamer's own metadata setup silently locked out
+  `\setreportkitsubject`/`\setreportkitkeywords` under this renderer; fixed
+  via the LaTeX2e kernel's `begindocument/before` hook. A real, narrower
+  correctness fix also landed in the shared config layer (not slides-only):
+  `config.py` previously defaulted `document.paper` to `"a4"`
+  unconditionally for every publication type, which would have silently
+  broken decision D5's "an omitted paper key stays omitted" the moment a
+  canvas-renderer publication type existed to default against; now
+  conditional on the renderer's geometry kind, and `resolve_build_target()`
+  now actually rejects an explicit paper for a canvas renderer instead of
+  silently dropping it. **Not done**: `reportkit build` cannot produce a
+  presentation yet (blocked on A5's target-aware pipeline, not attempted
+  here, though `publication_pipeline/templates/slides-base.tex` and
+  `presentation.tex` exist as the D7-shaped skeletons A5 will consume);
+  Pandoc's Beamer writer is registered but unexercised; B4's findings are
+  not yet an automated pytest gate; `executive` stays experimental pending
+  Phase C's design review. See the plan's Phase B section for the full
+  verification record (216 passed, 2 pre-existing/environment-dependent
+  test failures, both confirmed by reproducing identically against the
+  unmodified prior commit).
+
 - **Agent interface & platform contract — Phase A′ and the
   non-renderer-dependent parts of Phase B′ implemented in v1.9.0; remaining
   work deferred.** The canonical contract is now in
@@ -220,6 +275,29 @@ change record.
 - Libertinus fonts: installed to `TEXMFHOME` (`~/.TinyTeX/texmf-local`) from `font_data/reportkit-libertinus-fonts.tar.gz`.
 
 ## History
+
+- 2026-09-14: multi-format Phase B (slide renderer and presentation
+  semantics) implemented on `claude/multi-format-publication-ur4n82`, on top
+  of the A4 commit, at the user's explicit request to work Phase B next
+  (out of the plan's own recommended sequence, which puts A5 first — noted
+  plainly in the plan rather than silently reordered). `reportkit-slides.cls`
+  + `reportkit-slides-core.sty` + `reportkit-presentation.sty` (B1/B2, all
+  thirteen named compositions) + an experimental `executive` theme + B3's
+  slide-figure-size Python extension + B4 verified by direct PDF inspection.
+  Two real pre-existing/found-along-the-way bugs fixed: `reportkit-code.sty`
+  still called `\Needspace` directly (A3 had missed it); Beamer's frame
+  environment cannot be opened/closed across a custom environment's
+  start/end code (composition design corrected to content-only, wrapped by
+  an explicit author-written frame) — both documented at length in the
+  plan's Phase B section so they don't get rediscovered. A real (not
+  slides-specific) correctness fix landed in `config.py`'s paper-defaulting
+  and `resolve_build_target()`'s D5 enforcement. `python -m pytest tests
+  publication_pipeline/tests`: 216 passed, 2 pre-existing/environment-
+  dependent failures (confirmed against the unmodified prior commit with
+  matching `PATH`). `bash scripts/acceptance_check.sh --require-tex`,
+  `reportkit docs --check --json`, `scripts/contract_acceptance.py --json`
+  all pass. `reportkit build` still cannot produce a presentation (A5
+  remains open); see the plan's Phase B section for the full record.
 
 - 2026-09-13: multi-format A4's theme/adapter split (decision D11) and
   callout/metric style-token work (decision D2) implemented on

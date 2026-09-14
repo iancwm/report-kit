@@ -133,6 +133,34 @@ RENDERERS: dict[str, dict[str, Any]] = {
             "tagged_pdf_reason": "The pinned LaTeX format has not yet passed the documented tagging spike.",
         },
     },
+    # Phase B of the multi-format publication architecture spec (decisions
+    # D5, D8). Beamer at aspectratio=169 already produces a 160mm x 90mm
+    # frame natively (16.00cm x 9.00cm in beamer.cls's own aspect-ratio
+    # table -- verified by reading beamer.cls, not assumed), so no extra
+    # paperwidth/paperheight override is needed to hit the declared canvas.
+    # "experimental": the pipeline does not yet route reportkit build through
+    # this renderer (that is Phase A5's target-aware pipeline slice, not yet
+    # implemented); direct \documentclass{reportkit-slides} authoring is the
+    # only proven path so far -- see the implementation plan's B1 section.
+    "slides": {
+        "name": "slides",
+        "stability": "experimental",
+        "since": "1.9.3",
+        "class_adapter": "reportkit-slides",
+        "class_file": "latex_templates/reportkit-slides.cls",
+        "template_base": "slides-base.tex",
+        "pandoc_writer": "beamer",
+        "geometry": {"kind": "canvas", "canvas": {"width_mm": 160, "height_mm": 90}},
+        "accessibility": {
+            "pdf_metadata": "supported",
+            "catalog_language": "supported",
+            "bookmarks": "supported",
+            "meaningful_links": "supported",
+            "diagram_actual_text": "supported",
+            "tagged_pdf": "unsupported",
+            "tagged_pdf_reason": "The pinned LaTeX format has not yet passed the documented tagging spike.",
+        },
+    },
 }
 
 
@@ -205,6 +233,17 @@ THEMES: dict[str, dict[str, Any]] = {
         common_package="reportkit-theme-institutional-research", stability="stable", since="1.7.0",
         renderer_adapters={"paged": "reportkit-theme-institutional-research-paged"},
     ),
+    # Phase B (decision D9: new visual themes require LuaLaTeX) and D8's
+    # "experimental executive theme shell containing a complete token set...
+    # do not release between B and C" -- this is that shell. It carries every
+    # token reportkit-core.sty's style-token contract requires (so it compiles
+    # cleanly and reportkit-boxes.sty works unmodified) but the visual design
+    # itself is not tuned; Phase C promotes it to stable after design review.
+    "executive": _theme(
+        "executive", renderers=["slides"], required_engine="lualatex",
+        common_package="reportkit-theme-executive", stability="experimental", since="1.9.3",
+        renderer_adapters={"slides": "reportkit-theme-executive-slides"},
+    ),
 }
 
 
@@ -232,6 +271,20 @@ PUBLICATION_TYPES: dict[str, dict[str, Any]] = {
         "selection_criteria": "Exhibit-led institutional equity research and investment analysis.",
         "stability": "stable",
         "since": "1.8.0",
+    },
+    # Phase B. Deliberately no "paper" key -- the slides renderer is a canvas
+    # renderer (decision D5); resolve_build_target() rejects an explicit
+    # document.paper for it rather than silently ignoring one.
+    "presentation": {
+        "name": "presentation",
+        "renderer": "slides",
+        "themes": ["executive"],
+        "default_target": {"theme": "executive"},
+        "template": "presentation.tex",
+        "package": "reportkit-presentation",
+        "selection_criteria": "Slide decks: pitches, strategy reviews, and other presented (not read) material.",
+        "stability": "experimental",
+        "since": "1.9.3",
     },
 }
 
@@ -510,8 +563,19 @@ def resolve_build_target(
     renderer = RENDERERS[renderer_name]
     requested_paper = explicit_paper if explicit_paper is not None else publication.get("paper")
     geometry = dict(renderer["geometry"])
-    geometry["paper"] = requested_paper
     canvas = geometry.get("canvas")
+    # decision D5: paper is a paged-only concept. A canvas renderer (slides)
+    # never receives a paper value -- an explicitly configured document.paper
+    # is a configuration error rather than a silently ignored one, and an
+    # omitted paper key stays omitted (None) in both the geometry dict and
+    # the BuildTarget.paper field below, not defaulted to some paper size.
+    if canvas and requested_paper is not None:
+        raise _registry_error(
+            f"publication type {publication_type!r} uses a canvas renderer ({renderer_name!r}); "
+            f"document.paper ({requested_paper!r}) is not valid for it -- remove document.paper",
+            details={"publication_type": publication_type, "renderer": renderer_name, "paper": requested_paper},
+        )
+    geometry["paper"] = None if canvas else requested_paper
     adapter = (theme_record.get("renderer_adapters") or {}).get(renderer_name)
     return BuildTarget(
         publication_type=publication_type,

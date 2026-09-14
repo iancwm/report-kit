@@ -1,20 +1,31 @@
 % Generated from python_scripts/reportkit/publications.py; do not edit.
 % Regenerate with: python -c 'from reportkit.publications import write_latex_registry; write_latex_registry(...)'
 \def\RKPublicationRegistryVersion{1}
-\def\RKValidThemes{default,institutional-research,technical}
-\def\RKValidPublicationTypes{equity-research,technical-report}
-\def\RKValidRenderers{paged}
+\def\RKValidThemes{default,executive,institutional-research,technical}
+\def\RKValidPublicationTypes{equity-research,presentation,technical-report}
+\def\RKValidRenderers{paged,slides}
 \expandafter\def\csname RKRendererClass@paged\endcsname{reportkit}
 \expandafter\def\csname RKRendererClassFile@paged\endcsname{latex_templates/reportkit.cls}
 \expandafter\def\csname RKRendererTemplateBase@paged\endcsname{publication-template.tex}
 \expandafter\def\csname RKRendererPandocWriter@paged\endcsname{latex}
 \expandafter\def\csname RKRendererGeometryKind@paged\endcsname{paper}
+\expandafter\def\csname RKRendererClass@slides\endcsname{reportkit-slides}
+\expandafter\def\csname RKRendererClassFile@slides\endcsname{latex_templates/reportkit-slides.cls}
+\expandafter\def\csname RKRendererTemplateBase@slides\endcsname{slides-base.tex}
+\expandafter\def\csname RKRendererPandocWriter@slides\endcsname{beamer}
+\expandafter\def\csname RKRendererGeometryKind@slides\endcsname{canvas}
 \expandafter\def\csname RKThemeCanonical@default\endcsname{default}
 \expandafter\def\csname RKThemePackage@default\endcsname{reportkit-theme-default}
 \expandafter\def\csname RKThemeRenderers@default\endcsname{paged}
 \expandafter\def\csname RKThemeRequiredEngine@default\endcsname{pdflatex}
 \expandafter\def\csname RKThemeAdapter@default@paged\endcsname{reportkit-theme-default-paged}
 \DeclareOption{theme=default}{\RKSetTheme{default}{default}}
+\expandafter\def\csname RKThemeCanonical@executive\endcsname{executive}
+\expandafter\def\csname RKThemePackage@executive\endcsname{reportkit-theme-executive}
+\expandafter\def\csname RKThemeRenderers@executive\endcsname{slides}
+\expandafter\def\csname RKThemeRequiredEngine@executive\endcsname{lualatex}
+\expandafter\def\csname RKThemeAdapter@executive@slides\endcsname{reportkit-theme-executive-slides}
+\DeclareOption{theme=executive}{\RKSetTheme{executive}{executive}}
 \expandafter\def\csname RKThemeCanonical@institutional-research\endcsname{institutional-research}
 \expandafter\def\csname RKThemePackage@institutional-research\endcsname{reportkit-theme-institutional-research}
 \expandafter\def\csname RKThemeRenderers@institutional-research\endcsname{paged}
@@ -34,6 +45,13 @@
 \expandafter\def\csname RKPublicationPackage@equity-research\endcsname{reportkit-equity-research}
 \DeclareOption{publication-type=equity-research}{\RKSetPublicationType{equity-research}}
 \expandafter\def\csname RKPublicationTheme@equity-research@institutional-research\endcsname{1}
+\expandafter\def\csname RKPublicationRenderer@presentation\endcsname{slides}
+\expandafter\def\csname RKPublicationClass@presentation\endcsname{reportkit-slides}
+\expandafter\def\csname RKPublicationThemes@presentation\endcsname{executive}
+\expandafter\def\csname RKPublicationDefaultTheme@presentation\endcsname{executive}
+\expandafter\def\csname RKPublicationPackage@presentation\endcsname{reportkit-presentation}
+\DeclareOption{publication-type=presentation}{\RKSetPublicationType{presentation}}
+\expandafter\def\csname RKPublicationTheme@presentation@executive\endcsname{1}
 \expandafter\def\csname RKPublicationRenderer@technical-report\endcsname{paged}
 \expandafter\def\csname RKPublicationClass@technical-report\endcsname{reportkit}
 \expandafter\def\csname RKPublicationThemes@technical-report\endcsname{default,technical}

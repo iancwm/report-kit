@@ -31,7 +31,7 @@
 % (before geometry) changes computed named-destination coordinates and
 % breaks the pinned default-theme PDF hash even though nothing else changed.
 \NeedsTeXFormat{LaTeX2e}
-\ProvidesPackage{reportkit-core}[2026/09/13 v1.8.0 ReportKit engine-neutral core]
+\ProvidesPackage{reportkit-core}[2026/09/13 v1.9.0 ReportKit engine-neutral core]
 
 \RequirePackage{iftex}
 \RequirePackage{microtype}
@@ -189,6 +189,52 @@
   \ifrk@styletokensloaded\else
     \PackageError{reportkit-core}{No theme has populated the required style tokens}%
       {Load a theme package (e.g. reportkit-theme-default) before any semantic module.}%
+  \fi
+}
+
+% -----------------------------------------------------------------------------
+% Presentation-composition style tokens (Phase B, decision D2 extended to the
+% slides renderer)
+% -----------------------------------------------------------------------------
+% A separate contract and assertion gate from the callout/metric tokens
+% above, not folded into \RKAssertStyleTokens/\ifrk@styletokensloaded: these
+% tokens are only ever read by reportkit-presentation.sty (loaded only when
+% publication-type=presentation, which only ever pairs with a slides-only
+% theme). Sharing one gate would force every paged theme (default,
+% institutional-research, neither of which ever loads
+% reportkit-presentation.sty) to populate slide-only tokens just to keep
+% passing reportkit-boxes.sty's assertion. Populated by a slides-compatible
+% theme's -slides adapter package (renderer-specific, like paged's geometry
+% and running furniture -- not the common package), since composition
+% spacing/type is exactly the kind of per-renderer component value D11
+% assigns to the adapter layer. Font-role tokens bundle their own
+% \fontsize{}{}\selectfont for the same reason the callout/metric ones do
+% (executed as ordinary TeX, not parsed as a pgfkeys value). Colors are not
+% tokenized here: every slides-compatible theme's common package is expected
+% to define the same semantic color names paged themes already do (Ink,
+% Muted, Hairline, Surface) plus Accent, and reportkit-presentation.sty
+% refers to those names directly -- the same pattern reportkit-boxes.sty
+% already uses for category colors.
+\newcommand{\RKTokPresentationKickerFont}{\rk@styletokenerror{\RKTokPresentationKickerFont}}
+\newcommand{\RKTokPresentationTitleFont}{\rk@styletokenerror{\RKTokPresentationTitleFont}}
+\newcommand{\RKTokPresentationSubtitleFont}{\rk@styletokenerror{\RKTokPresentationSubtitleFont}}
+\newcommand{\RKTokPresentationDividerTitleFont}{\rk@styletokenerror{\RKTokPresentationDividerTitleFont}}
+\newcommand{\RKTokPresentationMessageFont}{\rk@styletokenerror{\RKTokPresentationMessageFont}}
+\newcommand{\RKTokPresentationBodyFont}{\rk@styletokenerror{\RKTokPresentationBodyFont}}
+\newcommand{\RKTokPresentationCaptionFont}{\rk@styletokenerror{\RKTokPresentationCaptionFont}}
+\newcommand{\RKTokPresentationHeroValueFont}{\rk@styletokenerror{\RKTokPresentationHeroValueFont}}
+\newcommand{\RKTokPresentationHeroLabelFont}{\rk@styletokenerror{\RKTokPresentationHeroLabelFont}}
+\newcommand{\RKTokPresentationColumnHeadingFont}{\rk@styletokenerror{\RKTokPresentationColumnHeadingFont}}
+\newcommand{\RKTokPresentationClosingFont}{\rk@styletokenerror{\RKTokPresentationClosingFont}}
+\newcommand{\RKTokPresentationRuleWidth}{\rk@styletokenerror{\RKTokPresentationRuleWidth}}
+\newif\ifrk@presentationtokensloaded
+\rk@presentationtokensloadedfalse
+% Called by reportkit-presentation.sty immediately before defining anything
+% that reads a token above.
+\newcommand{\RKAssertPresentationTokens}{%
+  \ifrk@presentationtokensloaded\else
+    \PackageError{reportkit-core}{No theme has populated the required presentation style tokens}%
+      {Load a slides-compatible theme's adapter (e.g. reportkit-theme-executive-slides) before reportkit-presentation.}%
   \fi
 }
 

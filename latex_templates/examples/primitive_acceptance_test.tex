@@ -150,4 +150,18 @@ falling population), so they must remain visually distinguishable without relyin
 a shared visual trick that would blur that distinction.
 \end{principle}
 
+\section{Code and output blocks}
+No fixture exercised \texttt{codeblock}/\texttt{outputblock} before reportkit-code.sty
+v1.2.0 moved their space reservation onto the \texttt{\string\RKReserveSpace} renderer
+hook; this section is that coverage.
+
+\begin{codeblock}[figures.py]{Python}
+def risk_reward_chart(base, bull, bear):
+    return max(bull - base, 0) / max(base - bear, 1)
+\end{codeblock}
+
+\begin{outputblock}
+0.87
+\end{outputblock}
+
 \end{document}

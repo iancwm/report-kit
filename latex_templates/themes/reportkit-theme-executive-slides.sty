@@ -1,0 +1,63 @@
+% ReportKit theme adapter: executive / slides renderer. EXPERIMENTAL --
+% see reportkit-theme-executive.sty's header for why. Phase B of the
+% multi-format publication architecture spec (decisions D5, D8, D11).
+%
+% Owns this theme's canvas/frame geometry, running chrome (footline), and
+% the presentation-composition style tokens reportkit-presentation.sty
+% reads (reportkit-core.sty's "Presentation-composition style tokens"
+% section) -- the slides-renderer counterpart of what a -paged adapter owns
+% (geometry, running furniture, section-heading placement). Composition
+% spacing/type is a per-renderer component value under D11 exactly like
+% paged section-heading placement is, so it lives here, not in the common
+% theme file.
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{reportkit-theme-executive-slides}[2026/09/13 v0.1.0 ReportKit executive theme / slides adapter (experimental)]
+
+% -----------------------------------------------------------------------------
+% Canvas and safe margin
+% -----------------------------------------------------------------------------
+% The 160mm x 90mm frame itself comes from reportkit-slides.cls's
+% \LoadClass[aspectratio=169]{beamer} (see that file's header). This adapter
+% only sets the safe-area text margin inside that frame -- 8mm each side,
+% 144mm usable width. python_scripts/reportkit/themes/executive.py's B3
+% slide-slot widths are derived from this same 144mm figure; if this number
+% changes, that file's comment says to update it too (no cross-language
+% token sync mechanism exists yet, the same gap that already exists for
+% every paged theme's \geometry{} margins versus reportkit_viz.py's
+% TEXT_WIDTH_IN).
+\setbeamersize{text margin left=8mm,text margin right=8mm}
+
+% -----------------------------------------------------------------------------
+% Running chrome -- minimal footline (page number, version). No headline:
+% compositions carry their own heading typography (B2: reportkit-presentation
+% owns structure, not Beamer's frametitle chrome), so \setbeamertemplate is
+% left untouched for frametitle/headline; nothing in this theme calls
+% \frametitle.
+% -----------------------------------------------------------------------------
+\setbeamertemplate{footline}{%
+  \leavevmode
+  \hbox{\begin{beamercolorbox}[wd=\paperwidth,ht=2.8mm,dp=1.2mm,leftskip=8mm,rightskip=8mm]{}
+    {\sffamily\fontsize{5.6pt}{7pt}\selectfont\color{Muted}\rk@footer\ \textperiodcentered\ \rk@version\hfill\insertframenumber}
+  \end{beamercolorbox}}
+}
+
+% -----------------------------------------------------------------------------
+% Presentation-composition style tokens (reportkit-core.sty's contract).
+% Placeholder values -- Phase C's design review retunes these; nothing here
+% is meant to be a finished visual system yet (see this file's header).
+% -----------------------------------------------------------------------------
+\renewcommand{\RKTokPresentationKickerFont}{\fontsize{9pt}{11pt}\selectfont}
+\renewcommand{\RKTokPresentationTitleFont}{\fontsize{34pt}{38pt}\selectfont}
+\renewcommand{\RKTokPresentationSubtitleFont}{\fontsize{14pt}{18pt}\selectfont}
+\renewcommand{\RKTokPresentationDividerTitleFont}{\fontsize{40pt}{44pt}\selectfont}
+\renewcommand{\RKTokPresentationMessageFont}{\fontsize{26pt}{30pt}\selectfont}
+\renewcommand{\RKTokPresentationBodyFont}{\fontsize{14pt}{18pt}\selectfont}
+\renewcommand{\RKTokPresentationCaptionFont}{\fontsize{9pt}{11pt}\selectfont}
+\renewcommand{\RKTokPresentationHeroValueFont}{\fontsize{64pt}{68pt}\selectfont}
+\renewcommand{\RKTokPresentationHeroLabelFont}{\fontsize{13pt}{16pt}\selectfont}
+\renewcommand{\RKTokPresentationColumnHeadingFont}{\fontsize{15pt}{18pt}\selectfont}
+\renewcommand{\RKTokPresentationClosingFont}{\fontsize{30pt}{34pt}\selectfont}
+\renewcommand{\RKTokPresentationRuleWidth}{.6pt}
+\rk@presentationtokensloadedtrue
+
+\endinput

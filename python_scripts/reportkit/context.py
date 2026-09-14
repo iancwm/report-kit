@@ -155,7 +155,7 @@ def build_context(
     target = resolve_build_target(
         effective_publication,
         effective_theme,
-        explicit_paper=None if explicit_selection else str(document.get("paper")),
+        explicit_paper=None if explicit_selection else document.get("paper"),
         engine=None if explicit_selection else str(document.get("engine")),
         repo_root=repo_root,
     )

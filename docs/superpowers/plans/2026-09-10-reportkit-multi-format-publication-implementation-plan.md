@@ -1,12 +1,24 @@
 # ReportKit Multi-Format Publication Architecture — Implementation Plan
 
-**Status:** Phase A in progress. Architecture decisions are resolved; A1, A2
+**Status:** Phase A in progress; Phase B started out of the plan's own
+recommended order (see below). Architecture decisions are resolved; A1, A2
 and A3 are complete (A3 pending the pinned-toolchain CI gate); A4 is
 partially implemented in the working tree (theme/adapter split and
 callout/metric token work; diagram work and the Python/theme-contract
-extension remain), while A0 and A5 remain untouched. Task sizing and visual
+extension remain), while A0 and A5 remain untouched. B1 and B2 are
+essentially complete via direct-TeX authoring (not through `reportkit
+build`, which needs A5 first); B3 is implemented for the one existing slide
+theme; B4 is verified by manual PDF inspection, not yet an automated gate.
+**Note on sequencing:** §13's recommended PR sequence puts A5 (pipeline
+target selection) before Phase B (slide class/renderer) specifically so a
+presentation could be built through the normal pipeline once the renderer
+exists. Phase B was implemented first here at the user's explicit direction
+(A4 remains incomplete too); the direct-TeX proof this section describes
+substitutes for pipeline-driven verification, exactly as it already does
+for institutional-research/equity-research, but `reportkit build` still
+cannot produce a presentation until A5 lands. Task sizing and visual
 design details should receive engineering/design review before execution.
-**Last updated:** 2026-09-13
+**Last updated:** 2026-09-14
 **Plans:** [2026-09-09-reportkit-multi-format-publication-architecture-spec.md](../specs/2026-09-09-reportkit-multi-format-publication-architecture-spec.md)
 **Amended by:** [2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md](../specs/2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md)
 **Baseline:** planning baseline `main` at `4f2b27f`, ReportKit v1.9.1.
@@ -900,11 +912,286 @@ For a canonical slide PDF, inspect:
 If the updated tagging spike succeeds, enable tagging for both renderers in a
 separate reviewed change. Do not claim parity merely because Beamer compiled.
 
+**Implemented 2026-09-14 -- B1 and B2 essentially complete via direct-TeX
+authoring; B3 implemented for the one existing slide theme; B4 verified by
+PDF inspection on a compiled fixture, not yet automated as a gate. The
+pipeline does not build a presentation yet (see the scope note below).**
+
+- **B1 (class + slides core + registry):** `reportkit-slides.cls` mirrors
+  `reportkit.cls`'s option-parsing/registry-validation/theme-and-adapter-
+  loading shape over `\LoadClass[aspectratio=169]{beamer}`. Beamer's own
+  16:9 aspect-ratio table already produces a 16.00cm x 9.00cm (160mm x 90mm)
+  frame natively (read directly from `beamer.cls`, not assumed) -- no
+  `paperwidth`/`paperheight` override was needed, simplifying D5's canvas
+  requirement considerably. `reportkit-slides-core.sty` implements the same
+  five renderer hooks `reportkit-paged-core.sty` does:
+  `\RKReserveSpace` is a no-op (a Beamer frame is already
+  `reportkit-presentation.sty`'s unit of composition; there is no page flow
+  to reserve space in, and this is a deliberate, documented design choice,
+  not an oversight); `\RKDiagramPlacementBegin`/`End` reuse
+  `\begin{center}`/`\end{center}` (works unchanged inside a frame);
+  `\RKDiagramCaption` reimplements the "Figure N. text" contract using
+  Beamer's own built-in `figure` counter (`beamerbaselocalstructure.sty`)
+  instead of the external `caption` package (D8: no paged caption
+  behavior); `\RKDiagramSource` reuses the theme-owned `\source` macro
+  unchanged. `\setbeamertemplate{navigation symbols}{}` satisfies D8's
+  "disable decorative navigation" directly.
+  `publications.py` gained a `"slides"` renderer record
+  (`geometry: {"kind": "canvas", "canvas": {"width_mm": 160, "height_mm":
+  90}}`) and a `"presentation"` publication type record (no `"paper"` key).
+  **A real prerequisite bug found and fixed along the way:** A3's own
+  migration (see that section above) missed `reportkit-code.sty`, which
+  still `\RequirePackage{needspace}`d and called `\Needspace` directly --
+  harmless under the paged renderer (identical to the hook it should have
+  called) but fatal under a hypothetical slides core, since there is no
+  page flow for `needspace` to measure inside a Beamer frame. Fixed to call
+  `\RKReserveSpace` like every other semantic module; no fixture exercised
+  `codeblock`/`outputblock` before this change, so coverage was added to
+  `primitive_acceptance_test.tex` alongside the fix.
+  **A second, larger bug found only by attempting to compile:** an initial
+  design had every `reportkit-presentation.sty` composition open and close
+  Beamer's `\begin{frame}...\end{frame}` internally (in its own start/end
+  code), which fails outright -- `Runaway argument? File ended while
+  scanning use of \beamer@collect@@body` -- because Beamer's frame
+  environment captures its own body by a raw-input-stream scan for a
+  literally-typed `\end{frame}`, not a macro-expanded one, the same
+  mechanism `fragile` frames use for verbatim content (confirmed by
+  removing `fragile` and reproducing the identical failure with plain-text
+  content, i.e. this is not a fragile-specific issue). The fix, and the
+  final shipped design: every composition is content-only; the author (or
+  the front-matter hook) wraps each one in an explicit, literal
+  `\begin{frame}...\end{frame}`, adding `[fragile]` only where the frame's
+  own content needs it (e.g. a `codeblock}`). This is standard Beamer
+  extension practice, not a workaround -- documented at length in
+  `reportkit-presentation.sty`'s own header so the next session does not
+  rediscover it by hitting the same wall.
+  **A third bug, in PDF metadata correctness (found during B4
+  verification):** Beamer's own `\title`/`\subtitle`/`\author` schedule a
+  `\hypersetup{pdftitle=...}`-style call of their own (via
+  `\beamer@firstminutepatches`) at the kernel's `begindocument` hook,
+  registered earlier (during `\LoadClass{beamer}`) than
+  `reportkit-slides-core.sty`'s own `\AtBeginDocument`-registered
+  `\RKRegisterDocumentMetadata` call -- and hyperref accepts only the
+  *first* `\hypersetup` call for `pdftitle`/`pdfauthor`/`pdfsubject`/
+  `pdfkeywords`/`pdfdisplaydoctitle` (each later attempt is silently
+  dropped with a "has already been used" warning, verified empirically).
+  pdftitle/pdfauthor come out correct anyway (Beamer's own values, from
+  `\title`/`\subtitle`/`\author`, are exactly what reportkit-core would
+  have produced), but pdfsubject/pdfkeywords silently locked to empty,
+  turning `\setreportkitsubject`/`\setreportkitkeywords` into no-ops under
+  this renderer -- a real, narrow accessibility-metadata regression
+  relative to the paged renderer if left unfixed. The fix uses the LaTeX2e
+  kernel's newer `begindocument/before` hook (fires strictly before the
+  legacy `begindocument` hook regardless of load order) to call Beamer's
+  own `\subject{}`/`\keywords{}` commands early enough to win the race, but
+  late enough that `\rk@subject`/`\rk@keywords` already reflect any
+  preamble-time `\setreportkitsubject`/`\setreportkitkeywords` call.
+  Verified: pdfsubject/pdfkeywords both come out correctly populated with
+  the fix; both come out empty without it, regardless of what the setters
+  were called with.
+- **B2 (composition API):** `latex_templates/publication_types/
+  reportkit-presentation.sty` implements all thirteen named compositions
+  (title slide, section divider -- plus an appendix-divider variant --,
+  single-message, assertion-evidence, visual+text -- covering both
+  "text+visual" and "visual+text" via one `position=` key --, full visual,
+  two-column comparison, three-part argument, hero metric, closing) plus
+  chartslide/tableslide/architectureslide as thin, separately-named,
+  separately-contracted aliases over the same visualtext/fullvisual
+  layout mechanism (an explicit, documented simplification: the plan's
+  "chart, table and architecture slides" read as discoverability/naming,
+  not a fourth distinct layout system). Every composition delegates
+  spacing/type to a new, separate presentation-token contract
+  (reportkit-core.sty's "Presentation-composition style tokens" section --
+  ~12 `RKTokPresentation...` sentinels, its own `\RKAssertPresentationTokens`
+  gate, deliberately *not* merged into the callout/metric
+  `\RKAssertStyleTokens` gate so paged themes are never forced to populate
+  slide-only tokens) or to plain semantic color names every slides-
+  compatible theme is expected to define (Ink/Muted/Hairline/Accent, the
+  same pattern reportkit-boxes.sty already uses for category colors). No
+  composition mentions "executive" in its code (only in comments); Phase D's
+  own gate (venture must compile the same compositions unchanged) is a
+  natural consequence of this, not a promise made without a mechanism.
+- **The experimental executive theme (D8, D9):** `reportkit-theme-
+  executive.sty` (common) + `reportkit-theme-executive-slides.sty` (slides
+  adapter, D11) -- LuaLaTeX-gated the same way institutional-research is,
+  Libertinus fonts (not Google Sans -- documented as a deliberate
+  placeholder choice, not D9 non-compliance: it needs no font_path/
+  font_policy plumbing to compile in any LuaLaTeX environment this repo
+  already supports, and Phase C's design review is explicitly expected to
+  replace it), a full placeholder palette, the complete callout/metric
+  token set (reused from the default theme's values verbatim -- no design
+  reason yet to diverge), and the complete presentation-token set (new
+  placeholder values). `publications.py`'s `THEMES["executive"]` and
+  `python_scripts/reportkit/themes/executive.py` (the Python chart-theme
+  counterpart, `apply_theme("executive")`) both marked `stability:
+  "experimental"`, matching D8's "do not release between B and C."
+- **B3 (slide visualization slots), for executive only:** `themes/
+  executive.py`'s `figure_sizes` carries exactly `slide-main`/`slide-half`/
+  `slide-hero` (not the seven paged names -- a slide-compatible theme's
+  figure_sizes is scoped to slide slots only, since no composition
+  references paged names like `sidebar`/`square`), derived from the 160mm
+  x 90mm canvas minus the slides adapter's 8mm safe-margin (both files'
+  comments say to keep the two numbers in sync -- no cross-language token
+  mechanism exists yet, the same pre-existing gap every paged theme's LaTeX
+  geometry already has against its own `TEXT_WIDTH_IN`). Verified: all
+  three slots fit inside the declared canvas; no paged theme
+  (default/technical/institutional-research) gained slide-* keys or lost
+  any of its seven existing ones (regression tests in both
+  `tests/test_slide_renderer.py` and updated
+  `tests/test_reportkit_viz_themes.py`, which previously assumed "every
+  theme" was paged). Not yet done: verifying generated chart PDFs actually
+  embed vector text under this theme specifically (the general mechanism is
+  unchanged from every other theme, so this is low-risk, but genuinely
+  unverified for `executive`).
+- **B4 (accessibility parity), verified by direct PDF inspection on the
+  compiled smoke fixture below, not yet an automated gate:** title/author/
+  subject/keywords metadata all correct (subject/keywords only after the
+  bug fix above); `/Lang (en-US)` present in the PDF catalog (initially
+  appeared absent under a naive raw-bytes grep -- a false negative from PDF
+  object-stream compression, not a real gap, confirmed by reading the
+  decompressed catalog object with PyMuPDF instead); `/Outlines` and
+  `/PageMode /UseOutlines` present (from `\section{}` calls inside
+  sectiondivider/appendixdivider) with correct bookmark titles;
+  `/ViewerPreferences <</DisplayDocTitle true>>` present (Beamer's own
+  default); diagram `ActualText` alternatives present in the content stream
+  of every page containing a `\begin{diagram}` (3 of 3, matching the
+  fixture's 3 diagrams) -- the same mechanism, unmodified, that already
+  works under the paged renderer. Meaningful link annotations were not
+  exercised (the fixture contains no `\RKLink`/`\href` call) but use the
+  identical, renderer-neutral `\href` mechanism reportkit-core.sty already
+  provides -- not verified empirically for slides specifically, an honest
+  gap. Tagged-PDF capability is declared `"unsupported"` in the slides
+  renderer's registry record, the same truthful status the paged renderer
+  already declares, for the same reason. None of this is wired into an
+  automated pytest gate yet (`tests/test_slide_renderer.py` covers the
+  static/registry contract, not PDF inspection) -- doing so is listed as
+  remaining scope below.
+- **Compiled smoke fixture:** `latex_templates/examples/
+  presentation_acceptance_test.tex` -- one frame per composition (17
+  frames total), reusing `reportkit-boxes`/`reportkit-code`/
+  `reportkit-diagrams` content (a `principle` callout, a `metric` card, a
+  `codeblock`/`outputblock` pair, three `\begin{diagram}` calls including a
+  `layer` and a `matrix` type) to prove those semantic modules compile
+  *unmodified* under the slides renderer, not just that new slide-specific
+  code compiles. Wired into `scripts/acceptance_check.sh`'s lualatex block
+  alongside the existing institutional-research/equity-research fixtures.
+- **Pipeline entrypoint skeletons, per D7, not yet consumed:**
+  `publication_pipeline/templates/slides-base.tex` (shared preamble/body
+  inclusion, consuming the same `\RKPub...` metadata macros
+  `write_metadata()` already generates for the paged renderer -- those are
+  renderer-neutral, so no change there was needed) and `presentation.tex`
+  (entrypoint: class declaration + a `\RKFrontMatter` hook calling
+  `titleslide`). `publication_pipeline/scripts/publication_build.py` still
+  has one hardcoded `TEMPLATE` module constant (Phase A5's job to replace
+  with the resolved `BuildTarget`) and does not select or stage these
+  files -- `reportkit build` cannot produce a presentation yet. This
+  mirrors the existing precedent institutional-research/equity-research
+  already set (a direct-TeX fixture proved the renderer/theme before A5
+  made it pipeline-buildable) rather than a new gap Phase B introduced.
+- **A necessary correctness fix in the shared config/registry layer, found
+  while wiring the canvas/paper split (decision D5), not scoped to slides
+  only:** `config.py`'s `resolve_document()` previously defaulted
+  `document.paper` to `"a4"` unconditionally, for every publication type;
+  three call sites (`cli.py`, `context.py`, `publication_build.py`) then
+  force-`str()`-wrapped that value before passing it to
+  `resolve_build_target()`, turning a real `None` into the four-character
+  string `"None"`. Both would have silently broken D5's "an omitted paper
+  key stays omitted" the moment `"presentation"` became a real
+  `publication_type` value to default against. Fixed: the paper default is
+  now conditional on the resolved publication type's renderer having
+  `geometry.kind == "paper"` (every publication type before this change,
+  so zero behavior change for any of them); the three call sites now pass
+  `document.get("paper")` through unmodified. `resolve_build_target()`
+  itself gained the actual D5 enforcement: an explicit paper for a canvas
+  renderer is now a raised `PublicationRegistryError`, not a silently
+  dropped value (it already computed the right *output* --
+  `BuildTarget.paper` was already forced to `None` whenever `canvas` was
+  present, evidently anticipated when the canvas/paper fields were
+  originally added in Phase A1 -- but never raised on bad *input*).
+- **New test coverage:** `tests/test_slide_renderer.py` (registry/static
+  contract: renderer/theme/publication-type records, the D5 paper-vs-canvas
+  rejection, both renderer-hook and presentation-token contracts, the B3
+  figure-size checks). Updated `tests/test_reportkit_viz_themes.py` (two
+  tests previously iterated "every theme" assuming paged-only figure-size
+  keys; now iterate a `PAGED_THEMES` tuple derived from the publication
+  registry, not a hardcoded name, so a future slide-only theme is excluded
+  automatically too) and `tests/test_agent_contract.py` (the publication-
+  matrix and primitive-count snapshot tests, which are deliberately exact
+  and meant to be updated on a real registry change like this one).
+  `references/primitive-contract.md` regenerated (`reportkit docs
+  --write`) to match the new composition/command primitives -- required,
+  not optional: `reportkit docs --check` is itself part of the required
+  gate set below and fails on any drift.
+- **Verified 2026-09-14** in the same local, unpinned toolchain A4 used
+  (this session reused A4's already-installed texlive-latex-extra/
+  texlive-luatex/pandoc packages; no new apt packages were needed for
+  Beamer specifically -- confirmed by reading dpkg's own dependency
+  metadata: `texlive-latex-extra` already depends on
+  `texlive-latex-recommended`, which is what actually provides
+  `beamer.cls`, so the pinned `toolchain/Dockerfile`'s existing package
+  list already covers Beamer transitively and needs no change for B1):
+  - `presentation_acceptance_test.tex` compiles cleanly under LuaLaTeX (17
+    pages, exit 0), with a correct 160mm x 90mm `MediaBox` (verified via
+    PyMuPDF, not assumed from the class option). Rendered several pages to
+    PNG and inspected by eye: title slide, a `visualtext` frame with a
+    working `RKLayer` diagram and correct two-column split, a `comparison`
+    frame, a `herometric` frame (the hero value wraps to two lines at this
+    placeholder font size -- a cosmetic tuning item for Phase C, not a
+    defect), and a `codeblock`/`outputblock` frame (proving
+    `reportkit-code.sty`'s A3-completion fix above actually works end to
+    end under Beamer). The quiet-vs-boxed distinction this session
+    otherwise didn't touch (A4's callout tokens) was not re-checked here
+    since nothing in this phase changed it.
+  - `career_guide_en/report.tex` (default theme, pdfLaTeX) with the
+    `codeblock`/`outputblock` fix applied: still compiles clean, no
+    fixture existed before to hash-compare against for this specific
+    primitive (see the bug-fix note above), so this is a fresh compile
+    check, not a byte-identity proof.
+  - `bash scripts/acceptance_check.sh --require-tex`,
+    `reportkit docs --check --json`, and `scripts/contract_acceptance.py
+    --json` all pass with no blocking diagnostics.
+  - `python -m pytest tests publication_pipeline/tests`: 216 passed, 2
+    failed. Both failures are pre-existing and environment-dependent, not
+    regressions -- confirmed by reproducing each identically against the
+    unmodified `94d8f0f` commit with the same `PATH` (one is
+    `test_doctor_dependency_remediation_is_present_in_text_and_json`,
+    already documented in TODOS.md before this session; the other,
+    `test_every_json_capable_command_uses_the_common_envelope[arguments1-0]`,
+    is new to this session's investigation but not to the underlying cause
+    -- `reportkit doctor --json` legitimately reports
+    `RK_TOOLCHAIN_MISMATCH` as blocking whenever it can actually detect the
+    installed Python package versions, i.e. whenever a matplotlib-equipped
+    Python is first on `PATH`, regardless of which commit is checked out;
+    it exits 0 only when it can't -- an artifact of this sandbox never
+    matching the pinned toolchain image, the exact condition A0 exists to
+    address, not something any code change in this session touches).
+    `ruff check` is clean on every file this slice touched.
+
+**Not done / explicitly out of scope for this slice:** Pandoc's Beamer
+writer and Markdown-driven slide authoring (Pandoc directive/fragment-based
+compositions, `reportkit build` producing a presentation at all -- blocked
+on Phase A5, not attempted here); the tagging spike re-run mentioned in B4;
+promoting `executive` out of `"experimental"` (explicitly Phase C's job);
+automated PDF-inspection tests for the B4 findings above (currently manual/
+one-off, per the verification record); a meaningful-link-annotations check
+under slides specifically. The Phase B definition of done below is
+therefore not yet fully met -- rereading it makes that explicit rather than
+declaring victory on the parts that compile.
+
 ### Phase B definition of done
 
 A presentation builds from publication.yaml through the normal pipeline, uses
 reportkit-slides.cls and Pandoc's Beamer writer, has the declared canvas, carries
 the paged accessibility features, and loads no paged-only mechanics.
+
+**Status:** canvas ✅ (verified via PDF inspection), paged-only-mechanics-free
+✅ (reportkit-slides-core.sty's own header documents the absence), accessibility
+features ✅ for the ones checked (title/author/subject/keywords/catalog
+language/outline/bookmarks/diagram ActualText), reportkit-slides.cls + Pandoc's
+Beamer writer ✅ for the class (Pandoc's writer selection is registered but
+unexercised, since nothing drives it yet). **Not met:** "builds from
+publication.yaml through the normal pipeline" -- that is Phase A5's
+deliverable, not Phase B's, and remains open.
 
 ## 6. Phase C — executive theme
 

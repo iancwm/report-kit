@@ -1,10 +1,21 @@
-% ReportKit v1.1.0 -- code and output blocks
+% ReportKit v1.2.0 -- code and output blocks
+% v1.2.0: both space-reservation calls now go through the renderer hook
+% \RKReserveSpace (see reportkit-core.sty/reportkit-paged-core.sty) instead
+% of calling \Needspace directly. A3 (Phase A of the multi-format
+% publication architecture spec) migrated every other semantic module to
+% this hook but missed this file -- caught while preparing Phase B, since a
+% slides core cannot implement \Needspace (there is no page flow inside a
+% Beamer frame to reserve space in) and this module would have been the one
+% thing still requiring needspace directly under \documentclass{reportkit-slides}.
+% No fixture exercised codeblock/outputblock before this change (see the
+% new coverage added to primitive_acceptance_test.tex), so there was no
+% byte-hash baseline to preserve; the paged hook expands to exactly the
+% \Needspace call it replaces, so paged output is unaffected by construction.
 \NeedsTeXFormat{LaTeX2e}
-\ProvidesPackage{reportkit-code}[2026/09/03 v1.1.0 ReportKit code blocks]
+\ProvidesPackage{reportkit-code}[2026/09/13 v1.2.0 ReportKit code blocks]
 \RequirePackage{listings}
 \RequirePackage[most]{tcolorbox}
 \RequirePackage{xparse}
-\RequirePackage{needspace}
 \RequirePackage{xcolor}
 
 \lstdefinestyle{reportkit}{%
@@ -37,7 +48,7 @@
   listing options={style=reportkit,language=#2},
   enhanced,breakable,colback=Surface,colframe=Hairline,boxrule=.45pt,
   arc=0pt,outer arc=0pt,left=7pt,right=7pt,top=8pt,bottom=7pt,
-  before upper={\Needspace{8\baselineskip}},
+  before upper={\RKReserveSpace{8\baselineskip}},
   title={\sffamily\fontsize{7.1}{8.2}\selectfont\color{Muted}\IfNoValueTF{#1}{}{#1\hfill}\MakeUppercase{#2}},
   coltitle=Muted,fonttitle=\sffamily,
   attach boxed title to top left={xshift=0pt,yshift=-1pt},
@@ -49,7 +60,7 @@
 % {"kind":"composition","description":"Outputblock","arguments":[],"constraints":[],"example":"\\begin{outputblock}\nExample content.\n\\end{outputblock}","stability":"stable","since":"1.0.0"}
 % </reportkit-contract>
 \NewDocumentEnvironment{outputblock}{}{%
-  \par\Needspace{6\baselineskip}%
+  \par\RKReserveSpace{6\baselineskip}%
   \begin{tcolorbox}[enhanced,breakable,colback=Surface,colframe=Hairline,boxrule=.45pt,
     arc=0pt,outer arc=0pt,left=8pt,right=8pt,top=7pt,bottom=7pt,
     title={\sffamily\fontsize{7.1}{8.2}\selectfont\bfseries\color{Muted}OUTPUT},
