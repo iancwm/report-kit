@@ -21,12 +21,12 @@ implemented first here at explicit request, and A5 followed once B's own
 status notes kept naming it as the biggest remaining gap. Task sizing and
 visual design details should receive engineering/design review before
 execution.
-**Last updated:** 2026-09-14
+**Last updated:** 2026-09-15
 **Plans:** [2026-09-09-reportkit-multi-format-publication-architecture-spec.md](../specs/2026-09-09-reportkit-multi-format-publication-architecture-spec.md)
 **Amended by:** [2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md](../specs/2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md)
 **Baseline:** planning baseline `main` at `4f2b27f`, ReportKit v1.9.1.
-**Current status:** verified against `main` at `70f0aba` (this branch's
-merge base), ReportKit v1.9.3, on 2026-09-13.
+**Current status:** verified against `main` at `74197e6`, ReportKit v1.9.3,
+on 2026-09-15.
 
 ---
 
@@ -485,6 +485,7 @@ A warning followed by a PDF is a failing test.
 - latex_templates/reportkit.cls
 - latex_templates/reportkit-boxes.sty
 - latex_templates/reportkit-code.sty
+- latex_templates/reportkit-algorithms.sty
 - latex_templates/reportkit-diagrams.sty
 - latex_templates/reportkit-longform.sty
 - relevant compile tests
@@ -775,6 +776,13 @@ only; diagram work and the Python/theme-contract extension remain open:**
 
 The pinned-toolchain CI gate has not run against this change yet and is
 still the authoritative check, per A0.
+
+**Additive primitive checkpoint (2026-09-15):** `reportkit-algorithms.sty`
+adds the non-floating `algorithmblock` pseudocode module after the A3 split.
+It uses `\RKReserveSpace` and `\RKDiagramCaption`, so it follows the shared
+renderer-hook boundary; its dedicated paged acceptance coverage passes. The
+slides class does not load this module yet, so no slide-renderer parity claim
+is added to A3 or B4.
 
 **Remaining A4 scope, not started:** the diagram work (theme-populated TikZ
 styles across `reportkit-diagrams.sty`, `reportkit-structure.sty`,

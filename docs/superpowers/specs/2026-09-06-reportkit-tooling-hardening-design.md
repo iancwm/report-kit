@@ -1,9 +1,10 @@
 # ReportKit Tooling Hardening
 
 **Status:** Approved. The implementation slice and acceptance-environment fix
-are landed on `main`; the B4 contrast/grayscale audit and F2 performance
-measurement remain.
-**Last updated:** 2026-09-13
+are landed on `main`; the original C2 primitive set and an additive
+`algorithmblock` primitive are covered. The B4 contrast/grayscale audit and
+F2 performance measurement remain.
+**Last updated:** 2026-09-15
 
 Amended 2026-09-06 — see Amendments below.
 
@@ -42,7 +43,20 @@ approved here was withdrawn.
      structurally incapable of catching it.
 
    Everything in C1 is now grounded in a reproduced build rather than
-   testimony. C2 and B6 remain unprobed and keep their original status.
+   testimony. At this amendment checkpoint, C2 and B6 remained unprobed; C2's
+   implementation and acceptance evidence are now recorded in §C2 below, while
+   B6 remains open.
+
+5. **2026-09-15 — additive algorithm primitive.** The original C2 table below
+   names the three visual forms required by the publication-QA review. The
+   repository also now ships `reportkit-algorithms.sty`, a separate
+   non-floating `algorithmblock` for language-neutral pseudocode, with
+   `\AlgorithmInput` and `\AlgorithmOutput` metadata commands. It uses the
+   renderer hooks established by the multi-format architecture rather than a
+   direct paged-only dependency, and its generated contract, dedicated
+   acceptance fixture, and rendered regression tests are landed. This is an
+   additive primitive, not a replacement for any of C2's three required
+   visual forms.
 
 ## The finding that shapes this spec
 
@@ -381,13 +395,14 @@ The current inventory is `reportflow`, `reportswimlane`, `reportnetwork`,
 `causalloop`, `reportcycle`, `reportfunnel`, `evidencestack`,
 `reportarchitecture`, `reportroadmap` (horizons/dated), `strategicpillars`,
 `maturitymodel`, `continuum`, `capabilitymap`, `reporttree`, `reportmatrix`,
-`riskheatmap`. Three required forms have no primitive:
+`riskheatmap`, `reportstate`, `reportcompare`, and `reporttimeline`.
+The three forms below were the gaps identified when this spec was drafted:
 
-| Primitive | Needed by semantic visual grammar | Requirement |
-|---|---|---|
-| **State machine** | Tier 1 task recovery | Self-loops (retry), terminal-state styling, labelled transitions |
-| **Before/after pair** | Tier 1 join cardinality; Tier 2 small-file compaction, row vs column | Two aligned panels with a transform arrow, per-panel captions |
-| **Two-track event timeline** | Tier 1 event vs processing time | Two parallel time axes, skew arrows, watermark marker, late-arrival events |
+| Primitive form | Needed by semantic visual grammar | Requirement | Current implementation |
+|---|---|---|---|
+| **State machine** | Tier 1 task recovery | Self-loops (retry), terminal-state styling, labelled transitions | `reportstate` |
+| **Before/after pair** | Tier 1 join cardinality; Tier 2 small-file compaction, row vs column | Two aligned panels with a transform arrow, per-panel captions | `reportcompare` |
+| **Two-track event timeline** | Tier 1 event vs processing time | Two parallel time axes, skew arrows, watermark marker, late-arrival events | `reporttimeline` |
 
 Partition pruning (Tier 1) and the partition directory layout can likely be
 composed from the existing `reporttree`; confirm during implementation rather
@@ -395,7 +410,14 @@ than adding a fourth primitive speculatively. The backpressure rate/queue plot
 (Tier 2) is measured-value geometry and belongs to `reportkit_viz.py`, not the
 diagram grammar.
 
-Each new primitive follows the established contract: a semantic environment
+**Implementation record:** the three original C2 forms are present in
+`latex_templates/examples/visual_grammar_acceptance_test.tex` and have
+dedicated rendered regression tests. The additive `algorithmblock` form has
+its own `latex_templates/examples/algorithm_acceptance_test.tex`, is wired
+into `scripts/acceptance_check.sh`, and is covered by
+`tests/test_algorithmblock.py`.
+
+Each C2 primitive follows the established contract: a semantic environment
 with declaration-order reading order, authors controlling links rather than
 coordinates, a case in the visual grammar acceptance test, and an entry in
 `SKILL.md`'s question-to-primitive table.
@@ -538,8 +560,10 @@ latex_templates/
   reportkit-process.sty                     (modified — C1 fixes)
   reportkit-diagrams.sty  or a new module   (modified/new — C2 primitives,
                                              B6 width key, B7 alt-text emission)
+  reportkit-algorithms.sty                  (new — additive pseudocode primitive)
   examples/
     visual_grammar_acceptance_test.tex      (modified — C1 + C2 cases)
+    algorithm_acceptance_test.tex            (new — algorithmblock acceptance)
     longform_acceptance_test.tex            (new — B2 capability)
     accessibility_acceptance_test.tex       (new — B7 alt text, B8 spike input)
 publication_pipeline/example_publication/

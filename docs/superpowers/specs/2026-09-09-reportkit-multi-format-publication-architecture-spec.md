@@ -1,14 +1,19 @@
 # ReportKit — Multi-Format Publication Architecture
 
 **Status:** Phase A in progress. A1 landed in v1.9.2 and A2 in v1.9.3; A3
-(shared/paged core split and renderer hooks) is implemented in the working
-tree, pending a version bump. A0 and A4–A5 remain. Phases B–F have not
-started. Supersedes nothing; extends the architecture introduced by
+(shared/paged core split and renderer hooks) is implemented, pending the
+pinned-toolchain CI gate. A4 is partially implemented (theme/adapter split
+and callout/metric tokens; diagram-token work and the Python/theme-contract
+extension remain). A5 (pipeline target-awareness) and Phase B (slide
+renderer and presentation semantics) are essentially implemented, out of this
+spec's original phase order, with scoped follow-up recorded below; A0 remains.
+Phases C–F have not started.
+Supersedes nothing; extends the architecture introduced by
 [2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md](2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md)
 (Steps 1–5 implemented, `reportkit.cls` v1.9.3).
-**Last updated:** 2026-09-13
-**Current-state claims:** verified against the working tree at `bb15d05`
-(see [Current state](#1-current-state-verified-2026-09-13)). Every premise below
+**Last updated:** 2026-09-15
+**Current-state claims:** verified against `main` at `74197e6`
+(see [Current state](#1-current-state-verified-2026-09-15)). Every premise below
 carries a `file:line` anchor so the implementer does not re-derive it.
 **Priority:** P2 — architectural hardening, ahead of any new theme.
 **Companion:** [2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md](2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md)
@@ -27,8 +32,10 @@ axis — the renderer — because slides are the first format the current articl
 backend genuinely cannot express.
 
 The publication registry and LaTeX option boundary from Phase A are now in
-place. The remaining Phase A work is the renderer/core split, theme-token
-refactor, compatibility baseline, and target-aware pipeline described below.
+place. The remaining Phase A work is the compatibility baseline, the diagram
+token work, and the Python/theme-contract extension described below. The
+pipeline and slide-renderer slices have landed; their scoped follow-up is
+recorded in the implementation plan.
 
 The sequencing matters more than the content. Executive, venture and editorial
 each introduce a fresh opportunity for special-case coupling; if they land
@@ -36,10 +43,13 @@ before the abstraction hardens, ReportKit acquires four more generations of the
 `\ifdefstring{\rk@theme}{...}` pattern that
 [§3.2](#32-semantic-modules-branch-on-theme-name) exists to remove.
 
-So the next implementation task is **not** "build the executive theme". It is:
+The sequencing below is the design order, not a claim about the order already
+used by the implementation branches. Executive is currently an experimental
+theme shell; the next implementation task is **not** to add another visual
+family. It is:
 
-> Finish the renderer- and theme-safe architecture, prove backward compatibility,
-> make the pipeline target-aware, then add the slide renderer.
+> Finish the remaining theme contract and compatibility gates, then add new
+> visual families only after the shared architecture is proven.
 
 ### The design model
 
@@ -59,24 +69,28 @@ whole specification; everything below is its consequences.
 
 ---
 
-## 1. Current state (verified 2026-09-13)
+## 1. Current state (verified 2026-09-15)
 
 ### 1.1 What exists — do not reimplement
 
 | Component | Location |
 | --- | --- |
 | Core class with theme/publication-type options | `latex_templates/reportkit.cls` (v1.9.3) |
-| Shared core | `latex_templates/reportkit-core.sty` |
+| Shared, paged, and slides renderer cores | `latex_templates/reportkit-core.sty`, `reportkit-paged-core.sty`, `reportkit-slides-core.sty` |
 | Canonical publication/renderer/theme registry | `python_scripts/reportkit/publications.py` (`BuildTarget`, `resolve_build_target()`) |
 | Generated LaTeX compatibility registry and option parser | `latex_templates/reportkit-publication-registry.def`, `latex_templates/reportkit-options.tex` |
-| `theme=default` | `latex_templates/themes/reportkit-theme-default.sty` |
-| `theme=institutional-research` | `latex_templates/themes/reportkit-theme-institutional-research.sty` |
+| `theme=default` | `latex_templates/themes/reportkit-theme-default.sty` plus `reportkit-theme-default-paged.sty` |
+| `theme=institutional-research` | `latex_templates/themes/reportkit-theme-institutional-research.sty` plus `reportkit-theme-institutional-research-paged.sty` |
+| Experimental `theme=executive` | `latex_templates/themes/reportkit-theme-executive.sty` plus `reportkit-theme-executive-slides.sty` |
 | `publication-type=technical-report` | implicit — loads no extra file |
 | `publication-type=equity-research` | `latex_templates/publication_types/reportkit-equity-research.sty` |
+| `publication-type=presentation` | `latex_templates/publication_types/reportkit-presentation.sty` |
 | Python theme objects | `python_scripts/reportkit/themes/` (`Theme` dataclass, `get_theme()`) |
 | Theme-aware visualization | `python_scripts/reportkit_viz.py` (`apply_theme()`, `new_figure()`) |
 | Config resolution + engine gating | `python_scripts/reportkit/config.py` |
-| Fixtures | `latex_templates/examples/career_guide_en/`, `latex_templates/examples/equity-research/` |
+| Target-aware publication pipeline | `publication_pipeline/scripts/publication_build.py`, `publication_pipeline/templates/presentation.tex` |
+| Fixtures | `latex_templates/examples/career_guide_en/`, `latex_templates/examples/equity-research/`, `latex_templates/examples/presentation_acceptance_test.tex` |
+| Algorithm/pseudocode semantic module | `latex_templates/reportkit-algorithms.sty` (`algorithmblock`; paged class only) |
 
 ### 1.2 Verified premises
 
@@ -86,14 +100,15 @@ whole specification; everything below is its consequences.
 | Unknown `theme=`/`publication-type=` values hard-fail | `reportkit-options.tex:20-46` — `\ClassError`, before base-class forwarding |
 | Theme/publication pair and renderer are validated | `reportkit-options.tex:48-70` |
 | `technical` resolves as a `default` alias | `publications.py:184-197`, `reportkit-publication-registry.def` |
-| Publication type loads through the generated package mapping | `reportkit.cls:46-58` |
-| `reportkit-boxes.sty` branches on theme name | `reportkit-boxes.sty:20` — `\ifdefstring{\rk@theme}{institutional-research}` |
-| Core loads paged-only packages | `reportkit-core.sty:18-22` — `titlesec`, `fancyhdr`, `needspace`, `caption`, `geometry` |
+| Publication type loads through the generated package mapping | `reportkit.cls:93-99`, `reportkit-slides.cls:63-69` |
+| Callout/metric appearance comes from theme tokens | `reportkit-core.sty` style-token contract; `reportkit-boxes.sty` has no theme-name branch |
+| Renderer cores separate shared and paged mechanics | `reportkit-core.sty`, `reportkit-paged-core.sty`, `reportkit-slides-core.sty` |
 | Diagram styling is hardcoded in the semantic module | `reportkit-diagrams.sty:22-39` — node font/corners/dimensions, edge widths and colors, label typography |
 | Further hardcoded diagram typography | `reportkit-diagrams.sty:195-307` — matrix axes, swimlanes, layers, timeline nodes |
-| Pipeline template hardcodes the class and long-form package | `publication_pipeline/templates/publication-template.tex:1,4` |
-| That template is the pipeline's only template | `publication_pipeline/scripts/publication_build.py:40` — `TEMPLATE = PIPELINE_ROOT / "templates" / "publication-template.tex"` |
-| Config resolves `document.theme` / `.publication_type` / `.paper` | `config.py:resolve_document()` |
+| Pipeline resolves the target's class, template, writer, and engine | `publication_pipeline/scripts/publication_build.py:build()` and `publications.py:resolve_build_target()` |
+| Presentation pipeline target is exercised end to end | `publication_pipeline/templates/presentation.tex`; `publication_pipeline/tests/test_build_target_selection.py` |
+| `algorithmblock` uses renderer hooks and remains non-floating | `latex_templates/reportkit-algorithms.sty`; `reportkit.cls:101-107` |
+| Config resolves `document.theme` / `.publication_type` / `.paper` | `config.py:resolve_document()`; canvas paper rejection in `resolve_build_target()` |
 | Theme→engine requirements are enforced | `config.py:THEME_ENGINE_REQUIREMENTS`, `theme_engine_conflict()` |
 
 ### 1.3 Corrections to the source draft
@@ -109,18 +124,13 @@ publication-type values and validates unsupported pairs with `\ClassError` in
 `reportkit-options.tex:20-70`; the negative compile tests cover these cases.
 The hard-failure requirement is implemented, not open.
 
-**(b) The pipeline still never passes the theme to LaTeX.** The draft frames
-§7 as "the pipeline hardcodes a single long-form template". The deeper defect
-is that `document.theme` and `document.publication_type` are resolved and
-validated in Python (`publication_build.py:352-364`) but **never reach
-`\documentclass`** — the template's line 1 is an unparameterized
-`\documentclass{reportkit}`. A `publication.yaml` requesting
-`theme: institutional-research` passes engine validation and then builds a
-default-theme PDF. The repository already knows this: see the comment block at
-`latex_templates/examples/equity-research/publication.yaml:1-8`, which records
-that the equity fixture is compiled directly *because* pipeline-driven theme
-selection does not exist. Template selection and option plumbing are one work
-item, and the plumbing is the load-bearing half.
+**(b) The pipeline's theme and renderer selection was previously lost before
+LaTeX.** A5 now fixes the load-bearing defect: `publication_build.py` retains
+the resolved `BuildTarget`, selects the entrypoint and Pandoc writer from it,
+and stages the resolved class/selection through the target-aware templates.
+The presentation path is verified end to end. The equity-research fixture's
+dedicated pipeline acceptance case and the full D7 paged-template split remain
+open, so §7's original acceptance requirement is not fully closed.
 
 **(c) The figure-size slots the draft proposes mostly already exist.** The
 draft's §10 asks to "extend toward" `full / wide / compact / square / half /
@@ -235,11 +245,11 @@ existing technical fixtures.
 
 ### 3.2 Semantic modules branch on theme name
 
-`reportkit-boxes.sty:20` branches on `\rk@theme` to render institutional
-callouts. The module's own comment defends this as "a deliberate, narrow
-exception… `\newtcolorbox` bakes its options in at definition time, after the
-theme file has already loaded, so there is no later hook a theme file could use
-to restyle this itself."
+Before A4, `reportkit-boxes.sty:20` branched on `\rk@theme` to render
+institutional callouts. The module's own comment defended this as "a
+deliberate, narrow exception… `\newtcolorbox` bakes its options in at
+definition time, after the theme file has already loaded, so there is no later
+hook a theme file could use to restyle this itself."
 
 That reasoning is sound for one theme and fails for five. The exception must
 not become:
@@ -282,6 +292,12 @@ The rule to satisfy: **semantic modules own meaning; themes own rendering.**
 ```
 
 No consumer publication may need rewriting.
+
+**A4 status:** the callout and metric requirement is implemented in the
+current tree. `reportkit-core.sty` declares the style-token contract, both
+common themes populate it, and `reportkit-boxes.sty` reads the tokens without
+branching on a theme name. Diagram appearance remains the separate open half
+of A4; its original requirement is retained in §3.3.
 
 ### 3.3 Diagram styling is embedded in semantic primitives
 
@@ -334,9 +350,9 @@ Presentations must not be forced through article pages.
 
 ## 5. Split shared versus paged-only core
 
-`reportkit-core.sty:18-22` loads `titlesec`, `fancyhdr`, `needspace`, `caption`
-and `geometry` — all paged-only. A slide class cannot load today's core without
-inheriting page furniture it has no use for.
+Before A3, `reportkit-core.sty:18-22` loaded `titlesec`, `fancyhdr`,
+`needspace`, `caption` and `geometry` — all paged-only. A slide class could
+not load that core without inheriting page furniture it had no use for.
 
 Refactor toward three files:
 
@@ -356,6 +372,12 @@ slide-specific figure and table handling.
 separation is achievable with smaller changes, prefer them — every relocated
 line is a backward-compatibility risk against [§19](#19-backward-compatibility).
 
+**A3 status:** the shared/paged split and renderer hooks are implemented in
+`reportkit-core.sty`, `reportkit-paged-core.sty` and
+`reportkit-slides-core.sty`. The paged fixtures were verified locally for
+backward-compatible output; the pinned-toolchain CI gate remains authoritative
+and has not yet run against the split.
+
 ---
 
 ## 6. Publication registry
@@ -365,9 +387,10 @@ renderer/theme/publication compatibility. LaTeX-side checks
 ([§3.1](#31-the-class-does-not-scale-and-fails-open)) are a backstop for
 hand-written `.tex` files; the Python registry is what the pipeline consults.
 
-Phase A1 implemented this registry in `python_scripts/reportkit/publications.py`.
-The remaining registry requirements below are retained as the contract for
-future renderers and publication types.
+Phase A1 implemented the registry in `python_scripts/reportkit/publications.py`,
+and A2 generated and enforced the LaTeX compatibility registry. The remaining
+registry requirements below are retained as the contract for future renderers
+and publication types.
 
 **Naming:** `python_scripts/reportkit/registry.py` is already taken by the
 visual-primitive inventory (see [§1.3(d)](#13-corrections-to-the-source-draft)).
@@ -431,10 +454,10 @@ ERROR: theme 'venture' does not support publication type 'technical-report'
 Two defects, one work item (see
 [§1.3(b)](#13-corrections-to-the-source-draft)):
 
-1. `publication_pipeline/templates/publication-template.tex:1` hardcodes
+1. Before A5, `publication_pipeline/templates/publication-template.tex:1` hardcoded
    `\documentclass{reportkit}` with **no options**, so the resolved theme and
    publication type never reach LaTeX.
-2. `publication_build.py:40` binds a single long-form template regardless of
+2. Before A5, `publication_build.py:40` bound a single long-form template regardless of
    publication type.
 
 **Requirement:** template selection and class-option plumbing both become
@@ -480,6 +503,12 @@ readable for diagnostics; it stops being the thing that decides.
 `latex_templates/examples/equity-research/publication.yaml` through the
 markdown pipeline must produce an institutional-themed, equity-research PDF —
 closing the gap that file's own header comment records.
+
+**A5 status:** target resolution, template/writer selection, stable staged
+output names, build-report selection data and a log-visible selection marker
+are implemented. A real presentation build is verified through the normal
+pipeline using Pandoc's Beamer writer. The equity-research pipeline acceptance
+case and the full D7 paged-template split remain open.
 
 ---
 
@@ -569,6 +598,10 @@ full   dominant   wide (compatibility alias)   compact   square   half   sidebar
 ```
 slide-main   slide-half   slide-hero
 ```
+
+The slide slots are now implemented for the experimental executive theme and
+are derived from its declared canvas and safe margins. The slot contract stays
+open for future slide themes.
 
 **Constraints:**
 
@@ -825,7 +858,7 @@ Every theme × publication-type combination needs a canonical fixture.
 | --- | --- | --- |
 | Technical | career-guide (`examples/career_guide_en/`) | exists |
 | Institutional | equity-research (`examples/equity-research/`) | exists |
-| Executive | 8–10 slide fictional technology/strategy deck | new |
+| Executive | 8–10 slide fictional technology/strategy deck | exists — direct TeX and pipeline smoke coverage |
 | Venture | 10–12 slide fictional startup pitch | new |
 | Editorial | 6–8 page fictional feature article | new |
 
@@ -919,15 +952,17 @@ in the changelog.
 
 ### Phase A — Architecture hardening
 
-**Current status (verified 2026-09-13):** A1 and A2 are complete. A3 (item 3
+**Current status (verified 2026-09-15):** A1 and A2 are complete. A3 (item 3
 below: shared/paged core split, item 5's `\Needspace`/`\captionof` half via
-renderer hooks) is implemented in the working tree — see
-`reportkit-core.sty`/`reportkit-paged-core.sty` — verified to reproduce the
-default-theme and institutional/equity-theme PDFs byte-for-byte and to leave
-the full test suite, `reportkit docs --check`, `contract_acceptance.py`, and
-`acceptance_check.sh --require-tex` unaffected, in a local (non-pinned)
+renderer hooks) is implemented and verified in a local non-pinned
 LuaLaTeX/pdfLaTeX toolchain; the pinned-toolchain CI gate still needs to run
-and, if it passes, stand as the recorded baseline. A0 and A4–A5 remain open.
+and, if it passes, stand as the recorded baseline. A4 is partially implemented:
+the theme/adapter split and callout/metric style-token work are complete, while
+diagram tokens and the Python `Theme` contract extension remain. A5 is
+essentially complete: the target-aware pipeline and a real presentation build
+are verified, with the equity pipeline-acceptance case and full D7 template
+split still open. A0 remains open.
+
 A0 specifically (building the pinned toolchain image and capturing baseline
 PDF hashes/metadata) could not be attempted from the sandbox this phase was
 executed in: `toolchain/Dockerfile` fetches `ca-certificates` and the rest of
@@ -936,8 +971,8 @@ that sandbox's network path TLS-intercepts those hosts with a proxy CA the
 image's minimal Debian base does not trust — a sandbox limitation, not a
 toolchain defect; A0 needs to run somewhere with a trusted direct path to
 those hosts (this repository's own `contract-ci.yml` runner, for one). The
-capability matrix is still paged-PDF-only, with `technical-report` and
-`equity-research` as the only registered publication types.
+capability matrix now includes the `slides` renderer and experimental
+`presentation` publication type; HTML, DOCX, PPTX and EPUB remain absent.
 
 Before any new theme:
 
@@ -959,12 +994,21 @@ pipeline rather than only by direct compile.
 
 ### Phase B — Slide renderer
 
-Implement `reportkit-slides.cls`, the `presentation` publication type, and the
-slide pipeline template. Use a minimal placeholder theme if one is needed for
-architecture testing.
+`reportkit-slides.cls`, the `presentation` publication type,
+`reportkit-slides-core.sty`, the slide pipeline template and the experimental
+`executive` theme are implemented. The thirteen named presentation
+compositions are proven through direct-TeX authoring; the normal pipeline also
+proves the plain Markdown heading-to-frame path.
+
+**Current status (verified 2026-09-15):** the canvas, renderer separation,
+Pandoc Beamer writer and checked accessibility features are verified. B4's
+findings are still manual rather than an automated pytest gate, and
+directive/fragment-based composition authoring from Markdown is not yet
+implemented. `executive` remains experimental pending Phase C review.
 
 **Definition of done:** a presentation compiles through the normal ReportKit
-pipeline without touching the article renderer.
+pipeline without touching the article renderer. This is met for the proven
+plain-Markdown path; the composition-authoring caveat above remains.
 
 ### Phase C — Executive theme
 

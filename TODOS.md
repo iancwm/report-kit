@@ -1,6 +1,6 @@
 # ReportKit — Outstanding Work
 
-**Last updated:** 2026-09-14
+**Last updated:** 2026-09-15
 
 This is an index, not an audit. Each spec/plan under `docs/superpowers/`
 carries its own `**Status:**` line, updated at the workflow checkpoint that
@@ -16,7 +16,7 @@ The PR-time synchronization directive is in
 
 | Document | Status | Priority |
 |---|---|---|
-| [2026-09-06-reportkit-tooling-hardening-design.md](docs/superpowers/specs/2026-09-06-reportkit-tooling-hardening-design.md) | Approved — implementation slice and acceptance-environment fix landed; tooling follow-up remains | P1 |
+| [2026-09-06-reportkit-tooling-hardening-design.md](docs/superpowers/specs/2026-09-06-reportkit-tooling-hardening-design.md) | Approved — implementation slice, original C2 primitives, and additive algorithmblock landed; B4/F2 follow-up remains | P1 |
 | [2026-09-06-reportkit-vnext-ai-publication-system-spec.md](docs/superpowers/specs/2026-09-06-reportkit-vnext-ai-publication-system-spec.md) | Draft / roadmap — reconciled; implementation phases complete; use the plan, not this | P3 |
 | [2026-09-07-reportkit-vnext-implementation-plan.md](docs/superpowers/plans/2026-09-07-reportkit-vnext-implementation-plan.md) | Complete — Phase 1 merged via PR #10; additive Phases 2–4 merged via PR #9 | P3 |
 | [2026-09-07-documentation-and-status-tracking-cleanup-design.md](docs/superpowers/specs/2026-09-07-documentation-and-status-tracking-cleanup-design.md) | Approved | Process |
@@ -24,9 +24,9 @@ The PR-time synchronization directive is in
 | [2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md](docs/superpowers/specs/2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md) | Implemented (Steps 1–5); open questions resolved in the plan below | P2 |
 | [2026-09-09-reportkit-institutional-theme-implementation-plan.md](docs/superpowers/plans/2026-09-09-reportkit-institutional-theme-implementation-plan.md) | Complete — Steps 1–5 implemented; local LuaLaTeX verification passes; pinned visual QA remains | P2 |
 | [2026-09-09-reportkit-fix-post-implementation-findings.md](docs/superpowers/plans/2026-09-09-reportkit-fix-post-implementation-findings.md) | Complete — all 8 tasks done and reviewed clean; fixture verification complete | Complete |
-| [2026-09-09-reportkit-multi-format-publication-architecture-spec.md](docs/superpowers/specs/2026-09-09-reportkit-multi-format-publication-architecture-spec.md) | Phase A in progress — A1 landed in v1.9.2, A2 in v1.9.3; A3 implemented in the working tree, pending the pinned-toolchain CI gate; A0 and A4–A5 remain | P2 |
-| [2026-09-10-reportkit-multi-format-publication-implementation-plan.md](docs/superpowers/plans/2026-09-10-reportkit-multi-format-publication-implementation-plan.md) | Phase A in progress — A1 and A2 complete; A3 implemented, pending the pinned-toolchain CI gate; A0 and A4–A5 remain | P2 |
-| [2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md](docs/superpowers/specs/2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md) | Implemented for v1.9.0 — Phase A′ and paged-renderer B′ complete; renderer-dependent work deferred | P2 |
+| [2026-09-09-reportkit-multi-format-publication-architecture-spec.md](docs/superpowers/specs/2026-09-09-reportkit-multi-format-publication-architecture-spec.md) | Phase A in progress — A1–A3 implemented (A3 pending the pinned-toolchain CI gate); A4 partial (diagram work and Python/theme-contract extension remain); A5 and Phase B implemented; A0 remains | P2 |
+| [2026-09-10-reportkit-multi-format-publication-implementation-plan.md](docs/superpowers/plans/2026-09-10-reportkit-multi-format-publication-implementation-plan.md) | Phase A in progress — A1–A3 complete (A3 pending the pinned-toolchain CI gate); A4 partial; A5 essentially complete; A0 remains; Phase B started early at request | P2 |
+| [2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md](docs/superpowers/specs/2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md) | Implemented for v1.9.0 — Phase A′ and paged-renderer B′ complete; additive algorithmblock contract coverage landed; renderer-dependent work deferred | P2 |
 | [2026-09-10-reportkit-fork-port-fixes-spec.md](docs/superpowers/specs/2026-09-10-reportkit-fork-port-fixes-spec.md) | Implemented in v1.9.1 via PR #19; all 11 applicable fixes landed | Complete |
 | [2026-09-12-reportkit-code-quality-and-dependency-remediation-spec.md](docs/superpowers/specs/2026-09-12-reportkit-code-quality-and-dependency-remediation-spec.md) | Draft v0.1 — Phase 0 landed; most concrete Phase 1 fixes landed; structural Phase 2 work remains; 3 open questions | P1 |
 
@@ -137,7 +137,7 @@ change record.
   direct `\Needspace`/`\begin{center}`/`\captionof`/`\source` call went
   through the new renderer hooks (`RKReserveSpace`,
   `RKDiagramPlacementBegin`/`End`, `RKDiagramCaption`, `RKDiagramSource`) a
-  future slides core will implement differently. Verified byte-identical
+  `reportkit-slides-core.sty` implements differently. Verified byte-identical
   against the default, institutional/equity, and longform fixtures in a
   local (non-pinned) toolchain — see the plan's A3 section for the full
   verification record; the pinned-toolchain CI gate is still authoritative
@@ -172,17 +172,17 @@ change record.
   rule/table/diagram/script-coverage records; `check-theme` validating
   adapter as well as common tokens). The remaining Phase A work is ordered
   in the plan: capture the pinned compatibility baseline (A0 — attempted
-  and blocked by sandbox networking, see the plan), finish A4, and make
-  pipeline templates target-aware (A5). The original architecture risk
-  remains in scope: the Markdown pipeline must eventually pass the resolved
-  theme/publication selection to LaTeX.
+  and blocked by sandbox networking, see the plan) and finish A4's Python
+  `Theme` contract extension. A5 is essentially complete; the original
+  architecture risk is narrowed to the deferred equity-research pipeline
+  acceptance and related template work recorded in the plan.
   See [the spec](docs/superpowers/specs/2026-09-09-reportkit-multi-format-publication-architecture-spec.md)
   and [the implementation plan](docs/superpowers/plans/2026-09-10-reportkit-multi-format-publication-implementation-plan.md).
 
 - **Multi-format publication architecture — Phase B (slide renderer and
   presentation semantics) started out of the plan's own recommended order**
-  (§13 puts A5 before B; done first here at explicit request, with A4 and
-  A5 both still incomplete). **B1 and B2 are essentially complete** via
+  (§13 puts A5 before B; Phase B was done first here at explicit request, and
+  A5 followed). **B1 and B2 are essentially complete** via
   direct-TeX authoring: `reportkit-slides.cls` (mirrors `reportkit.cls`
   over `\LoadClass[aspectratio=169]{beamer}` — Beamer's own 16:9 table
   already produces the declared 160mm x 90mm canvas natively, no dimension
@@ -327,6 +327,18 @@ change record.
 - Libertinus fonts: installed to `TEXMFHOME` (`~/.TinyTeX/texmf-local`) from `font_data/reportkit-libertinus-fonts.tar.gz`.
 
 ## History
+
+- 2026-09-15: added the standalone `algorithmblock` language-neutral
+  pseudocode primitive in `reportkit-algorithms.sty`, with
+  `\AlgorithmInput`/`\AlgorithmOutput`, optional captions/labels and opt-in
+  line numbers. The primitive is deliberately separate from executable
+  `codeblock` and process diagrams, remains non-floating, uses the renderer
+  hook contract, and is loaded by the paged `reportkit.cls`. A dedicated
+  acceptance fixture is wired into `scripts/acceptance_check.sh`, rendered
+  regressions live in `tests/test_algorithmblock.py`, and the generated
+  primitive references and agent-contract counts are synchronized. This is an
+  additive primitive; it does not claim slide-renderer availability. See the
+  tooling-hardening and agent-interface specs for the status records.
 
 - 2026-09-14: multi-format Phase A5 (make the pipeline target-aware)
   implemented on `claude/multi-format-publication-ur4n82`, on top of the
