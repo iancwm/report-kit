@@ -2,8 +2,10 @@
 
 **Status:** Approved. The implementation slice and acceptance-environment fix
 are landed on `main`; the original C2 primitive set and an additive
-`algorithmblock` primitive are covered. The B4 contrast/grayscale audit and
-F2 performance measurement remain.
+`algorithmblock` primitive are covered. B4 (contrast/grayscale audit) and F2
+(measure, then bounded parallel workers) are now both done — see their own
+sections below for the record. Nothing outstanding remains in this
+document.
 **Last updated:** 2026-09-15
 
 Amended 2026-09-06 — see Amendments below.
@@ -210,6 +212,38 @@ P2-02. Check the `Muted` header/footer colour (`reportkit.cls:44`) and the
 syntax-highlighting palette against contrast requirements and a grayscale
 proof. Keep syntax highlighting redundant with typography so no meaning is
 carried by hue alone.
+
+**Audited 2026-09-15 — passes, no code change.** All three themes (default,
+institutional-research, executive) were checked: `Muted` against both the
+plain page background and the `Surface` boxed-content fill it also appears
+on (headers/footers, callout/code-block titles, `\source{}`), and the
+`codeblock`/`outputblock` syntax palette (`LinkBlue` keywords, `Muted`
+comments, `Tip` strings) against `Surface`. Computed WCAG 2 contrast ratios
+(sRGB relative luminance, `(L1+0.05)/(L2+0.05)`) for all twelve
+foreground/background pairs meet the 4.5:1 AA-normal-text threshold — the
+tightest margins are default's `Muted`/`Surface` at 4.51:1 and
+institutional-research's `LinkBlue`/`Surface` at 4.62:1, both real but thin;
+flag these two if the palette is ever revisited, since a small future shift
+could drop them below 4.5:1. No pair fails.
+
+Grayscale check: converting every color to its relative-luminance gray value
+and comparing within each theme's `codeblock` palette, `LinkBlue` (keyword)
+and `Muted` (comment) sit close together in institutional-research (gray 42
+vs. 41) and executive (34 vs. 31) — but keywords are bold and comments are
+italic, so the redundancy requirement is still met by weight/style, not by
+undoing itself. `Tip` (string) has no `\bfseries`/`\itshape` override in
+`reportkit-code.sty`'s `stringstyle` (unlike keywords and comments), so its
+only *typographic* cue is the literal quote-delimiter already present in the
+source text — a real, if implicit and inconsistent, form of redundancy, not
+a violation of "no meaning carried by hue alone." Left as-is rather than
+changed: no fixture uses a string literal inside `codeblock` today (checked
+`primitive_acceptance_test.tex`, `algorithm_acceptance_test.tex`,
+`presentation_acceptance_test.tex`), so an explicit style would be a
+speculative, unverified visual change with no fixture to validate it
+against. Worth an explicit `\upshape` or similar the next time
+`reportkit-code.sty` is touched for another reason. Computation and both
+checks: `python3` (stdlib only, no dependency). See History for the exact
+figures.
 
 ### B5. Release identity out of the build script
 
@@ -547,6 +581,72 @@ for release builds and any future CI job.
 The draft's finding 10 is explicitly a hypothesis, not a measurement.
 Establish a baseline first. Only then consider input-hash incremental builds
 and bounded parallel workers with deterministic aggregate reporting.
+
+**Measured 2026-09-15; bounded parallel workers implemented, incremental
+builds deferred.** `build-all.sh`/`build-section.sh` are gone (retired by the
+code-quality remediation); the equivalent serial loop today is
+`publication_build.py`'s `--mode sections`, which calls `build()` once per
+manuscript entry in `order.txt`. Measured against a synthetic 8-section
+fixture (each section: Pandoc → two `pdflatex` passes → PyMuPDF page
+render → PDF inspection, matching a real section's work) on a 4-core host:
+**serial ~25.2s total (~3.1s/section, strictly sequential — confirmed via
+each section's own `started_at`/`finished_at`), parallel with `--workers 4`
+~6.6s total (~3.8x speedup, matching the core count).** This confirms
+finding 10's hypothesis: the wait is external-subprocess time (Pandoc, TeX
+×2, the renderer, the inspector), not interpreter CPU, so it parallelises
+well.
+
+Implemented: `--workers` (declared since the Phase 1 vNext work but
+previously inert — see the vNext plan's item 4) now bounds a
+`ThreadPoolExecutor` over the sections loop when `> 1`; threads, not
+processes, because the bottleneck already releases the GIL while waiting on
+each subprocess, so threads get the same wall-clock win without paying a
+second interpreter/import cost per section. `--workers 1` (the default)
+keeps the prior strictly-serial code path byte-for-byte, so no existing
+behavior changed. `--workers 0` or negative is now a structured `exit 2`
+(previously silently accepted and equivalent to serial). Wired through the
+public `reportkit build --mode sections --workers N` CLI, not just the
+internal script (`COMMAND_CONTRACT`/`registry.py` updated accordingly).
+
+Running sections concurrently surfaced a real, previously-latent bug, not
+just new code: build IDs were `f"{mode}-{stamp}"` (second-resolution
+timestamp), which two sections resolved inside the same wall-clock second
+would collide on — silently overwriting one section's `history/` JSON with
+another's. Serial execution never triggered this (by the time the next
+section computes its candidate, the previous one's history file already
+exists, so the existing collision-index fallback in `unique_build_id`
+kicks in), but concurrent sections routinely share a timestamp. Fixed by
+keying the build ID on the manuscript stem as well, which also satisfies
+this section's own "deterministic aggregate reporting" requirement: the
+sections loop now collects every section's exit code via
+`ThreadPoolExecutor.map` (which returns results in submission order
+regardless of completion order) and prints a final `REPORTKIT-SECTION
+<entry>: exit <code>` summary in manuscript order, so both the printed
+report and the aggregate exit code (`OR` across all sections) are identical
+across runs regardless of which worker finishes first. Verified directly: a
+3-section fixture built with `--workers 1` and again with `--workers 3`
+both produce exactly 3 passing `build-report.json` files and exactly 3
+distinct `history/*.json` build IDs each (no collisions), and the parallel
+run's printed summary is in manuscript order —
+`publication_pipeline/tests/test_sections_parallel_build.py`.
+
+Input-hash incremental builds (the other half of F2) are **not**
+implemented: the measurement shows parallelism alone already gives a
+~4x win on this host with no correctness risk, and every section here is
+already fully isolated per build (its own `output` directory, no shared
+mutable state), so there was no fresh-vs-stale input tracking to reuse.
+Left open for a future pass if compile time becomes the bottleneck again at
+a scale bounded parallelism doesn't cover.
+
+Full suite (`python -m pytest tests publication_pipeline/tests`): 233
+passed, 12 skipped (all `jsonschema`-optional, same as baseline), no
+failures, in a from-scratch environment (`apt-get install
+texlive-luatex texlive-latex-extra texlive-latex-recommended
+texlive-fonts-recommended texlive-science texlive-plain-generic pandoc
+poppler-utils` plus the documented `LinBiolinum_K.otf` stub install and a
+fresh `build/.venv-tests`). `bash scripts/acceptance_check.sh
+--require-tex`, `reportkit docs --check --json`, and `scripts/
+contract_acceptance.py --json` all pass.
 
 ---
 

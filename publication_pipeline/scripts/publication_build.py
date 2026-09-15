@@ -8,6 +8,7 @@ See references/repository-boundary.md.
 from __future__ import annotations
 
 import argparse
+from concurrent.futures import ThreadPoolExecutor
 from contextlib import redirect_stderr, redirect_stdout
 from datetime import datetime, timezone
 import hashlib
@@ -428,7 +429,15 @@ def build(args: argparse.Namespace) -> int:
             return 3
     stamp = time.strftime("%Y%m%d-%H%M%S")
     history_root = output_root / "history"
-    build_id = unique_build_id(args.mode, stamp, history_root)
+    # F2 bounded parallelism: two sections built concurrently can resolve the
+    # same mode+stamp before either has written its history file, so a
+    # build-id keyed on mode alone ("section-<stamp>") is a check-then-act
+    # race under --workers > 1. Keying on the manuscript stem too makes
+    # concurrent sections' candidates distinct from the start; the
+    # pre-existing collision index in unique_build_id still covers the rare
+    # case of the same section built twice within one second.
+    build_id_mode = f"section-{Path(manuscripts[0]).stem}" if args.mode == "section" else args.mode
+    build_id = unique_build_id(build_id_mode, stamp, history_root)
     output = output_root / ("combined" if args.mode == "combined" else f"section-{Path(manuscripts[0]).stem}-{stamp}")
     if output.exists() and args.mode != "combined":
         output = output_root / build_id
@@ -663,7 +672,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--mode", choices=("section", "combined", "sections"), required=True)
     parser.add_argument("--section")
-    parser.add_argument("--workers", type=int, default=1)
+    parser.add_argument("--workers", type=int, default=1, help="bounded parallel section builds in --mode sections (F2)")
     parser.add_argument("--source-root", help=f"consumer publication project (default: {DEFAULT_SOURCE_ROOT})")
     parser.add_argument("--output-root", help="where build artefacts go (default: <source-root>/build)")
     parser.add_argument("--profile", default=os.environ.get("REPORTKIT_PROFILE"), help="publication config profile")
@@ -676,6 +685,9 @@ def main() -> int:
     parser.add_argument("--memory-limit-mb", type=int, default=os.environ.get("REPORTKIT_MEMORY_LIMIT_MB", "2048"))
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args()
+    if args.workers < 1:
+        print("--workers must be at least 1", file=sys.stderr)
+        return 2
 
     _, initial_output_root = resolve_roots(args)
     prior_reports = {
@@ -692,14 +704,35 @@ def main() -> int:
                 for error in result.errors:
                     print(error, file=sys.stderr)
                 return 3
-            failure = 0
-            for entry in order_entries(root):
-                if entry.startswith("00-"):
-                    continue
+            pending = [entry for entry in order_entries(root) if not entry.startswith("00-")]
+            section_args_list = []
+            for entry in pending:
                 section_args = argparse.Namespace(**vars(args))
                 section_args.mode, section_args.section = "section", entry
-                code = build(section_args)
+                section_args_list.append(section_args)
+            if args.workers == 1 or len(pending) <= 1:
+                codes = [build(section_args) for section_args in section_args_list]
+            else:
+                # F2: each section's build() call is dominated by external
+                # subprocess time (pandoc, TeX compiled twice, the PDF
+                # renderer, the PDF inspector), which releases the GIL while
+                # it waits -- threads, not processes, already parallelise
+                # the real bottleneck without paying an extra interpreter
+                # import per section. Bounded by --workers, and capped at
+                # len(pending) so an oversized --workers never spins up
+                # idle threads. ThreadPoolExecutor.map preserves input
+                # order in its results regardless of completion order, so
+                # the aggregate below stays deterministic under concurrency.
+                with ThreadPoolExecutor(max_workers=min(args.workers, len(pending))) as pool:
+                    codes = list(pool.map(build, section_args_list))
+            # Deterministic aggregate reporting (F2): the summary below
+            # lists sections in manuscript order and ORs their exit codes,
+            # so both the printed report and the aggregate exit code are the
+            # same on every run regardless of which worker finished first.
+            failure = 0
+            for entry, code in zip(pending, codes):
                 failure = failure or code
+                print(f"REPORTKIT-SECTION {entry}: exit {code}")
             return failure
         return build(args)
 

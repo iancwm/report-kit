@@ -374,6 +374,7 @@ def _run_build(args: argparse.Namespace) -> int:
     section = args.section or args.chapter
     if section:
         command += ["--section", section]
+    command += ["--workers", str(args.workers)]
     command += ["--compile-timeout-seconds", str(args.compile_timeout_seconds), "--memory-limit-mb", str(args.memory_limit_mb)]
     if args.json:
         command.append("--json")
@@ -617,6 +618,7 @@ def build_parser() -> argparse.ArgumentParser:
     build.add_argument("--mode", choices=("combined", "section", "sections"), default="combined")
     build.add_argument("--section")
     build.add_argument("--chapter", help="compatibility alias for --section")
+    build.add_argument("--workers", type=_positive_int, default=1, help="bounded parallel section builds in --mode sections (F2)")
     build.add_argument("--engine")
     build.add_argument("--title")
     build.add_argument("--author")
