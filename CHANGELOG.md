@@ -7,6 +7,12 @@ tags on this repository, not a published package registry.
 ## [Unreleased]
 
 ### Added
+- A new `algorithmblock` primitive (`reportkit-algorithms.sty`) for
+  language-neutral algorithm/pseudocode, built on algorithmicx/algpseudocode
+  (never the floating `algorithm` package) with ReportKit's own keyword
+  palette and typography, plus `\AlgorithmInput`/`\AlgorithmOutput` metadata
+  lines. Kept separate from `reportkit-code.sty`'s `codeblock` (executable
+  source) and from `reportflow`/`reportstate` (process relationships).
 - `reportkit init` now scaffolds a consumer publication project outside the
   engine clone, with optional bundled Libertinus font installation.
 - The repository now includes the GPL-3.0-or-later license text.

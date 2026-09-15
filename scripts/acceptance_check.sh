@@ -24,6 +24,7 @@ TEST_TEXES=(
   "latex_templates/examples/primitive_additions_acceptance_test.tex"
   "latex_templates/examples/visual_grammar_acceptance_test.tex"
   "latex_templates/examples/longform_acceptance_test.tex"
+  "latex_templates/examples/algorithm_acceptance_test.tex"
 )
 
 echo "== ReportKit acceptance check =="
