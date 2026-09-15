@@ -6,7 +6,8 @@ are resolved; A1, A2 and A3 are complete (A3 pending the pinned-toolchain
 CI gate); **A4's diagram work (the last item the plan's own A4 section
 named as "not started") is now implemented** -- theme/adapter split,
 callout/metric token work, and diagram chrome tokens are all in the tree;
-only the Python/theme-contract extension remains open. A5 is essentially
+the Python/theme-contract extension is now implemented in the working tree.
+A5 is essentially
 complete (every "Work" item but
 materializing theme/brand overrides, which nothing yet needs, and the
 equity-pipeline-acceptance sub-item); A0 remains untouched. B1 and B2 are
@@ -27,8 +28,9 @@ execution.
 **Plans:** [2026-09-09-reportkit-multi-format-publication-architecture-spec.md](../specs/2026-09-09-reportkit-multi-format-publication-architecture-spec.md)
 **Amended by:** [2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md](../specs/2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md)
 **Baseline:** planning baseline `main` at `4f2b27f`, ReportKit v1.9.1.
-**Current status:** verified against `main` at `7bee3a4`, ReportKit v1.9.3,
-on 2026-09-15.
+**Current status:** base verified against `main` at `7bee3a4`, with the
+Python/theme-contract slice in this working branch, ReportKit v1.9.3, on
+2026-09-15.
 
 ---
 
@@ -877,16 +879,18 @@ renderer-hook boundary; its dedicated paged acceptance coverage passes. The
 slides class does not load this module yet, so no slide-renderer parity claim
 is added to A3 or B4.
 
-**Remaining A4 scope, not started:** the Python/theme-contract extension
-(`Theme` typography/chart/geometry/rule/table/diagram/script-coverage
-records; `check-theme` validating common *and* adapter token layers -- today
-it only reasons about the common package). Nothing in `reportkit_viz.py` or
-`python_scripts/reportkit/themes/` changed in this slice -- the diagram
-tokens above are pure LaTeX, read only by the TeX compiler, so there was no
-Python-side contract to extend for them specifically; the still-open
-Python/theme-contract item is its own, separately-scoped piece of A4 (deeper
-than diagram chrome: typography/chart/geometry/rule/table records for
-`reportkit_viz.py` callers, not just LaTeX tokens).
+**Python/theme-contract work implemented 2026-09-15:** `Theme` now carries
+explicit typography, geometry, spacing, rule, table, chart, diagram and
+script-coverage records while preserving the existing scalar and mapping
+accessors as compatibility views. `apply_theme()` consumes the chart record
+for font sizes, line width and the theme-default grid policy. The
+`check-theme` command now validates Python record completeness, palette
+synchronization, semantic-module token declarations/population, and every
+registered common/renderer-adapter package. Focused pure-Python contract
+validation and bytecode compilation pass. The host cannot run the focused
+pytest suite or chart acceptance because pytest, Matplotlib, and pandas are
+not installed; the pinned toolchain remains the authoritative runtime and
+visual gate.
 
 ### A5 — make the pipeline target-aware
 

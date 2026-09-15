@@ -20,7 +20,17 @@ See font_data/GOOGLE_SANS_LICENSE.md for full licensing details.
 """
 from __future__ import annotations
 
-from . import Theme
+from . import (
+    ChartTokens,
+    DiagramTokens,
+    GeometryTokens,
+    RuleTokens,
+    ScriptCoverageTokens,
+    SpacingTokens,
+    TableTokens,
+    Theme,
+    TypographyTokens,
+)
 
 INK = "#202124"
 MUTED = "#6B7075"
@@ -46,10 +56,42 @@ SERIES_GOLD = "#D6A84B"
 BEAR_RED = "#A94343"
 BULL_GREEN = "#2C6E49"
 
+TYPOGRAPHY = TypographyTokens(
+    display="Google Sans",
+    heading="Google Sans",
+    body="Google Sans",
+    metadata="Google Sans",
+    table="Google Sans",
+    chart="Google Sans",
+    mono="Google Sans",
+    math="Google Sans",
+)
+
 # US Letter text width, derived from
 # themes/reportkit-theme-institutional-research.sty's geometry:
 # 215.9mm (8.5in) - 14mm left margin - 14mm right margin = 187.9mm.
 TEXT_WIDTH_IN = 187.9 / 25.4
+
+GEOMETRY = GeometryTokens(
+    paper="letter",
+    canvas_mm=(215.9, 279.4),
+    text_width_in=TEXT_WIDTH_IN,
+    margins_mm=(14.0, 14.0, 15.0, 14.0),
+    column_gutter_in=0.25,
+)
+SPACING = SpacingTokens(paragraph=4.0, heading=14.0, component=6.0)
+RULES = RuleTokens(thin=0.4, medium=0.7)
+TABLES = TableTokens(body_size=8.5, header_treatment="bold-label", row_spacing=1.05)
+CHARTS = ChartTokens(
+    base_font=9.0,
+    tick_size=8.1,
+    label_size=9.0,
+    line_width=1.7,
+    grid_style="y",
+    legend_style="above",
+)
+DIAGRAMS = DiagramTokens(node_font=8.1, node_padding=(5.0, 4.0), node_radius=1.2, edge_weight=0.8, label_font=6.8)
+SCRIPT_COVERAGE = ScriptCoverageTokens(verified=("Latn",), metadata_only=(), rtl="unsupported")
 
 THEME = Theme(
     name="institutional-research",
@@ -125,4 +167,12 @@ THEME = Theme(
     # Revisit with Step 5's fixture, once there's something to look at.
     base_font_size=9.0,
     mathtext_fontset="custom",
+    typography=TYPOGRAPHY,
+    geometry=GEOMETRY,
+    spacing=SPACING,
+    rules=RULES,
+    tables=TABLES,
+    charts=CHARTS,
+    diagrams=DIAGRAMS,
+    script_coverage=SCRIPT_COVERAGE,
 )

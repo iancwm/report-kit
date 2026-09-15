@@ -12,6 +12,7 @@ from pathlib import Path
 import pytest
 
 from reportkit.publications import THEMES, canonical_theme_name
+from reportkit.themes import get_theme, validate_theme_contract
 
 REPO = Path(__file__).resolve().parents[1]
 
@@ -31,7 +32,7 @@ REQUIRED_STYLE_TOKENS = [
     "RKTokMetricBeforeSkip", "RKTokMetricAfterSkip", "RKTokMetricBorderLineWidth",
     "RKTokMetricLabelFont", "RKTokMetricValueFont", "RKTokMetricSubtitleFont",
     "RKTokMetricSubtitleSpacing", "RKTokMetricWhyFont",
-    # Diagram chrome (Phase A4's remaining "diagram work" -- reportkit-core.sty's
+    # Diagram chrome (Phase A4's implemented diagram work -- reportkit-core.sty's
     # "Diagram chrome" contract section). Shared by reportkit-diagrams.sty,
     # reportkit-structure.sty, reportkit-process.sty and reportkit-spatial.sty.
     "RKTokDiagramNodeDraw", "RKTokDiagramNodeFill", "RKTokDiagramNodeText",
@@ -76,9 +77,8 @@ REQUIRED_STYLE_TOKENS = [
 ]
 
 # Semantic modules that must not know any theme's name. Phase A4's diagram
-# work (the implementation plan's own "next slice" signal -- see the removed
-# comment this replaces) migrated reportkit-diagrams.sty,
-# reportkit-structure.sty, reportkit-process.sty and reportkit-spatial.sty to
+# work migrated reportkit-diagrams.sty, reportkit-structure.sty,
+# reportkit-process.sty and reportkit-spatial.sty to
 # the same token contract reportkit-boxes.sty already used; all four are
 # listed here now for the same "no \rk@theme, no theme name" guarantee.
 SEMANTIC_MODULES = [
@@ -101,6 +101,26 @@ MODULES_WITHOUT_OWN_ASSERTION = {
 }
 
 CANONICAL_THEMES = sorted({canonical_theme_name(name) for name in THEMES})
+
+
+@pytest.mark.parametrize("theme_name", CANONICAL_THEMES)
+def test_python_theme_exposes_complete_semantic_records(theme_name: str) -> None:
+    theme = get_theme(theme_name)
+    assert validate_theme_contract(theme) == []
+    assert theme.geometry.text_width_in == theme.text_width_in
+    assert theme.charts.base_font == theme.base_font_size
+    assert theme.typography.heading
+    assert theme.typography.body
+    assert theme.typography.chart
+    assert theme.geometry.margins_mm
+    assert theme.tables.header_treatment
+    assert theme.charts.grid_style
+    assert theme.diagrams.node_padding[0] > 0
+    assert theme.script_coverage.verified
+
+
+def test_theme_alias_reuses_one_complete_record() -> None:
+    assert get_theme("technical") is get_theme("default")
 
 
 def _non_comment_text(path: Path) -> str:

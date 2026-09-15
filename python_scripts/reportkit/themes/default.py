@@ -9,7 +9,17 @@ matching LaTeX palette; `reportkit_viz.py check-theme` (no `--theme`, or
 """
 from __future__ import annotations
 
-from . import Theme
+from . import (
+    ChartTokens,
+    DiagramTokens,
+    GeometryTokens,
+    RuleTokens,
+    ScriptCoverageTokens,
+    SpacingTokens,
+    TableTokens,
+    Theme,
+    TypographyTokens,
+)
 
 INK = "#24272D"
 MUTED = "#687386"
@@ -29,6 +39,37 @@ WHITE = "#FFFFFF"
 
 # A4 ReportKit text width: 210mm - 2*27mm = 156mm.
 TEXT_WIDTH_IN = 156 / 25.4
+
+TYPOGRAPHY = TypographyTokens(
+    display="Libertinus Sans",
+    heading="Libertinus Sans",
+    body="Libertinus Serif",
+    metadata="Libertinus Sans",
+    table="Libertinus Sans",
+    chart="Libertinus Sans",
+    mono="Libertinus Mono",
+    math="STIX",
+)
+GEOMETRY = GeometryTokens(
+    paper="a4",
+    canvas_mm=(210.0, 297.0),
+    text_width_in=TEXT_WIDTH_IN,
+    margins_mm=(24.0, 27.0, 24.0, 27.0),
+    column_gutter_in=0.25,
+)
+SPACING = SpacingTokens(paragraph=4.5, heading=15.0, component=6.0)
+RULES = RuleTokens(thin=0.35, medium=0.6)
+TABLES = TableTokens(body_size=8.5, header_treatment="bold-label", row_spacing=1.0)
+CHARTS = ChartTokens(
+    base_font=9.0,
+    tick_size=8.1,
+    label_size=9.0,
+    line_width=1.7,
+    grid_style="y",
+    legend_style="above",
+)
+DIAGRAMS = DiagramTokens(node_font=8.1, node_padding=(5.0, 4.0), node_radius=1.2, edge_weight=0.8, label_font=6.8)
+SCRIPT_COVERAGE = ScriptCoverageTokens(verified=("Latn",), metadata_only=(), rtl="unsupported")
 
 THEME = Theme(
     name="default",
@@ -82,4 +123,12 @@ THEME = Theme(
     mono_candidates=("Libertinus Mono", "Linux Libertine Mono O", "DejaVu Sans Mono"),
     base_font_size=9.0,
     mathtext_fontset="stix",
+    typography=TYPOGRAPHY,
+    geometry=GEOMETRY,
+    spacing=SPACING,
+    rules=RULES,
+    tables=TABLES,
+    charts=CHARTS,
+    diagrams=DIAGRAMS,
+    script_coverage=SCRIPT_COVERAGE,
 )

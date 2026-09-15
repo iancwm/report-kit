@@ -46,8 +46,8 @@ import pandas as pd
 # reportkit_viz facade imports this package, so the dependency remains one-way
 # and theme modules never need to import the compatibility facade.
 from reportkit.context import month_end_freq
-from reportkit.publications import canonical_theme_name
-from reportkit.themes import get_theme
+from reportkit.publications import THEMES, canonical_theme_name
+from reportkit.themes import get_theme, validate_theme_contract
 from .formatters import (
     bps_formatter, currency_formatter, integer_formatter, multiple_formatter,
     number_formatter, percent_formatter,
@@ -87,6 +87,8 @@ LATEX_THEME_COLORS: dict[str, str] = {}
 TEXT_WIDTH_IN: float = 0.0
 FIGURE_SIZES: dict[str, tuple[float, float]] = {}
 SANS_FONT = SERIF_FONT = MONO_FONT = ""
+CHART_GRID_STYLE = "y"
+CHART_LEGEND_STYLE = "above"
 
 
 apply_theme()
@@ -1232,7 +1234,9 @@ def theme_file_for(theme: str, repo_root: str | Path | None = None) -> Path:
     docs/superpowers/specs/2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md,
     open question 2.
     """
-    root = Path(repo_root) if repo_root is not None else Path(__file__).resolve().parents[1]
+    # core.py lives at python_scripts/reportkit/viz/core.py; the repository
+    # root is therefore two parents above the reportkit package.
+    root = Path(repo_root) if repo_root is not None else Path(__file__).resolve().parents[2]
     canonical = canonical_theme_name(theme)
     return root / "latex_templates" / "themes" / f"reportkit-theme-{canonical}.sty"
 
@@ -1266,6 +1270,78 @@ def validate_palette_against_latex(class_path: str | Path, colors: Mapping[str, 
         elif actual.upper() != expected.upper():
             mismatches.append(f"{name}: LaTeX {actual} != Python {expected}")
     return mismatches
+
+
+def validate_theme_contract_against_latex(
+    theme: str,
+    *,
+    repo_root: str | Path | None = None,
+) -> list[str]:
+    """Validate one Python theme and its shared/common LaTeX token boundary."""
+    try:
+        resolved = get_theme(theme)
+    except ValueError as exc:
+        return [str(exc)]
+
+    errors = validate_theme_contract(resolved)
+    canonical = canonical_theme_name(theme)
+    record = THEMES.get(canonical)
+    if record is None:
+        return [*errors, f"theme {theme!r} is missing from the publication registry"]
+
+    root = Path(repo_root) if repo_root is not None else Path(__file__).resolve().parents[2]
+    themes_root = root / "latex_templates" / "themes"
+    common_package = str(record.get("common_package", ""))
+    common_path = themes_root / f"{common_package}.sty"
+    if not common_package or not common_path.is_file():
+        errors.append(f"missing common theme package: {common_package or '<unset>'}")
+        common_text = ""
+    else:
+        common_text = common_path.read_text(encoding="utf-8")
+
+    core_path = root / "latex_templates" / "reportkit-core.sty"
+    if not core_path.is_file():
+        errors.append(f"missing shared theme-token contract: {core_path}")
+        core_text = ""
+    else:
+        core_text = core_path.read_text(encoding="utf-8")
+
+    declared = set(re.findall(r"\\newcommand\{\\(RKTok[A-Za-z0-9]+)\}", core_text))
+    semantic_modules = (
+        "reportkit-boxes.sty",
+        "reportkit-diagrams.sty",
+        "reportkit-structure.sty",
+        "reportkit-process.sty",
+        "reportkit-spatial.sty",
+    )
+    used: set[str] = set()
+    for module in semantic_modules:
+        module_path = root / "latex_templates" / module
+        if not module_path.is_file():
+            errors.append(f"missing semantic module for shared token check: {module}")
+            continue
+        used.update(re.findall(r"\\(RKTok[A-Za-z0-9]+)", module_path.read_text(encoding="utf-8")))
+
+    for token in sorted(used):
+        if token not in declared:
+            errors.append(f"{token} is used by a semantic module but not declared in reportkit-core.sty")
+        if not re.search(rf"\\renewcommand\{{\\{re.escape(token)}\}}", common_text):
+            errors.append(f"{common_package}.sty does not populate {token}")
+
+    for renderer in record.get("renderers", []):
+        adapter = (record.get("renderer_adapters") or {}).get(renderer)
+        if not adapter:
+            errors.append(f"theme {canonical!r} is missing its {renderer!r} renderer adapter")
+            continue
+        adapter_path = themes_root / f"{adapter}.sty"
+        if not adapter_path.is_file():
+            errors.append(f"missing {renderer} theme adapter: {adapter_path}")
+        elif renderer == "slides":
+            adapter_text = adapter_path.read_text(encoding="utf-8")
+            if r"\rk@presentationtokensloadedtrue" not in adapter_text:
+                errors.append(f"{adapter}.sty does not load presentation tokens")
+
+    return errors
 
 
 # -----------------------------------------------------------------------------
@@ -1409,24 +1485,26 @@ def _cli() -> None:
             print(f"check-theme: {exc}", file=sys.stderr)
             raise SystemExit(2)
         mismatches = validate_palette_against_latex(class_path, theme_colors)
-        if mismatches:
-            for item in mismatches:
+        contract_errors = validate_theme_contract_against_latex(args.theme)
+        if mismatches or contract_errors:
+            for item in [*mismatches, *contract_errors]:
                 print(item)
             raise SystemExit(1)
-        print(f"ReportKit palette synchronized: {class_path}")
+        print(f"ReportKit theme contract synchronized: {args.theme} ({class_path})")
 
 
 __all__ = [
     "LINE_STYLES", "MARKERS", "BUBBLE_MARKERS", "INK", "MUTED", "HAIRLINE", "PRIMARY", "DECISION",
     "RESEARCH", "TIP", "RED_FLAG", "ASSUMPTION", "EVIDENCE", "LIMITATION", "METRIC", "DELIVERABLE",
     "SURFACE", "WHITE", "DATA_COLORS", "BENCHMARK", "DATA_WARM", "DATA_POSITIVE", "DATA_NEGATIVE",
-    "LATEX_THEME_COLORS", "TEXT_WIDTH_IN", "FIGURE_SIZES", "SANS_FONT", "SERIF_FONT", "MONO_FONT", "plt",
+    "LATEX_THEME_COLORS", "TEXT_WIDTH_IN", "FIGURE_SIZES", "SANS_FONT", "SERIF_FONT", "MONO_FONT",
+    "CHART_GRID_STYLE", "CHART_LEGEND_STYLE", "plt",
     "apply_theme", "new_figure", "style_axes", "legend_above",
     "series_style", "save_figure", "percent_formatter", "bps_formatter", "number_formatter", "integer_formatter",
     "currency_formatter", "multiple_formatter", "timeseries", "bar_chart", "distribution", "scatter_plot",
     "heatmap", "drawdown_chart", "risk_reward_chart", "donut_chart", "waterfall_chart", "treemap_chart",
     "tornado_chart", "bubble_matrix", "timeline_chart", "annotate_point", "shade_period", "theme_file_for",
-    "validate_palette_against_latex", "build_demo", "__version__",
+    "validate_palette_against_latex", "validate_theme_contract_against_latex", "build_demo", "__version__",
 ]
 
 
