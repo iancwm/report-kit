@@ -14,6 +14,12 @@
 
 \makeatletter
 
+% Phase A4 (decision D2), diagram chrome: reportkit-diagrams.sty already
+% asserted the style tokens are loaded (this module is \RequirePackage'd by
+% reportkit-diagrams.sty, after that assertion); reading them again here
+% would just repeat the same check for a module in the same style-token
+% family. See reportkit-core.sty's "Diagram chrome" contract section.
+
 % PGF does not expose a stable public ``is number'' conditional across the
 % TeX Live versions supported by ReportKit.  Keep the input check here so a
 % malformed normalized value receives a package error instead of a cryptic
@@ -33,12 +39,15 @@
 % Keep these styles local to this semantic layer.  The colours are owned by
 % reportkit.cls, which is the required integration point for this package.
 \tikzset{
-  rk structure card/.style={draw=Hairline,fill=Surface,rectangle,rounded corners=1.2pt,
-    line width=.5pt,align=center,inner xsep=4pt,inner ysep=3.5pt,
-    font=\sffamily\fontsize{7.4}{8.8}\selectfont,text=Ink},
-  rk structure title/.style={font=\sffamily\bfseries\fontsize{7.7}{9.2}\selectfont,text=Ink,align=center},
-  rk structure muted/.style={font=\sffamily\fontsize{6.8}{8.1}\selectfont,text=Muted,align=center},
-  rk structure arrow/.style={-{Stealth[length=3.6pt,width=3.6pt]},draw=Evidence,line width=.7pt}
+  rk structure card/.style={draw=\RKTokDiagramStructureCardDraw,fill=\RKTokDiagramStructureCardFill,
+    rectangle,rounded corners=\RKTokDiagramStructureCardRounding,
+    line width=\RKTokDiagramStructureCardWidth,align=center,
+    inner xsep=\RKTokDiagramStructureCardPadX,inner ysep=\RKTokDiagramStructureCardPadY,
+    font=\RKTokDiagramStructureCardFont,text=\RKTokDiagramStructureCardText},
+  rk structure title/.style={font=\RKTokDiagramStructureTitleFont,text=\RKTokDiagramStructureTitleText,align=center},
+  rk structure muted/.style={font=\RKTokDiagramStructureMutedFont,text=\RKTokDiagramStructureMutedText,align=center},
+  rk structure arrow/.style={-{Stealth[length=\RKTokDiagramStructureArrowTip,width=\RKTokDiagramStructureArrowTip]},draw=\RKTokDiagramStructureArrowColor,line width=\RKTokDiagramStructureArrowWidth},
+  rk timeline/.style={draw=\RKTokDiagramTimelineAxisColor,line width=\RKTokDiagramTimelineAxisWidth}
 }
 
 \newcommand{\rk@structure@error}[2]{%
@@ -110,7 +119,7 @@
     \expandafter\let\expandafter\rk@componentlist\csname rk@arch@components@\rk@i\endcsname
     \@for\rk@component:=\rk@componentlist\do{\advance\rk@archcomponents by 1\relax}%
     \pgfmathsetmacro{\rk@archy}{-(\rk@i-1)*1.65}%
-    \draw[draw=Hairline,fill=white,line width=.5pt,rounded corners=1.2pt]
+    \draw[draw=\RKTokDiagramStructureCardDraw,fill=white,line width=\RKTokDiagramStructureCardWidth,rounded corners=\RKTokDiagramStructureCardRounding]
       (0,{\rk@archy-.67}) rectangle (\rk@archwidth,{\rk@archy+.67});
     \node[rk structure title,anchor=west,text width=2.65cm,align=left]
       at (.25,\rk@archy) {\csname rk@arch@title@\rk@i\endcsname};
@@ -217,11 +226,11 @@
     \pgfmathsetmacro{\rk@roadcardw}{\rk@roadwidth/\the\rk@roadcount}
     \foreach \rk@i in {1,...,\the\rk@roadcount}{%
       \pgfmathsetmacro{\rk@roadx}{(\rk@i-.5)*\rk@roadcardw}
-      \draw[draw=Hairline,fill=Surface,line width=.5pt,rounded corners=1.2pt]
+      \draw[draw=\RKTokDiagramStructureCardDraw,fill=\RKTokDiagramStructureCardFill,line width=\RKTokDiagramStructureCardWidth,rounded corners=\RKTokDiagramStructureCardRounding]
         ({\rk@roadx-.5*\rk@roadcardw},-3.1) rectangle ({\rk@roadx+.5*\rk@roadcardw},.15);
       \node[rk structure title,text width={\rk@roadcardw cm-8pt}] at (\rk@roadx,-.32)
         {\csname rk@road@label@\rk@i\endcsname};
-      \node[rk structure muted,text=LinkBlue,font=\sffamily\bfseries\fontsize{7.1}{8.5}\selectfont,text width={\rk@roadcardw cm-8pt}]
+      \node[rk structure muted,text=\RKTokDiagramRoadmapAccentColor,font=\RKTokDiagramRoadmapAccentFont,text width={\rk@roadcardw cm-8pt}]
         at (\rk@roadx,-.83) {\csname rk@road@theme@\rk@i\endcsname};
       \node[rk structure muted,text width={\rk@roadcardw cm-10pt}] at (\rk@roadx,-1.95)
         {\csname rk@road@items@\rk@i\endcsname};
@@ -242,10 +251,10 @@
       \rk@structure@error{A dated roadmap requires at least one \string\milestone}{Attach milestones to declared periods.}%
     \else
       \pgfmathsetmacro{\rk@roadstep}{\rk@roadwidth/(\the\rk@roadcount-1)}
-      \draw[draw=Evidence,line width=.8pt] (0,0) -- (\rk@roadwidth,0);
+      \draw[rk timeline] (0,0) -- (\rk@roadwidth,0);
       \foreach \rk@i in {1,...,\the\rk@roadcount}{%
         \pgfmathsetmacro{\rk@roadx}{(\rk@i-1)*\rk@roadstep}
-        \fill[LinkBlue] (\rk@roadx,0) circle (2.1pt);
+        \fill[\RKTokDiagramTimelineDotColor] (\rk@roadx,0) circle (\RKTokDiagramTimelineDotRadius);
         \node[rk structure muted,anchor=north,text width=2.55cm] (roadperiod\rk@i) at (\rk@roadx,-.22) {\csname rk@road@label@\rk@i\endcsname};
       }%
       \foreach \rk@m in {1,...,\the\rk@roadmilestonecount}{%
@@ -485,7 +494,7 @@
     \expandafter\let\expandafter\rk@capabilityitemlist\csname rk@capability@items@\rk@i\endcsname
     \@for\rk@capabilityitem:=\rk@capabilityitemlist\do{\advance\rk@capabilityitemcount by 1\relax}%
     \pgfmathsetmacro{\rk@capabilityy}{-(\rk@i-1)*1.75}%
-    \draw[draw=Hairline,fill=Surface,line width=.5pt,rounded corners=1.2pt]
+    \draw[draw=\RKTokDiagramStructureCardDraw,fill=\RKTokDiagramStructureCardFill,line width=\RKTokDiagramStructureCardWidth,rounded corners=\RKTokDiagramStructureCardRounding]
       (0,{\rk@capabilityy-.69}) rectangle (\rk@capabilitywidth,{\rk@capabilityy+.69});
     \node[rk structure title,anchor=west,text width=2.85cm,align=left]
       at (.25,\rk@capabilityy) {\csname rk@capability@domain@\rk@i\endcsname};

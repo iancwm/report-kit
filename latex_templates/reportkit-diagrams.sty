@@ -12,7 +12,7 @@
 % longer requires needspace or caption itself and compiles unchanged under
 % any renderer core.
 \NeedsTeXFormat{LaTeX2e}
-\ProvidesPackage{reportkit-diagrams}[2026/09/13 v1.6.0 ReportKit diagrams]
+\ProvidesPackage{reportkit-diagrams}[2026/09/13 v1.7.0 ReportKit diagrams]
 \RequirePackage{tikz}
 \usetikzlibrary{arrows.meta,positioning,calc,fit,backgrounds}
 \RequirePackage{xparse}
@@ -20,27 +20,38 @@
 \RequirePackage{etoolbox}
 \RequirePackage{pdftexcmds}
 
+% Phase A4 (decision D2), diagram chrome: the styles below no longer
+% hardcode appearance -- they read reportkit-core.sty's diagram style-token
+% contract, populated by whichever theme package loaded before this one.
+% Same assertion pattern reportkit-boxes.sty already uses; see that file's
+% own note and reportkit-core.sty's "Diagram chrome" contract section.
+\RKAssertStyleTokens
+
 % -----------------------------------------------------------------------------
 % Common semantic styles
 % -----------------------------------------------------------------------------
 \tikzset{
   rk node/.style={
-    draw=Hairline,fill=Surface,text=Ink,
-    rectangle,rounded corners=1.2pt,
-    minimum height=10mm,text width=28mm,
-    inner xsep=5pt,inner ysep=4pt,
+    draw=\RKTokDiagramNodeDraw,fill=\RKTokDiagramNodeFill,text=\RKTokDiagramNodeText,
+    rectangle,rounded corners=\RKTokDiagramNodeRounding,
+    minimum height=\RKTokDiagramNodeMinHeight,text width=\RKTokDiagramNodeTextWidth,
+    inner xsep=\RKTokDiagramNodePadX,inner ysep=\RKTokDiagramNodePadY,
     align=center,
-    font=\sffamily\fontsize{8.1}{9.7}\selectfont
+    font=\RKTokDiagramNodeFont
   },
-  rk accent/.style={draw=LinkBlue,line width=.8pt,fill=Surface},
-  rk layer accent/.style={draw=LinkBlue,line width=.8pt,fill=Surface},
-  rk edge flow/.style={-{Stealth[length=4pt,width=4pt]},draw=Evidence,line width=.8pt},
-  rk edge sequence/.style={-{Stealth[length=4pt,width=4pt]},draw=Evidence,line width=.8pt},
-  rk edge dependency/.style={-{Stealth[length=4pt,width=4pt]},draw=LinkBlue,line width=.75pt},
-  rk edge handoff/.style={-{Stealth[length=4pt,width=4pt]},draw=Muted,line width=.75pt,dashed},
-  rk edge causal/.style={-{Stealth[length=4pt,width=4pt]},draw=Research,line width=.9pt},
-  rk edge optional/.style={-{Stealth[length=4pt,width=4pt]},draw=Muted,line width=.7pt,dashed},
-  rk edge label/.style={fill=white,inner sep=1.5pt,text=Muted,font=\sffamily\fontsize{6.8}{8}\selectfont}
+  rk accent/.style={draw=\RKTokDiagramAccentDraw,line width=\RKTokDiagramAccentWidth,fill=\RKTokDiagramAccentFill},
+  rk layer accent/.style={draw=\RKTokDiagramAccentDraw,line width=\RKTokDiagramAccentWidth,fill=\RKTokDiagramAccentFill},
+  rk edge/.style={-{Stealth[length=\RKTokDiagramArrowLength,width=\RKTokDiagramArrowWidth]}},
+  rk edge flow/.style={rk edge,draw=\RKTokDiagramEdgeFlowColor,line width=\RKTokDiagramEdgeFlowWidth},
+  rk edge sequence/.style={rk edge,draw=\RKTokDiagramEdgeSequenceColor,line width=\RKTokDiagramEdgeSequenceWidth},
+  rk edge dependency/.style={rk edge,draw=\RKTokDiagramEdgeDependencyColor,line width=\RKTokDiagramEdgeDependencyWidth},
+  rk edge handoff/.style={rk edge,draw=\RKTokDiagramEdgeHandoffColor,line width=\RKTokDiagramEdgeHandoffWidth,dashed},
+  rk edge causal/.style={rk edge,draw=\RKTokDiagramEdgeCausalColor,line width=\RKTokDiagramEdgeCausalWidth},
+  rk edge optional/.style={rk edge,draw=\RKTokDiagramEdgeOptionalColor,line width=\RKTokDiagramEdgeOptionalWidth,dashed},
+  rk edge label/.style={fill=\RKTokDiagramEdgeLabelFill,inner sep=\RKTokDiagramEdgeLabelPad,text=\RKTokDiagramEdgeLabelText,font=\RKTokDiagramEdgeLabelFont},
+  rk matrix axis/.style={draw=\RKTokDiagramMatrixAxisColor,line width=\RKTokDiagramMatrixAxisWidth},
+  rk matrix axis label/.style={font=\RKTokDiagramMatrixAxisLabelFont,text=\RKTokDiagramMatrixAxisLabelText},
+  rk matrix cell/.style={font=\RKTokDiagramMatrixCellFont,text=\RKTokDiagramMatrixCellText}
 }
 
 % Use this for literal technical tokens inside semantic node labels. The macro
@@ -215,11 +226,11 @@
 % {"kind":"command","description":"Rkmatrix","arguments":[{"name":"x_label","type":"text","description":"X label."},{"name":"y_label","type":"text","description":"Y label."}],"constraints":[],"example":"\\RKMatrix{Example}{Example}","stability":"stable","since":"1.0.0"}
 % </reportkit-contract>
 \NewDocumentCommand{\RKMatrix}{m m}{%
-  \draw[Hairline,line width=.55pt] (0,0) rectangle (\rk@matrixw,\rk@matrixh);
-  \draw[Hairline,line width=.55pt] ({\rk@matrixw/2},0) -- ({\rk@matrixw/2},\rk@matrixh);
-  \draw[Hairline,line width=.55pt] (0,{\rk@matrixh/2}) -- (\rk@matrixw,{\rk@matrixh/2});
-  \node[font=\sffamily\fontsize{7.2}{8.6}\selectfont,text=Muted] at ({\rk@matrixw/2},-0.48) {#1 $\longrightarrow$};
-  \node[font=\sffamily\fontsize{7.2}{8.6}\selectfont,text=Muted,rotate=90] at (-0.58,{\rk@matrixh/2}) {#2 $\longrightarrow$};
+  \draw[rk matrix axis] (0,0) rectangle (\rk@matrixw,\rk@matrixh);
+  \draw[rk matrix axis] ({\rk@matrixw/2},0) -- ({\rk@matrixw/2},\rk@matrixh);
+  \draw[rk matrix axis] (0,{\rk@matrixh/2}) -- (\rk@matrixw,{\rk@matrixh/2});
+  \node[rk matrix axis label] at ({\rk@matrixw/2},-0.48) {#1 $\longrightarrow$};
+  \node[rk matrix axis label,rotate=90] at (-0.58,{\rk@matrixh/2}) {#2 $\longrightarrow$};
 }
 % <reportkit-contract>
 % {"kind":"command","description":"Rkmatrixcell","arguments":[{"name":"options","type":"options","description":"Options."},{"name":"column","type":"text","description":"Column."},{"name":"row","type":"text","description":"Row."},{"name":"label","type":"text","description":"Label."}],"constraints":[],"example":"\\RKMatrixCell[]{1}{1}{Example}","stability":"stable","since":"1.0.0"}
@@ -231,10 +242,10 @@
   \ifstrequal{#2}{sw}{\def\rk@cx{0.25*\rk@matrixw}\def\rk@cy{0.25*\rk@matrixh}}{}%
   \ifstrequal{#2}{se}{\def\rk@cx{0.75*\rk@matrixw}\def\rk@cy{0.25*\rk@matrixh}}{}%
   \ifstrequal{#1}{accent}{%
-    \fill[LinkBlue!6] ({\rk@cx-0.25*\rk@matrixw},{\rk@cy-0.25*\rk@matrixh}) rectangle ({\rk@cx+0.25*\rk@matrixw},{\rk@cy+0.25*\rk@matrixh});
+    \fill[\RKTokDiagramMatrixAccentColor!6] ({\rk@cx-0.25*\rk@matrixw},{\rk@cy-0.25*\rk@matrixh}) rectangle ({\rk@cx+0.25*\rk@matrixw},{\rk@cy+0.25*\rk@matrixh});
   }{}%
   \pgfmathsetlengthmacro{\rk@cellw}{0.39*\rk@matrixw cm}%
-  \node[align=center,text width=\rk@cellw,font=\sffamily\fontsize{8}{9.5}\selectfont,text=Ink] at (\rk@cx,\rk@cy) {\textbf{#3}\\[2pt]#4};
+  \node[rk matrix cell,align=center,text width=\rk@cellw] at (\rk@cx,\rk@cy) {\textbf{#3}\\[2pt]#4};
 }
 
 % -----------------------------------------------------------------------------
@@ -251,8 +262,8 @@
 % </reportkit-contract>
 \NewDocumentCommand{\RKLane}{m m}{%
   \pgfmathsetmacro{\rky}{-#1*\rk@laneh}
-  \draw[Hairline,line width=.5pt] (0,{\rky-0.5*\rk@laneh}) -- (\rk@lanew,{\rky-0.5*\rk@laneh});
-  \node[anchor=east,font=\sffamily\fontsize{7.2}{8.5}\selectfont,text=Muted] at (-0.3,\rky) {#2};
+  \draw[draw=\RKTokDiagramLaneDividerColor,line width=\RKTokDiagramLaneDividerWidth] (0,{\rky-0.5*\rk@laneh}) -- (\rk@lanew,{\rky-0.5*\rk@laneh});
+  \node[anchor=east,font=\RKTokDiagramLaneLabelFont,text=\RKTokDiagramLaneLabelText] at (-0.3,\rky) {#2};
 }
 % <reportkit-contract>
 % {"kind":"command","description":"Rklanenode","arguments":[{"name":"options","type":"options","description":"Options."},{"name":"id","type":"text","description":"Id."},{"name":"column","type":"text","description":"Column."},{"name":"row","type":"text","description":"Row."},{"name":"label","type":"text","description":"Label."}],"constraints":[],"example":"\\RKLaneNode[]{a}{1}{1}{Example}","stability":"stable","since":"1.0.0"}
@@ -276,10 +287,10 @@
 % </reportkit-contract>
 \NewDocumentCommand{\RKLayer}{O{} m m m}{%
   \pgfmathsetmacro{\rky}{-#2*\rk@layerh}
-  \draw[Hairline,line width=.5pt,fill=white,#1] (0,{\rky-0.46*\rk@layerh}) rectangle (\rk@layerw,{\rky+0.46*\rk@layerh});
-  \node[anchor=west,font=\sffamily\bfseries\fontsize{7.7}{9}\selectfont,text=Ink] at (0.25,\rky) {#3};
+  \draw[draw=\RKTokDiagramLayerDraw,line width=\RKTokDiagramLayerWidth,fill=\RKTokDiagramLayerFill,#1] (0,{\rky-0.46*\rk@layerh}) rectangle (\rk@layerw,{\rky+0.46*\rk@layerh});
+  \node[anchor=west,font=\RKTokDiagramLayerTitleFont,text=\RKTokDiagramLayerTitleText] at (0.25,\rky) {#3};
   \pgfmathsetlengthmacro{\rk@layerdescw}{0.62*\rk@layerw cm}%
-  \node[anchor=west,font=\sffamily\fontsize{7.2}{8.5}\selectfont,text=Muted,text width=\rk@layerdescw,align=left] at ({0.34*\rk@layerw},\rky) {#4};
+  \node[anchor=west,font=\RKTokDiagramLayerBodyFont,text=\RKTokDiagramLayerBodyText,text width=\rk@layerdescw,align=left] at ({0.34*\rk@layerw},\rky) {#4};
 }
 
 % -----------------------------------------------------------------------------
@@ -315,13 +326,13 @@
   \pgfmathsetmacro{\rk@scx}{0.5*\rk@stackw}%
   \pgfmathsetmacro{\rk@scy}{#2*\rk@stackh}%
   \pgfmathsetmacro{\rk@shw}{0.5*\rk@sfrac*\rk@stackw}%
-  \draw[Hairline,line width=.5pt,fill=Surface,#1]
+  \draw[draw=\RKTokDiagramTierDraw,line width=\RKTokDiagramTierWidth,fill=\RKTokDiagramTierFill,#1]
     ({\rk@scx-\rk@shw},{\rk@scy-0.42*\rk@stackh}) rectangle ({\rk@scx+\rk@shw},{\rk@scy+0.42*\rk@stackh});
-  \node[font=\sffamily\fontsize{7.5}{9}\selectfont,text=Ink,align=center,
+  \node[font=\RKTokDiagramTierLabelFont,text=\RKTokDiagramTierLabelText,align=center,
         text width={0.9*\rk@sfrac*\rk@stackw cm}] at (\rk@scx,\rk@scy) {#3};
   \ifnum#2>0
     \pgfmathsetmacro{\rk@sprevy}{(#2-1)*\rk@stackh}
-    \draw[-{Stealth[length=3.5pt,width=3.5pt]},draw=Evidence,line width=.7pt]
+    \draw[-{Stealth[length=3.5pt,width=3.5pt]},draw=\RKTokDiagramStackArrowColor,line width=\RKTokDiagramStackArrowWidth]
       (\rk@scx,{\rk@sprevy+0.42*\rk@stackh+0.02}) -- (\rk@scx,{\rk@scy-0.42*\rk@stackh-0.02});
   \fi
 }
@@ -346,7 +357,7 @@
 % {"kind":"command","description":"Rkcyclenode","arguments":[{"name":"options","type":"options","description":"Options."},{"name":"id","type":"text","description":"Id."},{"name":"angle","type":"text","description":"Angle."},{"name":"label","type":"text","description":"Label."}],"constraints":[],"example":"\\RKCycleNode[]{a}{1}{Example}","stability":"stable","since":"1.0.0"}
 % </reportkit-contract>
 \NewDocumentCommand{\RKCycleNode}{O{} m m m}{%
-  \node[rk node,text width=19mm,minimum height=8.5mm,font=\sffamily\fontsize{7.4}{8.8}\selectfont,#1]
+  \node[rk node,text width=19mm,minimum height=8.5mm,font=\RKTokDiagramCycleNodeFont,#1]
     (#2) at ({\rk@cycler*cos(#3)},{\rk@cycler*sin(#3)}) {\strut #4};%
 }
 % \RKCycleEdge[label]{from}{to}  -- bends outward (away from the ring center)
@@ -360,7 +371,7 @@
 % {"kind":"command","description":"Rkcycleedge","arguments":[{"name":"options","type":"options","description":"Options."},{"name":"source","type":"text","description":"Source."},{"name":"target","type":"text","description":"Target."}],"constraints":[],"example":"\\RKCycleEdge[]{a}{b}","stability":"stable","since":"1.0.0"}
 % </reportkit-contract>
 \NewDocumentCommand{\RKCycleEdge}{O{} m m}{%
-  \draw[-{Stealth[length=4pt,width=4pt]},draw=Evidence,line width=.8pt] (#2) to[bend left=15] (#3);%
+  \draw[rk edge,draw=\RKTokDiagramCycleEdgeColor,line width=\RKTokDiagramCycleEdgeWidth] (#2) to[bend left=15] (#3);%
   \ifstrempty{#1}{}{\node[rk edge label] at ($(#2)!0.5!(#3)$) {#1};}%
 }
 
@@ -394,10 +405,10 @@
   \pgfmathsetmacro{\rk@fy}{-#2*\rk@funnelh}%
   \pgfmathsetmacro{\rk@ftw}{0.5*#3*\rk@funnelw}%
   \pgfmathsetmacro{\rk@fbw}{0.5*#4*\rk@funnelw}%
-  \draw[Hairline,line width=.5pt,fill=Surface,#1]
+  \draw[draw=\RKTokDiagramTierDraw,line width=\RKTokDiagramTierWidth,fill=\RKTokDiagramTierFill,#1]
     ({\rk@fcx-\rk@ftw},{\rk@fy}) -- ({\rk@fcx+\rk@ftw},{\rk@fy})
     -- ({\rk@fcx+\rk@fbw},{\rk@fy-\rk@funnelh}) -- ({\rk@fcx-\rk@fbw},{\rk@fy-\rk@funnelh}) -- cycle;%
-  \node[font=\sffamily\fontsize{7.5}{9}\selectfont,text=Ink,align=center,
+  \node[font=\RKTokDiagramTierLabelFont,text=\RKTokDiagramTierLabelText,align=center,
         text width={0.85*#3*\rk@funnelw cm}] at (\rk@fcx,{\rk@fy-0.5*\rk@funnelh}) {#5};%
 }
 

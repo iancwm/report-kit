@@ -95,7 +95,7 @@
     \else
       \expandafter\ifstrequal\expandafter{\rk@matrixhighlightx}{low}{\def\rk@matrixhighlightxmin{0}}{\def\rk@matrixhighlightxmin{0.5*\rk@matrixwidth}}%
       \expandafter\ifstrequal\expandafter{\rk@matrixhighlighty}{low}{\def\rk@matrixhighlightymin{0}}{\def\rk@matrixhighlightymin{0.5*\rk@matrixheight}}%
-      \fill[LinkBlue!7] (\rk@matrixhighlightxmin,\rk@matrixhighlightymin) rectangle
+      \fill[\RKTokDiagramMatrixAccentColor!7] (\rk@matrixhighlightxmin,\rk@matrixhighlightymin) rectangle
         ({\rk@matrixhighlightxmin+0.5*\rk@matrixwidth},{\rk@matrixhighlightymin+0.5*\rk@matrixheight});%
     \fi
   \fi
@@ -111,15 +111,15 @@
     xlow={Low},xhigh={High},ylow={Low},yhigh={High},highlight={},#1}%
   \global\rk@matrixpointcount=0\relax
   \rk@spatial@matrix@highlight
-  \draw[Hairline,line width=.55pt] (0,0) rectangle (\rk@matrixwidth,\rk@matrixheight);
-  \draw[Hairline,line width=.55pt] ({0.5*\rk@matrixwidth},0) -- ({0.5*\rk@matrixwidth},\rk@matrixheight);
-  \draw[Hairline,line width=.55pt] (0,{0.5*\rk@matrixheight}) -- (\rk@matrixwidth,{0.5*\rk@matrixheight});
-  \node[anchor=north west,font=\sffamily\fontsize{6.8}{8}\selectfont,text=Muted] at (0,-.20) {\rk@matrixxlow};
-  \node[anchor=north east,font=\sffamily\fontsize{6.8}{8}\selectfont,text=Muted] at (\rk@matrixwidth,-.20) {\rk@matrixxhigh};
-  \node[anchor=north,font=\sffamily\fontsize{7.2}{8.5}\selectfont,text=Muted] at ({0.5*\rk@matrixwidth},-.56) {\rk@matrixxlabel\ $\longrightarrow$};
-  \node[anchor=south east,font=\sffamily\fontsize{6.8}{8}\selectfont,text=Muted] at (-.20,0) {\rk@matrixylow};
-  \node[anchor=south west,font=\sffamily\fontsize{6.8}{8}\selectfont,text=Muted] at (-.20,\rk@matrixheight) {\rk@matrixyhigh};
-  \node[rotate=90,font=\sffamily\fontsize{7.2}{8.5}\selectfont,text=Muted] at (-.85,{0.5*\rk@matrixheight}) {\rk@matrixylabel\ $\longrightarrow$};
+  \draw[rk matrix axis] (0,0) rectangle (\rk@matrixwidth,\rk@matrixheight);
+  \draw[rk matrix axis] ({0.5*\rk@matrixwidth},0) -- ({0.5*\rk@matrixwidth},\rk@matrixheight);
+  \draw[rk matrix axis] (0,{0.5*\rk@matrixheight}) -- (\rk@matrixwidth,{0.5*\rk@matrixheight});
+  \node[anchor=north west,font=\RKTokDiagramMatrixEndpointFont,text=\RKTokDiagramMatrixEndpointText] at (0,-.20) {\rk@matrixxlow};
+  \node[anchor=north east,font=\RKTokDiagramMatrixEndpointFont,text=\RKTokDiagramMatrixEndpointText] at (\rk@matrixwidth,-.20) {\rk@matrixxhigh};
+  \node[anchor=north,rk matrix axis label] at ({0.5*\rk@matrixwidth},-.56) {\rk@matrixxlabel\ $\longrightarrow$};
+  \node[anchor=south east,font=\RKTokDiagramMatrixEndpointFont,text=\RKTokDiagramMatrixEndpointText] at (-.20,0) {\rk@matrixylow};
+  \node[anchor=south west,font=\RKTokDiagramMatrixEndpointFont,text=\RKTokDiagramMatrixEndpointText] at (-.20,\rk@matrixheight) {\rk@matrixyhigh};
+  \node[rotate=90,rk matrix axis label] at (-.85,{0.5*\rk@matrixheight}) {\rk@matrixylabel\ $\longrightarrow$};
 }{%
   \endgroup
 }
@@ -135,8 +135,8 @@
   \ifrk@matrixvalid
     \ifstrequal{#1}{low}{\def\rk@matrixquadrantx{0.25*\rk@matrixwidth}}{\def\rk@matrixquadrantx{0.75*\rk@matrixwidth}}%
     \ifstrequal{#2}{low}{\def\rk@matrixquadranty{0.25*\rk@matrixheight}}{\def\rk@matrixquadranty{0.75*\rk@matrixheight}}%
-    \node[align=center,text width={0.40*\rk@matrixwidth cm},font=\sffamily\bfseries\fontsize{8}{9.5}\selectfont,text=Ink]
-      at (\rk@matrixquadrantx,\rk@matrixquadranty) {#3};%
+    \node[rk matrix cell,align=center,text width={0.40*\rk@matrixwidth cm}]
+      at (\rk@matrixquadrantx,\rk@matrixquadranty) {\textbf{#3}};%
   \else
     \rk@spatial@error{Invalid quadrant position '#1/#2'}{Use low or high for both the x and y position.}%
   \fi
@@ -158,7 +158,7 @@
     \global\advance\rk@matrixpointcount by 1\relax
     \pgfmathsetmacro{\rk@matrixpointx}{#3*\rk@matrixwidth}%
     \pgfmathsetmacro{\rk@matrixpointy}{#4*\rk@matrixheight}%
-    \fill[LinkBlue] (\rk@matrixpointx,\rk@matrixpointy) circle[radius=1.55pt];
+    \fill[\RKTokDiagramMatrixPointColor] (\rk@matrixpointx,\rk@matrixpointy) circle[radius=\RKTokDiagramMatrixPointRadius];
     \def\rk@matrixpointanchor{}\def\rk@matrixpointxshift{0}\def\rk@matrixpointyshift{0}%
     \expandafter\ifstrequal\expandafter{\rk@pointlabelposition}{auto}{%
       \ifodd\rk@matrixpointcount\def\rk@pointlabelposition{above}\else\def\rk@pointlabelposition{below}\fi
@@ -171,7 +171,7 @@
       \rk@spatial@error{Invalid point label-position '\rk@pointlabelposition'}{Use label-position=auto, above, below, left, or right.}%
     }{%
       \node[anchor=\rk@matrixpointanchor,xshift=\rk@matrixpointxshift cm,yshift=\rk@matrixpointyshift cm,
-        align=center,font=\sffamily\fontsize{6.9}{8.2}\selectfont,text=Ink]
+        align=center,font=\RKTokDiagramMatrixPointLabelFont,text=\RKTokDiagramMatrixPointLabelText]
         at (\rk@matrixpointx,\rk@matrixpointy) {#2};%
     }%
   \else

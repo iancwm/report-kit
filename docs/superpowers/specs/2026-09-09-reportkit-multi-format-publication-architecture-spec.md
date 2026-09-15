@@ -2,11 +2,19 @@
 
 **Status:** Phase A in progress. A1 landed in v1.9.2 and A2 in v1.9.3; A3
 (shared/paged core split and renderer hooks) is implemented in the working
-tree, pending a version bump. A0 and A4–A5 remain. Phases B–F have not
-started. Supersedes nothing; extends the architecture introduced by
+tree, pending a version bump. A4's diagram work (theme-populated TikZ
+styles across the diagram/structure/process/spatial modules) landed
+2026-09-15; A4's Python/theme-contract extension, plus A0, remain. A5
+(pipeline target-awareness) and Phase B (slide renderer and presentation
+semantics) are also implemented, out of this spec's own phase order, per
+[the implementation plan's](../plans/2026-09-10-reportkit-multi-format-publication-implementation-plan.md)
+own up-to-date status line — this spec's phase list is the historical plan
+of record, not the current status; see the implementation plan for that.
+Phases C–F have not started. Supersedes nothing; extends the architecture
+introduced by
 [2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md](2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md)
 (Steps 1–5 implemented, `reportkit.cls` v1.9.3).
-**Last updated:** 2026-09-13
+**Last updated:** 2026-09-15
 **Current-state claims:** verified against the working tree at `bb15d05`
 (see [Current state](#1-current-state-verified-2026-09-13)). Every premise below
 carries a `file:line` anchor so the implementer does not re-derive it.
