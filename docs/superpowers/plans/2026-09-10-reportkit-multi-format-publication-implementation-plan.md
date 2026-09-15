@@ -7,27 +7,28 @@ CI gate); **A4's diagram work (the last item the plan's own A4 section
 named as "not started") is now implemented** -- theme/adapter split,
 callout/metric token work, and diagram chrome tokens are all in the tree;
 only the Python/theme-contract extension remains open. A5 is essentially
-complete (every "Work" item but materializing theme/brand overrides, which
-nothing yet needs, and the equity-pipeline-acceptance sub-item); A0
-remains untouched. B1 and B2 are essentially complete, now proven through
-`reportkit build` itself (not just direct-TeX authoring) for the "plain
-Markdown frames" authoring path; B3 is implemented for the one existing
-slide theme; B4 is verified by manual PDF inspection, not yet an automated
-gate. **`reportkit build` can now produce both a technical-report/equity-
-research-style paged publication and a presentation** -- see A5's own
-section for the verification record. **Note on sequencing:** §13's
-recommended PR sequence puts A5 before Phase B specifically so a
-presentation could be built through the normal pipeline once the renderer
-existed; Phase B was implemented first here at explicit request, and A5
-followed once B's own status notes kept naming it as the biggest remaining
-gap. Task sizing and visual design details should receive
-engineering/design review before execution.
+complete (every "Work" item but
+materializing theme/brand overrides, which nothing yet needs, and the
+equity-pipeline-acceptance sub-item); A0 remains untouched. B1 and B2 are
+essentially complete, now proven through `reportkit build` itself (not
+just direct-TeX authoring) for the "plain Markdown frames" authoring path;
+B3 is implemented for the one existing slide theme; B4 is verified by
+manual PDF inspection, not yet an automated gate. **`reportkit build` can
+now produce both a technical-report/equity-research-style paged
+publication and a presentation** -- see A5's own section for the
+verification record. **Note on sequencing:** §13's recommended PR sequence
+puts A5 before Phase B specifically so a presentation could be built
+through the normal pipeline once the renderer existed; Phase B was
+implemented first here at explicit request, and A5 followed once B's own
+status notes kept naming it as the biggest remaining gap. Task sizing and
+visual design details should receive engineering/design review before
+execution.
 **Last updated:** 2026-09-15
 **Plans:** [2026-09-09-reportkit-multi-format-publication-architecture-spec.md](../specs/2026-09-09-reportkit-multi-format-publication-architecture-spec.md)
 **Amended by:** [2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md](../specs/2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md)
 **Baseline:** planning baseline `main` at `4f2b27f`, ReportKit v1.9.1.
-**Current status:** verified against `main` at `70f0aba` (this branch's
-merge base), ReportKit v1.9.3, on 2026-09-13.
+**Current status:** verified against `main` at `7bee3a4`, ReportKit v1.9.3,
+on 2026-09-15.
 
 ---
 
@@ -486,6 +487,7 @@ A warning followed by a PDF is a failing test.
 - latex_templates/reportkit.cls
 - latex_templates/reportkit-boxes.sty
 - latex_templates/reportkit-code.sty
+- latex_templates/reportkit-algorithms.sty
 - latex_templates/reportkit-diagrams.sty
 - latex_templates/reportkit-longform.sty
 - relevant compile tests
@@ -661,8 +663,10 @@ run against this change yet and is the authoritative check.
 
 Compile and pixel/hash gates from A3 remain mandatory.
 
-**Implemented 2026-09-13 -- theme/adapter split and callout/metric token work
-only; diagram work and the Python/theme-contract extension remain open:**
+**Implemented 2026-09-13 (historical checkpoint) -- theme/adapter split and
+callout/metric token work:** diagram work remained open at this checkpoint,
+then landed on 2026-09-15 in the record below; the Python/theme-contract
+extension remains open:
 
 - **Theme/adapter split (D11), for both existing themes:** geometry, running
   furniture (fancyhdr), section-heading placement (titlesec), and
@@ -865,6 +869,13 @@ sentinels:
     all show the identical pre-existing `pdflatex`/`microtype` failure
     described above and nothing new.
   - `ruff check tests/test_theme_contract.py`: clean.
+
+**Additive primitive checkpoint (2026-09-15):** `reportkit-algorithms.sty`
+adds the non-floating `algorithmblock` pseudocode module after the A3 split.
+It uses `\RKReserveSpace` and `\RKDiagramCaption`, so it follows the shared
+renderer-hook boundary; its dedicated paged acceptance coverage passes. The
+slides class does not load this module yet, so no slide-renderer parity claim
+is added to A3 or B4.
 
 **Remaining A4 scope, not started:** the Python/theme-contract extension
 (`Theme` typography/chart/geometry/rule/table/diagram/script-coverage

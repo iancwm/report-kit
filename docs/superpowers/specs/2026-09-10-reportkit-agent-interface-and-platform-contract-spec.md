@@ -1,14 +1,15 @@
 # ReportKit — Agent Interface & Platform Contract
 
 **Status:** Implemented for ReportKit v1.9.0: Phase A′ and the
-non-renderer-dependent parts of Phase B′ are complete. Renderer-dependent work
-is explicitly deferred. Companion to
+non-renderer-dependent parts of Phase B′ are complete. An additive
+`algorithmblock` primitive is now included in the generated contract;
+renderer-dependent work remains explicitly deferred. Companion to
 [2026-09-09-reportkit-multi-format-publication-architecture-spec.md](2026-09-09-reportkit-multi-format-publication-architecture-spec.md)
 (the "renderer spec"), which it amends in [§18](#18-amendments-to-the-renderer-spec).
-**Last updated:** 2026-09-10
-**Current-state claims:** verified against the working tree at `2587e03`
-(see [Current state](#1-current-state-verified-2026-09-10)). Every premise
-carries a `file:line` anchor.
+**Last updated:** 2026-09-15
+**Current-state claims:** the historical baseline below is verified against the
+working tree at `2587e03`; the additive checkpoint is verified against `main`
+at `74197e6`. Every premise carries a `file:line` anchor.
 **Priority:** P2 — [§3](#3-the-capability-contract), [§5](#5-documentation-derivation-and-drift)
 and [§8](#8-reproducibility-and-toolchain-pinning) are Phase A work in the
 renderer spec's sequencing; the rest follows.
@@ -17,6 +18,16 @@ renderer spec's sequencing; the rest follows.
 baseline used to scope this change. The implemented contract is schema 1.0.0;
 its canonical operational summary is
 [`references/agent-contract.md`](../../../references/agent-contract.md).
+
+**Additive checkpoint (2026-09-15):** `algorithmblock` plus the
+`\AlgorithmInput` and `\AlgorithmOutput` commands are now declared beside
+their definitions in `latex_templates/reportkit-algorithms.sty`. The generated
+contract and references include them, `tests/test_agent_contract.py` updates
+the exact primitive counts to 32 compositions and 66 commands, and
+`tests/test_algorithmblock.py` covers the public behavior. The module is loaded
+by `reportkit.cls` and follows the non-floating, renderer-hook pattern; no
+slide-renderer availability is claimed because `reportkit-slides.cls` does not
+load this paged-class semantic module yet.
 
 ---
 
@@ -66,7 +77,7 @@ renderer spec's **Phase A**, not after Phase F.
 
 ---
 
-## 1. Current state (verified 2026-09-10)
+## 1. Current state (historical baseline verified 2026-09-10)
 
 ### 1.1 Foundations that already exist — do not rebuild
 
@@ -113,6 +124,12 @@ re.findall(r"\\NewDocumentEnvironment\{([^}]+)\}", text)
 An agent can discover that `reportmatrix` exists. It cannot discover how to
 call it. The only place that knowledge lives is `SKILL.md` prose, behind
 Claude-skill frontmatter. **That is the vendor lock**, and it is one regex wide.
+
+The diagnosis above is retained as the pre-v1.9 baseline. The generated
+contract now includes full signatures, arguments, constraints, examples and
+availability records for the additive algorithm primitive as well as the
+existing inventory; the remaining renderer-gated limitation is its absence
+from the slides class.
 
 ---
 
