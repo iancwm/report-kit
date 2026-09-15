@@ -3,9 +3,11 @@
 **Status:** Phase A in progress; Phase B started out of the plan's own
 recommended order (see below), then A5 followed it. Architecture decisions
 are resolved; A1, A2 and A3 are complete (A3 pending the pinned-toolchain
-CI gate); A4 is partially implemented (theme/adapter split and
-callout/metric token work; diagram work and the Python/theme-contract
-extension remain); A5 is essentially complete (every "Work" item but
+CI gate); **A4's diagram work (the last item the plan's own A4 section
+named as "not started") is now implemented** -- theme/adapter split,
+callout/metric token work, and diagram chrome tokens are all in the tree;
+only the Python/theme-contract extension remains open. A5 is essentially
+complete (every "Work" item but
 materializing theme/brand overrides, which nothing yet needs, and the
 equity-pipeline-acceptance sub-item); A0 remains untouched. B1 and B2 are
 essentially complete, now proven through `reportkit build` itself (not
@@ -25,7 +27,7 @@ execution.
 **Plans:** [2026-09-09-reportkit-multi-format-publication-architecture-spec.md](../specs/2026-09-09-reportkit-multi-format-publication-architecture-spec.md)
 **Amended by:** [2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md](../specs/2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md)
 **Baseline:** planning baseline `main` at `4f2b27f`, ReportKit v1.9.1.
-**Current status:** verified against `main` at `74197e6`, ReportKit v1.9.3,
+**Current status:** verified against `main` at `7bee3a4`, ReportKit v1.9.3,
 on 2026-09-15.
 
 ---
@@ -661,8 +663,10 @@ run against this change yet and is the authoritative check.
 
 Compile and pixel/hash gates from A3 remain mandatory.
 
-**Implemented 2026-09-13 -- theme/adapter split and callout/metric token work
-only; diagram work and the Python/theme-contract extension remain open:**
+**Implemented 2026-09-13 (historical checkpoint) -- theme/adapter split and
+callout/metric token work:** diagram work remained open at this checkpoint,
+then landed on 2026-09-15 in the record below; the Python/theme-contract
+extension remains open:
 
 - **Theme/adapter split (D11), for both existing themes:** geometry, running
   furniture (fancyhdr), section-heading placement (titlesec), and
@@ -777,6 +781,95 @@ only; diagram work and the Python/theme-contract extension remain open:**
 The pinned-toolchain CI gate has not run against this change yet and is
 still the authoritative check, per A0.
 
+**Diagram work implemented 2026-09-15** -- theme-populated TikZ styles/
+appearance across `reportkit-diagrams.sty`, `reportkit-structure.sty`,
+`reportkit-process.sty` and `reportkit-spatial.sty`, following exactly the
+signal the paragraph below (kept as the historical record of what was
+still open) named: `SEMANTIC_MODULES` in `tests/test_theme_contract.py` now
+lists all four, and `REQUIRED_STYLE_TOKENS` gained ~90 new `RKTokDiagram...`
+sentinels:
+
+- **Scope rule (kept from D2):** only appearance -- draw/fill colors, line
+  weights, fonts/text colors, corner rounding, padding -- moved behind
+  tokens; authored geometry (node coordinates, widths in cm, spacing
+  constants, arc angles) stayed exactly where each primitive already
+  computed it. Category/semantic colors (`Hairline`, `Surface`, `Ink`,
+  `Muted`, `LinkBlue`, `Evidence`, `Research`, ...) were already per-theme
+  via `\definecolor` before this slice and are unaffected; these tokens
+  style the chrome built on top of them.
+- **New tikz styles, matching the plan's own naming:** `rk edge` is now a
+  real shared base style (`rk edge flow`/`sequence`/`dependency`/`handoff`/
+  `causal`/`optional` all compose it, reading a common arrow-tip token
+  pair plus their own color/weight token), and `rk matrix axis`/
+  `rk matrix axis label`/`rk matrix cell` and `rk timeline` are new named
+  styles used by `\RKMatrix`/`\RKMatrixCell` (`reportkit-diagrams.sty`),
+  `reportmatrix`/`\quadrant`/`\point` (`reportkit-spatial.sty` -- the same
+  axis/cell chrome, now genuinely shared rather than independently
+  hardcoded), and the dated-mode `reportroadmap` axis
+  (`reportkit-structure.sty`) respectively. `rk node` and `rk layer accent`/
+  `rk accent` read the remaining new node/accent tokens.
+- **`reportkit-structure.sty` gained its own tikzset migration** (`rk
+  structure card`/`title`/`muted`/`arrow`), not just the four styles named
+  literally in the plan -- required because `reportarchitecture` and
+  `reportroadmap`, the plan's own motivating examples for including this
+  file, are built on it. The architecture-layer, roadmap-horizon and
+  capability-map boxes (each hardcoded the identical Hairline/Surface/.5pt/
+  1.2pt values as `rk structure card` before this slice, just drawn as a
+  raw `\draw` rectangle instead of a node style) now read the same tokens.
+  `strategicpillars`' objective-card accent, `maturitymodel`'s CURRENT
+  marker, `continuum`'s axis/markers and `reportkit-spatial.sty`'s risk
+  heatmap/register were deliberately left as authored literals -- outside
+  the plan's explicitly named styles and subordinate-token list, and a
+  reasonable place to stop this slice; a future slice can fold them in the
+  same way if a theme ever needs to diverge there.
+- **A real risk resolved before writing ~90 tokens, not just assumed:**
+  whether a bareword TikZ color option (`\fill[\SomeTokenMacro]`,
+  `\fill[\SomeTokenMacro!6]`, `draw=\SomeTokenMacro`) actually expands a
+  macro standing in for a color name -- the same category of risk A4's own
+  callout/metric slice flagged for tcolorbox's `colback=`. Confirmed
+  empirically with a standalone TikZ probe (all three forms compile
+  cleanly) before applying the pattern across four files, rather than
+  discovering a compile failure 90 tokens in.
+- **Executive theme (Phase B's experimental slides theme) also populated**:
+  it already had to satisfy the callout/metric contract (it loads
+  `reportkit-boxes.sty`/`reportkit-diagrams.sty` exactly like the two paged
+  themes), so it needed the same new diagram tokens -- matching the default
+  theme's values, per its own header's "not restyled, no design reason to
+  diverge yet" note for the callout/metric tokens.
+- **Verified 2026-09-15** in a throwaway, unpinned local toolchain (`apt-get
+  install texlive-luatex texlive-latex-extra texlive-fonts-recommended
+  texlive-science pandoc`, plus the checked-in Google Sans/Libertinus
+  fixtures staged the same way `toolchain/Dockerfile` does -- not the
+  pinned image itself, same caveat every earlier A-phase slice's
+  non-pinned verification carries):
+  - `python -m pytest tests publication_pipeline/tests`: 225 passed, 2
+    failed -- the same two pre-existing, environment-specific failures
+    (both a `pdflatex`+`microtype` "auto expansion is only possible with
+    scalable fonts" error against the portable Libertinus font bundle, not
+    the pinned toolchain), confirmed pre-existing and unrelated to this
+    change by running the identical `scripts/acceptance_check.sh
+    --require-tex` against `git stash`-ed pre-change and post-change trees
+    and diffing the FAIL/WARN lines -- byte-for-byte identical in both.
+  - Direct before/after visual-identity proof (not just "it compiled"):
+    compiled `latex_templates/examples/career_guide_en/report.tex`
+    (default theme), `latex_templates/examples/equity-research/report.tex`
+    (institutional-research theme) and
+    `latex_templates/examples/presentation_acceptance_test.tex` (executive
+    theme) with `lualatex` at both the pre-change and post-change commit
+    (`SOURCE_DATE_EPOCH=1 TZ=UTC LC_ALL=C`), then compared PyMuPDF text
+    extraction and 150 DPI per-page pixel-sample SHA-256 hashes: **all
+    three fixtures are text-identical and pixel-identical, every page**
+    (career_guide_en is additionally raw-PDF-byte-identical). This matches
+    A4's own established verification method (A3/A4's prior slices found
+    this toolchain's LuaLaTeX is not byte-reproducible even baseline-to-
+    baseline for the institutional/equity fixture, so pixel/text identity
+    is the trustworthy comparison there, confirmed again here).
+  - `bash scripts/acceptance_check.sh --require-tex`, `reportkit docs
+    --check --json` (clean) and `scripts/contract_acceptance.py --json`
+    all show the identical pre-existing `pdflatex`/`microtype` failure
+    described above and nothing new.
+  - `ruff check tests/test_theme_contract.py`: clean.
+
 **Additive primitive checkpoint (2026-09-15):** `reportkit-algorithms.sty`
 adds the non-floating `algorithmblock` pseudocode module after the A3 split.
 It uses `\RKReserveSpace` and `\RKDiagramCaption`, so it follows the shared
@@ -784,16 +877,16 @@ renderer-hook boundary; its dedicated paged acceptance coverage passes. The
 slides class does not load this module yet, so no slide-renderer parity claim
 is added to A3 or B4.
 
-**Remaining A4 scope, not started:** the diagram work (theme-populated TikZ
-styles across `reportkit-diagrams.sty`, `reportkit-structure.sty`,
-`reportkit-process.sty`, `reportkit-spatial.sty`) and the Python/theme-contract
-extension (`Theme` typography/chart/geometry/rule/table/diagram/script-coverage
+**Remaining A4 scope, not started:** the Python/theme-contract extension
+(`Theme` typography/chart/geometry/rule/table/diagram/script-coverage
 records; `check-theme` validating common *and* adapter token layers -- today
-it only reasons about the common package). `SEMANTIC_MODULES` in
-`tests/test_theme_contract.py` is deliberately just
-`["reportkit-boxes.sty"]` right now; adding a diagram module to that list
-before its migration lands would fail for the wrong reason, and is the
-signal that the next slice should flip it in.
+it only reasons about the common package). Nothing in `reportkit_viz.py` or
+`python_scripts/reportkit/themes/` changed in this slice -- the diagram
+tokens above are pure LaTeX, read only by the TeX compiler, so there was no
+Python-side contract to extend for them specifically; the still-open
+Python/theme-contract item is its own, separately-scoped piece of A4 (deeper
+than diagram chrome: typography/chart/geometry/rule/table records for
+`reportkit_viz.py` callers, not just LaTeX tokens).
 
 ### A5 — make the pipeline target-aware
 

@@ -263,6 +263,97 @@
 \renewcommand{\RKTokMetricSubtitleFont}{\fontsize{8.3}{10}\selectfont}
 \renewcommand{\RKTokMetricSubtitleSpacing}{4pt}
 \renewcommand{\RKTokMetricWhyFont}{\fontsize{7.2}{8.4}\selectfont}
+% Diagram chrome (reportkit-core.sty's "Diagram chrome" contract, Phase A4's
+% remaining diagram work). Matches the default theme's values exactly --
+% §21 only asks for quieter callout chrome and the institutional type
+% scale above; it does not ask diagrams to be restyled, so these tokens
+% preserve the pre-Phase-A4 hardcoded appearance (see
+% reportkit-theme-default.sty for the same block with the same rationale).
+\renewcommand{\RKTokDiagramNodeDraw}{Hairline}
+\renewcommand{\RKTokDiagramNodeFill}{Surface}
+\renewcommand{\RKTokDiagramNodeText}{Ink}
+\renewcommand{\RKTokDiagramNodeRounding}{1.2pt}
+\renewcommand{\RKTokDiagramNodeMinHeight}{10mm}
+\renewcommand{\RKTokDiagramNodeTextWidth}{28mm}
+\renewcommand{\RKTokDiagramNodePadX}{5pt}
+\renewcommand{\RKTokDiagramNodePadY}{4pt}
+\renewcommand{\RKTokDiagramNodeFont}{\sffamily\fontsize{8.1}{9.7}\selectfont}
+\renewcommand{\RKTokDiagramAccentDraw}{LinkBlue}
+\renewcommand{\RKTokDiagramAccentFill}{Surface}
+\renewcommand{\RKTokDiagramAccentWidth}{.8pt}
+\renewcommand{\RKTokDiagramArrowLength}{4pt}
+\renewcommand{\RKTokDiagramArrowWidth}{4pt}
+\renewcommand{\RKTokDiagramEdgeFlowColor}{Evidence}
+\renewcommand{\RKTokDiagramEdgeFlowWidth}{.8pt}
+\renewcommand{\RKTokDiagramEdgeSequenceColor}{Evidence}
+\renewcommand{\RKTokDiagramEdgeSequenceWidth}{.8pt}
+\renewcommand{\RKTokDiagramEdgeDependencyColor}{LinkBlue}
+\renewcommand{\RKTokDiagramEdgeDependencyWidth}{.75pt}
+\renewcommand{\RKTokDiagramEdgeHandoffColor}{Muted}
+\renewcommand{\RKTokDiagramEdgeHandoffWidth}{.75pt}
+\renewcommand{\RKTokDiagramEdgeCausalColor}{Research}
+\renewcommand{\RKTokDiagramEdgeCausalWidth}{.9pt}
+\renewcommand{\RKTokDiagramEdgeOptionalColor}{Muted}
+\renewcommand{\RKTokDiagramEdgeOptionalWidth}{.7pt}
+\renewcommand{\RKTokDiagramEdgeLabelFill}{white}
+\renewcommand{\RKTokDiagramEdgeLabelPad}{1.5pt}
+\renewcommand{\RKTokDiagramEdgeLabelText}{Muted}
+\renewcommand{\RKTokDiagramEdgeLabelFont}{\sffamily\fontsize{6.8}{8}\selectfont}
+\renewcommand{\RKTokDiagramLayerDraw}{Hairline}
+\renewcommand{\RKTokDiagramLayerFill}{white}
+\renewcommand{\RKTokDiagramLayerWidth}{.5pt}
+\renewcommand{\RKTokDiagramLayerTitleFont}{\sffamily\bfseries\fontsize{7.7}{9}\selectfont}
+\renewcommand{\RKTokDiagramLayerTitleText}{Ink}
+\renewcommand{\RKTokDiagramLayerBodyFont}{\sffamily\fontsize{7.2}{8.5}\selectfont}
+\renewcommand{\RKTokDiagramLayerBodyText}{Muted}
+\renewcommand{\RKTokDiagramTierDraw}{Hairline}
+\renewcommand{\RKTokDiagramTierFill}{Surface}
+\renewcommand{\RKTokDiagramTierWidth}{.5pt}
+\renewcommand{\RKTokDiagramTierLabelFont}{\sffamily\fontsize{7.5}{9}\selectfont}
+\renewcommand{\RKTokDiagramTierLabelText}{Ink}
+\renewcommand{\RKTokDiagramStackArrowColor}{Evidence}
+\renewcommand{\RKTokDiagramStackArrowWidth}{.7pt}
+\renewcommand{\RKTokDiagramCycleNodeFont}{\sffamily\fontsize{7.4}{8.8}\selectfont}
+\renewcommand{\RKTokDiagramCycleEdgeColor}{Evidence}
+\renewcommand{\RKTokDiagramCycleEdgeWidth}{.8pt}
+\renewcommand{\RKTokDiagramMatrixAxisColor}{Hairline}
+\renewcommand{\RKTokDiagramMatrixAxisWidth}{.55pt}
+\renewcommand{\RKTokDiagramMatrixAxisLabelFont}{\sffamily\fontsize{7.2}{8.6}\selectfont}
+\renewcommand{\RKTokDiagramMatrixAxisLabelText}{Muted}
+\renewcommand{\RKTokDiagramMatrixEndpointFont}{\sffamily\fontsize{6.8}{8}\selectfont}
+\renewcommand{\RKTokDiagramMatrixEndpointText}{Muted}
+\renewcommand{\RKTokDiagramMatrixAccentColor}{LinkBlue}
+\renewcommand{\RKTokDiagramMatrixCellFont}{\sffamily\fontsize{8}{9.5}\selectfont}
+\renewcommand{\RKTokDiagramMatrixCellText}{Ink}
+\renewcommand{\RKTokDiagramMatrixPointColor}{LinkBlue}
+\renewcommand{\RKTokDiagramMatrixPointRadius}{1.55pt}
+\renewcommand{\RKTokDiagramMatrixPointLabelFont}{\sffamily\fontsize{6.9}{8.2}\selectfont}
+\renewcommand{\RKTokDiagramMatrixPointLabelText}{Ink}
+\renewcommand{\RKTokDiagramLaneDividerColor}{Hairline}
+\renewcommand{\RKTokDiagramLaneDividerWidth}{.5pt}
+\renewcommand{\RKTokDiagramLaneLabelFont}{\sffamily\fontsize{7.2}{8.5}\selectfont}
+\renewcommand{\RKTokDiagramLaneLabelText}{Muted}
+\renewcommand{\RKTokDiagramTimelineAxisColor}{Evidence}
+\renewcommand{\RKTokDiagramTimelineAxisWidth}{.8pt}
+\renewcommand{\RKTokDiagramTimelineDotColor}{LinkBlue}
+\renewcommand{\RKTokDiagramTimelineDotRadius}{2.1pt}
+\renewcommand{\RKTokDiagramRoadmapAccentColor}{LinkBlue}
+\renewcommand{\RKTokDiagramRoadmapAccentFont}{\sffamily\bfseries\fontsize{7.1}{8.5}\selectfont}
+\renewcommand{\RKTokDiagramStructureCardDraw}{Hairline}
+\renewcommand{\RKTokDiagramStructureCardFill}{Surface}
+\renewcommand{\RKTokDiagramStructureCardRounding}{1.2pt}
+\renewcommand{\RKTokDiagramStructureCardWidth}{.5pt}
+\renewcommand{\RKTokDiagramStructureCardPadX}{4pt}
+\renewcommand{\RKTokDiagramStructureCardPadY}{3.5pt}
+\renewcommand{\RKTokDiagramStructureCardFont}{\sffamily\fontsize{7.4}{8.8}\selectfont}
+\renewcommand{\RKTokDiagramStructureCardText}{Ink}
+\renewcommand{\RKTokDiagramStructureTitleFont}{\sffamily\bfseries\fontsize{7.7}{9.2}\selectfont}
+\renewcommand{\RKTokDiagramStructureTitleText}{Ink}
+\renewcommand{\RKTokDiagramStructureMutedFont}{\sffamily\fontsize{6.8}{8.1}\selectfont}
+\renewcommand{\RKTokDiagramStructureMutedText}{Muted}
+\renewcommand{\RKTokDiagramStructureArrowColor}{Evidence}
+\renewcommand{\RKTokDiagramStructureArrowWidth}{.7pt}
+\renewcommand{\RKTokDiagramStructureArrowTip}{3.6pt}
 \rk@styletokensloadedtrue
 
 % <reportkit-contract>

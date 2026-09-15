@@ -2,17 +2,17 @@
 
 **Status:** Phase A in progress. A1 landed in v1.9.2 and A2 in v1.9.3; A3
 (shared/paged core split and renderer hooks) is implemented, pending the
-pinned-toolchain CI gate. A4 is partially implemented (theme/adapter split
-and callout/metric tokens; diagram-token work and the Python/theme-contract
-extension remain). A5 (pipeline target-awareness) and Phase B (slide
-renderer and presentation semantics) are essentially implemented, out of this
-spec's original phase order, with scoped follow-up recorded below; A0 remains.
-Phases C–F have not started.
+pinned-toolchain CI gate. A4's diagram work (theme-populated TikZ styles
+across the diagram, structure, process, and spatial modules) landed
+2026-09-15; only A4's Python/theme-contract extension remains. A5 (pipeline
+target-awareness) and Phase B (slide renderer and presentation semantics) are
+essentially implemented, out of this spec's original phase order, with scoped
+follow-up recorded below; A0 remains. Phases C–F have not started.
 Supersedes nothing; extends the architecture introduced by
 [2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md](2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md)
 (Steps 1–5 implemented, `reportkit.cls` v1.9.3).
 **Last updated:** 2026-09-15
-**Current-state claims:** verified against `main` at `74197e6`
+**Current-state claims:** verified against `main` at `7bee3a4`
 (see [Current state](#1-current-state-verified-2026-09-15)). Every premise below
 carries a `file:line` anchor so the implementer does not re-derive it.
 **Priority:** P2 — architectural hardening, ahead of any new theme.
@@ -32,10 +32,10 @@ axis — the renderer — because slides are the first format the current articl
 backend genuinely cannot express.
 
 The publication registry and LaTeX option boundary from Phase A are now in
-place. The remaining Phase A work is the compatibility baseline, the diagram
-token work, and the Python/theme-contract extension described below. The
-pipeline and slide-renderer slices have landed; their scoped follow-up is
-recorded in the implementation plan.
+place. The remaining Phase A work is the compatibility baseline and the
+Python/theme-contract extension described below; the diagram-token work has
+landed. The pipeline and slide-renderer slices have landed; their scoped
+follow-up is recorded in the implementation plan.
 
 The sequencing matters more than the content. Executive, venture and editorial
 each introduce a fresh opportunity for special-case coupling; if they land
@@ -103,8 +103,8 @@ whole specification; everything below is its consequences.
 | Publication type loads through the generated package mapping | `reportkit.cls:93-99`, `reportkit-slides.cls:63-69` |
 | Callout/metric appearance comes from theme tokens | `reportkit-core.sty` style-token contract; `reportkit-boxes.sty` has no theme-name branch |
 | Renderer cores separate shared and paged mechanics | `reportkit-core.sty`, `reportkit-paged-core.sty`, `reportkit-slides-core.sty` |
-| Diagram styling is hardcoded in the semantic module | `reportkit-diagrams.sty:22-39` — node font/corners/dimensions, edge widths and colors, label typography |
-| Further hardcoded diagram typography | `reportkit-diagrams.sty:195-307` — matrix axes, swimlanes, layers, timeline nodes |
+| Diagram appearance is theme-tokenized in semantic modules | `reportkit-diagrams.sty:35-54`, `reportkit-structure.sty:42-50`, `reportkit-process.sty`, and `reportkit-spatial.sty` |
+| Diagram token contract covers the four semantic modules | `reportkit-core.sty:198+`; `tests/test_theme_contract.py:37-75` |
 | Pipeline resolves the target's class, template, writer, and engine | `publication_pipeline/scripts/publication_build.py:build()` and `publications.py:resolve_build_target()` |
 | Presentation pipeline target is exercised end to end | `publication_pipeline/templates/presentation.tex`; `publication_pipeline/tests/test_build_target_selection.py` |
 | `algorithmblock` uses renderer hooks and remains non-floating | `latex_templates/reportkit-algorithms.sty`; `reportkit.cls:101-107` |
@@ -293,20 +293,20 @@ The rule to satisfy: **semantic modules own meaning; themes own rendering.**
 
 No consumer publication may need rewriting.
 
-**A4 status:** the callout and metric requirement is implemented in the
-current tree. `reportkit-core.sty` declares the style-token contract, both
-common themes populate it, and `reportkit-boxes.sty` reads the tokens without
-branching on a theme name. Diagram appearance remains the separate open half
-of A4; its original requirement is retained in §3.3.
+**A4 status:** the callout, metric, and diagram-appearance requirements are
+implemented in the current tree. `reportkit-core.sty` declares the
+style-token contract; the default, institutional-research, and executive
+themes populate it; and `reportkit-boxes.sty` plus the diagram, structure,
+process, and spatial modules consume it without theme-name branching. The
+remaining A4 item is the separately scoped Python/theme-contract extension.
 
 ### 3.3 Diagram styling is embedded in semantic primitives
 
-`reportkit-diagrams.sty:22-39` fixes node fonts, rounded corners, dimensions,
-edge widths, fills and label typography; `:195-307` repeats hardcoded
-typography for matrix axes, swimlanes, layers and timelines.
+Before A4, `reportkit-diagrams.sty` embedded appearance values for nodes,
+edges, labels, matrices, swimlanes, layers, and timelines.
 
-**Requirement:** move these into theme-overridable TikZ styles or token hooks.
-At minimum these styles receive theme-defined defaults:
+**Implemented:** theme-overridable TikZ styles and token hooks now cover the
+specified appearance. At minimum these styles receive theme-defined defaults:
 
 ```
 rk node          rk edge          rk edge label
@@ -956,9 +956,9 @@ in the changelog.
 below: shared/paged core split, item 5's `\Needspace`/`\captionof` half via
 renderer hooks) is implemented and verified in a local non-pinned
 LuaLaTeX/pdfLaTeX toolchain; the pinned-toolchain CI gate still needs to run
-and, if it passes, stand as the recorded baseline. A4 is partially implemented:
-the theme/adapter split and callout/metric style-token work are complete, while
-diagram tokens and the Python `Theme` contract extension remain. A5 is
+and, if it passes, stand as the recorded baseline. A4's theme/adapter,
+callout/metric, and diagram-appearance style-token work are complete; only
+the Python `Theme` contract extension remains. A5 is
 essentially complete: the target-aware pipeline and a real presentation build
 are verified, with the equity pipeline-acceptance case and full D7 template
 split still open. A0 remains open.

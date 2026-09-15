@@ -181,6 +181,126 @@
 \newcommand{\RKTokMetricSubtitleFont}{\rk@styletokenerror{\RKTokMetricSubtitleFont}}
 \newcommand{\RKTokMetricSubtitleSpacing}{\rk@styletokenerror{\RKTokMetricSubtitleSpacing}}
 \newcommand{\RKTokMetricWhyFont}{\rk@styletokenerror{\RKTokMetricWhyFont}}
+% Diagram chrome (reportkit-diagrams.sty, reportkit-structure.sty,
+% reportkit-process.sty and reportkit-spatial.sty -- the remaining A4 scope
+% the plan's own A4 section named as not-yet-started). Same contract, same
+% \ifrk@styletokensloaded gate as the callout/metric tokens above: every
+% semantic module in this style-token family is loaded after the theme
+% regardless of renderer, so one gate is enough (unlike the presentation
+% tokens below, which only ever load under the slides renderer). Only
+% appearance -- draw/fill colors, line weights, fonts/text colors, corner
+% rounding, padding -- is tokenized; authored geometry (node coordinates,
+% widths in cm, spacing constants) stays where each primitive already
+% computes it, per the plan's "themes may set defaults but do not fork
+% implementations" rule.
+% Generic node (\RKNode/\RKNodeRel and every primitive built on the shared
+% `rk node` TikZ style).
+\newcommand{\RKTokDiagramNodeDraw}{\rk@styletokenerror{\RKTokDiagramNodeDraw}}
+\newcommand{\RKTokDiagramNodeFill}{\rk@styletokenerror{\RKTokDiagramNodeFill}}
+\newcommand{\RKTokDiagramNodeText}{\rk@styletokenerror{\RKTokDiagramNodeText}}
+\newcommand{\RKTokDiagramNodeRounding}{\rk@styletokenerror{\RKTokDiagramNodeRounding}}
+\newcommand{\RKTokDiagramNodeMinHeight}{\rk@styletokenerror{\RKTokDiagramNodeMinHeight}}
+\newcommand{\RKTokDiagramNodeTextWidth}{\rk@styletokenerror{\RKTokDiagramNodeTextWidth}}
+\newcommand{\RKTokDiagramNodePadX}{\rk@styletokenerror{\RKTokDiagramNodePadX}}
+\newcommand{\RKTokDiagramNodePadY}{\rk@styletokenerror{\RKTokDiagramNodePadY}}
+\newcommand{\RKTokDiagramNodeFont}{\rk@styletokenerror{\RKTokDiagramNodeFont}}
+% Accent overlay (`rk accent`/`rk layer accent`) and the shared arrow tip
+% every `rk edge ...` style composes via the new `rk edge` base style.
+\newcommand{\RKTokDiagramAccentDraw}{\rk@styletokenerror{\RKTokDiagramAccentDraw}}
+\newcommand{\RKTokDiagramAccentFill}{\rk@styletokenerror{\RKTokDiagramAccentFill}}
+\newcommand{\RKTokDiagramAccentWidth}{\rk@styletokenerror{\RKTokDiagramAccentWidth}}
+\newcommand{\RKTokDiagramArrowLength}{\rk@styletokenerror{\RKTokDiagramArrowLength}}
+\newcommand{\RKTokDiagramArrowWidth}{\rk@styletokenerror{\RKTokDiagramArrowWidth}}
+% Per-relationship edge weight/color (`rk edge flow`, `... sequence`, ...).
+\newcommand{\RKTokDiagramEdgeFlowColor}{\rk@styletokenerror{\RKTokDiagramEdgeFlowColor}}
+\newcommand{\RKTokDiagramEdgeFlowWidth}{\rk@styletokenerror{\RKTokDiagramEdgeFlowWidth}}
+\newcommand{\RKTokDiagramEdgeSequenceColor}{\rk@styletokenerror{\RKTokDiagramEdgeSequenceColor}}
+\newcommand{\RKTokDiagramEdgeSequenceWidth}{\rk@styletokenerror{\RKTokDiagramEdgeSequenceWidth}}
+\newcommand{\RKTokDiagramEdgeDependencyColor}{\rk@styletokenerror{\RKTokDiagramEdgeDependencyColor}}
+\newcommand{\RKTokDiagramEdgeDependencyWidth}{\rk@styletokenerror{\RKTokDiagramEdgeDependencyWidth}}
+\newcommand{\RKTokDiagramEdgeHandoffColor}{\rk@styletokenerror{\RKTokDiagramEdgeHandoffColor}}
+\newcommand{\RKTokDiagramEdgeHandoffWidth}{\rk@styletokenerror{\RKTokDiagramEdgeHandoffWidth}}
+\newcommand{\RKTokDiagramEdgeCausalColor}{\rk@styletokenerror{\RKTokDiagramEdgeCausalColor}}
+\newcommand{\RKTokDiagramEdgeCausalWidth}{\rk@styletokenerror{\RKTokDiagramEdgeCausalWidth}}
+\newcommand{\RKTokDiagramEdgeOptionalColor}{\rk@styletokenerror{\RKTokDiagramEdgeOptionalColor}}
+\newcommand{\RKTokDiagramEdgeOptionalWidth}{\rk@styletokenerror{\RKTokDiagramEdgeOptionalWidth}}
+% Edge label (`rk edge label`).
+\newcommand{\RKTokDiagramEdgeLabelFill}{\rk@styletokenerror{\RKTokDiagramEdgeLabelFill}}
+\newcommand{\RKTokDiagramEdgeLabelPad}{\rk@styletokenerror{\RKTokDiagramEdgeLabelPad}}
+\newcommand{\RKTokDiagramEdgeLabelText}{\rk@styletokenerror{\RKTokDiagramEdgeLabelText}}
+\newcommand{\RKTokDiagramEdgeLabelFont}{\rk@styletokenerror{\RKTokDiagramEdgeLabelFont}}
+% Layered architecture (`\RKLayer`) -- title/body chrome.
+\newcommand{\RKTokDiagramLayerDraw}{\rk@styletokenerror{\RKTokDiagramLayerDraw}}
+\newcommand{\RKTokDiagramLayerFill}{\rk@styletokenerror{\RKTokDiagramLayerFill}}
+\newcommand{\RKTokDiagramLayerWidth}{\rk@styletokenerror{\RKTokDiagramLayerWidth}}
+\newcommand{\RKTokDiagramLayerTitleFont}{\rk@styletokenerror{\RKTokDiagramLayerTitleFont}}
+\newcommand{\RKTokDiagramLayerTitleText}{\rk@styletokenerror{\RKTokDiagramLayerTitleText}}
+\newcommand{\RKTokDiagramLayerBodyFont}{\rk@styletokenerror{\RKTokDiagramLayerBodyFont}}
+\newcommand{\RKTokDiagramLayerBodyText}{\rk@styletokenerror{\RKTokDiagramLayerBodyText}}
+% Evidence stack / conversion funnel tiers -- share one chrome contract
+% because both are already the same fill/rule/font, just different shapes.
+\newcommand{\RKTokDiagramTierDraw}{\rk@styletokenerror{\RKTokDiagramTierDraw}}
+\newcommand{\RKTokDiagramTierFill}{\rk@styletokenerror{\RKTokDiagramTierFill}}
+\newcommand{\RKTokDiagramTierWidth}{\rk@styletokenerror{\RKTokDiagramTierWidth}}
+\newcommand{\RKTokDiagramTierLabelFont}{\rk@styletokenerror{\RKTokDiagramTierLabelFont}}
+\newcommand{\RKTokDiagramTierLabelText}{\rk@styletokenerror{\RKTokDiagramTierLabelText}}
+\newcommand{\RKTokDiagramStackArrowColor}{\rk@styletokenerror{\RKTokDiagramStackArrowColor}}
+\newcommand{\RKTokDiagramStackArrowWidth}{\rk@styletokenerror{\RKTokDiagramStackArrowWidth}}
+% Cyclic flow (`\RKCycleNode`/`\RKCycleEdge`) -- overrides `rk node`'s font
+% (a smaller compact label) and its own edge weight.
+\newcommand{\RKTokDiagramCycleNodeFont}{\rk@styletokenerror{\RKTokDiagramCycleNodeFont}}
+\newcommand{\RKTokDiagramCycleEdgeColor}{\rk@styletokenerror{\RKTokDiagramCycleEdgeColor}}
+\newcommand{\RKTokDiagramCycleEdgeWidth}{\rk@styletokenerror{\RKTokDiagramCycleEdgeWidth}}
+% 2x2 matrix (`\RKMatrix`/`\RKMatrixCell`, and reportkit-spatial.sty's
+% `reportmatrix`/`\quadrant`/`\point`, which draw the same axis/cell chrome).
+\newcommand{\RKTokDiagramMatrixAxisColor}{\rk@styletokenerror{\RKTokDiagramMatrixAxisColor}}
+\newcommand{\RKTokDiagramMatrixAxisWidth}{\rk@styletokenerror{\RKTokDiagramMatrixAxisWidth}}
+\newcommand{\RKTokDiagramMatrixAxisLabelFont}{\rk@styletokenerror{\RKTokDiagramMatrixAxisLabelFont}}
+\newcommand{\RKTokDiagramMatrixAxisLabelText}{\rk@styletokenerror{\RKTokDiagramMatrixAxisLabelText}}
+\newcommand{\RKTokDiagramMatrixEndpointFont}{\rk@styletokenerror{\RKTokDiagramMatrixEndpointFont}}
+\newcommand{\RKTokDiagramMatrixEndpointText}{\rk@styletokenerror{\RKTokDiagramMatrixEndpointText}}
+\newcommand{\RKTokDiagramMatrixAccentColor}{\rk@styletokenerror{\RKTokDiagramMatrixAccentColor}}
+\newcommand{\RKTokDiagramMatrixCellFont}{\rk@styletokenerror{\RKTokDiagramMatrixCellFont}}
+\newcommand{\RKTokDiagramMatrixCellText}{\rk@styletokenerror{\RKTokDiagramMatrixCellText}}
+\newcommand{\RKTokDiagramMatrixPointColor}{\rk@styletokenerror{\RKTokDiagramMatrixPointColor}}
+\newcommand{\RKTokDiagramMatrixPointRadius}{\rk@styletokenerror{\RKTokDiagramMatrixPointRadius}}
+\newcommand{\RKTokDiagramMatrixPointLabelFont}{\rk@styletokenerror{\RKTokDiagramMatrixPointLabelFont}}
+\newcommand{\RKTokDiagramMatrixPointLabelText}{\rk@styletokenerror{\RKTokDiagramMatrixPointLabelText}}
+% Swimlanes (reportkit-diagrams.sty's `\RKLane` and reportkit-process.sty's
+% `reportswimlane` lane rule/label -- both draw the same lane chrome).
+\newcommand{\RKTokDiagramLaneDividerColor}{\rk@styletokenerror{\RKTokDiagramLaneDividerColor}}
+\newcommand{\RKTokDiagramLaneDividerWidth}{\rk@styletokenerror{\RKTokDiagramLaneDividerWidth}}
+\newcommand{\RKTokDiagramLaneLabelFont}{\rk@styletokenerror{\RKTokDiagramLaneLabelFont}}
+\newcommand{\RKTokDiagramLaneLabelText}{\rk@styletokenerror{\RKTokDiagramLaneLabelText}}
+% Dated roadmap axis (reportkit-structure.sty's `reportroadmap` mode=dated --
+% the spec's "timeline" view; its period cards/connectors already read the
+% `rk structure card`/`rk structure arrow` tokens below).
+\newcommand{\RKTokDiagramTimelineAxisColor}{\rk@styletokenerror{\RKTokDiagramTimelineAxisColor}}
+\newcommand{\RKTokDiagramTimelineAxisWidth}{\rk@styletokenerror{\RKTokDiagramTimelineAxisWidth}}
+\newcommand{\RKTokDiagramTimelineDotColor}{\rk@styletokenerror{\RKTokDiagramTimelineDotColor}}
+\newcommand{\RKTokDiagramTimelineDotRadius}{\rk@styletokenerror{\RKTokDiagramTimelineDotRadius}}
+% Horizon-mode roadmap accent (the bold "theme" line under each horizon
+% label) -- a distinct roadmap element from the dated-mode axis/dot above.
+\newcommand{\RKTokDiagramRoadmapAccentColor}{\rk@styletokenerror{\RKTokDiagramRoadmapAccentColor}}
+\newcommand{\RKTokDiagramRoadmapAccentFont}{\rk@styletokenerror{\RKTokDiagramRoadmapAccentFont}}
+% reportkit-structure.sty's own semantic layer (`rk structure card/title/
+% muted/arrow`) -- reportarchitecture, reportroadmap, strategicpillars,
+% maturitymodel, continuum, capabilitymap and reporttree are all built on it.
+\newcommand{\RKTokDiagramStructureCardDraw}{\rk@styletokenerror{\RKTokDiagramStructureCardDraw}}
+\newcommand{\RKTokDiagramStructureCardFill}{\rk@styletokenerror{\RKTokDiagramStructureCardFill}}
+\newcommand{\RKTokDiagramStructureCardRounding}{\rk@styletokenerror{\RKTokDiagramStructureCardRounding}}
+\newcommand{\RKTokDiagramStructureCardWidth}{\rk@styletokenerror{\RKTokDiagramStructureCardWidth}}
+\newcommand{\RKTokDiagramStructureCardPadX}{\rk@styletokenerror{\RKTokDiagramStructureCardPadX}}
+\newcommand{\RKTokDiagramStructureCardPadY}{\rk@styletokenerror{\RKTokDiagramStructureCardPadY}}
+\newcommand{\RKTokDiagramStructureCardFont}{\rk@styletokenerror{\RKTokDiagramStructureCardFont}}
+\newcommand{\RKTokDiagramStructureCardText}{\rk@styletokenerror{\RKTokDiagramStructureCardText}}
+\newcommand{\RKTokDiagramStructureTitleFont}{\rk@styletokenerror{\RKTokDiagramStructureTitleFont}}
+\newcommand{\RKTokDiagramStructureTitleText}{\rk@styletokenerror{\RKTokDiagramStructureTitleText}}
+\newcommand{\RKTokDiagramStructureMutedFont}{\rk@styletokenerror{\RKTokDiagramStructureMutedFont}}
+\newcommand{\RKTokDiagramStructureMutedText}{\rk@styletokenerror{\RKTokDiagramStructureMutedText}}
+\newcommand{\RKTokDiagramStructureArrowColor}{\rk@styletokenerror{\RKTokDiagramStructureArrowColor}}
+\newcommand{\RKTokDiagramStructureArrowWidth}{\rk@styletokenerror{\RKTokDiagramStructureArrowWidth}}
+\newcommand{\RKTokDiagramStructureArrowTip}{\rk@styletokenerror{\RKTokDiagramStructureArrowTip}}
 \newif\ifrk@styletokensloaded
 \rk@styletokensloadedfalse
 % Called by reportkit-boxes.sty (or any future style-token consumer)

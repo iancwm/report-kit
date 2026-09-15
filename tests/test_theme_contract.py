@@ -31,14 +31,74 @@ REQUIRED_STYLE_TOKENS = [
     "RKTokMetricBeforeSkip", "RKTokMetricAfterSkip", "RKTokMetricBorderLineWidth",
     "RKTokMetricLabelFont", "RKTokMetricValueFont", "RKTokMetricSubtitleFont",
     "RKTokMetricSubtitleSpacing", "RKTokMetricWhyFont",
+    # Diagram chrome (Phase A4's remaining "diagram work" -- reportkit-core.sty's
+    # "Diagram chrome" contract section). Shared by reportkit-diagrams.sty,
+    # reportkit-structure.sty, reportkit-process.sty and reportkit-spatial.sty.
+    "RKTokDiagramNodeDraw", "RKTokDiagramNodeFill", "RKTokDiagramNodeText",
+    "RKTokDiagramNodeRounding", "RKTokDiagramNodeMinHeight", "RKTokDiagramNodeTextWidth",
+    "RKTokDiagramNodePadX", "RKTokDiagramNodePadY", "RKTokDiagramNodeFont",
+    "RKTokDiagramAccentDraw", "RKTokDiagramAccentFill", "RKTokDiagramAccentWidth",
+    "RKTokDiagramArrowLength", "RKTokDiagramArrowWidth",
+    "RKTokDiagramEdgeFlowColor", "RKTokDiagramEdgeFlowWidth",
+    "RKTokDiagramEdgeSequenceColor", "RKTokDiagramEdgeSequenceWidth",
+    "RKTokDiagramEdgeDependencyColor", "RKTokDiagramEdgeDependencyWidth",
+    "RKTokDiagramEdgeHandoffColor", "RKTokDiagramEdgeHandoffWidth",
+    "RKTokDiagramEdgeCausalColor", "RKTokDiagramEdgeCausalWidth",
+    "RKTokDiagramEdgeOptionalColor", "RKTokDiagramEdgeOptionalWidth",
+    "RKTokDiagramEdgeLabelFill", "RKTokDiagramEdgeLabelPad",
+    "RKTokDiagramEdgeLabelText", "RKTokDiagramEdgeLabelFont",
+    "RKTokDiagramLayerDraw", "RKTokDiagramLayerFill", "RKTokDiagramLayerWidth",
+    "RKTokDiagramLayerTitleFont", "RKTokDiagramLayerTitleText",
+    "RKTokDiagramLayerBodyFont", "RKTokDiagramLayerBodyText",
+    "RKTokDiagramTierDraw", "RKTokDiagramTierFill", "RKTokDiagramTierWidth",
+    "RKTokDiagramTierLabelFont", "RKTokDiagramTierLabelText",
+    "RKTokDiagramStackArrowColor", "RKTokDiagramStackArrowWidth",
+    "RKTokDiagramCycleNodeFont", "RKTokDiagramCycleEdgeColor", "RKTokDiagramCycleEdgeWidth",
+    "RKTokDiagramMatrixAxisColor", "RKTokDiagramMatrixAxisWidth",
+    "RKTokDiagramMatrixAxisLabelFont", "RKTokDiagramMatrixAxisLabelText",
+    "RKTokDiagramMatrixEndpointFont", "RKTokDiagramMatrixEndpointText",
+    "RKTokDiagramMatrixAccentColor", "RKTokDiagramMatrixCellFont", "RKTokDiagramMatrixCellText",
+    "RKTokDiagramMatrixPointColor", "RKTokDiagramMatrixPointRadius",
+    "RKTokDiagramMatrixPointLabelFont", "RKTokDiagramMatrixPointLabelText",
+    "RKTokDiagramLaneDividerColor", "RKTokDiagramLaneDividerWidth",
+    "RKTokDiagramLaneLabelFont", "RKTokDiagramLaneLabelText",
+    "RKTokDiagramTimelineAxisColor", "RKTokDiagramTimelineAxisWidth",
+    "RKTokDiagramTimelineDotColor", "RKTokDiagramTimelineDotRadius",
+    "RKTokDiagramRoadmapAccentColor", "RKTokDiagramRoadmapAccentFont",
+    "RKTokDiagramStructureCardDraw", "RKTokDiagramStructureCardFill",
+    "RKTokDiagramStructureCardRounding", "RKTokDiagramStructureCardWidth",
+    "RKTokDiagramStructureCardPadX", "RKTokDiagramStructureCardPadY",
+    "RKTokDiagramStructureCardFont", "RKTokDiagramStructureCardText",
+    "RKTokDiagramStructureTitleFont", "RKTokDiagramStructureTitleText",
+    "RKTokDiagramStructureMutedFont", "RKTokDiagramStructureMutedText",
+    "RKTokDiagramStructureArrowColor", "RKTokDiagramStructureArrowWidth",
+    "RKTokDiagramStructureArrowTip",
 ]
 
-# Semantic modules that must not know any theme's name. reportkit-diagrams.sty,
-# reportkit-structure.sty, reportkit-process.sty and reportkit-spatial.sty are
-# not yet migrated to the token contract (remaining A4 scope; see the
-# implementation plan) and are deliberately not listed here -- adding one
-# before its migration lands would make this test fail for the wrong reason.
-SEMANTIC_MODULES = ["reportkit-boxes.sty"]
+# Semantic modules that must not know any theme's name. Phase A4's diagram
+# work (the implementation plan's own "next slice" signal -- see the removed
+# comment this replaces) migrated reportkit-diagrams.sty,
+# reportkit-structure.sty, reportkit-process.sty and reportkit-spatial.sty to
+# the same token contract reportkit-boxes.sty already used; all four are
+# listed here now for the same "no \rk@theme, no theme name" guarantee.
+SEMANTIC_MODULES = [
+    "reportkit-boxes.sty",
+    "reportkit-diagrams.sty",
+    "reportkit-structure.sty",
+    "reportkit-process.sty",
+    "reportkit-spatial.sty",
+]
+
+# Modules in the diagram-chrome family that reportkit-diagrams.sty itself
+# loads (reportkit-structure.sty, reportkit-process.sty,
+# reportkit-spatial.sty): they read style tokens but do not call
+# \RKAssertStyleTokens themselves, because reportkit-diagrams.sty already
+# asserted the contract before \RequirePackage-ing them (see that file's own
+# note). Only reportkit-boxes.sty and reportkit-diagrams.sty -- the two
+# entry points a theme's tokens must be loaded before -- assert directly.
+MODULES_WITHOUT_OWN_ASSERTION = {
+    "reportkit-structure.sty", "reportkit-process.sty", "reportkit-spatial.sty",
+}
 
 CANONICAL_THEMES = sorted({canonical_theme_name(name) for name in THEMES})
 
@@ -82,5 +142,19 @@ def test_semantic_modules_do_not_branch_on_theme_name(module: str) -> None:
 
 def test_semantic_modules_assert_style_tokens_before_reading_them() -> None:
     for module in SEMANTIC_MODULES:
+        if module in MODULES_WITHOUT_OWN_ASSERTION:
+            continue
         module_text = (REPO / "latex_templates" / module).read_text(encoding="utf-8")
         assert r"\RKAssertStyleTokens" in module_text, f"{module} reads style tokens without asserting them first"
+
+
+def test_diagrams_requires_the_modules_that_skip_their_own_assertion() -> None:
+    # reportkit-structure.sty/-process.sty/-spatial.sty rely on
+    # reportkit-diagrams.sty having already asserted the token contract --
+    # confirm that load order is the one actually declared, not just assumed.
+    diagrams_text = (REPO / "latex_templates" / "reportkit-diagrams.sty").read_text(encoding="utf-8")
+    for module in MODULES_WITHOUT_OWN_ASSERTION:
+        package = module.removesuffix(".sty")
+        assert rf"\RequirePackage{{{package}}}" in diagrams_text, (
+            f"reportkit-diagrams.sty no longer requires {module}; it must assert style tokens itself"
+        )

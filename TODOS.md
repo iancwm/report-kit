@@ -24,8 +24,8 @@ The PR-time synchronization directive is in
 | [2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md](docs/superpowers/specs/2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md) | Implemented (Steps 1–5); open questions resolved in the plan below | P2 |
 | [2026-09-09-reportkit-institutional-theme-implementation-plan.md](docs/superpowers/plans/2026-09-09-reportkit-institutional-theme-implementation-plan.md) | Complete — Steps 1–5 implemented; local LuaLaTeX verification passes; pinned visual QA remains | P2 |
 | [2026-09-09-reportkit-fix-post-implementation-findings.md](docs/superpowers/plans/2026-09-09-reportkit-fix-post-implementation-findings.md) | Complete — all 8 tasks done and reviewed clean; fixture verification complete | Complete |
-| [2026-09-09-reportkit-multi-format-publication-architecture-spec.md](docs/superpowers/specs/2026-09-09-reportkit-multi-format-publication-architecture-spec.md) | Phase A in progress — A1–A3 implemented (A3 pending the pinned-toolchain CI gate); A4 partial (diagram work and Python/theme-contract extension remain); A5 and Phase B implemented; A0 remains | P2 |
-| [2026-09-10-reportkit-multi-format-publication-implementation-plan.md](docs/superpowers/plans/2026-09-10-reportkit-multi-format-publication-implementation-plan.md) | Phase A in progress — A1–A3 complete (A3 pending the pinned-toolchain CI gate); A4 partial; A5 essentially complete; A0 remains; Phase B started early at request | P2 |
+| [2026-09-09-reportkit-multi-format-publication-architecture-spec.md](docs/superpowers/specs/2026-09-09-reportkit-multi-format-publication-architecture-spec.md) | Phase A in progress — A1–A3 implemented (A3 pending the pinned-toolchain CI gate); A4's diagram work landed 2026-09-15, its Python/theme-contract extension remains; A5 essentially complete; A0 remains | P2 |
+| [2026-09-10-reportkit-multi-format-publication-implementation-plan.md](docs/superpowers/plans/2026-09-10-reportkit-multi-format-publication-implementation-plan.md) | Phase A in progress — A1–A3 complete (A3 pending the pinned-toolchain CI gate); A4's diagram work landed 2026-09-15, its Python/theme-contract extension remains; A5 essentially complete; A0 remains; Phase B started early at request | P2 |
 | [2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md](docs/superpowers/specs/2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md) | Implemented for v1.9.0 — Phase A′ and paged-renderer B′ complete; additive algorithmblock contract coverage landed; renderer-dependent work deferred | P2 |
 | [2026-09-10-reportkit-fork-port-fixes-spec.md](docs/superpowers/specs/2026-09-10-reportkit-fork-port-fixes-spec.md) | Implemented in v1.9.1 via PR #19; all 11 applicable fixes landed | Complete |
 | [2026-09-12-reportkit-code-quality-and-dependency-remediation-spec.md](docs/superpowers/specs/2026-09-12-reportkit-code-quality-and-dependency-remediation-spec.md) | Draft v0.1 — Phase 0 landed; most concrete Phase 1 fixes landed; structural Phase 2 work remains; 3 open questions | P1 |
@@ -166,11 +166,37 @@ change record.
   text and identical rendered-page pixel hashes instead, plus a visual check
   that the quiet vs. boxed chrome difference the migration must preserve is
   actually still there — see the plan's A4 section for the full record.
-  **Not yet done**: the diagram work (theme-populated TikZ styles across
-  `reportkit-diagrams.sty`/`-structure.sty`/`-process.sty`/`-spatial.sty`)
-  and the Python `Theme` contract extension (typography/chart/geometry/
-  rule/table/diagram/script-coverage records; `check-theme` validating
-  adapter as well as common tokens). The remaining Phase A work is ordered
+  **Diagram work implemented 2026-09-15**: the ~90 remaining hardcoded
+  appearance values across `reportkit-diagrams.sty`/`-structure.sty`/
+  `-process.sty`/`-spatial.sty` (node/edge/edge-label/layer/matrix-axis/
+  timeline chrome, plus `reportkit-structure.sty`'s own `rk structure
+  card`/`title`/`muted`/`arrow` tikzset, needed because `reportarchitecture`
+  and `reportroadmap` — the plan's own motivating examples for touching
+  that file — are built on it) now read theme-owned `RKTokDiagram...`
+  tokens instead of hardcoding color/weight/font/rounding/padding; both
+  canonical themes (plus the experimental `executive` slides theme, which
+  already had to satisfy the same contract) populate them with the exact
+  pre-migration values, so appearance is unchanged. `tests/
+  test_theme_contract.py`'s `SEMANTIC_MODULES` now lists all four modules.
+  Verified in a local (non-pinned) toolchain: `python -m pytest tests
+  publication_pipeline/tests` — 225 passed, 2 failed (the same two
+  pre-existing, environment-specific `pdflatex`/`microtype` font-expansion
+  failures, confirmed identical via a `git stash` before/after diff of
+  `scripts/acceptance_check.sh --require-tex`'s FAIL/WARN lines); and a
+  direct visual-identity check — `career_guide_en` (default theme),
+  `equity-research` (institutional-research theme) and
+  `presentation_acceptance_test` (executive theme) compiled with `lualatex`
+  at the pre-change and post-change commit are text-identical and
+  pixel-identical on every page (career_guide_en is additionally raw-PDF-
+  byte-identical). See the plan's A4 section for the full record, including
+  the resolved risk of whether a TikZ color option macro-expands correctly
+  (confirmed empirically with a standalone probe before writing the tokens).
+  **Still not done**: the Python `Theme` contract extension (typography/
+  chart/geometry/rule/table/diagram/script-coverage records; `check-theme`
+  validating adapter as well as common tokens) — a separately-scoped piece
+  of A4 deeper than the LaTeX-only diagram tokens above, since nothing in
+  `reportkit_viz.py`/`python_scripts/reportkit/themes/` needed to change for
+  this slice. The remaining Phase A work is ordered
   in the plan: capture the pinned compatibility baseline (A0 — attempted
   and blocked by sandbox networking, see the plan) and finish A4's Python
   `Theme` contract extension. A5 is essentially complete; the original
@@ -339,6 +365,36 @@ change record.
   primitive references and agent-contract counts are synchronized. This is an
   additive primitive; it does not claim slide-renderer availability. See the
   tooling-hardening and agent-interface specs for the status records.
+
+- 2026-09-15: multi-format Phase A4's remaining diagram work (theme-populated
+  TikZ styles across `reportkit-diagrams.sty`, `reportkit-structure.sty`,
+  `reportkit-process.sty` and `reportkit-spatial.sty`) implemented on
+  `claude/multi-format-framework-oqereh`, on top of `main` at `74197e6`
+  (Phase A5 and the algorithm-block primitive both merged). ~90 new
+  `RKTokDiagram...` style tokens added to `reportkit-core.sty`'s contract
+  and populated identically (pre-migration values, appearance unchanged) by
+  the default, institutional-research and executive themes; new `rk edge`,
+  `rk matrix axis`/`rk matrix axis label`/`rk matrix cell` and `rk timeline`
+  tikz styles, matching the plan's own naming; `reportkit-structure.sty`'s
+  own `rk structure card`/`title`/`muted`/`arrow` tikzset migrated too
+  (`reportarchitecture`/`reportroadmap`, the plan's motivating examples,
+  are built on it). A real risk (whether a TikZ color option correctly
+  macro-expands a token standing in for a color name) was resolved with a
+  standalone probe before applying the pattern ~90 times, not assumed.
+  `python -m pytest tests publication_pipeline/tests`: 225 passed, 2 failed
+  (the same two pre-existing, environment-specific `pdflatex`/`microtype`
+  font-expansion failures, confirmed identical before/after via `git
+  stash`). Direct visual-identity verification: `career_guide_en`,
+  `equity-research`, and `presentation_acceptance_test` compiled with
+  `lualatex` before and after are text- and pixel-identical on every page.
+  `bash scripts/acceptance_check.sh --require-tex`, `reportkit docs --check
+  --json` and `scripts/contract_acceptance.py --json` show the same
+  pre-existing failure and nothing new. See the plan's A4 section for the
+  full record. Not attempted: the Python/theme-contract extension (a
+  separately-scoped remaining piece of A4), the strategicpillars/
+  maturitymodel/continuum/riskheatmap accent literals left un-tokenized
+  (outside the plan's explicitly named styles), and A0/the equity pipeline
+  acceptance sub-item.
 
 - 2026-09-14: multi-format Phase A5 (make the pipeline target-aware)
   implemented on `claude/multi-format-publication-ur4n82`, on top of the
