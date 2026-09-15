@@ -13,7 +13,17 @@ that stays true, the same contract every other theme's Python module keeps.
 """
 from __future__ import annotations
 
-from . import Theme
+from . import (
+    ChartTokens,
+    DiagramTokens,
+    GeometryTokens,
+    RuleTokens,
+    ScriptCoverageTokens,
+    SpacingTokens,
+    TableTokens,
+    Theme,
+    TypographyTokens,
+)
 
 INK = "#1B1E24"
 MUTED = "#5B6270"
@@ -45,6 +55,37 @@ _SAFE_MARGIN_MM = 8
 _USABLE_WIDTH_MM = _CANVAS_WIDTH_MM - 2 * _SAFE_MARGIN_MM
 _USABLE_HEIGHT_MM = _CANVAS_HEIGHT_MM - 10
 TEXT_WIDTH_IN = _USABLE_WIDTH_MM / 25.4
+
+TYPOGRAPHY = TypographyTokens(
+    display="Libertinus Sans",
+    heading="Libertinus Sans",
+    body="Libertinus Sans",
+    metadata="Libertinus Sans",
+    table="Libertinus Sans",
+    chart="Libertinus Sans",
+    mono="Libertinus Mono",
+    math="STIX",
+)
+GEOMETRY = GeometryTokens(
+    paper=None,
+    canvas_mm=(_CANVAS_WIDTH_MM, _CANVAS_HEIGHT_MM),
+    text_width_in=TEXT_WIDTH_IN,
+    margins_mm=(5.0, 8.0, 5.0, 8.0),
+    column_gutter_in=0.25,
+)
+SPACING = SpacingTokens(paragraph=4.0, heading=6.0, component=4.0)
+RULES = RuleTokens(thin=0.6, medium=0.9)
+TABLES = TableTokens(body_size=10.0, header_treatment="bold-label", row_spacing=1.0)
+CHARTS = ChartTokens(
+    base_font=10.0,
+    tick_size=9.1,
+    label_size=10.0,
+    line_width=1.7,
+    grid_style="y",
+    legend_style="above",
+)
+DIAGRAMS = DiagramTokens(node_font=8.1, node_padding=(5.0, 4.0), node_radius=1.2, edge_weight=0.8, label_font=6.8)
+SCRIPT_COVERAGE = ScriptCoverageTokens(verified=("Latn",), metadata_only=(), rtl="unsupported")
 
 THEME = Theme(
     name="executive",
@@ -102,4 +143,12 @@ THEME = Theme(
     mono_candidates=("Libertinus Mono", "Linux Libertine Mono O", "DejaVu Sans Mono"),
     base_font_size=10.0,
     mathtext_fontset="stix",
+    typography=TYPOGRAPHY,
+    geometry=GEOMETRY,
+    spacing=SPACING,
+    rules=RULES,
+    tables=TABLES,
+    charts=CHARTS,
+    diagrams=DIAGRAMS,
+    script_coverage=SCRIPT_COVERAGE,
 )

@@ -6,7 +6,7 @@ from typing import Any, Sequence
 import matplotlib as mpl
 from matplotlib import font_manager
 
-from reportkit.themes import get_theme
+from reportkit.themes import get_theme, validate_theme_contract
 
 
 def _available_font(candidates: Sequence[str], fallback: str = "DejaVu Sans") -> str:
@@ -33,6 +33,12 @@ def apply_theme(theme: str = "default") -> None:
     from . import core
 
     resolved = get_theme(theme)
+    contract_errors = validate_theme_contract(resolved)
+    if contract_errors:
+        raise ValueError(
+            f"theme {theme!r} violates the Python theme contract: "
+            + "; ".join(contract_errors)
+        )
     core.INK = resolved.latex_colors["Ink"]
     core.MUTED = resolved.latex_colors["Muted"]
     core.HAIRLINE = resolved.latex_colors["Hairline"]
@@ -62,13 +68,15 @@ def apply_theme(theme: str = "default") -> None:
     core.LATEX_THEME_COLORS = dict(resolved.latex_colors)
     core.TEXT_WIDTH_IN = resolved.text_width_in
     core.FIGURE_SIZES = dict(resolved.figure_sizes)
+    core.CHART_GRID_STYLE = resolved.charts.grid_style
+    core.CHART_LEGEND_STYLE = resolved.charts.legend_style
 
     sans_font = _available_font(resolved.sans_candidates)
     serif_font = _available_font(resolved.serif_candidates)
     mono_font = _available_font(resolved.mono_candidates)
     core.SANS_FONT, core.SERIF_FONT, core.MONO_FONT = sans_font, serif_font, mono_font
 
-    base = resolved.base_font_size
+    base = resolved.charts.base_font
     rcparams: dict[str, Any] = {
         "figure.facecolor": core.WHITE,
         "figure.edgecolor": core.WHITE,
@@ -87,7 +95,7 @@ def apply_theme(theme: str = "default") -> None:
         "axes.facecolor": core.WHITE,
         "axes.edgecolor": core.HAIRLINE,
         "axes.labelcolor": core.INK,
-        "axes.labelsize": base,
+        "axes.labelsize": resolved.charts.label_size,
         "axes.titlesize": base + 1.0,
         "axes.titleweight": "semibold",
         "axes.titlelocation": "left",
@@ -99,16 +107,16 @@ def apply_theme(theme: str = "default") -> None:
         "grid.alpha": 0.72,
         "xtick.color": core.MUTED,
         "ytick.color": core.MUTED,
-        "xtick.labelsize": base - 0.9,
-        "ytick.labelsize": base - 0.9,
+        "xtick.labelsize": resolved.charts.tick_size,
+        "ytick.labelsize": resolved.charts.tick_size,
         "xtick.major.size": 3.0,
         "ytick.major.size": 3.0,
         "xtick.major.width": 0.6,
         "ytick.major.width": 0.6,
         "legend.frameon": False,
-        "legend.fontsize": base - 0.9,
+        "legend.fontsize": resolved.charts.tick_size,
         "legend.labelcolor": core.INK,
-        "lines.linewidth": 1.7,
+        "lines.linewidth": resolved.charts.line_width,
         "lines.markersize": 4.2,
         "patch.edgecolor": core.WHITE,
         "patch.linewidth": 0.5,

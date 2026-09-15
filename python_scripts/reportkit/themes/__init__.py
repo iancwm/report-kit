@@ -22,8 +22,92 @@ chart function.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, fields
 import importlib
+
+
+@dataclass(frozen=True)
+class TypographyTokens:
+    """Semantic font roles shared by document and chart renderers."""
+
+    display: str
+    heading: str
+    body: str
+    metadata: str
+    table: str
+    chart: str
+    mono: str
+    math: str
+
+
+@dataclass(frozen=True)
+class GeometryTokens:
+    """Theme geometry in explicit, renderer-neutral units."""
+
+    paper: str | None
+    canvas_mm: tuple[float, float] | None
+    text_width_in: float
+    # (top, right, bottom, left), in millimetres.
+    margins_mm: tuple[float, float, float, float]
+    column_gutter_in: float
+
+
+@dataclass(frozen=True)
+class SpacingTokens:
+    """Theme spacing values in points."""
+
+    paragraph: float
+    heading: float
+    component: float
+
+
+@dataclass(frozen=True)
+class RuleTokens:
+    """Theme rule weights in points."""
+
+    thin: float
+    medium: float
+
+
+@dataclass(frozen=True)
+class TableTokens:
+    """Theme table treatment in points plus a semantic header policy."""
+
+    body_size: float
+    header_treatment: str
+    row_spacing: float
+
+
+@dataclass(frozen=True)
+class ChartTokens:
+    """Theme chart defaults consumed by the Matplotlib adapter."""
+
+    base_font: float
+    tick_size: float
+    label_size: float
+    line_width: float
+    grid_style: str
+    legend_style: str
+
+
+@dataclass(frozen=True)
+class DiagramTokens:
+    """Theme diagram-chrome defaults shared with the LaTeX token layer."""
+
+    node_font: float
+    node_padding: tuple[float, float]
+    node_radius: float
+    edge_weight: float
+    label_font: float
+
+
+@dataclass(frozen=True)
+class ScriptCoverageTokens:
+    """Declared text-script coverage for diagnostics and build contracts."""
+
+    verified: tuple[str, ...]
+    metadata_only: tuple[str, ...]
+    rtl: str
 
 
 @dataclass(frozen=True)
@@ -66,6 +150,16 @@ class Theme:
     # mathtext.rm/it/bf at the theme's own resolved sans font -- see spec
     # §14 and that function's implementation.
     mathtext_fontset: str
+    # Explicit semantic records. The scalar and mapping fields above remain
+    # compatibility views for existing chart callers.
+    typography: TypographyTokens
+    geometry: GeometryTokens
+    spacing: SpacingTokens
+    rules: RuleTokens
+    tables: TableTokens
+    charts: ChartTokens
+    diagrams: DiagramTokens
+    script_coverage: ScriptCoverageTokens
 
 
 _MODULES = {
@@ -97,3 +191,56 @@ def get_theme(name: str) -> Theme:
 
 def available_themes() -> tuple[str, ...]:
     return tuple(sorted(_MODULES))
+
+
+def validate_theme_contract(theme: Theme) -> list[str]:
+    """Return contract violations for one resolved Python theme.
+
+    This is deliberately independent of Matplotlib so registry and static
+    contract tests can validate every theme in a minimal environment. The
+    LaTeX package checks live in reportkit.viz.core because they require
+    repository paths; both layers are reported by the single check-theme
+    command.
+    """
+    errors: list[str] = []
+    records = {
+        "typography": theme.typography,
+        "geometry": theme.geometry,
+        "spacing": theme.spacing,
+        "rules": theme.rules,
+        "tables": theme.tables,
+        "charts": theme.charts,
+        "diagrams": theme.diagrams,
+        "script_coverage": theme.script_coverage,
+    }
+    for record_name, record in records.items():
+        for field in fields(record):
+            value = getattr(record, field.name)
+            if isinstance(value, str) and not value.strip():
+                errors.append(f"{record_name}.{field.name} must not be empty")
+            elif isinstance(value, (int, float)) and value <= 0:
+                errors.append(f"{record_name}.{field.name} must be positive")
+
+    if not theme.name.strip():
+        errors.append("name must not be empty")
+    if not theme.latex_colors:
+        errors.append("latex_colors must not be empty")
+    if not theme.data_colors:
+        errors.append("data_colors must not be empty")
+    if not theme.sans_candidates:
+        errors.append("sans_candidates must not be empty")
+    if not theme.mono_candidates:
+        errors.append("mono_candidates must not be empty")
+    if theme.geometry.text_width_in != theme.text_width_in:
+        errors.append("geometry.text_width_in must match compatibility text_width_in")
+    if theme.charts.base_font != theme.base_font_size:
+        errors.append("charts.base_font must match compatibility base_font_size")
+    if theme.geometry.canvas_mm is None and theme.geometry.paper is None:
+        errors.append("geometry must declare paper or canvas_mm")
+    if len(theme.geometry.margins_mm) != 4:
+        errors.append("geometry.margins_mm must contain top/right/bottom/left")
+    if not theme.script_coverage.verified:
+        errors.append("script_coverage.verified must not be empty")
+    if theme.script_coverage.rtl not in {"supported", "unsupported", "partial"}:
+        errors.append("script_coverage.rtl must be supported, unsupported, or partial")
+    return errors

@@ -9,6 +9,9 @@ import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator
 
 
+_GRID_FROM_THEME = object()
+
+
 def new_figure(
     size: str | tuple[float, float] = "full",
     *,
@@ -28,7 +31,7 @@ def new_figure(
 def style_axes(
     ax: mpl.axes.Axes,
     *,
-    grid: str | None = "y",
+    grid: str | None | object = _GRID_FROM_THEME,
     zero_line: bool = False,
     integer_x: bool = False,
     integer_y: bool = False,
@@ -36,6 +39,8 @@ def style_axes(
     """Apply the standard ReportKit analytical axis treatment."""
     from . import core
 
+    if grid is _GRID_FROM_THEME:
+        grid = core.CHART_GRID_STYLE
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
     ax.spines["left"].set_color(core.HAIRLINE)

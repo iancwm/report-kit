@@ -4,10 +4,12 @@
 (shared/paged core split and renderer hooks) is implemented, pending the
 pinned-toolchain CI gate. A4's diagram work (theme-populated TikZ styles
 across the diagram, structure, process, and spatial modules) landed
-2026-09-15; only A4's Python/theme-contract extension remains. A5 (pipeline
-target-awareness) and Phase B (slide renderer and presentation semantics) are
-essentially implemented, out of this spec's original phase order, with scoped
-follow-up recorded below; A0 remains. Phases C–F have not started.
+2026-09-15; the Python/theme-contract extension is implemented in the working
+tree, with focused pure-Python validation complete and the Matplotlib/pinned
+runtime gate still outstanding. A5 (pipeline target-awareness) and Phase B
+(slide renderer and presentation semantics) are essentially implemented, out
+of this spec's original phase order, with scoped follow-up recorded below; A0
+remains. Phases C–F have not started.
 Supersedes nothing; extends the architecture introduced by
 [2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md](2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md)
 (Steps 1–5 implemented, `reportkit.cls` v1.9.3).
@@ -298,7 +300,8 @@ implemented in the current tree. `reportkit-core.sty` declares the
 style-token contract; the default, institutional-research, and executive
 themes populate it; and `reportkit-boxes.sty` plus the diagram, structure,
 process, and spatial modules consume it without theme-name branching. The
-remaining A4 item is the separately scoped Python/theme-contract extension.
+Python/theme-contract extension is implemented in the working tree; its
+runtime and pinned-toolchain verification remains part of the A0 gate.
 
 ### 3.3 Diagram styling is embedded in semantic primitives
 
@@ -957,8 +960,9 @@ below: shared/paged core split, item 5's `\Needspace`/`\captionof` half via
 renderer hooks) is implemented and verified in a local non-pinned
 LuaLaTeX/pdfLaTeX toolchain; the pinned-toolchain CI gate still needs to run
 and, if it passes, stand as the recorded baseline. A4's theme/adapter,
-callout/metric, and diagram-appearance style-token work are complete; only
-the Python `Theme` contract extension remains. A5 is
+callout/metric, diagram-appearance, and Python `Theme` contract work are
+implemented in the working tree; runtime and pinned-toolchain verification
+remain. A5 is
 essentially complete: the target-aware pipeline and a real presentation build
 are verified, with the equity pipeline-acceptance case and full D7 template
 split still open. A0 remains open.

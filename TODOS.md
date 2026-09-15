@@ -24,8 +24,8 @@ The PR-time synchronization directive is in
 | [2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md](docs/superpowers/specs/2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md) | Implemented (Steps 1–5); open questions resolved in the plan below | P2 |
 | [2026-09-09-reportkit-institutional-theme-implementation-plan.md](docs/superpowers/plans/2026-09-09-reportkit-institutional-theme-implementation-plan.md) | Complete — Steps 1–5 implemented; local LuaLaTeX verification passes; pinned visual QA remains | P2 |
 | [2026-09-09-reportkit-fix-post-implementation-findings.md](docs/superpowers/plans/2026-09-09-reportkit-fix-post-implementation-findings.md) | Complete — all 8 tasks done and reviewed clean; fixture verification complete | Complete |
-| [2026-09-09-reportkit-multi-format-publication-architecture-spec.md](docs/superpowers/specs/2026-09-09-reportkit-multi-format-publication-architecture-spec.md) | Phase A in progress — A1–A3 implemented (A3 pending the pinned-toolchain CI gate); A4's diagram work landed 2026-09-15, its Python/theme-contract extension remains; A5 essentially complete; A0 remains | P2 |
-| [2026-09-10-reportkit-multi-format-publication-implementation-plan.md](docs/superpowers/plans/2026-09-10-reportkit-multi-format-publication-implementation-plan.md) | Phase A in progress — A1–A3 complete (A3 pending the pinned-toolchain CI gate); A4's diagram work landed 2026-09-15, its Python/theme-contract extension remains; A5 essentially complete; A0 remains; Phase B started early at request | P2 |
+| [2026-09-09-reportkit-multi-format-publication-architecture-spec.md](docs/superpowers/specs/2026-09-09-reportkit-multi-format-publication-architecture-spec.md) | Phase A in progress — A1–A3 implemented (A3 pending the pinned-toolchain CI gate); A4 implementation is in the working tree with runtime/pinned verification outstanding; A5 essentially complete; A0 remains | P2 |
+| [2026-09-10-reportkit-multi-format-publication-implementation-plan.md](docs/superpowers/plans/2026-09-10-reportkit-multi-format-publication-implementation-plan.md) | Phase A in progress — A1–A3 complete (A3 pending the pinned-toolchain CI gate); A4 implementation is in the working tree with runtime/pinned verification outstanding; A5 essentially complete; A0 remains; Phase B started early at request | P2 |
 | [2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md](docs/superpowers/specs/2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md) | Implemented for v1.9.0 — Phase A′ and paged-renderer B′ complete; additive algorithmblock contract coverage landed; renderer-dependent work deferred | P2 |
 | [2026-09-10-reportkit-fork-port-fixes-spec.md](docs/superpowers/specs/2026-09-10-reportkit-fork-port-fixes-spec.md) | Implemented in v1.9.1 via PR #19; all 11 applicable fixes landed | Complete |
 | [2026-09-12-reportkit-code-quality-and-dependency-remediation-spec.md](docs/superpowers/specs/2026-09-12-reportkit-code-quality-and-dependency-remediation-spec.md) | Draft v0.1 — Phase 0 landed; most concrete Phase 1 fixes landed; structural Phase 2 work remains; 3 open questions | P1 |
@@ -191,17 +191,19 @@ change record.
   byte-identical). See the plan's A4 section for the full record, including
   the resolved risk of whether a TikZ color option macro-expands correctly
   (confirmed empirically with a standalone probe before writing the tokens).
-  **Still not done**: the Python `Theme` contract extension (typography/
-  chart/geometry/rule/table/diagram/script-coverage records; `check-theme`
-  validating adapter as well as common tokens) — a separately-scoped piece
-  of A4 deeper than the LaTeX-only diagram tokens above, since nothing in
-  `reportkit_viz.py`/`python_scripts/reportkit/themes/` needed to change for
-  this slice. The remaining Phase A work is ordered
-  in the plan: capture the pinned compatibility baseline (A0 — attempted
-  and blocked by sandbox networking, see the plan) and finish A4's Python
-  `Theme` contract extension. A5 is essentially complete; the original
-  architecture risk is narrowed to the deferred equity-research pipeline
-  acceptance and related template work recorded in the plan.
+  **Python/theme-contract work implemented 2026-09-15**: `Theme` now carries
+  explicit typography, geometry, spacing, rule, table, chart, diagram and
+  script-coverage records while preserving its existing compatibility views.
+  `check-theme` validates those records, palette synchronization,
+  semantic-module token declarations/population, and registered common/
+  renderer-adapter packages. Focused pure-Python validation and bytecode
+  compilation pass; this host lacks pytest, Matplotlib, and pandas, so runtime
+  and pinned-toolchain verification remain outstanding. The remaining Phase A
+  work is ordered in the plan: capture the pinned compatibility baseline
+  (A0 — attempted and blocked by sandbox networking, see the plan). A5 is
+  essentially complete; the original architecture risk is narrowed to the
+  deferred equity-research pipeline acceptance and related template work
+  recorded in the plan.
   See [the spec](docs/superpowers/specs/2026-09-09-reportkit-multi-format-publication-architecture-spec.md)
   and [the implementation plan](docs/superpowers/plans/2026-09-10-reportkit-multi-format-publication-implementation-plan.md).
 
@@ -395,6 +397,16 @@ change record.
   maturitymodel/continuum/riskheatmap accent literals left un-tokenized
   (outside the plan's explicitly named styles), and A0/the equity pipeline
   acceptance sub-item.
+
+- 2026-09-15: completed multi-format Phase A4's Python/theme-contract slice.
+  Theme now exposes explicit typography, geometry, spacing, rule, table, chart,
+  diagram and script-coverage records while preserving the existing
+  compatibility views. The visualization adapter consumes chart tokens, and
+  check-theme validates Python records, palette synchronization, semantic
+  LaTeX token population, and common/renderer-adapter package presence.
+  Focused pure-Python validation and bytecode compilation pass; pytest,
+  Matplotlib, and pandas are unavailable on the host, so runtime and
+  pinned-toolchain verification remain outstanding.
 
 - 2026-09-14: multi-format Phase A5 (make the pipeline target-aware)
   implemented on `claude/multi-format-publication-ur4n82`, on top of the
