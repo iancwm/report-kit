@@ -18,6 +18,12 @@ tags on this repository, not a published package registry.
 - The repository now includes the GPL-3.0-or-later license text.
 - Dependabot, Ruff, and an advisory pip-audit gate now signal dependency and
   code-quality drift in CI.
+- `reportkit build --mode sections` now accepts `--workers N` to build
+  independent manuscript sections with a bounded thread pool instead of
+  strictly serially (measured ~3.8x wall-clock speedup on 4 cores; see the
+  tooling-hardening spec's F2 entry). `--workers 1` (the default) is
+  unchanged serial behavior; `--workers 0` or negative is now a structured
+  error instead of being silently accepted.
 
 ### Changed
 - Diagram/structure/process/spatial chrome (node, edge, edge-label, layer,
@@ -51,6 +57,14 @@ tags on this repository, not a published package registry.
   legacy `reportkit_viz.py` import remains compatible.
 - Failed build stages now produce one consistent structured report shape, and
   the doctor includes actionable Python dependency remediation.
+
+### Fixed
+- `--mode sections` build IDs no longer collide when two sections resolve
+  inside the same wall-clock second (always possible under the new
+  `--workers` concurrency, and in principle even serially at sub-second
+  build times) — build IDs are now keyed on the manuscript stem as well as
+  the mode and timestamp, so one section's history entry can no longer
+  silently overwrite another's.
 
 ### Removed
 - The obsolete file-copying `shell_scripts/bootstrap.sh` workflow is retired

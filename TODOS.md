@@ -16,7 +16,7 @@ The PR-time synchronization directive is in
 
 | Document | Status | Priority |
 |---|---|---|
-| [2026-09-06-reportkit-tooling-hardening-design.md](docs/superpowers/specs/2026-09-06-reportkit-tooling-hardening-design.md) | Approved — implementation slice, original C2 primitives, and additive algorithmblock landed; B4/F2 follow-up remains | P1 |
+| [2026-09-06-reportkit-tooling-hardening-design.md](docs/superpowers/specs/2026-09-06-reportkit-tooling-hardening-design.md) | Approved — implementation slice, original C2 primitives, additive algorithmblock, B4 audit, and F2 measurement + bounded parallelism all landed. Nothing outstanding. | Complete |
 | [2026-09-06-reportkit-vnext-ai-publication-system-spec.md](docs/superpowers/specs/2026-09-06-reportkit-vnext-ai-publication-system-spec.md) | Draft / roadmap — reconciled; implementation phases complete; use the plan, not this | P3 |
 | [2026-09-07-reportkit-vnext-implementation-plan.md](docs/superpowers/plans/2026-09-07-reportkit-vnext-implementation-plan.md) | Complete — Phase 1 merged via PR #10; additive Phases 2–4 merged via PR #9 | P3 |
 | [2026-09-07-documentation-and-status-tracking-cleanup-design.md](docs/superpowers/specs/2026-09-07-documentation-and-status-tracking-cleanup-design.md) | Approved | Process |
@@ -44,13 +44,6 @@ The PR-time synchronization directive is in
 The documented quick-start remediation and the associated Phase 0 findings
 are implemented in the current worktree; the spec remains the detailed
 change record.
-
-### P1
-
-- **P1-1 — finish the tooling-hardening follow-up.** Run and record the B4
-  contrast/grayscale audit, then measure the publication build before deciding
-  whether to implement bounded parallelism or incremental builds for the
-  existing `--workers`/F2 hook.
 
 ### P2
 
@@ -333,20 +326,104 @@ change record.
 
 ## Environment notes
 
-- The repository test environment is `build/.venv-tests`; it supplies
-  PyMuPDF, NumPy, pandas, matplotlib, and pytest. The host Python environment
-  is not authoritative for the full suite.
-- TeX Live 2025 with `lualatex` is available locally; the default/paged and
-  institutional strict acceptance fixtures compile using the checked-in,
-  licensed Google Sans fixtures staged by the test harness. Ambient system-font
-  fallback lookup is unavailable on this host; the pinned visual-comparison
-  environment is also unavailable.
-- `pdfinfo`, `pdffonts`, `pdftoppm` (poppler-utils): not installed on the current dev machine.
-- `pypdf`, `pdfplumber`, system-wide PyMuPDF: not installed.
-- `accsupp.sty`: not installed; `tlmgr install` fails (this checkout is TinyTeX on TL2025 against a TL2026 remote).
-- Libertinus fonts: installed to `TEXMFHOME` (`~/.TinyTeX/texmf-local`) from `font_data/reportkit-libertinus-fonts.tar.gz`.
+Sessions run in fresh, ephemeral containers — what's pre-installed (TinyTeX
+vs. system TeX Live, whether poppler-utils/pandoc/pytest/matplotlib are
+already present, network egress policy) varies session to session and is
+not itself durable information. What is durable: a from-scratch Ubuntu/
+Debian-family container with outbound network access can reliably reach a
+fully working toolchain (real `lualatex`/`pdflatex` compiles, the full
+pytest suite, and a clean `acceptance_check.sh --require-tex`) with:
+
+- `apt-get install -y --no-install-recommends texlive-luatex
+  texlive-latex-extra texlive-latex-recommended texlive-fonts-recommended
+  texlive-science texlive-plain-generic pandoc poppler-utils` (add
+  `texlive-fonts-extra` too if Libertinus doesn't already resolve via
+  `kpsewhich libertinus.sty`).
+- The documented `LinBiolinum_K.otf` stub
+  (`font_data/LinBiolinum_K_stub_README.md`) — `libertinus-otf.sty`
+  unconditionally requires it under `lualatex`, and Debian's TeX Live
+  packaging doesn't ship it.
+- `python3 -m venv build/.venv-tests && build/.venv-tests/bin/pip install -r
+  tests/requirements.txt -r publication_pipeline/requirements.txt
+  matplotlib numpy pandas` for the pytest suite (`build/.venv-tests` is the
+  path `acceptance_check.sh` auto-detects). `jsonschema` is used by some
+  tests via `importorskip` but isn't in `tests/requirements.txt`; install it
+  too (venv or system) to stop those tests from skipping.
+- `acceptance_check.sh`'s own `python_scripts/` import check
+  (`reportkit_viz`/`reportkit_doctor`) runs under plain system `python3`,
+  not the venv — `pip install matplotlib numpy pandas pymupdf` there too
+  (`--break-system-packages` on Debian-family systems) or that one check
+  fails even with a correct venv.
+
+Verified end-to-end this way on 2026-09-15: `python -m pytest tests
+publication_pipeline/tests` — 233 passed, 12 skipped, zero failures (no
+`pdflatex`/`microtype` font-expansion failures either, unlike every prior
+session recorded in this file — apparently an artifact of an
+incompletely-provisioned host, not something inherent to the suite).
+Ambient system-font fallback lookup and the pinned visual-comparison
+toolchain (exact byte/pixel-hash baselines) remain a separate concern this
+recipe does not address — a freshly-`apt`-installed TeX Live is not the
+pinned CI toolchain, so treat any hash-level (not just text/render-level)
+comparison against a checked-in baseline as informative, not authoritative,
+from a session provisioned this way.
 
 ## History
+
+- 2026-09-15: closed out P1-1, the tooling-hardening spec's last open item
+  (B4 contrast/grayscale audit, then F2's measure-before-optimising), on
+  `claude/todos-outstanding-work-dwlrpl`, on top of `main` at `7ba4f55`.
+  **B4** (`references`/spec §B4): computed WCAG contrast ratios for all
+  three themes' `Muted` header/footer and `codeblock`/`outputblock` syntax
+  colors against their actual backgrounds, plus a grayscale-luminance
+  redundancy check — all pairs pass AA (4.5:1), two margins are thin enough
+  to flag (default `Muted`/`Surface` 4.51:1, institutional-research
+  `LinkBlue`/`Surface` 4.62:1) but not failing, and no code change was
+  needed. **F2**: built an 8-section synthetic fixture and measured
+  `publication_build.py --mode sections` — serial ~25.2s (~3.1s/section,
+  confirmed strictly sequential from each section's own timestamps),
+  matching finding 10's hypothesis that section builds are dominated by
+  external subprocess time (Pandoc, TeX ×2, PDF render, PDF inspect), not
+  interpreter CPU. Implemented bounded parallel workers on that basis:
+  `--workers` (declared since vNext Phase 1 but previously inert) now
+  bounds a `ThreadPoolExecutor` over the sections loop, wired through the
+  public `reportkit build --mode sections --workers N` CLI (registry/
+  contract updated to match) as well as the internal script; `--workers 1`
+  (default) is byte-for-byte the prior serial path; `--workers 0`/negative
+  is now a structured `exit 2`. Measured parallel wall time with
+  `--workers 4` on the same 8-section fixture: ~6.6s (~3.8x speedup,
+  matching the 4-core host). Making sections concurrent surfaced a real
+  latent bug along the way, not just new code: build IDs keyed on
+  mode+timestamp alone collide when two sections resolve within the same
+  wall-clock second (routine under concurrency, latent but possible even
+  serially) — fixed by keying on the manuscript stem too, which one-shot
+  wires up this item's own "deterministic aggregate reporting" requirement
+  (a `REPORTKIT-SECTION <entry>: exit <code>` summary printed in manuscript
+  order via `ThreadPoolExecutor.map`, which preserves submission order
+  regardless of completion order). Input-hash incremental builds (F2's other
+  half) were not implemented — the measured ~4x parallelism win covers the
+  motivating case with no correctness risk, and every section already
+  builds into its own isolated output directory, so there was no
+  fresh-vs-stale input tracking to reuse; left open for a future pass.
+  New `publication_pipeline/tests/test_sections_parallel_build.py` verifies
+  serial and `--workers 3` runs on a 3-section fixture produce identical
+  pass/fail outcomes with no history-file (build-ID) collisions, and that
+  the parallel run's printed summary is in manuscript order regardless of
+  completion order. Verified in a from-scratch toolchain built this session
+  (`apt-get install texlive-luatex texlive-latex-extra
+  texlive-latex-recommended texlive-fonts-recommended texlive-science
+  texlive-plain-generic pandoc poppler-utils`, the documented
+  `LinBiolinum_K.otf` stub, and a fresh `build/.venv-tests` plus
+  matplotlib/numpy/pandas/pymupdf/jsonschema on the system Python for
+  `acceptance_check.sh`'s own import check): `python -m pytest tests
+  publication_pipeline/tests` — 233 passed, 12 skipped (all
+  `jsonschema`-optional), zero failures — better than every previously
+  recorded baseline in this file, which always carried two pre-existing
+  `pdflatex`/`microtype` font-expansion failures; those don't reproduce in
+  this fully-provisioned environment. `bash scripts/acceptance_check.sh
+  --require-tex`, `reportkit docs --check --json`, and `scripts/
+  contract_acceptance.py --json` all pass. See the spec's own B4/F2 sections
+  for the full record, including the exact contrast/grayscale figures.
+  Removed P1-1 and the now-empty P1 heading from the open-work list.
 
 - 2026-09-15: synchronized this index against `main` at `1ec3918` (this
   local checkout's `main` ref was stale at `3cdbb47`/PR #11; `origin/main`
