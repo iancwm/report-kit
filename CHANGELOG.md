@@ -20,6 +20,14 @@ tags on this repository, not a published package registry.
   code-quality drift in CI.
 
 ### Changed
+- Diagram/structure/process/spatial chrome (node, edge, edge-label, layer,
+  matrix-axis, timeline appearance, and `reportkit-structure.sty`'s own
+  card/title/muted/arrow chrome) now reads theme-owned style tokens instead
+  of hardcoding colors, line weights, fonts, rounding, and padding (Phase
+  A4's diagram work in the multi-format publication architecture). Every
+  theme populates the new tokens with the exact pre-migration values, so
+  output is unchanged: verified text- and pixel-identical against the
+  default, institutional-research, and executive-theme fixtures.
 - `reportkit-core.sty` split into an engine-neutral shared core and a new
   `reportkit-paged-core.sty` owning geometry/fancyhdr/titlesec/needspace/
   caption/hyperref (Phase A3 of the multi-format publication architecture).

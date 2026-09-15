@@ -145,13 +145,13 @@
 \newcommand{\rk@drawlanes}{%
   \rk@laneindex=0\relax
   \expandafter\@for\expandafter\rk@lanename\expandafter:=\rk@swimlanes\do{%
-    \draw[Hairline,line width=.5pt] (0,{-\the\rk@laneindex*\rk@lanespacing-0.5*\rk@lanespacing}) --
+    \draw[draw=\RKTokDiagramLaneDividerColor,line width=\RKTokDiagramLaneDividerWidth] (0,{-\the\rk@laneindex*\rk@lanespacing-0.5*\rk@lanespacing}) --
       (\rk@lanewidth,{-\the\rk@laneindex*\rk@lanespacing-0.5*\rk@lanespacing});%
-    \node[anchor=east,font=\sffamily\fontsize{7.2}{8.5}\selectfont,text=Muted]
+    \node[anchor=east,font=\RKTokDiagramLaneLabelFont,text=\RKTokDiagramLaneLabelText]
       at (-\rk@labelgutter,{-\the\rk@laneindex*\rk@lanespacing}) {\rk@lanename};%
     \advance\rk@laneindex by 1\relax
   }%
-  \draw[Hairline,line width=.5pt] (0,{0.5*\rk@lanespacing}) -- (\rk@lanewidth,{0.5*\rk@lanespacing});%
+  \draw[draw=\RKTokDiagramLaneDividerColor,line width=\RKTokDiagramLaneDividerWidth] (0,{0.5*\rk@lanespacing}) -- (\rk@lanewidth,{0.5*\rk@lanespacing});%
 }
 \newcommand{\rk@findlane}[1]{%
   \rk@laneindex=0\relax\rk@lanequery=-1\relax
