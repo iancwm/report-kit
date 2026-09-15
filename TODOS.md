@@ -28,18 +28,18 @@ The PR-time synchronization directive is in
 | [2026-09-10-reportkit-multi-format-publication-implementation-plan.md](docs/superpowers/plans/2026-09-10-reportkit-multi-format-publication-implementation-plan.md) | Phase A in progress — A1–A3 complete (A3 pending the pinned-toolchain CI gate); A4 implementation is in the working tree with runtime/pinned verification outstanding; A5 essentially complete; A0 remains; Phase B started early at request | P2 |
 | [2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md](docs/superpowers/specs/2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md) | Implemented for v1.9.0 — Phase A′ and paged-renderer B′ complete; additive algorithmblock contract coverage landed; renderer-dependent work deferred | P2 |
 | [2026-09-10-reportkit-fork-port-fixes-spec.md](docs/superpowers/specs/2026-09-10-reportkit-fork-port-fixes-spec.md) | Implemented in v1.9.1 via PR #19; all 11 applicable fixes landed | Complete |
-| [2026-09-12-reportkit-code-quality-and-dependency-remediation-spec.md](docs/superpowers/specs/2026-09-12-reportkit-code-quality-and-dependency-remediation-spec.md) | Draft v0.1 — Phase 0 landed; most concrete Phase 1 fixes landed; structural Phase 2 work remains; 3 open questions | P1 |
+| [2026-09-12-reportkit-code-quality-and-dependency-remediation-spec.md](docs/superpowers/specs/2026-09-12-reportkit-code-quality-and-dependency-remediation-spec.md) | Implemented — merged via PR #25 (`7c5fafc`); all phases (0-2) landed; all 3 open questions resolved | Complete |
 
 ## Open work
 
 ### P0
 
-- **P0-1 — delete `tooling`, don't re-cut it.** `git rev-list --left-right
-  --count main...tooling` returns `107 0` (verified 2026-09-12): the branch has
-  no unique commits, so there is nothing to preserve, and
-  [references/migrating-content-branches.md](references/migrating-content-branches.md)
-  already dispositions it as "Superseded and stale… then delete". Branch the
-  next tooling slice fresh from `main`.
+- **P0-1 — delete `tooling`, don't re-cut it. Done.** As of 2026-09-15,
+  `origin/tooling` no longer exists (`git fetch origin --prune` lists no
+  `tooling` branch, local or remote) — it has already been deleted, matching
+  [references/migrating-content-branches.md](references/migrating-content-branches.md)'s
+  disposition. Nothing further to do; `backup/pre-split` was never confirmed
+  present either and is likewise gone.
 
 The documented quick-start remediation and the associated Phase 0 findings
 are implemented in the current worktree; the spec remains the detailed
@@ -51,14 +51,6 @@ change record.
   contrast/grayscale audit, then measure the publication build before deciding
   whether to implement bounded parallelism or incremental builds for the
   existing `--workers`/F2 hook.
-
-- **P1-2 — close the code-quality remediation record.** The user-facing Phase 0
-  fixes and the concrete Phase 1 fixes are in the current tree; the remaining
-  work is to complete the dependency-audit signal (the repository has
-  Dependabot configuration but no non-blocking `pip-audit` gate), resolve the
-  three open questions in the spec, and either finish or explicitly defer its
-  structural Phase 2 items. See
-  [the remediation spec](docs/superpowers/specs/2026-09-12-reportkit-code-quality-and-dependency-remediation-spec.md).
 
 ### P2
 
@@ -355,6 +347,36 @@ change record.
 - Libertinus fonts: installed to `TEXMFHOME` (`~/.TinyTeX/texmf-local`) from `font_data/reportkit-libertinus-fonts.tar.gz`.
 
 ## History
+
+- 2026-09-15: synchronized this index against `main` at `1ec3918` (this
+  local checkout's `main` ref was stale at `3cdbb47`/PR #11; `origin/main`
+  was already 21 merges ahead, through PR #32). Two documentation-only
+  corrections, no code changes:
+  - **P0-1 (delete `tooling`) is done.** `origin/tooling` and
+    `origin/backup/pre-split` no longer exist on the remote — already
+    deleted, presumably by the same PR-time cleanup that removed
+    `shell_scripts/`. Removed from the P0 open-work list.
+  - **The code-quality-and-dependency-remediation spec (P1-2) was already
+    fully implemented and merged** via PR #25 (`7c5fafc`, closed
+    2026-09-12) — every Phase 0/1/2 item (§A–§Q) and all three open
+    questions, not just the "Phase 0 + concrete Phase 1" this index
+    previously credited. Verified by direct file inspection in this
+    session (no pinned toolchain available here to re-run PR #25's own
+    186-test verification): `LICENSE` and `pyproject.toml` exist;
+    `shell_scripts/` and the four pipeline `.sh` wrappers are gone;
+    `toolchain/requirements.in` is gone; `python_scripts/reportkit/viz/`
+    exists with `reportkit_viz.py` reduced to a 21-line re-exporting shim;
+    `publication_pipeline/scripts/_bootstrap.py` provides the shared
+    import helper standalone scripts use (resolving open question 2);
+    `reportkit init --install-fonts` is a separate opt-in flag from
+    `reportkit init` (open question 1); `CONTRACT_VERSION = "1.1.0"` (open
+    question 3); the duplicate `career_guide_en_make_figures.py` and the
+    dead `_declared_python_primitives` are both gone;
+    `.github/workflows/contract-ci.yml` runs a non-blocking `pip-audit`
+    step alongside the existing Dependabot config. The spec's own
+    `**Status:**` line and open questions are updated to record this;
+    it is now a closed execution record. Removed P1-2 from the open-work
+    list.
 
 - 2026-09-15: added the standalone `algorithmblock` language-neutral
   pseudocode primitive in `reportkit-algorithms.sty`, with

@@ -1,11 +1,22 @@
 # ReportKit Code Quality and Dependency Remediation
 
-**Status:** Draft v0.1 — the user-facing Phase 0 fixes and most concrete Phase 1
-fixes are landed in `main`; the dependency-audit signal and structural Phase 2
-work remain. Four scoping decisions are resolved (see *Resolved decisions*);
-three questions remain open.
+**Status:** Implemented — merged to `main` via PR #25 (`7c5fafc`,
+`chore: finish code quality and dependency remediation`, closed 2026-09-12).
+Every item in Phases 0, 1, and 2 (§A–§Q) is landed, including the
+dependency-audit signal (§I: Dependabot on `toolchain/requirements.lock` and
+the Dockerfile, plus a non-blocking `pip-audit` step in
+`.github/workflows/contract-ci.yml`) and the structural Phase 2 work (§K
+`pyproject.toml` + `sys.path` cleanup, §N `reportkit/viz/` package split with
+`reportkit_viz.py` kept as a re-exporting shim, §O directory consolidation,
+§J dead-code/duplicate-file removal). All three open questions are resolved
+— see *Open questions* below. This document is now a closed execution
+record; treat [TODOS.md](../../../TODOS.md) as the index.
 **Baseline:** review baseline `main` at `83a5e83`, ReportKit v1.9.3, contract v1.0.0.
-**Current status:** verified against `main` at `bb15d05` on 2026-09-13.
+**Current status:** re-verified by direct file inspection against `main` at
+`1ec3918` on 2026-09-15 (this session lacks the pinned toolchain/pytest venv
+that PR #25 itself used for its 186-test run — see PR #25's own body for that
+execution record; this pass confirms the artifacts are present and correct by
+reading them, not by re-running the suite).
 **Source:** a full-repository code quality review covering folder structure,
 modularity, documentation, and dependency management. Every item below was
 verified in this tree — by file:line, by executing the code, or by static
@@ -563,22 +574,26 @@ state means and what transitions between them.
 
 ---
 
-# Open questions
+# Open questions — resolved
 
-1. **`reportkit init` scope (blocks §A).** Should `init` install fonts, or
-   only scaffold and refuse boundary violations, leaving fonts to
-   `references/font-setup.md`? Font installation writes to `TEXMFLOCAL`
-   (normally `/usr/local/share/texmf`), which needs root — `bootstrap.sh:105`
-   does this unguarded today. A CLI command that silently requires root is
-   worse than a documented manual step.
-2. **Is standalone `python3 publication_build.py` still supported (affects
-   §K)?** If yes, the dynamic loaders become one shared bootstrap helper
-   instead of being deleted.
-3. **Contract version for §A.** Adding `init` is additive, suggesting
-   1.0.0 → 1.1.0. But retiring `bootstrap.sh` removes a documented entry
-   point, which reads as breaking for anyone scripting against it. Confirm
-   whether `bootstrap.sh` was ever part of the machine contract or only the
-   human quick start — `references/agent-contract.md` should settle it.
+1. **`reportkit init` scope (blocked §A). Resolved: scaffold-only, fonts
+   stay opt-in.** `python_scripts/reportkit/initialization.py` splits
+   `initialize()` (boundary refusal + scaffold, no root needed) from
+   `install_fonts()`, wired to the registry as the explicit
+   `reportkit init --install-fonts` flag
+   (`python_scripts/reportkit/registry.py:37`) rather than a default part of
+   `init`. A CLI command never silently requires root; the font step is
+   always opt-in.
+2. **Standalone `python3 publication_build.py` (affected §K). Resolved:
+   yes, still supported.** The two bespoke dynamic loaders were replaced by
+   one shared `publication_pipeline/scripts/_bootstrap.py`
+   (`ensure_reportkit_importable()`), imported by the direct-execution
+   scripts instead of duplicated per-file.
+3. **Contract version for §A. Resolved: 1.1.0 (additive).** `python_scripts/
+   reportkit/version.py:4` declares `CONTRACT_VERSION = "1.1.0"`. Retiring
+   `bootstrap.sh` was judged non-breaking: it was documented only in the
+   human quick start (`SKILL.md`), never in `references/agent-contract.md`'s
+   machine contract, so no scripted caller depended on it.
 
 # Non-goals
 
