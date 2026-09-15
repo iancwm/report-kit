@@ -101,6 +101,7 @@
 % Semantic modules are part of the class contract.
 \RequirePackage{reportkit-boxes}
 \RequirePackage{reportkit-code}
+\RequirePackage{reportkit-algorithms}
 \RequirePackage{reportkit-diagrams}
 \RequirePackage{reportkit-grammar}
 

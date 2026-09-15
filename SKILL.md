@@ -101,6 +101,37 @@ The distinction is strict:
 
 Meaning must remain clear without colour: use labels, position, shape, and solid/dashed line semantics. Do not rely on red/green or intensity alone.
 
+## Algorithms and code
+
+Three primitives look superficially similar (a boxed reading unit with a small title) but answer different questions -- pick by what the reader needs, not by which one renders first to mind:
+
+| Reader question | Use |
+| --- | --- |
+| What does the executable source actually say? | `codeblock` |
+| What is the language-neutral control-flow logic of an algorithm? | `algorithmblock` |
+| What relationships or decisions connect process steps? | `reportflow` or `reportstate` |
+
+`codeblock` (`reportkit-code.sty`) is monospace, syntax-highlighted, and language-specific -- use it for real source. `algorithmblock` (`reportkit-algorithms.sty`) is proportional, language-neutral pseudocode built on `algorithmicx`/`algpseudocode`, never the floating `algorithm` package -- like every ReportKit diagram, it is a non-floating reading unit that stays with its introducing prose and may break across a page instead of drifting away. Keywords (`if`, `while`, `for`, `else`, `return`, ...) render in LinkBlue bold sans; statement text stays in Ink, set in the normal text/math font, not monospace. `reportflow`/`reportstate` show the *relationships between* steps (ownership, sequencing, retry/failure paths) rather than one step's own internal logic -- use them for a process diagram, not for an algorithm's pseudocode.
+
+```latex
+\begin{algorithmblock}[label={alg:two-pointer}]{Two-pointer elimination}
+  \AlgorithmInput{Heights $h_0,\ldots,h_{n-1}$}
+  \AlgorithmOutput{Maximum container area}
+  \State $L \gets 0$
+  \State $R \gets n-1$
+  \While{$L < R$}
+    \If{$h_L \le h_R$}
+      \State $L \gets L+1$
+    \Else
+      \State $R \gets R-1$
+    \EndIf
+  \EndWhile
+  \State \Return $best$
+\end{algorithmblock}
+```
+
+`algorithmic` is opened and closed by `algorithmblock` itself -- do not write `\begin{algorithmic}`/`\end{algorithmic}` directly. Supported options are `label=` and `caption=` (rendered below the pseudocode using the same caption/provenance convention as `diagram`) plus an optional `linenumbers=<step>`; line numbers are off by default. `\AlgorithmInput`/`\AlgorithmOutput` render compact INPUT/OUTPUT metadata lines and are only valid inside `algorithmblock`, immediately after `\State` would otherwise begin.
+
 ## Diagram contract
 
 Place every conceptual visual in a `diagram` wrapper. It keeps the visual non-floating, reserves page space, and attaches caption and provenance to the prose.

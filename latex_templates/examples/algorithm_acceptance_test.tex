@@ -1,0 +1,160 @@
+\documentclass{reportkit}
+
+\setreportkitleftheader{REPORTKIT / ALGORITHM PRIMITIVE TEST}
+\setreportkitfooter{Algorithm primitive acceptance test}
+\setreportkitversion{v1.10.0}
+
+\title{ReportKit -- algorithm/pseudocode primitive}
+\author{Test build}
+\date{15 September 2026}
+
+\begin{document}
+\maketitle
+
+\begin{execsummary}
+This is an acceptance test for \texttt{algorithmblock}, the language-neutral
+algorithm/pseudocode primitive added by reportkit-algorithms.sty. It is
+deliberately distinct from \texttt{codeblock} (executable, monospace source)
+and from \texttt{reportflow}/\texttt{reportstate} (process relationships):
+this primitive is for control-flow pseudocode set in proportional type.
+\end{execsummary}
+
+\section{Basic sequence}
+A short, unconditional sequence of statements with input/output metadata.
+
+\begin{algorithmblock}[label={alg:sequence}]{Running total}
+  \AlgorithmInput{A list of numbers $x_1,\ldots,x_n$}
+  \AlgorithmOutput{The running total}
+  \State $total \gets 0$
+  \State $total \gets total + x_1$
+  \State $total \gets total + x_2$
+  \State \Return $total$
+\end{algorithmblock}
+
+\section{Nested conditionals}
+Two-pointer elimination, the motivating example for this primitive: nested
+\texttt{\string\If}/\texttt{\string\Else} inside a \texttt{\string\While}
+loop, with mathematics inside the statements.
+
+\begin{algorithmblock}[label={alg:twopointer},caption={Two-pointer elimination finds the maximum container area in linear time.}]{Two-pointer elimination}
+  \AlgorithmInput{Heights $h_0,\ldots,h_{n-1}$}
+  \AlgorithmOutput{Maximum container area}
+  \State $L \gets 0$
+  \State $R \gets n-1$
+  \State $best \gets 0$
+  \While{$L < R$}
+    \State $best \gets \max(best,(R-L)\min(h_L,h_R))$
+    \If{$h_L \le h_R$}
+      \State $L \gets L+1$
+    \Else
+      \State $R \gets R-1$
+    \EndIf
+  \EndWhile
+  \State \Return $best$
+\end{algorithmblock}
+
+\section{Nested loops}
+Nested \texttt{\string\For} inside a brute-force enumeration, for contrast
+with the linear-time version above.
+
+\begin{algorithmblock}{Brute-force pair enumeration}
+  \AlgorithmInput{Array $h$ of length $n$}
+  \AlgorithmOutput{Maximum area}
+  \State $best \gets 0$
+  \For{$i \gets 0$ to $n-2$}
+    \For{$j \gets i+1$ to $n-1$}
+      \State $a \gets (j-i)\min(h_i,h_j)$
+      \State $best \gets \max(best,a)$
+    \EndFor
+  \EndFor
+  \State \Return $best$
+\end{algorithmblock}
+
+\section{ElseIf chains and a worked binary search}
+\texttt{\string\ElsIf} chains render with the same keyword treatment as
+\texttt{\string\If}/\texttt{\string\Else}.
+
+\begin{algorithmblock}[label={alg:binarysearch}]{Binary search}
+  \AlgorithmInput{Sorted array $A$, target $x$}
+  \AlgorithmOutput{Index of $x$, or $-1$}
+  \State $L \gets 0$
+  \State $R \gets |A|-1$
+  \While{$L \le R$}
+    \State $M \gets \lfloor (L+R)/2 \rfloor$
+    \If{$A_M = x$}
+      \State \Return $M$
+    \ElsIf{$A_M < x$}
+      \State $L \gets M+1$
+    \Else
+      \State $R \gets M-1$
+    \EndIf
+  \EndWhile
+  \State \Return $-1$
+\end{algorithmblock}
+
+\section{Long algorithm spanning a page boundary}
+A deliberately long, repetitive algorithm to exercise the breakable
+tcolorbox across a page break -- this primitive is a non-floating reading
+unit, so it must be able to break rather than drift away from this
+paragraph or overflow the page.
+
+\begin{algorithmblock}{Iterative relaxation sweep}
+  \AlgorithmInput{Graph $G=(V,E)$ with edge weights $w$, source $s$}
+  \AlgorithmOutput{Shortest distance from $s$ to every vertex}
+  \State $dist[s] \gets 0$
+  \For{each vertex $v \ne s$}
+    \State $dist[v] \gets \infty$
+  \EndFor
+  \For{$i \gets 1$ to $|V|-1$}
+    \For{each edge $(u,v)$ with weight $w(u,v)$ in $E$}
+      \If{$dist[u] + w(u,v) < dist[v]$}
+        \State $dist[v] \gets dist[u] + w(u,v)$
+      \EndIf
+    \EndFor
+  \EndFor
+  \For{each edge $(u,v)$ with weight $w(u,v)$ in $E$}
+    \If{$dist[u] + w(u,v) < dist[v]$}
+      \State \Return \textsc{negative-cycle-detected}
+    \EndIf
+  \EndFor
+  \For{each vertex $v$ in $V$}
+    \State \Call{Emit}{$v$, $dist[v]$}
+  \EndFor
+  \For{each vertex $v$ in $V$}
+    \State \Call{Audit}{$v$, $dist[v]$}
+  \EndFor
+  \For{each vertex $v$ in $V$}
+    \State \Call{Archive}{$v$, $dist[v]$}
+  \EndFor
+  \State \Return $dist$
+\end{algorithmblock}
+
+\section{Grayscale and semantic check}
+\begin{principle}{Pseudocode is not source code}
+\texttt{algorithmblock} and \texttt{codeblock} follow the same visual grammar
+(Surface fill, hairline rule, square corners, compact spacing, small
+sans-serif title) so the two read as one family, but they are not
+interchangeable: \texttt{codeblock} is for executable, monospaced source;
+\texttt{algorithmblock} is for language-neutral control flow set in
+proportional type, with keywords carrying structure instead of syntax
+highlighting.
+\end{principle}
+
+\section{Code and output blocks, for contrast}
+\begin{codeblock}[two-pointer.py]{Python}
+def max_area(heights):
+    left, right, best = 0, len(heights) - 1, 0
+    while left < right:
+        best = max(best, (right - left) * min(heights[left], heights[right]))
+        if heights[left] <= heights[right]:
+            left += 1
+        else:
+            right -= 1
+    return best
+\end{codeblock}
+
+\begin{outputblock}
+87
+\end{outputblock}
+
+\end{document}

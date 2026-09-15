@@ -73,6 +73,7 @@ This section is generated from source-adjacent contract metadata. Do not edit it
 | Name | Signature | Arguments | Constraints | Stability | Canonical example |
 | --- | --- | --- | --- | --- | --- |
 | `RKShortListing` | `O{}` | `options` (options, optional=) | — | stable since 1.0.0 | <code>\begin{RKShortListing}[]&lt;br&gt;Example content.&lt;br&gt;\end{RKShortListing}</code> |
+| `algorithmblock` | `O{} m` | `options` (options, optional=) — Optional label= and caption= (and linenumbers=&lt;step&gt;) keys.<br>`title` (text, required) — Algorithm name, shown after ALGORITHM in the box header. | Do not open or close the algorithmic environment directly inside algorithmblock; algorithmblock opens and closes it.<br>Never floats; a long algorithm may break across a page instead of drifting away from its introducing prose. | stable since 1.0.0 | <code>\begin{algorithmblock}{Two-pointer elimination}&lt;br&gt;\AlgorithmInput{Heights $h_0,\ldots,h_{n-1}$}&lt;br&gt;\AlgorithmOutput{Maximum container area}&lt;br&gt;\State $best \gets 0$&lt;br&gt;\end{algorithmblock}</code> |
 | `analystblock` | `` | — | — | stable since 1.8.0 | <code>\begin{analystblock}&lt;br&gt;Example content.&lt;br&gt;\end{analystblock}</code> |
 | `appendixdivider` | `m` | `title` (text, required) — Appendix title, also registered as a \section (prefixed Appendix:) for the PDF outline/bookmarks. | Content only; wrap in \begin{frame}[plain]...\end{frame}. | experimental since 1.9.3 | <code>\begin{frame}[plain]&lt;br&gt;\begin{appendixdivider}{Example}&lt;br&gt;\end{appendixdivider}&lt;br&gt;\end{frame}</code> |
 | `architectureslide` | `O{} O{}` | `caption` (text, optional=) — Optional caption, typeset the same way a diagram's is.<br>`source` (text, optional=) — Optional source line. | Same layout as fullvisual; named separately so an author or agent authoring an architecture slide finds it directly.<br>Content only; wrap in \begin{frame}...\end{frame}. | experimental since 1.9.3 | <code>\begin{frame}&lt;br&gt;\begin{architectureslide}[][]&lt;br&gt;Example content.&lt;br&gt;\end{architectureslide}&lt;br&gt;\end{frame}</code> |
@@ -108,6 +109,8 @@ This section is generated from source-adjacent contract metadata. Do not edit it
 
 | Name | Signature | Arguments | Constraints | Stability | Canonical example |
 | --- | --- | --- | --- | --- | --- |
+| `AlgorithmInput` | `m` | `text` (text, required) — Input description. | Use only inside algorithmblock, as with \State. | stable since 1.0.0 | <code>\AlgorithmInput{Heights $h_0,\ldots,h_{n-1}$}</code> |
+| `AlgorithmOutput` | `m` | `text` (text, required) — Output description. | Use only inside algorithmblock, as with \State. | stable since 1.0.0 | <code>\AlgorithmOutput{Maximum container area}</code> |
 | `RKCycleEdge` | `O{} m m` | `options` (options, optional=)<br>`source` (text, required)<br>`target` (text, required) | — | stable since 1.0.0 | <code>\RKCycleEdge[]{a}{b}</code> |
 | `RKCycleNode` | `O{} m m m` | `options` (options, optional=)<br>`id` (text, required)<br>`angle` (text, required)<br>`label` (text, required) | — | stable since 1.0.0 | <code>\RKCycleNode[]{a}{1}{Example}</code> |
 | `RKCycleSetup` | `m` | `radius` (text, required) | — | stable since 1.0.0 | <code>\RKCycleSetup{1}</code> |
