@@ -29,10 +29,23 @@
 % it loads reportkit-paged-core right after reportkit-core -- but a future
 % slides class can load a slides core supplying the same hooks. Output is
 % unchanged; only the mechanism moved (verified: identical PDF bytes on the
-% default and institutional/equity fixtures). Not yet its own version bump --
-% \ProvidesClass stays v1.9.3 until a release commit moves it, matching
-% version.py's REPORTKIT_VERSION (see test_agent_contract.py's
-% test_toolchain_fingerprint_and_release_version_are_stable).
+% default and institutional/equity fixtures).
+% Phase A4 (decision D11) splits each theme's common package (fonts, palette,
+% renderer-neutral semantic appearance) from a per-renderer adapter package
+% (geometry, running furniture, and other paged-specific values) -- this
+% class now loads both, resolved from the same generated publication
+% registry as the common package. See
+% themes/reportkit-theme-default(-paged).sty and
+% themes/reportkit-theme-institutional-research(-paged).sty for what moved.
+% Output is unchanged (verified: identical rendered pixels on the default
+% and institutional/equity fixtures; the default fixture's raw PDF bytes are
+% also identical -- LuaLaTeX's own output was already not byte-reproducible
+% on this local, unpinned toolchain even before this change, so the
+% institutional/equity comparison is pixel- and text-level, not hash-level;
+% see the implementation plan's A4 section).
+% Also not its own version bump -- \ProvidesClass stays v1.9.3 until a
+% release commit moves it, matching version.py's REPORTKIT_VERSION (see
+% test_agent_contract.py's test_toolchain_fingerprint_and_release_version_are_stable).
 \NeedsTeXFormat{LaTeX2e}
 \ProvidesClass{reportkit}[2026/09/13 v1.9.3 ReportKit technical report class]
 
@@ -66,6 +79,16 @@
 % any theme code is loaded (theme=technical uses the default package).
 \edef\rk@themepackage{\csname RKThemePackage@\rk@theme\endcsname}
 \expandafter\RequirePackage\expandafter{\rk@themepackage}
+% Phase A4 (decision D11): the theme's common package above owns only
+% renderer-neutral appearance (fonts, palette, style tokens). Page geometry,
+% running furniture and other paged-specific values live in a per-renderer
+% adapter package, resolved the same way as the common package and loaded
+% right after it, before any semantic module. \string inserts a literal "@"
+% that cannot be absorbed into the preceding control word (\rk@theme is
+% catcode-11 under \makeatletter, same reasoning as \RKValidateSelection's
+% RKPublicationTheme@...@... lookup in reportkit-options.tex).
+\edef\rk@themeadapter{\csname RKThemeAdapter@\rk@theme\string @\rk@classrenderer\endcsname}
+\expandafter\RequirePackage\expandafter{\rk@themeadapter}
 
 % Publication types layer primitives on top of the selected theme. The package
 % name is also registry-backed so a future renderer/publication adapter cannot

@@ -1,0 +1,72 @@
+% ReportKit theme adapter: default / paged renderer.
+% Phase A4 of the multi-format publication architecture spec
+% (docs/superpowers/specs/2026-09-09-reportkit-multi-format-publication-architecture-spec.md,
+% decision D11) splits every theme into a common file (palette, fonts,
+% renderer-neutral semantic appearance -- shared by any future renderer the
+% theme supports) and one adapter per renderer it actually supports (page
+% geometry, running furniture, and other renderer-specific component values).
+%
+% This file is that adapter for theme=default under the paged renderer
+% (reportkit.cls). It is loaded immediately after reportkit-theme-default.sty
+% resolves, before the selected publication type. Nothing below was rewritten
+% -- every value here is moved verbatim out of reportkit-theme-default.sty
+% v1.6.1, which owned all of it (undifferentiated by renderer) before this
+% split, back when paged was the only renderer that existed. A future
+% executive theme supplies both -paged and -slides adapters over one shared
+% common file; default remains paged-only.
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{reportkit-theme-default-paged}[2026/09/13 v1.0.0 ReportKit default theme / paged adapter]
+
+% -----------------------------------------------------------------------------
+% Geometry
+% -----------------------------------------------------------------------------
+% Late reconfiguration of the geometry package (RequirePackage{geometry} with
+% no options happens in reportkit-paged-core.sty); this is documented by the
+% geometry package as equivalent to passing the same keys as load-time
+% options, so this is a relocation, not a behavior change.
+\geometry{a4paper,left=27mm,right=27mm,top=24mm,bottom=24mm,headsep=8mm,footskip=12mm}
+
+% -----------------------------------------------------------------------------
+% Running furniture
+% -----------------------------------------------------------------------------
+\setlength{\headheight}{19pt}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\sffamily\fontsize{7.7}{9}\selectfont\color{Muted}\MakeUppercase{\rk@leftheader}}
+\fancyhead[R]{\sffamily\fontsize{7.7}{9}\selectfont\color{Muted}\nouppercase{\leftmark}}
+\fancyfoot[L]{\sffamily\fontsize{7.4}{9}\selectfont\color{Muted}\rk@footer\ · \rk@version}
+\fancyfoot[R]{\sffamily\fontsize{7.4}{9}\selectfont\color{Muted}\thepage}
+\renewcommand{\headrulewidth}{0.35pt}
+\renewcommand{\footrulewidth}{0pt}
+\renewcommand{\headrule}{\hbox to\headwidth{\color{Hairline}\leaders\hrule height \headrulewidth\hfill}}
+
+% -----------------------------------------------------------------------------
+% Section hierarchy and anti-stranding guards
+% -----------------------------------------------------------------------------
+% Every major heading reserves enough room for the heading plus several lines
+% of body copy. This eliminates ordinary stranded headings without forcing
+% arbitrary page breaks.
+\newcommand{\RKSectionNeed}{14\baselineskip}
+\newcommand{\RKSubsectionNeed}{7\baselineskip}
+
+\titleformat{\section}{\RKReserveSpace{\RKSectionNeed}\sffamily\bfseries\Large\color{Ink}}{\color{LinkBlue}\thesection}{0.7em}{}
+\titlespacing*{\section}{0pt}{15pt plus 3pt minus 2pt}{6pt}
+\titleformat{\subsection}{\RKReserveSpace{\RKSubsectionNeed}\sffamily\bfseries\large\color{Ink}}{\color{LinkBlue}\thesubsection}{0.65em}{}
+\titlespacing*{\subsection}{0pt}{12pt plus 2pt minus 2pt}{4pt}
+
+% -----------------------------------------------------------------------------
+% Title
+% -----------------------------------------------------------------------------
+\renewcommand{\maketitle}{%
+  \thispagestyle{fancy}%
+  \vspace*{3mm}%
+  {\sffamily\fontsize{8.5}{10}\selectfont\bfseries\color{LinkBlue}\MakeUppercase{\rk@leftheader}\par}%
+  \vspace{6mm}%
+  {\sffamily\bfseries\fontsize{24}{28}\selectfont\color{Ink}\@title\par}%
+  \vspace{3mm}%
+  \ifx\@author\@empty\else{\sffamily\fontsize{9.5}{12}\selectfont\color{Muted}\@author}\fi
+  \ifx\@date\@empty\else{\sffamily\fontsize{9.5}{12}\selectfont\color{Muted}\quad\textperiodcentered\quad\@date}\fi
+  \par\vspace{7mm}\color{Hairline}\hrule\color{Ink}\vspace{7mm}%
+}
+
+\endinput

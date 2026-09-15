@@ -75,6 +75,7 @@ _MODULES = {
     # object and one chart baseline for both names.
     "technical": "reportkit.themes.default",
     "institutional-research": "reportkit.themes.institutional_research",
+    "executive": "reportkit.themes.executive",
 }
 
 

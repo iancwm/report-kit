@@ -77,7 +77,7 @@ def test_every_in_tree_xparse_specifier_is_supported() -> None:
 def test_registry_is_complete_and_preserves_legacy_inventory() -> None:
     registry = generate_registry(REPO, strict=True)
     assert {kind: len(records) for kind, records in registry["primitives"].items()} == {
-        "callout": 14, "figure": 19, "chart": 13, "composition": 17, "command": 62,
+        "callout": 14, "figure": 19, "chart": 13, "composition": 31, "command": 64,
     }
     assert len(registry["figures"]) == 19
     assert len(registry["callouts"]["public"]) == 10
@@ -159,7 +159,7 @@ def test_context_is_versioned_filterable_and_legacy_compatible() -> None:
             "tagged_pdf_reason": "The pinned LaTeX format has not yet passed the documented tagging spike.",
         },
         "common_package": "reportkit-theme-institutional-research",
-        "renderer_adapter": "reportkit-theme-institutional-research",
+        "renderer_adapter": "reportkit-theme-institutional-research-paged",
         "publication_package": "reportkit-equity-research", "brand_overrides": False,
         "language_support": {
             "verified": ["en"], "metadata_only": ["vi"],
@@ -218,11 +218,16 @@ def test_full_build_emits_schema_v3_report_and_lock(tmp_path: Path) -> None:
 
 def test_context_catalog_contains_only_the_current_publication_matrix() -> None:
     capabilities = build_context(REPO)["capabilities"]
-    assert set(capabilities["publication_types"]) == {"technical-report", "equity-research"}
+    # Phase B added the slides renderer, the experimental executive theme,
+    # and the presentation publication type (publications.py's own
+    # docstrings explain why "experimental" does not mean "absent from the
+    # registry" -- the pipeline just does not route to it yet, per A5).
+    assert set(capabilities["publication_types"]) == {"technical-report", "equity-research", "presentation"}
     assert capabilities["publication_types"]["technical-report"]["themes"] == ["default", "technical"]
     assert capabilities["publication_types"]["equity-research"]["themes"] == ["institutional-research"]
-    assert set(capabilities["renderers"]) == {"paged"}
-    assert set(capabilities["themes"]) == {"default", "technical", "institutional-research"}
+    assert capabilities["publication_types"]["presentation"]["themes"] == ["executive"]
+    assert set(capabilities["renderers"]) == {"paged", "slides"}
+    assert set(capabilities["themes"]) == {"default", "technical", "institutional-research", "executive"}
     assert all(theme["language_support"]["rtl"] == "unsupported" for theme in capabilities["themes"].values())
     assert all(theme["language_support"]["scripts"]["verified"] == ["Latn"] for theme in capabilities["themes"].values())
 

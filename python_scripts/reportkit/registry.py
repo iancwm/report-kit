@@ -151,6 +151,8 @@ def _has_adjacent_internal_marker(text: str, position: int) -> bool:
 def _default_availability(path: Path) -> dict[str, list[str]]:
     if path.parent.name == "publication_types" and "equity-research" in path.name:
         return availability_for(publication_type="equity-research")
+    if path.parent.name == "publication_types" and "presentation" in path.name:
+        return availability_for(publication_type="presentation")
     if path.parent.name == "themes":
         theme = path.stem.removeprefix("reportkit-theme-")
         publication = "equity-research" if theme == "institutional-research" else "technical-report"

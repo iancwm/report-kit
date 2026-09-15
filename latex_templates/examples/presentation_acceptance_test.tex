@@ -1,0 +1,172 @@
+% ReportKit acceptance test: presentation publication type / slides renderer
+% / executive theme (Phase B). Exercises every reportkit-presentation.sty
+% composition once, plus reuse of the shared semantic modules
+% (reportkit-boxes, reportkit-code, reportkit-diagrams) already proven under
+% the paged renderer -- this document exists to prove they also compile
+% unmodified under Beamer, not to be a real deck. Compiled directly (like
+% latex_templates/examples/equity-research/report.tex), not through the
+% publication_pipeline -- see publication_pipeline/templates/slides-base.tex's
+% header for why the pipeline path isn't wired up yet.
+%
+% Every composition is content-only (reportkit-presentation.sty's header
+% explains why) and is wrapped here in an explicit \begin{frame}...\end{frame}
+% -- [fragile] only where a frame's content actually needs it (codeblock).
+\documentclass[theme=executive,publication-type=presentation]{reportkit-slides}
+
+\setreportkitleftheader{ReportKit / Presentation Acceptance Test}
+\setreportkitfooter{Presentation acceptance test}
+\setreportkitversion{v0.1.0}
+\title{Every presentation composition, once}
+\subtitle{Phase B compile coverage, not a real deck}
+\author{Test build}
+\date{14 September 2026}
+
+\begin{document}
+
+\begin{frame}[plain]
+\begin{titleslide}
+\end{titleslide}
+\end{frame}
+
+\begin{frame}[plain]
+\begin{sectiondivider}{Message and evidence}
+\end{sectiondivider}
+\end{frame}
+
+\begin{frame}
+\begin{messageslide}{Beamer renders every semantic box unmodified}
+The callout, metric, code, and diagram modules were built against the renderer-hook
+contract A3 introduced, not against the paged renderer specifically.
+\end{messageslide}
+\end{frame}
+
+\begin{frame}
+\begin{evidenceslide}{Three semantic modules compile under Beamer with zero changes}
+\begin{principle}{Reused, not reimplemented}
+\texttt{reportkit-boxes}, \texttt{reportkit-code}, and \texttt{reportkit-diagrams} are
+required by \texttt{reportkit-slides.cls} exactly as \texttt{reportkit.cls} requires
+them for the paged renderer.
+\end{principle}
+\end{evidenceslide}
+\end{frame}
+
+\begin{frame}[plain]
+\begin{sectiondivider}{Visuals}
+\end{sectiondivider}
+\end{frame}
+
+\begin{frame}
+\begin{visualtext}[right]{A layered diagram}{RKLayer renders identically under
+either renderer; only the placement hooks differ.}
+\begin{diagram}[
+  type=layer,
+  caption={System layers, top to bottom.},
+  source={Illustrative architecture.},
+  description={Three stacked layers: presentation, application logic, and data storage.}
+]
+  \RKLayerSetup{7}{0.7}
+  \RKLayer[rk accent]{0}{Presentation}{Renders slides for the reader.}
+  \RKLayer{1}{Application logic}{Applies ReportKit macros.}
+  \RKLayer{2}{Data storage}{Holds source content.}
+\end{diagram}
+\end{visualtext}
+\end{frame}
+
+\begin{frame}
+\begin{fullvisual}[A metric card, unmodified under Beamer.][Illustrative.]
+\begin{metric}{Compile coverage}{100\%}
+Every composition in this fixture appears exactly once.
+\end{metric}
+\end{fullvisual}
+\end{frame}
+
+\begin{frame}[plain]
+\begin{sectiondivider}{Structure}
+\end{sectiondivider}
+\end{frame}
+
+\begin{frame}
+\begin{comparison}
+\comparisoncolumn{Paged}{Continuous page flow; \texttt{\string\RKReserveSpace} reserves
+room before a break.}
+\comparisoncolumn{Slides}{One composition per frame; \texttt{\string\RKReserveSpace} is a
+no-op.}
+\end{comparison}
+\end{frame}
+
+\begin{frame}
+\begin{threepart}
+\threepartcolumn{Registry}{Python is canonical; the generated \texttt{.def} is a
+backstop.}
+\threepartcolumn{Core}{Renderer-neutral mechanism and the style-token contract.}
+\threepartcolumn{Renderer core}{Paged or slides; implements the same hook names.}
+\end{threepart}
+\end{frame}
+
+\begin{frame}
+\begin{herometric}{160mm x 90mm}{Declared canvas}
+Beamer's own aspectratio=169 table already produces this frame size natively.
+\end{herometric}
+\end{frame}
+
+\begin{frame}[fragile]
+\begin{codeblock}[reportkit-slides.cls]{TeX}
+\RequirePackage{reportkit-slides-core}
+\RKAssertRendererHooks
+\end{codeblock}
+\begin{outputblock}
+PASS -- renderer hooks loaded
+\end{outputblock}
+\end{frame}
+
+\begin{frame}[plain]
+\begin{appendixdivider}{Chart, table, and architecture aliases}
+\end{appendixdivider}
+\end{frame}
+
+\begin{frame}
+\begin{chartslide}[left]{Chart slide}{Same layout as visualtext, named for
+discoverability.}
+\begin{diagram}[
+  type=matrix,
+  caption={Illustrative placement.},
+  description={A 2x2 matrix.}
+]
+  \RKMatrixSetup{6}{4}
+  \RKMatrix{Effort}{Impact}
+  \RKMatrixCell{nw}{Quick win}{Low effort, high impact}
+  \RKMatrixCell{se}{Reconsider}{High effort, low impact}
+\end{diagram}
+\end{chartslide}
+\end{frame}
+
+\begin{frame}
+\begin{tableslide}[right]{Table slide}{Same layout as visualtext, mirrored for a
+table instead of a chart.}
+\begin{metric}{Table stand-in}{4/4}
+Compositions covered by this fixture so far.
+\end{metric}
+\end{tableslide}
+\end{frame}
+
+\begin{frame}
+\begin{architectureslide}[An architecture diagram, full-bleed.][]
+\begin{diagram}[
+  type=layer,
+  caption={Full-bleed variant.},
+  description={Two stacked layers.}
+]
+  \RKLayerSetup{9}{0.9}
+  \RKLayer[rk accent]{0}{Frontend}{Renders the interface.}
+  \RKLayer{1}{Backend}{Serves data.}
+\end{diagram}
+\end{architectureslide}
+\end{frame}
+
+\begin{frame}[plain]
+\begin{closingslide}{Thank you}
+Questions welcome.
+\end{closingslide}
+\end{frame}
+
+\end{document}

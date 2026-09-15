@@ -1,0 +1,80 @@
+% ReportKit theme adapter: institutional-research / paged renderer.
+% Phase A4 of the multi-format publication architecture spec
+% (docs/superpowers/specs/2026-09-09-reportkit-multi-format-publication-architecture-spec.md,
+% decision D11) splits every theme into a common file (palette, fonts,
+% renderer-neutral semantic appearance) and one adapter per renderer it
+% actually supports (page geometry, running furniture, and other
+% renderer-specific component values).
+%
+% This file is that adapter for theme=institutional-research under the paged
+% renderer (reportkit.cls). It is loaded immediately after
+% reportkit-theme-institutional-research.sty resolves, before the selected
+% publication type. Nothing below was rewritten -- every value here is moved
+% verbatim out of reportkit-theme-institutional-research.sty v1.7.1, which
+% owned all of it (undifferentiated by renderer) before this split, back when
+% paged was the only renderer that existed. institutional-research is
+% currently paged-only; a future -slides adapter would sit alongside this one
+% over the same common file.
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{reportkit-theme-institutional-research-paged}[2026/09/13 v1.0.0 ReportKit institutional-research theme / paged adapter]
+
+% -----------------------------------------------------------------------------
+% Geometry (spec §6) -- US Letter, noticeably tighter than the default
+% theme's 27mm A4 margins, but looser than Appendix A's 0.42-0.48in prototype
+% margins (open question 5: §6 governs, not the prototype).
+% -----------------------------------------------------------------------------
+% The `a4paper` option passed to \LoadClass in reportkit.cls (Step 1's base-
+% size problem, deliberately unsolved for the base-size case -- see the
+% implementation plan) is irrelevant here: geometry's own paper option
+% recomputes \paperwidth/\paperheight and the PDF page size regardless of
+% what \LoadClass set, exactly as the default theme's late \geometry{a4paper,...}
+% call already relies on. No \LoadClass change is needed to get Letter paper.
+\geometry{letterpaper,left=14mm,right=14mm,top=14mm,bottom=15mm,headsep=6mm,footskip=8mm}
+
+% -----------------------------------------------------------------------------
+% Running furniture (spec §19) -- hairlines, no boxed regions.
+% -----------------------------------------------------------------------------
+\setlength{\headheight}{16pt}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\sffamily\fontsize{7.4}{9}\selectfont\bfseries\color{Muted}\MakeUppercase{\rk@leftheader}}
+\fancyhead[R]{\sffamily\fontsize{7.4}{9}\selectfont\color{Muted}\nouppercase{\leftmark}}
+\fancyfoot[L]{\sffamily\fontsize{7pt}{8.5pt}\selectfont\color{Muted}\rk@footer\ \textperiodcentered\ \rk@version}
+\fancyfoot[R]{\sffamily\fontsize{7pt}{8.5pt}\selectfont\color{Muted}\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0pt}
+\renewcommand{\headrule}{\hbox to\headwidth{\color{Hairline}\leaders\hrule height \headrulewidth\hfill}}
+
+% -----------------------------------------------------------------------------
+% Section hierarchy (spec §5, §20) -- weight and size establish hierarchy,
+% not color: unlike the default theme, section numbers are not accent-colored
+% ("Do not use accent on every section heading", §20).
+% -----------------------------------------------------------------------------
+\newcommand{\RKSectionNeed}{13\baselineskip}
+\newcommand{\RKSubsectionNeed}{6\baselineskip}
+
+\titleformat{\section}{\RKReserveSpace{\RKSectionNeed}\sffamily\bfseries\rksectionheadingsize\color{Ink}}{\thesection}{0.7em}{}
+\titlespacing*{\section}{0pt}{14pt plus 3pt minus 2pt}{6pt}
+\titleformat{\subsection}{\RKReserveSpace{\RKSubsectionNeed}\sffamily\bfseries\rksubsectionsize\color{Ink}}{\thesubsection}{0.6em}{}
+\titlespacing*{\subsection}{0pt}{11pt plus 2pt minus 2pt}{4pt}
+
+% -----------------------------------------------------------------------------
+% Title -- generic (non-equity-research) entry point.
+% Step 3's researchfrontpage/researchheadline/etc. are the equity-research
+% publication-type's own front matter; this \maketitle is what a plain
+% institutional-research document (e.g. a future strategy-report
+% publication-type) gets instead.
+% -----------------------------------------------------------------------------
+\renewcommand{\maketitle}{%
+  \thispagestyle{fancy}%
+  \vspace*{2mm}%
+  {\sffamily\rkmastheadsize\bfseries\color{Accent}\MakeUppercase{\rk@leftheader}\par}%
+  \vspace{5mm}%
+  {\sffamily\bfseries\rkheadlinesize\color{Ink}\@title\par}%
+  \vspace{3mm}%
+  \ifx\@author\@empty\else{\sffamily\rksidebarsize\color{Muted}\@author}\fi
+  \ifx\@date\@empty\else{\sffamily\rksidebarsize\color{Muted}\quad\textperiodcentered\quad\@date}\fi
+  \par\vspace{6mm}\color{Hairline}\hrule\color{Ink}\vspace{6mm}%
+}
+
+\endinput

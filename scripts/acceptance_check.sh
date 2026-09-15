@@ -183,6 +183,11 @@ fi
 # fast primitive-smoke-test fixture.
 LUALATEX_TEST_TEXES=(
   "latex_templates/examples/institutional_equity_acceptance_test.tex"
+  # Phase B (slide renderer and presentation semantics): the executive
+  # theme also requires lualatex (same engine guard as institutional-
+  # research, same reason). This is a compile smoke test exercising every
+  # reportkit-presentation.sty composition once, not a real deck.
+  "latex_templates/examples/presentation_acceptance_test.tex"
 )
 lua_status=0
 if command -v lualatex >/dev/null 2>&1; then

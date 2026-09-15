@@ -1,0 +1,292 @@
+% ReportKit publication type: presentation. Phase B of the multi-format
+% publication architecture spec (decision B2): "reportkit-presentation.sty
+% owns semantic structures, not visual values." Every composition below
+% delegates its actual spacing/type/rule/color to the theme's
+% presentation-token contract (reportkit-core.sty's "Presentation-composition
+% style tokens" section, populated by a slides-compatible theme's adapter --
+% today only reportkit-theme-executive-slides.sty) or to plain semantic color
+% names every slides-compatible theme is expected to define (Ink, Muted,
+% Hairline, Accent), never to a hardcoded value or a theme name. No
+% composition below mentions "executive": venture (Phase D) is expected to
+% compile the same compositions unchanged, using its own adapter's token
+% values -- the same proof D11/Phase D already requires for paged themes.
+%
+% Every composition below is CONTENT ONLY -- none of them opens or closes
+% Beamer's own \begin{frame}...\end{frame}; the author (or the pipeline's
+% front-matter hook) wraps each one in an explicit frame, e.g.:
+%   \begin{frame}
+%   \begin{messageslide}{Example}
+%   Example content.
+%   \end{messageslide}
+%   \end{frame}
+% This is not a stylistic choice: Beamer's frame environment captures its own
+% body by scanning the raw input stream for a literally-typed \end{frame},
+% the same mechanism "fragile" frames use for listings/verbatim content --
+% verified empirically (a version opening \begin{frame}[fragile] in one
+% custom environment's start code and \end{frame} in its end code fails with
+% "Runaway argument? File ended while scanning use of \beamer@collect@@body",
+% even with no fragile content at all in the frame; the same content wrapped
+% by an explicit, literal \begin{frame}...\end{frame} compiles cleanly). Add
+% [fragile] to the author's own \begin{frame} when its content needs it
+% (e.g. a codeblock) -- these compositions do not decide that for the
+% author's frame the way a frame-opening design would have had to.
+%
+% Only ever loaded when publication-type=presentation, which only ever pairs
+% with a slides-renderer theme (the registry rejects any other pairing), so
+% this file is free to use Beamer's own environments (columns, column)
+% directly -- unlike reportkit-boxes.sty/reportkit-diagrams.sty, which must
+% compile under either renderer core.
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{reportkit-presentation}[2026/09/13 v0.1.0 ReportKit presentation compositions (experimental)]
+\RequirePackage{xparse}
+\RequirePackage{etoolbox}
+
+\RKAssertPresentationTokens
+
+% -----------------------------------------------------------------------------
+% Title slide
+% -----------------------------------------------------------------------------
+% <reportkit-contract>
+% {"kind":"composition","description":"Titleslide","arguments":[],"constraints":[{"code":"content_only_wrap_in_frame","description":"Content only; wrap in \\begin{frame}[plain]...\\end{frame}."},{"code":"reads_document_metadata","description":"Reads \\title/\\subtitle/\\author/\\date and reportkit-core's \\rk@leftheader (set with \\setreportkitleftheader); set those before use, as with the paged renderer's \\maketitle."}],"example":"\\begin{frame}[plain]\n\\begin{titleslide}\n\\end{titleslide}\n\\end{frame}","stability":"experimental","since":"1.9.3"}
+% </reportkit-contract>
+\NewDocumentEnvironment{titleslide}{}{%
+  \vfill
+  {\sffamily\RKTokPresentationKickerFont\bfseries\color{Accent}\MakeUppercase{\rk@leftheader}\par}
+  \vspace{4mm}
+  {\sffamily\bfseries\RKTokPresentationTitleFont\color{Ink}\inserttitle\par}
+  \ifdefempty{\insertsubtitle}{}{\vspace{2mm}{\sffamily\RKTokPresentationSubtitleFont\color{Muted}\insertsubtitle\par}}%
+  \vspace{6mm}
+  \ifdefempty{\insertauthor}{}{{\sffamily\RKTokPresentationBodyFont\color{Muted}\insertauthor}}%
+  \ifdefempty{\insertdate}{}{{\sffamily\RKTokPresentationBodyFont\color{Muted}\ifdefempty{\insertauthor}{}{\quad\textperiodcentered\quad}\insertdate}}%
+}{%
+  \vfill
+}
+
+% -----------------------------------------------------------------------------
+% Section divider
+% -----------------------------------------------------------------------------
+% <reportkit-contract>
+% {"kind":"composition","description":"Sectiondivider","arguments":[{"name":"title","type":"text","description":"Section title, also registered as a \\section for the PDF outline/bookmarks."}],"constraints":[{"code":"content_only_wrap_in_frame","description":"Content only; wrap in \\begin{frame}[plain]...\\end{frame}."}],"example":"\\begin{frame}[plain]\n\\begin{sectiondivider}{Example}\n\\end{sectiondivider}\n\\end{frame}","stability":"experimental","since":"1.9.3"}
+% </reportkit-contract>
+\NewDocumentEnvironment{sectiondivider}{m}{%
+  \section{#1}%
+  \vfill
+  {\sffamily\RKTokPresentationKickerFont\bfseries\color{Accent}\MakeUppercase{Section}\par}
+  \vspace{4mm}
+  {\sffamily\bfseries\RKTokPresentationDividerTitleFont\color{Ink}#1\par}
+}{%
+  \vfill
+}
+
+% <reportkit-contract>
+% {"kind":"composition","description":"Appendixdivider","arguments":[{"name":"title","type":"text","description":"Appendix title, also registered as a \\section (prefixed Appendix:) for the PDF outline/bookmarks."}],"constraints":[{"code":"content_only_wrap_in_frame","description":"Content only; wrap in \\begin{frame}[plain]...\\end{frame}."}],"example":"\\begin{frame}[plain]\n\\begin{appendixdivider}{Example}\n\\end{appendixdivider}\n\\end{frame}","stability":"experimental","since":"1.9.3"}
+% </reportkit-contract>
+\NewDocumentEnvironment{appendixdivider}{m}{%
+  \section{Appendix: #1}%
+  \vfill
+  {\sffamily\RKTokPresentationKickerFont\bfseries\color{Accent}\MakeUppercase{Appendix}\par}
+  \vspace{4mm}
+  {\sffamily\bfseries\RKTokPresentationDividerTitleFont\color{Ink}#1\par}
+}{%
+  \vfill
+}
+
+% -----------------------------------------------------------------------------
+% Single-message and assertion-evidence
+% -----------------------------------------------------------------------------
+% <reportkit-contract>
+% {"kind":"composition","description":"Messageslide","arguments":[{"name":"headline","type":"text","description":"The one assertion this slide makes."}],"constraints":[{"code":"content_only_wrap_in_frame","description":"Content only; wrap in \\begin{frame}...\\end{frame}."}],"example":"\\begin{frame}\n\\begin{messageslide}{Example}\nExample content.\n\\end{messageslide}\n\\end{frame}","stability":"experimental","since":"1.9.3"}
+% </reportkit-contract>
+\NewDocumentEnvironment{messageslide}{m}{%
+  \vfill
+  {\sffamily\bfseries\RKTokPresentationMessageFont\color{Ink}#1\par}
+  \vspace{3mm}
+  {\sffamily\RKTokPresentationBodyFont\color{Muted}}%
+}{%
+  \vfill
+}
+
+% <reportkit-contract>
+% {"kind":"composition","description":"Evidenceslide","arguments":[{"name":"claim","type":"text","description":"The claim; content is the supporting evidence, visually separated from it."}],"constraints":[{"code":"content_only_wrap_in_frame","description":"Content only; wrap in \\begin{frame}...\\end{frame}."}],"example":"\\begin{frame}\n\\begin{evidenceslide}{Example}\nExample content.\n\\end{evidenceslide}\n\\end{frame}","stability":"experimental","since":"1.9.3"}
+% </reportkit-contract>
+\NewDocumentEnvironment{evidenceslide}{m}{%
+  {\sffamily\RKTokPresentationKickerFont\bfseries\color{Accent}\MakeUppercase{Claim}\par}
+  \vspace{2mm}
+  {\sffamily\bfseries\RKTokPresentationMessageFont\color{Ink}#1\par}
+  \vspace{4mm}
+  \textcolor{Hairline}{\rule{\linewidth}{\RKTokPresentationRuleWidth}}
+  \vspace{4mm}
+  {\sffamily\RKTokPresentationKickerFont\bfseries\color{Accent}\MakeUppercase{Evidence}\par}
+  \vspace{2mm}
+  {\sffamily\RKTokPresentationBodyFont\color{Ink}}%
+}{%
+}
+
+% -----------------------------------------------------------------------------
+% Visual + text (shared implementation; also backs chartslide/tableslide)
+% -----------------------------------------------------------------------------
+% reportkit-contract: internal
+\NewDocumentCommand{\rkpresentation@visualtext@start}{O{right} m m}{%
+  \begin{columns}[T,onlytextwidth]
+  \ifstrequal{#1}{left}{%
+    \begin{column}{.52\linewidth}%
+  }{%
+    \begin{column}{.44\linewidth}%
+    {\sffamily\RKTokPresentationColumnHeadingFont\bfseries\color{Ink}#2\par}
+    \vspace{2mm}
+    {\sffamily\RKTokPresentationBodyFont\color{Muted}#3\par}
+    \end{column}
+    \hfill
+    \begin{column}{.48\linewidth}%
+  }%
+}
+% reportkit-contract: internal
+\NewDocumentCommand{\rkpresentation@visualtext@end}{O{right} m m}{%
+  \ifstrequal{#1}{left}{%
+    \end{column}
+    \hfill
+    \begin{column}{.4\linewidth}%
+    {\sffamily\RKTokPresentationColumnHeadingFont\bfseries\color{Ink}#2\par}
+    \vspace{2mm}
+    {\sffamily\RKTokPresentationBodyFont\color{Muted}#3\par}
+    \end{column}
+  }{%
+    \end{column}
+  }%
+  \end{columns}
+}
+% <reportkit-contract>
+% {"kind":"composition","description":"Visualtext","arguments":[{"name":"position","type":"options","description":"left or right: which side the visual (this environment's content) renders on. Default right."},{"name":"heading","type":"text","description":"Heading for the text column."},{"name":"body","type":"text","description":"Supporting text for the text column."}],"constraints":[{"code":"content_only_wrap_in_frame","description":"Content only; wrap in \\begin{frame}...\\end{frame}."}],"example":"\\begin{frame}\n\\begin{visualtext}[right]{Example}{Example}\nExample content.\n\\end{visualtext}\n\\end{frame}","stability":"experimental","since":"1.9.3"}
+% </reportkit-contract>
+\NewDocumentEnvironment{visualtext}{O{right} m m}{%
+  \rkpresentation@visualtext@start[#1]{#2}{#3}%
+}{%
+  \rkpresentation@visualtext@end[#1]{#2}{#3}%
+}
+% <reportkit-contract>
+% {"kind":"composition","description":"Chartslide","arguments":[{"name":"position","type":"options","description":"left or right: which side the chart (this environment's content) renders on. Default right."},{"name":"heading","type":"text","description":"Heading for the text column."},{"name":"body","type":"text","description":"Supporting insight text for the text column."}],"constraints":[{"code":"alias_of_visualtext","description":"Same layout as visualtext; named separately so an author or agent authoring a chart slide finds it directly."},{"code":"content_only_wrap_in_frame","description":"Content only; wrap in \\begin{frame}...\\end{frame}."}],"example":"\\begin{frame}\n\\begin{chartslide}[right]{Example}{Example}\nExample content.\n\\end{chartslide}\n\\end{frame}","stability":"experimental","since":"1.9.3"}
+% </reportkit-contract>
+\NewDocumentEnvironment{chartslide}{O{right} m m}{%
+  \rkpresentation@visualtext@start[#1]{#2}{#3}%
+}{%
+  \rkpresentation@visualtext@end[#1]{#2}{#3}%
+}
+% <reportkit-contract>
+% {"kind":"composition","description":"Tableslide","arguments":[{"name":"position","type":"options","description":"left or right: which side the table (this environment's content) renders on. Default right."},{"name":"heading","type":"text","description":"Heading for the text column."},{"name":"body","type":"text","description":"Supporting insight text for the text column."}],"constraints":[{"code":"alias_of_visualtext","description":"Same layout as visualtext; named separately so an author or agent authoring a table slide finds it directly."},{"code":"content_only_wrap_in_frame","description":"Content only; wrap in \\begin{frame}...\\end{frame}."}],"example":"\\begin{frame}\n\\begin{tableslide}[right]{Example}{Example}\nExample content.\n\\end{tableslide}\n\\end{frame}","stability":"experimental","since":"1.9.3"}
+% </reportkit-contract>
+\NewDocumentEnvironment{tableslide}{O{right} m m}{%
+  \rkpresentation@visualtext@start[#1]{#2}{#3}%
+}{%
+  \rkpresentation@visualtext@end[#1]{#2}{#3}%
+}
+
+% -----------------------------------------------------------------------------
+% Full visual (shared implementation; also backs architectureslide)
+% -----------------------------------------------------------------------------
+% reportkit-contract: internal
+\NewDocumentCommand{\rkpresentation@fullvisual@start}{O{} O{}}{%
+  \vfill
+  \centering
+}
+% reportkit-contract: internal
+\NewDocumentCommand{\rkpresentation@fullvisual@end}{O{} O{}}{%
+  \vfill
+  \ifstrempty{#1}{}{\RKDiagramCaption{#1}}%
+  \ifstrempty{#2}{}{\RKDiagramSource{#2}}%
+}
+% <reportkit-contract>
+% {"kind":"composition","description":"Fullvisual","arguments":[{"name":"caption","type":"text","description":"Optional caption, typeset the same way a diagram's is."},{"name":"source","type":"text","description":"Optional source line."}],"constraints":[{"code":"content_only_wrap_in_frame","description":"Content only; wrap in \\begin{frame}...\\end{frame}."}],"example":"\\begin{frame}\n\\begin{fullvisual}[][]\nExample content.\n\\end{fullvisual}\n\\end{frame}","stability":"experimental","since":"1.9.3"}
+% </reportkit-contract>
+\NewDocumentEnvironment{fullvisual}{O{} O{}}{%
+  \rkpresentation@fullvisual@start[#1][#2]%
+}{%
+  \rkpresentation@fullvisual@end[#1][#2]%
+}
+% <reportkit-contract>
+% {"kind":"composition","description":"Architectureslide","arguments":[{"name":"caption","type":"text","description":"Optional caption, typeset the same way a diagram's is."},{"name":"source","type":"text","description":"Optional source line."}],"constraints":[{"code":"alias_of_fullvisual","description":"Same layout as fullvisual; named separately so an author or agent authoring an architecture slide finds it directly."},{"code":"content_only_wrap_in_frame","description":"Content only; wrap in \\begin{frame}...\\end{frame}."}],"example":"\\begin{frame}\n\\begin{architectureslide}[][]\nExample content.\n\\end{architectureslide}\n\\end{frame}","stability":"experimental","since":"1.9.3"}
+% </reportkit-contract>
+\NewDocumentEnvironment{architectureslide}{O{} O{}}{%
+  \rkpresentation@fullvisual@start[#1][#2]%
+}{%
+  \rkpresentation@fullvisual@end[#1][#2]%
+}
+
+% -----------------------------------------------------------------------------
+% Two-column comparison and three-part argument
+% -----------------------------------------------------------------------------
+% <reportkit-contract>
+% {"kind":"composition","description":"Comparison","arguments":[],"constraints":[{"code":"exactly_two_columns","description":"Content must be exactly two \\comparisoncolumn calls."},{"code":"content_only_wrap_in_frame","description":"Content only; wrap in \\begin{frame}...\\end{frame}."}],"example":"\\begin{frame}\n\\begin{comparison}\n\\comparisoncolumn{Example}{Example}\n\\comparisoncolumn{Example}{Example}\n\\end{comparison}\n\\end{frame}","stability":"experimental","since":"1.9.3"}
+% </reportkit-contract>
+\NewDocumentEnvironment{comparison}{}{%
+  \begin{columns}[T,onlytextwidth]
+}{%
+  \end{columns}
+}
+% <reportkit-contract>
+% {"kind":"command","description":"Comparisoncolumn","arguments":[{"name":"heading","type":"text","description":"Column heading."},{"name":"body","type":"text","description":"Column content."}],"constraints":[{"code":"requires_parent_environment","description":"Only valid inside a comparison environment."}],"example":"\\comparisoncolumn{Example}{Example}","stability":"experimental","since":"1.9.3"}
+% </reportkit-contract>
+\NewDocumentCommand{\comparisoncolumn}{m m}{%
+  \begin{column}{.47\linewidth}
+  {\sffamily\RKTokPresentationColumnHeadingFont\bfseries\color{Accent}#1\par}
+  \vspace{2mm}
+  \textcolor{Hairline}{\rule{\linewidth}{\RKTokPresentationRuleWidth}}
+  \vspace{2mm}
+  {\sffamily\RKTokPresentationBodyFont\color{Ink}#2\par}
+  \end{column}
+}
+
+% <reportkit-contract>
+% {"kind":"composition","description":"Threepart","arguments":[],"constraints":[{"code":"exactly_three_columns","description":"Content must be exactly three \\threepartcolumn calls."},{"code":"content_only_wrap_in_frame","description":"Content only; wrap in \\begin{frame}...\\end{frame}."}],"example":"\\begin{frame}\n\\begin{threepart}\n\\threepartcolumn{Example}{Example}\n\\threepartcolumn{Example}{Example}\n\\threepartcolumn{Example}{Example}\n\\end{threepart}\n\\end{frame}","stability":"experimental","since":"1.9.3"}
+% </reportkit-contract>
+\NewDocumentEnvironment{threepart}{}{%
+  \begin{columns}[T,onlytextwidth]
+}{%
+  \end{columns}
+}
+% <reportkit-contract>
+% {"kind":"command","description":"Threepartcolumn","arguments":[{"name":"heading","type":"text","description":"Column heading."},{"name":"body","type":"text","description":"Column content."}],"constraints":[{"code":"requires_parent_environment","description":"Only valid inside a threepart environment."}],"example":"\\threepartcolumn{Example}{Example}","stability":"experimental","since":"1.9.3"}
+% </reportkit-contract>
+\NewDocumentCommand{\threepartcolumn}{m m}{%
+  \begin{column}{.31\linewidth}
+  {\sffamily\RKTokPresentationColumnHeadingFont\bfseries\color{Accent}#1\par}
+  \vspace{2mm}
+  \textcolor{Hairline}{\rule{\linewidth}{\RKTokPresentationRuleWidth}}
+  \vspace{2mm}
+  {\sffamily\RKTokPresentationBodyFont\color{Ink}#2\par}
+  \end{column}
+}
+
+% -----------------------------------------------------------------------------
+% Hero metric
+% -----------------------------------------------------------------------------
+% <reportkit-contract>
+% {"kind":"composition","description":"Herometric","arguments":[{"name":"value","type":"text","description":"The number, dominating the frame."},{"name":"label","type":"text","description":"What the number is."}],"constraints":[{"code":"content_only_wrap_in_frame","description":"Content only; wrap in \\begin{frame}...\\end{frame}."}],"example":"\\begin{frame}\n\\begin{herometric}{Example}{Example}\nExample content.\n\\end{herometric}\n\\end{frame}","stability":"experimental","since":"1.9.3"}
+% </reportkit-contract>
+\NewDocumentEnvironment{herometric}{m m}{%
+  \vfill
+  \centering
+  {\sffamily\bfseries\RKTokPresentationHeroValueFont\color{Accent}#1\par}
+  \vspace{2mm}
+  {\sffamily\RKTokPresentationHeroLabelFont\color{Muted}\MakeUppercase{#2}\par}
+  \vspace{4mm}
+  {\sffamily\RKTokPresentationBodyFont\color{Ink}}%
+}{%
+  \vfill
+}
+
+% -----------------------------------------------------------------------------
+% Closing
+% -----------------------------------------------------------------------------
+% <reportkit-contract>
+% {"kind":"composition","description":"Closingslide","arguments":[{"name":"headline","type":"text","description":"Closing statement or call to action."}],"constraints":[{"code":"content_only_wrap_in_frame","description":"Content only; wrap in \\begin{frame}[plain]...\\end{frame}."}],"example":"\\begin{frame}[plain]\n\\begin{closingslide}{Example}\nExample content.\n\\end{closingslide}\n\\end{frame}","stability":"experimental","since":"1.9.3"}
+% </reportkit-contract>
+\NewDocumentEnvironment{closingslide}{m}{%
+  \vfill
+  {\sffamily\bfseries\RKTokPresentationClosingFont\color{Ink}#1\par}
+  \vspace{4mm}
+  {\sffamily\RKTokPresentationBodyFont\color{Muted}}%
+}{%
+  \vfill
+}
+
+\endinput

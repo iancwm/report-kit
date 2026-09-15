@@ -323,7 +323,7 @@ def _run_check(args: argparse.Namespace) -> int:
         resolve_build_target(
             str(document.get("publication_type")),
             str(document.get("theme")),
-            explicit_paper=str(document.get("paper")),
+            explicit_paper=document.get("paper"),
             engine=str(document.get("engine")),
             repo_root=REPO_ROOT,
         )
@@ -454,7 +454,11 @@ def _find_pdf(build_dir: Path) -> Path | None:
                     return candidate
         except json.JSONDecodeError:
             pass
-    return next((path for path in sorted(build_dir.glob("*.pdf")) if path.name != "publication-template.pdf"), None)
+    # Phase A5: the intermediate compiled artifact is always named
+    # "publication.pdf" now (stable, independent of which entrypoint
+    # template produced it -- publications.py's BuildTarget.template),
+    # replacing the old literal "publication-template.pdf".
+    return next((path for path in sorted(build_dir.glob("*.pdf")) if path.name != "publication.pdf"), None)
 
 
 def _run_inspect(args: argparse.Namespace) -> int:

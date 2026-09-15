@@ -1,0 +1,12 @@
+% ReportKit entrypoint: presentation. Selected by publication_build.py
+% (Phase A5) whenever document.publication_type resolves to "presentation".
+% Owns only the class declaration and the front-matter hook (D7); everything
+% shared lives in slides-base.tex.
+\documentclass[theme=executive,publication-type=presentation]{reportkit-slides}
+\newcommand{\RKFrontMatter}{%
+  \begin{frame}[plain]
+  \begin{titleslide}
+  \end{titleslide}
+  \end{frame}
+}
+\input{slides-base.tex}

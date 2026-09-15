@@ -27,8 +27,18 @@
 % to keep the identifier-to-filename mapping regular for every theme,
 % present and future. Recorded here, not just in the plan, because the
 % mismatch is easy to "fix" by accident later.
+%
+% Phase A4 (decision D11) split this file again: geometry, running
+% furniture, section-heading placement, and \maketitle -- all page-specific --
+% moved verbatim to reportkit-theme-institutional-research-paged.sty, loaded
+% by reportkit.cls immediately after this file. What remains here is
+% renderer-neutral: fonts, palette, the type scale, the semantic style-token
+% contract (see reportkit-core.sty's "Style token contract" section) that
+% reportkit-boxes.sty now reads instead of branching on \rk@theme,
+% execsummary (an ordinary list environment, not page machinery), and the
+% source helper.
 \NeedsTeXFormat{LaTeX2e}
-\ProvidesPackage{reportkit-theme-institutional-research}[2026/09/13 v1.7.1 ReportKit institutional-research theme]
+\ProvidesPackage{reportkit-theme-institutional-research}[2026/09/13 v1.9.0 ReportKit institutional-research theme]
 
 % -----------------------------------------------------------------------------
 % Engine guard (spec §4 / open question 1)
@@ -133,19 +143,6 @@
 \AtBeginDocument{\rk@resolveinstitutionalfont}
 
 % -----------------------------------------------------------------------------
-% Geometry (spec §6) -- US Letter, noticeably tighter than the default
-% theme's 27mm A4 margins, but looser than Appendix A's 0.42-0.48in prototype
-% margins (open question 5: §6 governs, not the prototype).
-% -----------------------------------------------------------------------------
-% The `a4paper` option passed to \LoadClass in reportkit.cls (Step 1's base-
-% size problem, deliberately unsolved for the base-size case -- see the
-% implementation plan) is irrelevant here: geometry's own paper option
-% recomputes \paperwidth/\paperheight and the PDF page size regardless of
-% what \LoadClass set, exactly as the default theme's late \geometry{a4paper,...}
-% call already relies on. No \LoadClass change is needed to get Letter paper.
-\geometry{letterpaper,left=14mm,right=14mm,top=14mm,bottom=15mm,headsep=6mm,footskip=8mm}
-
-% -----------------------------------------------------------------------------
 % Palette (spec §20) -- deliberately different hex values from the default
 % theme's palette (Ink #24272D / Muted #687386 / Hairline #D9DEE5 /
 % Surface #F7F8FA); both must coexist per-theme, which is why check-theme
@@ -227,50 +224,46 @@
 \newcommand{\rkdisclosuresize}{\fontsize{6.75pt}{8.2pt}\selectfont}
 
 % -----------------------------------------------------------------------------
-% Running furniture (spec §19) -- hairlines, no boxed regions.
+% Style tokens (reportkit-core.sty's contract) -- callout and metric chrome.
+% Quiet variant (spec §21): no fill, no frame -- only the thin left rule and
+% the small uppercase label carry the semantic marker. This was
+% reportkit-boxes.sty's \ifdefstring{\rk@theme}{institutional-research}
+% branch before Phase A4; category colors (Principle, Decision, RedFlag, ...)
+% are unaffected, and the metric card is not restyled by this theme (§21
+% only asks for quieter callout chrome), so its tokens match the default
+% theme's values exactly.
 % -----------------------------------------------------------------------------
-\setlength{\headheight}{16pt}
-\pagestyle{fancy}
-\fancyhf{}
-\fancyhead[L]{\sffamily\fontsize{7.4}{9}\selectfont\bfseries\color{Muted}\MakeUppercase{\rk@leftheader}}
-\fancyhead[R]{\sffamily\fontsize{7.4}{9}\selectfont\color{Muted}\nouppercase{\leftmark}}
-\fancyfoot[L]{\sffamily\fontsize{7pt}{8.5pt}\selectfont\color{Muted}\rk@footer\ \textperiodcentered\ \rk@version}
-\fancyfoot[R]{\sffamily\fontsize{7pt}{8.5pt}\selectfont\color{Muted}\thepage}
-\renewcommand{\headrulewidth}{0.4pt}
-\renewcommand{\footrulewidth}{0pt}
-\renewcommand{\headrule}{\hbox to\headwidth{\color{Hairline}\leaders\hrule height \headrulewidth\hfill}}
-
-% -----------------------------------------------------------------------------
-% Section hierarchy (spec §5, §20) -- weight and size establish hierarchy,
-% not color: unlike the default theme, section numbers are not accent-colored
-% ("Do not use accent on every section heading", §20).
-% -----------------------------------------------------------------------------
-\newcommand{\RKSectionNeed}{13\baselineskip}
-\newcommand{\RKSubsectionNeed}{6\baselineskip}
-
-\titleformat{\section}{\RKReserveSpace{\RKSectionNeed}\sffamily\bfseries\rksectionheadingsize\color{Ink}}{\thesection}{0.7em}{}
-\titlespacing*{\section}{0pt}{14pt plus 3pt minus 2pt}{6pt}
-\titleformat{\subsection}{\RKReserveSpace{\RKSubsectionNeed}\sffamily\bfseries\rksubsectionsize\color{Ink}}{\thesubsection}{0.6em}{}
-\titlespacing*{\subsection}{0pt}{11pt plus 2pt minus 2pt}{4pt}
-
-% -----------------------------------------------------------------------------
-% Title and executive summary -- generic (non-equity-research) entry points.
-% Step 3's researchfrontpage/researchheadline/etc. are the equity-research
-% publication-type's own front matter; this \maketitle is what a plain
-% institutional-research document (e.g. a future strategy-report
-% publication-type) gets instead.
-% -----------------------------------------------------------------------------
-\renewcommand{\maketitle}{%
-  \thispagestyle{fancy}%
-  \vspace*{2mm}%
-  {\sffamily\rkmastheadsize\bfseries\color{Accent}\MakeUppercase{\rk@leftheader}\par}%
-  \vspace{5mm}%
-  {\sffamily\bfseries\rkheadlinesize\color{Ink}\@title\par}%
-  \vspace{3mm}%
-  \ifx\@author\@empty\else{\sffamily\rksidebarsize\color{Muted}\@author}\fi
-  \ifx\@date\@empty\else{\sffamily\rksidebarsize\color{Muted}\quad\textperiodcentered\quad\@date}\fi
-  \par\vspace{6mm}\color{Hairline}\hrule\color{Ink}\vspace{6mm}%
-}
+\renewcommand{\RKTokCalloutColBack}{white}
+\renewcommand{\RKTokCalloutColFrame}{white}
+\renewcommand{\RKTokCalloutBoxRule}{0pt}
+\renewcommand{\RKTokCalloutLeftRule}{1.1pt}
+\renewcommand{\RKTokCalloutArc}{0pt}
+\renewcommand{\RKTokCalloutOuterArc}{0pt}
+\renewcommand{\RKTokCalloutPadLeft}{9pt}
+\renewcommand{\RKTokCalloutPadRight}{0pt}
+\renewcommand{\RKTokCalloutPadTop}{3pt}
+\renewcommand{\RKTokCalloutPadBottom}{3pt}
+\renewcommand{\RKTokCalloutBeforeSkip}{6pt}
+\renewcommand{\RKTokCalloutAfterSkip}{7pt}
+\renewcommand{\RKTokCalloutTitleFont}{\fontsize{7}{8.4}\selectfont}
+\renewcommand{\RKTokMetricColBack}{white}
+\renewcommand{\RKTokMetricColFrame}{Hairline}
+\renewcommand{\RKTokMetricBoxRule}{.45pt}
+\renewcommand{\RKTokMetricArc}{0pt}
+\renewcommand{\RKTokMetricOuterArc}{0pt}
+\renewcommand{\RKTokMetricPadLeft}{10pt}
+\renewcommand{\RKTokMetricPadRight}{10pt}
+\renewcommand{\RKTokMetricPadTop}{8pt}
+\renewcommand{\RKTokMetricPadBottom}{8pt}
+\renewcommand{\RKTokMetricBeforeSkip}{7pt}
+\renewcommand{\RKTokMetricAfterSkip}{8pt}
+\renewcommand{\RKTokMetricBorderLineWidth}{2.4pt}
+\renewcommand{\RKTokMetricLabelFont}{\fontsize{7.3}{8.5}\selectfont}
+\renewcommand{\RKTokMetricValueFont}{\fontsize{21}{23}\selectfont}
+\renewcommand{\RKTokMetricSubtitleFont}{\fontsize{8.3}{10}\selectfont}
+\renewcommand{\RKTokMetricSubtitleSpacing}{4pt}
+\renewcommand{\RKTokMetricWhyFont}{\fontsize{7.2}{8.4}\selectfont}
+\rk@styletokensloadedtrue
 
 % <reportkit-contract>
 % {"kind":"callout","description":"Execsummary","arguments":[],"constraints":[],"example":"\\begin{execsummary}\nExample content.\n\\end{execsummary}","stability":"stable","since":"1.7.0"}

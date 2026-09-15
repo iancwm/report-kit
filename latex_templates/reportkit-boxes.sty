@@ -1,68 +1,43 @@
-% ReportKit v1.4.0 -- semantic callouts and metric object
+% ReportKit v1.5.0 -- semantic callouts and metric object
 % v1.4.0 (Phase A3): space reservation now goes through the renderer hook
 % \RKReserveSpace (see reportkit-core.sty/reportkit-paged-core.sty) instead
 % of calling \Needspace directly, so this module no longer requires
 % needspace itself and compiles unchanged under any renderer core.
+% v1.5.0 (Phase A4, decision D2): callout chrome and the metric card no
+% longer branch on \rk@theme. Both now read reportkit-core.sty's style-token
+% contract, populated by whichever theme package loaded before this one --
+% the institutional-research theme's quieter chrome (spec §21: "thin left
+% rule, small uppercase semantic label, minimal background or none") is
+% exactly the same values as before, just moved into
+% themes/reportkit-theme-institutional-research.sty instead of living here as
+% a branch. \RKAssertStyleTokens fails loudly (naming the missing theme) if
+% this module is somehow reached before a theme populated the tokens.
 \NeedsTeXFormat{LaTeX2e}
-\ProvidesPackage{reportkit-boxes}[2026/09/13 v1.4.0 ReportKit semantic boxes]
+\ProvidesPackage{reportkit-boxes}[2026/09/13 v1.5.0 ReportKit semantic boxes]
 \RequirePackage[most]{tcolorbox}
 \RequirePackage{xparse}
 \RequirePackage{etoolbox}
 
-% \rk@theme is set by reportkit.cls before any semantic module loads (see
-% reportkit.cls's theme-selection block), so it is safe to branch on here.
-% This is a deliberate, narrow exception to "themes don't touch semantic
-% modules": the institutional-research theme spec (§21) asks specifically for
-% quieter callout chrome -- "thin left rule, small uppercase semantic label,
-% minimal background or none" -- and \newtcolorbox bakes its options in at
-% definition time, after the theme file has already loaded, so there is no
-% later hook a theme file could use to restyle this itself. Branching once,
-% here, keeps that restyling out of reportkit.cls/reportkit-core.sty (which
-% must stay theme-agnostic) without forking the whole module per theme. The
-% default branch below is byte-for-byte the pre-v1.3.0 definition.
-\ifdefstring{\rk@theme}{institutional-research}{%
-  % Quiet variant: no fill, no frame -- only the thin left rule and the
-  % small uppercase label carry the semantic marker. Category colors
-  % (Principle, Decision, RedFlag, ...) still come from the theme's palette;
-  % only the box chrome changes. See
-  % themes/reportkit-theme-institutional-research.sty's palette comment.
-  \newtcolorbox{rk@callout}[3][]{%
-    enhanced,
-    breakable,
-    colback=white,
-    colframe=white,
-    boxrule=0pt,
-    leftrule=1.1pt,
-    arc=0pt,
-    outer arc=0pt,
-    left=9pt,right=0pt,top=3pt,bottom=3pt,
-    before skip=6pt,after skip=7pt,
-    borderline west={1.1pt}{0pt}{#2},
-    title={\sffamily\fontsize{7}{8.4}\selectfont\bfseries\color{#2}\MakeUppercase{#3}},
-    fonttitle=\sffamily,
-    coltitle=#2,
-    attach title to upper={\quad},
-    #1
-  }
-}{%
-  \newtcolorbox{rk@callout}[3][]{%
-    enhanced,
-    breakable,
-    colback=Surface,
-    colframe=Hairline,
-    boxrule=.45pt,
-    leftrule=2.2pt,
-    arc=0pt,
-    outer arc=0pt,
-    left=8pt,right=8pt,top=6pt,bottom=6pt,
-    before skip=6pt,after skip=7pt,
-    borderline west={2.2pt}{0pt}{#2},
-    title={\sffamily\fontsize{7.3}{8.5}\selectfont\bfseries\color{#2}\MakeUppercase{#3}},
-    fonttitle=\sffamily,
-    coltitle=#2,
-    attach title to upper={\quad},
-    #1
-  }
+\RKAssertStyleTokens
+
+\newtcolorbox{rk@callout}[3][]{%
+  enhanced,
+  breakable,
+  colback=\RKTokCalloutColBack,
+  colframe=\RKTokCalloutColFrame,
+  boxrule=\RKTokCalloutBoxRule,
+  leftrule=\RKTokCalloutLeftRule,
+  arc=\RKTokCalloutArc,
+  outer arc=\RKTokCalloutOuterArc,
+  left=\RKTokCalloutPadLeft,right=\RKTokCalloutPadRight,
+  top=\RKTokCalloutPadTop,bottom=\RKTokCalloutPadBottom,
+  before skip=\RKTokCalloutBeforeSkip,after skip=\RKTokCalloutAfterSkip,
+  borderline west={\RKTokCalloutLeftRule}{0pt}{#2},
+  title={\sffamily\RKTokCalloutTitleFont\bfseries\color{#2}\MakeUppercase{#3}},
+  fonttitle=\sffamily,
+  coltitle=#2,
+  attach title to upper={\quad},
+  #1
 }
 
 % <reportkit-contract>
@@ -130,13 +105,17 @@
 \NewDocumentEnvironment{metric}{m m}{%
   \par\RKReserveSpace{9\baselineskip}%
   \begin{tcolorbox}[
-    enhanced,breakable,colback=white,colframe=Hairline,boxrule=.45pt,
-    arc=0pt,outer arc=0pt,left=10pt,right=10pt,top=8pt,bottom=8pt,
-    before skip=7pt,after skip=8pt,borderline west={2.4pt}{0pt}{MetricAccent}]
-  {\sffamily\fontsize{7.3}{8.5}\selectfont\bfseries\color{MetricAccent}METRIC\par}
-  {\sffamily\bfseries\fontsize{21}{23}\selectfont\color{Ink}#1\par}
-  {\sffamily\fontsize{8.3}{10}\selectfont\color{Muted}#2\par\vspace{4pt}}
-  {\sffamily\fontsize{7.2}{8.4}\selectfont\bfseries\color{MetricAccent}WHY IT MATTERS\quad}\ignorespaces
+    enhanced,breakable,colback=\RKTokMetricColBack,colframe=\RKTokMetricColFrame,
+    boxrule=\RKTokMetricBoxRule,
+    arc=\RKTokMetricArc,outer arc=\RKTokMetricOuterArc,
+    left=\RKTokMetricPadLeft,right=\RKTokMetricPadRight,
+    top=\RKTokMetricPadTop,bottom=\RKTokMetricPadBottom,
+    before skip=\RKTokMetricBeforeSkip,after skip=\RKTokMetricAfterSkip,
+    borderline west={\RKTokMetricBorderLineWidth}{0pt}{MetricAccent}]
+  {\sffamily\RKTokMetricLabelFont\bfseries\color{MetricAccent}METRIC\par}
+  {\sffamily\bfseries\RKTokMetricValueFont\color{Ink}#1\par}
+  {\sffamily\RKTokMetricSubtitleFont\color{Muted}#2\par\vspace{\RKTokMetricSubtitleSpacing}}
+  {\sffamily\RKTokMetricWhyFont\bfseries\color{MetricAccent}WHY IT MATTERS\quad}\ignorespaces
 }{%
   \end{tcolorbox}
 }

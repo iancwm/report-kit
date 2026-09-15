@@ -201,8 +201,14 @@ def test_institutional_theme_file_uses_regular_naming() -> None:
 
 
 def test_institutional_theme_uses_letter_geometry_and_type_scale() -> None:
+    # Phase A4 (decision D11) split this theme into a renderer-neutral common
+    # file (palette, type scale) and a paged adapter (geometry) -- see
+    # reportkit-theme-institutional-research(-paged).sty's own split notes.
     theme_text = (REPO / "latex_templates" / "themes" / "reportkit-theme-institutional-research.sty").read_text(encoding="utf-8")
-    assert "letterpaper" in theme_text
+    paged_text = (
+        REPO / "latex_templates" / "themes" / "reportkit-theme-institutional-research-paged.sty"
+    ).read_text(encoding="utf-8")
+    assert "letterpaper" in paged_text
     assert r"\definecolor{Ink}{HTML}{202124}" in theme_text
     assert r"\definecolor{Accent}{HTML}{18A999}" in theme_text
     assert "10.7pt" in theme_text and "14.6pt" in theme_text
@@ -214,16 +220,41 @@ def test_institutional_theme_guards_against_pdftex() -> None:
     assert "requires LuaLaTeX" in theme_text
 
 
-def test_reportkit_boxes_default_theme_unchanged() -> None:
-    """The institutional-theme branch added to reportkit-boxes.sty must not
-    change the default theme's callout chrome: colback=Surface with a
-    boxed frame stays the default (theme=default / no theme=) behaviour."""
+def test_reportkit_boxes_reads_style_tokens_not_theme_name() -> None:
+    """Phase A4 (decision D2) moved callout/metric chrome behind
+    reportkit-core.sty's style-token contract: reportkit-boxes.sty must not
+    branch on \\rk@theme (or any theme name) any more, and must assert the
+    tokens are populated before defining anything that reads them."""
     boxes_text = (REPO / "latex_templates" / "reportkit-boxes.sty").read_text(encoding="utf-8")
-    assert "colback=Surface" in boxes_text
-    assert "colframe=Hairline" in boxes_text
-    # The quiet institutional variant coexists, gated on \rk@theme.
-    assert r"\ifdefstring{\rk@theme}{institutional-research}" in boxes_text
-    assert "colback=white" in boxes_text
+    code_lines = [line for line in boxes_text.splitlines() if not line.lstrip().startswith("%")]
+    code_text = "\n".join(code_lines)
+    assert "rk@theme" not in code_text
+    assert "institutional-research" not in code_text
+    assert r"\RKAssertStyleTokens" in boxes_text
+    assert "colback=\\RKTokCalloutColBack" in boxes_text
+    assert "colback=\\RKTokMetricColBack" in boxes_text
+
+
+def test_default_theme_callout_tokens_match_pre_v1_3_0_chrome() -> None:
+    """The default theme's style tokens must reproduce exactly the chrome
+    reportkit-boxes.sty hardcoded before Phase A4 (colback=Surface with a
+    boxed frame) -- see reportkit-theme-default.sty's own token block."""
+    theme_text = (REPO / "latex_templates" / "themes" / "reportkit-theme-default.sty").read_text(encoding="utf-8")
+    assert r"\renewcommand{\RKTokCalloutColBack}{Surface}" in theme_text
+    assert r"\renewcommand{\RKTokCalloutColFrame}{Hairline}" in theme_text
+    assert r"\rk@styletokensloadedtrue" in theme_text
+
+
+def test_institutional_theme_callout_tokens_stay_quiet() -> None:
+    """The institutional-research theme's tokens must reproduce its quiet
+    chrome (spec §21: no fill, no frame) via the same token contract."""
+    theme_text = (
+        REPO / "latex_templates" / "themes" / "reportkit-theme-institutional-research.sty"
+    ).read_text(encoding="utf-8")
+    assert r"\renewcommand{\RKTokCalloutColBack}{white}" in theme_text
+    assert r"\renewcommand{\RKTokCalloutColFrame}{white}" in theme_text
+    assert r"\renewcommand{\RKTokCalloutBoxRule}{0pt}" in theme_text
+    assert r"\rk@styletokensloadedtrue" in theme_text
 
 
 def test_check_theme_resolves_default_theme_file() -> None:

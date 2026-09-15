@@ -1,6 +1,6 @@
 # ReportKit — Outstanding Work
 
-**Last updated:** 2026-09-13
+**Last updated:** 2026-09-14
 
 This is an index, not an audit. Each spec/plan under `docs/superpowers/`
 carries its own `**Status:**` line, updated at the workflow checkpoint that
@@ -125,11 +125,10 @@ change record.
   The current tree also implements Phase A2: a generated LaTeX compatibility
   registry, shared hard-failing class-option parser, pair/renderer validation,
   drift coverage, and staging for the new `.def`/`.tex` infrastructure. The
-  shipped capability matrix still contains only the `paged` renderer and the
-  `technical-report` and `equity-research` publication types, both producing
-  PDF through LaTeX. There is no slide class, presentation target, HTML,
-  DOCX, PPTX, or EPUB renderer in the current tree; presentations remain the
-  planned Phase B slice. **A3 (split shared/paged mechanics) is now
+  shipped capability matrix also now contains the `slides` renderer and the
+  experimental `presentation` publication type (Phase B, below); there is
+  still no HTML, DOCX, PPTX, or EPUB renderer in the current tree.
+  **A3 (split shared/paged mechanics) is now
   implemented**: `reportkit-core.sty` is engine-neutral (no more
   geometry/fancyhdr/titlesec/needspace/caption), a new
   `reportkit-paged-core.sty` owns those plus hyperref (see the plan's A3
@@ -142,14 +141,151 @@ change record.
   against the default, institutional/equity, and longform fixtures in a
   local (non-pinned) toolchain — see the plan's A3 section for the full
   verification record; the pinned-toolchain CI gate is still authoritative
-  and has not run against it yet. The remaining Phase A work is ordered in
-  the plan: capture the pinned compatibility baseline (A0 — attempted and
-  blocked by sandbox networking, see the plan), move component appearance
-  behind theme hooks (A4), and make pipeline templates target-aware (A5).
-  The original architecture risk remains in scope: the Markdown pipeline
-  must eventually pass the resolved theme/publication selection to LaTeX.
+  and has not run against it yet. **A4 (move component appearance behind
+  theme tokens) is partially implemented**: both existing themes are now
+  split per decision D11 into a renderer-neutral common package
+  (`reportkit-theme-default.sty`, `reportkit-theme-institutional-research.sty`
+  — fonts, palette, style tokens) and a paged adapter package
+  (`reportkit-theme-default-paged.sty`,
+  `reportkit-theme-institutional-research-paged.sty` — geometry, running
+  furniture, section-heading placement, `\maketitle`), both loaded by
+  `reportkit.cls` and resolved from the publication registry
+  (`publications.py`'s `_theme()` gained a real `renderer_adapters`
+  parameter). `reportkit-core.sty` gained the style-token contract decision
+  D2 describes (~30 `RKTok...` sentinels plus `\RKAssertStyleTokens`), and
+  `reportkit-boxes.sty`'s `\ifdefstring{\rk@theme}{institutional-research}`
+  branch is gone — callout and metric chrome now read theme-populated
+  tokens, with no semantic-module theme-name branch left (new
+  `tests/test_theme_contract.py` enforces this statically). Verified in a
+  local (non-pinned) toolchain: the default fixture is PDF-hash-identical
+  before/after (with `SOURCE_DATE_EPOCH=1 TZ=UTC`, required for
+  reproducibility even at baseline on this toolchain); the institutional/
+  equity fixture's raw bytes are not hash-reproducible even baseline-to-
+  baseline on this particular LuaLaTeX build (a toolchain quirk, confirmed
+  independent of this change), so it was verified by identical extracted
+  text and identical rendered-page pixel hashes instead, plus a visual check
+  that the quiet vs. boxed chrome difference the migration must preserve is
+  actually still there — see the plan's A4 section for the full record.
+  **Not yet done**: the diagram work (theme-populated TikZ styles across
+  `reportkit-diagrams.sty`/`-structure.sty`/`-process.sty`/`-spatial.sty`)
+  and the Python `Theme` contract extension (typography/chart/geometry/
+  rule/table/diagram/script-coverage records; `check-theme` validating
+  adapter as well as common tokens). The remaining Phase A work is ordered
+  in the plan: capture the pinned compatibility baseline (A0 — attempted
+  and blocked by sandbox networking, see the plan), finish A4, and make
+  pipeline templates target-aware (A5). The original architecture risk
+  remains in scope: the Markdown pipeline must eventually pass the resolved
+  theme/publication selection to LaTeX.
   See [the spec](docs/superpowers/specs/2026-09-09-reportkit-multi-format-publication-architecture-spec.md)
   and [the implementation plan](docs/superpowers/plans/2026-09-10-reportkit-multi-format-publication-implementation-plan.md).
+
+- **Multi-format publication architecture — Phase B (slide renderer and
+  presentation semantics) started out of the plan's own recommended order**
+  (§13 puts A5 before B; done first here at explicit request, with A4 and
+  A5 both still incomplete). **B1 and B2 are essentially complete** via
+  direct-TeX authoring: `reportkit-slides.cls` (mirrors `reportkit.cls`
+  over `\LoadClass[aspectratio=169]{beamer}` — Beamer's own 16:9 table
+  already produces the declared 160mm x 90mm canvas natively, no dimension
+  override needed), `reportkit-slides-core.sty` (implements all five
+  renderer hooks; `\RKReserveSpace` is a documented no-op, `\RKDiagramCaption`
+  reimplements Beamer's own figure counter instead of loading the external
+  `caption` package), and `reportkit-presentation.sty` (all thirteen named
+  B2 compositions, plus three thin aliases, delegating to a new,
+  separately-gated presentation-token contract in `reportkit-core.sty` so
+  paged themes are never forced to populate slide-only tokens). An
+  experimental `executive` theme (`reportkit-theme-executive(-slides).sty`,
+  `python_scripts/reportkit/themes/executive.py`) exists so the renderer
+  and composition API have something real to compile against — LuaLaTeX,
+  Libertinus (a documented placeholder, not the eventual Google Sans),
+  marked `stability: "experimental"` throughout, per D8. **B3 implemented
+  for executive only**: `slide-main`/`slide-half`/`slide-hero` figure
+  sizes, derived from the canvas and the slides adapter's safe margin, with
+  regression coverage that no paged theme gained slide keys. **B4 verified
+  by direct PDF inspection** on a compiled smoke fixture (title/author/
+  subject/keywords metadata, catalog language, PDF outline/bookmarks,
+  diagram ActualText — not yet an automated gate). Two real bugs were found
+  and fixed along the way, not just new code written: (1) A3's own semantic-
+  module migration had missed `reportkit-code.sty`, which still called
+  `\Needspace` directly — harmless under paged, fatal under slides, no
+  fixture had ever exercised `codeblock`/`outputblock` before; fixed and
+  covered. (2) An initial composition design opened Beamer's
+  `\begin{frame}...\end{frame}` from inside each composition's own
+  start/end code, which fails outright (`Runaway argument?`) because
+  Beamer's frame environment scans the raw input stream for a literal
+  `\end{frame}`, not a macro-expanded one — the shipped design makes every
+  composition content-only, wrapped in an explicit frame by the author.
+  (3) Beamer's own metadata setup silently locked out
+  `\setreportkitsubject`/`\setreportkitkeywords` under this renderer; fixed
+  via the LaTeX2e kernel's `begindocument/before` hook. A real, narrower
+  correctness fix also landed in the shared config layer (not slides-only):
+  `config.py` previously defaulted `document.paper` to `"a4"`
+  unconditionally for every publication type, which would have silently
+  broken decision D5's "an omitted paper key stays omitted" the moment a
+  canvas-renderer publication type existed to default against; now
+  conditional on the renderer's geometry kind, and `resolve_build_target()`
+  now actually rejects an explicit paper for a canvas renderer instead of
+  silently dropping it. **Update 2026-09-14: `reportkit build` can now
+  produce a presentation** — see the A5 entry below; that was this entry's
+  main "not done" item. Still not done: B4's findings are not yet an
+  automated pytest gate; `executive` stays experimental pending Phase C's
+  design review; directive/fragment-based presentation composition
+  authoring from Markdown (only Pandoc's own "plain Markdown frames" path
+  is proven through the pipeline). See the plan's Phase B section for the
+  full verification record.
+
+- **Multi-format publication architecture — Phase A5 (make the pipeline
+  target-aware) is essentially complete**, done after Phase B at explicit
+  request (the plan's own recommended order puts A5 first). `publication_
+  build.py`'s `build()` now resolves and keeps a real `BuildTarget`
+  (`resolve_build_target(...)`, previously called only for validation, its
+  result discarded) instead of a hardcoded module-level `TEMPLATE`
+  constant: the entrypoint file, the Pandoc writer (`latex` vs. `beamer`),
+  and the resolved engine all come from it. The staged/compiled entrypoint
+  is always named `publication.tex`/`publication.pdf` now, independent of
+  which entrypoint file was selected (`cli.py`'s one dependent fallback
+  filter was updated to match). `build-report.json` gained a `"selection"`
+  key (the full resolved target: theme/alias/renderer/class/template/
+  writer/engine/paper-or-canvas/accessibility — schema-safe since
+  `reportkit-build-report.schema.json` is `additionalProperties: true`),
+  and a machine-readable, log-visible `REPORTKIT-SELECTED ...` marker is
+  both printed and appended to `publication.log` after a successful
+  compile. **`reportkit build` can now build a presentation end to end** —
+  verified with a real build (`publication_type: presentation, theme:
+  executive, engine: lualatex`, plain Markdown manuscript): resolves
+  `renderer=slides`/`class=reportkit-slides`/`template=presentation.tex`/
+  `writer=beamer`, and Pandoc's Beamer writer (now invoked with
+  `--slide-level=1` for the beamer writer specifically, resolving an
+  otherwise content-dependent ambiguity in which heading level becomes a
+  frame) converts Markdown headings straight into `\begin{frame}{...}...
+  \end{frame}` blocks that compile cleanly via `\input{body.tex}` — `\input`
+  is file inclusion, not macro expansion, so Phase B's "Beamer frames can't
+  be opened across a macro boundary" finding doesn't apply to it (confirmed
+  by it compiling, not just argued). `slides-base.tex` gained
+  `\RequirePackage{reportkit-pandoc}` (the same compatibility layer the
+  paged pipeline already needs; confirmed renderer-neutral). New
+  `publication_pipeline/tests/test_build_target_selection.py` (every
+  registered publication type has an existing entrypoint; a real paged
+  build's `selection`/marker/stable-naming; a real presentation build's
+  canvas/page-count; the D5 paper-rejection happens at the pipeline
+  entrypoint, exit 2, before any manuscript is read). **Not done**: the
+  equity-research pipeline-acceptance sub-item (Markdown source + trusted
+  fragments so `latex_templates/examples/equity-research/`'s existing
+  `publication.yaml` can be passed to `reportkit build` directly —
+  `report.tex` remains the only proven path); the full D7
+  paged-base.tex/technical-report.tex/equity-research.tex split
+  (`publication-template.tex` stays the one self-contained, combined/
+  section/cover-page-capable entrypoint both paged types resolve to —
+  judged too high-risk for this slice given how much existing
+  pipeline-test behavior depends on its current branching); directive/
+  fragment-based presentation composition authoring from Markdown;
+  materializing theme font settings/brand overrides into generated
+  preamble files (nothing needs it yet); PDF inspection actually reading
+  the resolved-selection marker to flag default-theme leakage. `python -m
+  pytest tests publication_pipeline/tests`: 222 passed, 2 pre-existing/
+  environment-dependent failures (same two, unchanged). `bash
+  scripts/acceptance_check.sh --require-tex` (both compile blocks exit 0),
+  `reportkit docs --check --json`, and `scripts/contract_acceptance.py
+  --json` all pass. See the plan's A5 section for the full record.
 
 - **Agent interface & platform contract — Phase A′ and the
   non-renderer-dependent parts of Phase B′ implemented in v1.9.0; remaining
@@ -191,6 +327,74 @@ change record.
 - Libertinus fonts: installed to `TEXMFHOME` (`~/.TinyTeX/texmf-local`) from `font_data/reportkit-libertinus-fonts.tar.gz`.
 
 ## History
+
+- 2026-09-14: multi-format Phase A5 (make the pipeline target-aware)
+  implemented on `claude/multi-format-publication-ur4n82`, on top of the
+  Phase B commit, following Phase B at explicit request (the plan's own
+  recommended order puts A5 first). `publication_build.py` now resolves
+  and uses a real `BuildTarget` instead of a hardcoded `TEMPLATE` constant;
+  stages/compiles a stable `publication.tex`/`publication.pdf` regardless
+  of which entrypoint was selected; records the full resolved selection in
+  `build-report.json` and a log-visible marker. `reportkit build` can now
+  build a presentation end to end for the first time — verified with a
+  real build using Pandoc's Beamer writer (`--slide-level=1`) against
+  plain Markdown headings, compiling through `reportkit-slides.cls` at the
+  declared 160mm x 90mm canvas (verified via PyMuPDF). New
+  `publication_pipeline/tests/test_build_target_selection.py` (6 tests,
+  including two real end-to-end builds). `python -m pytest tests
+  publication_pipeline/tests`: 222 passed, 2 pre-existing/environment-
+  dependent failures (unchanged from the prior checkpoint).
+  `bash scripts/acceptance_check.sh --require-tex` (both compile blocks
+  exit 0), `reportkit docs --check --json`, and
+  `scripts/contract_acceptance.py --json` all pass. Not attempted: the
+  equity-research pipeline-acceptance fixture, the full D7 paged-base.tex
+  split (judged too high-risk given existing pipeline-test dependence on
+  `publication-template.tex`'s current combined/section/cover-page
+  branching), and directive/fragment-based presentation authoring from
+  Markdown. See the plan's A5 section for the full record.
+
+- 2026-09-14: multi-format Phase B (slide renderer and presentation
+  semantics) implemented on `claude/multi-format-publication-ur4n82`, on top
+  of the A4 commit, at the user's explicit request to work Phase B next
+  (out of the plan's own recommended sequence, which puts A5 first — noted
+  plainly in the plan rather than silently reordered). `reportkit-slides.cls`
+  + `reportkit-slides-core.sty` + `reportkit-presentation.sty` (B1/B2, all
+  thirteen named compositions) + an experimental `executive` theme + B3's
+  slide-figure-size Python extension + B4 verified by direct PDF inspection.
+  Two real pre-existing/found-along-the-way bugs fixed: `reportkit-code.sty`
+  still called `\Needspace` directly (A3 had missed it); Beamer's frame
+  environment cannot be opened/closed across a custom environment's
+  start/end code (composition design corrected to content-only, wrapped by
+  an explicit author-written frame) — both documented at length in the
+  plan's Phase B section so they don't get rediscovered. A real (not
+  slides-specific) correctness fix landed in `config.py`'s paper-defaulting
+  and `resolve_build_target()`'s D5 enforcement. `python -m pytest tests
+  publication_pipeline/tests`: 216 passed, 2 pre-existing/environment-
+  dependent failures (confirmed against the unmodified prior commit with
+  matching `PATH`). `bash scripts/acceptance_check.sh --require-tex`,
+  `reportkit docs --check --json`, `scripts/contract_acceptance.py --json`
+  all pass. `reportkit build` still cannot produce a presentation (A5
+  remains open); see the plan's Phase B section for the full record.
+
+- 2026-09-13: multi-format A4's theme/adapter split (decision D11) and
+  callout/metric style-token work (decision D2) implemented on
+  `claude/multi-format-publication-ur4n82`, on top of `main` at `70f0aba`
+  (A3 merged via PR #27). New `tests/test_theme_contract.py`; updated
+  `tests/test_agent_contract.py` and `tests/test_reportkit_vnext.py` for the
+  new adapter package names and the removed `\rk@theme` branch. Verified in
+  a local (non-pinned, but this session's sandbox has direct network access,
+  unlike the session that wrote A3's own verification) toolchain: the
+  default fixture is PDF-hash-identical before/after; the institutional/
+  equity fixture is verified by identical text and pixel-identical renders
+  instead, because this toolchain's LuaLaTeX turned out not to be
+  byte-reproducible even baseline-to-baseline (a toolchain quirk unrelated
+  to this change, confirmed before concluding that). `python -m pytest
+  tests publication_pipeline/tests`: 195 passed, 2 failed (both pre-existing
+  and environment-specific, confirmed against the unmodified tree in the
+  same venv). `bash scripts/acceptance_check.sh --require-tex`, `reportkit
+  docs --check --json`, and `scripts/contract_acceptance.py --json` all
+  pass. Diagram-token work and the Python `Theme` contract extension (the
+  rest of A4) remain open; see the plan's A4 section.
 
 - 2026-09-13: synchronized this index against `main` at `bb15d05`. Since the
   previous checkpoint, `911db87` cleaned empty title-page metadata and added

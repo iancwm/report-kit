@@ -1,16 +1,25 @@
 % ReportKit theme: default -- the original ReportKit visual identity, moved
 % verbatim out of reportkit.cls v1.5.0 by the theme architecture in
 % docs/superpowers/specs/2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md.
-% This file owns typography, geometry, palette, running furniture, and title
-% layout. reportkit.cls loads reportkit-core.sty (engine-neutral mechanism)
-% before this file, so core's macros and packages are available here.
+% This file owns fonts, palette, and renderer-neutral semantic appearance.
+% reportkit.cls loads reportkit-core.sty (engine-neutral mechanism) before
+% this file, so core's macros and packages are available here.
 %
 % Selected automatically by `\documentclass{reportkit}` (no theme= option) or
 % `\documentclass[theme=default]{reportkit}`. Every existing ReportKit
 % publication uses this theme; its output is unchanged by the theme split --
 % nothing below was rewritten, only relocated.
+%
+% Phase A4 (decision D11) split this file again: geometry, running
+% furniture, section-heading placement, and \maketitle -- all page-specific --
+% moved verbatim to reportkit-theme-default-paged.sty, loaded by reportkit.cls
+% immediately after this file. What remains here is renderer-neutral: fonts,
+% palette, typography defaults, the semantic style-token contract (see
+% reportkit-core.sty's "Style token contract" section) that
+% reportkit-boxes.sty now reads instead of branching on \rk@theme, execsummary
+% (an ordinary list environment, not page machinery), and the source helper.
 \NeedsTeXFormat{LaTeX2e}
-\ProvidesPackage{reportkit-theme-default}[2026/09/13 v1.6.1 ReportKit default theme]
+\ProvidesPackage{reportkit-theme-default}[2026/09/13 v1.8.0 ReportKit default theme]
 
 % -----------------------------------------------------------------------------
 % Fonts
@@ -30,15 +39,6 @@
 \ifPDFTeX
   \RequirePackage{libertinust1math}
 \fi
-
-% -----------------------------------------------------------------------------
-% Geometry
-% -----------------------------------------------------------------------------
-% Late reconfiguration of the geometry package (RequirePackage{geometry} with
-% no options happens in reportkit-core.sty); this is documented by the
-% geometry package as equivalent to passing the same keys as load-time
-% options, so this is a relocation, not a behavior change.
-\geometry{a4paper,left=27mm,right=27mm,top=24mm,bottom=24mm,headsep=8mm,footskip=12mm}
 
 % -----------------------------------------------------------------------------
 % Canonical ReportKit palette. Kept in sync with reportkit_viz.py
@@ -71,47 +71,43 @@
 \captionsetup{font=small,labelfont=bf,labelsep=period,singlelinecheck=false,skip=4pt}
 
 % -----------------------------------------------------------------------------
-% Running furniture
+% Style tokens (reportkit-core.sty's contract) -- callout and metric chrome.
+% This is the pre-v1.3.0 callout chrome and the metric card's only styling
+% (both were hardcoded in reportkit-boxes.sty before Phase A4; see that
+% file's own note). Category colors (Principle, Decision, RedFlag, ...) and
+% MetricAccent above are unaffected -- these tokens style the box itself.
 % -----------------------------------------------------------------------------
-\setlength{\headheight}{19pt}
-\pagestyle{fancy}
-\fancyhf{}
-\fancyhead[L]{\sffamily\fontsize{7.7}{9}\selectfont\color{Muted}\MakeUppercase{\rk@leftheader}}
-\fancyhead[R]{\sffamily\fontsize{7.7}{9}\selectfont\color{Muted}\nouppercase{\leftmark}}
-\fancyfoot[L]{\sffamily\fontsize{7.4}{9}\selectfont\color{Muted}\rk@footer\ · \rk@version}
-\fancyfoot[R]{\sffamily\fontsize{7.4}{9}\selectfont\color{Muted}\thepage}
-\renewcommand{\headrulewidth}{0.35pt}
-\renewcommand{\footrulewidth}{0pt}
-\renewcommand{\headrule}{\hbox to\headwidth{\color{Hairline}\leaders\hrule height \headrulewidth\hfill}}
-
-% -----------------------------------------------------------------------------
-% Section hierarchy and anti-stranding guards
-% -----------------------------------------------------------------------------
-% Every major heading reserves enough room for the heading plus several lines
-% of body copy. This eliminates ordinary stranded headings without forcing
-% arbitrary page breaks.
-\newcommand{\RKSectionNeed}{14\baselineskip}
-\newcommand{\RKSubsectionNeed}{7\baselineskip}
-
-\titleformat{\section}{\RKReserveSpace{\RKSectionNeed}\sffamily\bfseries\Large\color{Ink}}{\color{LinkBlue}\thesection}{0.7em}{}
-\titlespacing*{\section}{0pt}{15pt plus 3pt minus 2pt}{6pt}
-\titleformat{\subsection}{\RKReserveSpace{\RKSubsectionNeed}\sffamily\bfseries\large\color{Ink}}{\color{LinkBlue}\thesubsection}{0.65em}{}
-\titlespacing*{\subsection}{0pt}{12pt plus 2pt minus 2pt}{4pt}
-
-% -----------------------------------------------------------------------------
-% Title and executive summary
-% -----------------------------------------------------------------------------
-\renewcommand{\maketitle}{%
-  \thispagestyle{fancy}%
-  \vspace*{3mm}%
-  {\sffamily\fontsize{8.5}{10}\selectfont\bfseries\color{LinkBlue}\MakeUppercase{\rk@leftheader}\par}%
-  \vspace{6mm}%
-  {\sffamily\bfseries\fontsize{24}{28}\selectfont\color{Ink}\@title\par}%
-  \vspace{3mm}%
-  \ifx\@author\@empty\else{\sffamily\fontsize{9.5}{12}\selectfont\color{Muted}\@author}\fi
-  \ifx\@date\@empty\else{\sffamily\fontsize{9.5}{12}\selectfont\color{Muted}\quad\textperiodcentered\quad\@date}\fi
-  \par\vspace{7mm}\color{Hairline}\hrule\color{Ink}\vspace{7mm}%
-}
+\renewcommand{\RKTokCalloutColBack}{Surface}
+\renewcommand{\RKTokCalloutColFrame}{Hairline}
+\renewcommand{\RKTokCalloutBoxRule}{.45pt}
+\renewcommand{\RKTokCalloutLeftRule}{2.2pt}
+\renewcommand{\RKTokCalloutArc}{0pt}
+\renewcommand{\RKTokCalloutOuterArc}{0pt}
+\renewcommand{\RKTokCalloutPadLeft}{8pt}
+\renewcommand{\RKTokCalloutPadRight}{8pt}
+\renewcommand{\RKTokCalloutPadTop}{6pt}
+\renewcommand{\RKTokCalloutPadBottom}{6pt}
+\renewcommand{\RKTokCalloutBeforeSkip}{6pt}
+\renewcommand{\RKTokCalloutAfterSkip}{7pt}
+\renewcommand{\RKTokCalloutTitleFont}{\fontsize{7.3}{8.5}\selectfont}
+\renewcommand{\RKTokMetricColBack}{white}
+\renewcommand{\RKTokMetricColFrame}{Hairline}
+\renewcommand{\RKTokMetricBoxRule}{.45pt}
+\renewcommand{\RKTokMetricArc}{0pt}
+\renewcommand{\RKTokMetricOuterArc}{0pt}
+\renewcommand{\RKTokMetricPadLeft}{10pt}
+\renewcommand{\RKTokMetricPadRight}{10pt}
+\renewcommand{\RKTokMetricPadTop}{8pt}
+\renewcommand{\RKTokMetricPadBottom}{8pt}
+\renewcommand{\RKTokMetricBeforeSkip}{7pt}
+\renewcommand{\RKTokMetricAfterSkip}{8pt}
+\renewcommand{\RKTokMetricBorderLineWidth}{2.4pt}
+\renewcommand{\RKTokMetricLabelFont}{\fontsize{7.3}{8.5}\selectfont}
+\renewcommand{\RKTokMetricValueFont}{\fontsize{21}{23}\selectfont}
+\renewcommand{\RKTokMetricSubtitleFont}{\fontsize{8.3}{10}\selectfont}
+\renewcommand{\RKTokMetricSubtitleSpacing}{4pt}
+\renewcommand{\RKTokMetricWhyFont}{\fontsize{7.2}{8.4}\selectfont}
+\rk@styletokensloadedtrue
 
 % <reportkit-contract>
 % {"kind":"callout","description":"Execsummary","arguments":[],"constraints":[],"example":"\\begin{execsummary}\nExample content.\n\\end{execsummary}","stability":"stable","since":"1.0.0"}
