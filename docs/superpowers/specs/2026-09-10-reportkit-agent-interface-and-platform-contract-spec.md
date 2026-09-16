@@ -3,10 +3,10 @@
 **Status:** Phase A′ is complete in ReportKit v1.9.0. Phase B′ diagnostics and
 security are complete in v1.9.0, and its slide-renderer accessibility item 7
 is implemented in the current v1.9.3 tree. The constrained Markdown/typed-IR
-authoring slice (Phase C′ item 8) is also implemented in v1.9.3; the standalone
-render command (item 9), progressive-disclosure budgets, i18n extensions and a
-second host adapter remain deferred. An additive `algorithmblock` primitive is
-included in the generated contract.
+authoring slice (Phase C′ item 8) and the standalone `reportkit render`
+command (item 9) are also implemented in v1.9.3; progressive-disclosure
+budgets, i18n extensions and a second host adapter remain deferred. An
+additive `algorithmblock` primitive is included in the generated contract.
 Companion to
 [2026-09-09-reportkit-multi-format-publication-architecture-spec.md](2026-09-09-reportkit-multi-format-publication-architecture-spec.md)
 (the "renderer spec"), which it amends in [§18](#18-amendments-to-the-renderer-spec).
@@ -48,9 +48,33 @@ boundary required by Beamer. `tests/test_authoring_ir.py` and
 records one effective theme and the PDF inspector consumes the adjacent
 `REPORTKIT-SELECTED` marker; those cross-cutting selection checks are covered
 by `tests/test_brand_overrides.py` and
-`tests/test_selection_marker_inspection.py`. The separate `reportkit render`
-command with page/range and DPI controls is not implemented yet; `reportkit
-inspect` and build-time full rendering remain available.
+`tests/test_selection_marker_inspection.py`.
+
+**Current implementation checkpoint (2026-09-16, agent visual feedback
+loop):** the standalone `reportkit render` command (Phase C′ item 9,
+[§12](#12-agent-visual-feedback-loop)) is now implemented: page/range
+selection (`--pages`), DPI control, a predictable `--out` directory, and the
+same environment-degradation contract as `reportkit inspect`. Verified with a
+real end-to-end build → render loop under a from-scratch TeX Live toolchain
+(`publication_pipeline/tests/test_render_pdf_pages.py`,
+`tests/test_agent_contract.py::test_render_resolves_the_built_pdf_and_honours_a_page_range`).
+That same verification pass exercised the equity-research/institutional-
+research pipeline end to end for the first time under a complete toolchain
+(previously blocked in every prior session by a missing `algorithmicx.sty`)
+and found two real, previously-undetected defects, now both fixed with
+regression coverage: `theme_overrides.py`'s no-logo branch emitted
+`\RKBrandHasLogoFalse` instead of the lowercase-suffixed
+`\RKBrandHasLogofalse` that `\newif\ifRKBrandHasLogo` actually defines,
+an undefined-control-sequence fatal error hit by any `brand_overrides`-
+enabled theme built without a configured logo; and `diagnostics.py`'s
+`missing_font` classifier matched luaotfload's own internal font-resolution
+trace lines, turning any `font_policy: fallback` theme's benign,
+successfully-recovered missing-font substitution into a false-positive
+blocking build failure. `python -m pytest tests publication_pipeline/tests`:
+304 passed, 1 skipped, zero failures -- the first fully clean run recorded in
+this project's history (every prior session carried at least the
+`pdflatex`/`microtype` font-expansion failures or the algorithmicx-driven
+equity-pipeline skip).
 
 ---
 
@@ -499,11 +523,17 @@ institutional plan, actually rendering the charts is what caught a real
   consistent with `bootstrap.sh`'s existing `MODE:` contract — an agent must
   never claim a visual check it did not perform.
 
-**Current status:** `reportkit build` performs the existing full-page render and
-PDF inspection, and `reportkit inspect` is available as a first-class PDF
-inspection command. A separate `reportkit render` command with page/range and
-DPI controls remains deferred; the build path does not yet expose that
-selection surface.
+**Current status (updated 2026-09-16):** `reportkit build` performs the
+existing full-page render and PDF inspection; `reportkit inspect` and the
+standalone `reportkit render` command are both available as first-class
+commands. `reportkit render` resolves the most recently built PDF (or an
+explicit path), accepts a `--pages` selection (`"1"`, `"1-3"`, `"1,3,5-7"`)
+and `--dpi`, writes PNGs plus an `index.html` contact sheet and `pages.json`
+manifest to a predictable `--out` directory, and degrades honestly (exit 5,
+`RK_PYMUPDF_MISSING`) when the environment cannot render. See
+[references/agent-contract.md](../../../references/agent-contract.md)'s
+"Agent visual feedback loop" section for the documented build → render →
+inspect loop.
 
 ---
 
@@ -707,19 +737,19 @@ remediation; security properties are asserted by tests.
 ### Phase C′ — Authoring contract (after renderer Phase B)
 
 **Status (updated 2026-09-16):** the selected constrained Markdown/typed-IR
-authoring surface is implemented in v1.9.3. The standalone render command and
-the remaining context-budget, i18n, and second-adapter work remain deferred.
+authoring surface is implemented in v1.9.3. `reportkit render` (item 9) is now
+implemented too. The remaining context-budget, i18n, and second-adapter work
+remain deferred.
 
 8. Authoring IR or constrained dialect ([§6](#6-the-authoring-contract)).
-9. Agent visual feedback loop ([§12](#12-agent-visual-feedback-loop)).
+9. Agent visual feedback loop ([§12](#12-agent-visual-feedback-loop)). Done.
 
 **Done when:** an agent authoring three deliberate errors gets all three
 structurally, sub-second, with no TeX invoked.
 
 The original sequencing rationale is retained as history: the IR was deferred
 until both renderers existed so it could target both rather than coupling to
-`paged`. That implementation gate has now been met; only the separate visual
-feedback command remains in this phase.
+`paged`. That implementation gate has now been met.
 
 ### Phase D′ — Neutrality and scale (with renderer Phase E–F)
 

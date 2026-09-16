@@ -26,7 +26,7 @@ The PR-time synchronization directive is in
 | [2026-09-09-reportkit-fix-post-implementation-findings.md](docs/superpowers/plans/2026-09-09-reportkit-fix-post-implementation-findings.md) | Complete — all 8 tasks done and reviewed clean; fixture verification complete | Complete |
 | [2026-09-09-reportkit-multi-format-publication-architecture-spec.md](docs/superpowers/specs/2026-09-09-reportkit-multi-format-publication-architecture-spec.md) | Phase A implementation complete in the working tree: A1–A5, D7 entrypoints, constrained Markdown directives, brand override materialization, and selection-marker inspection landed; pinned-toolchain/runtime gates and A0 remain | P2 |
 | [2026-09-10-reportkit-multi-format-publication-implementation-plan.md](docs/superpowers/plans/2026-09-10-reportkit-multi-format-publication-implementation-plan.md) | Phase A implementation complete in the working tree; A0 and pinned-toolchain/runtime verification remain; Phase B renderer/accessibility work is complete, with executive design promotion and tagging still review-gated | P2 |
-| [2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md](docs/superpowers/specs/2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md) | Phase A′ and B′ complete; constrained Markdown/typed-IR authoring landed in v1.9.3; standalone render command, budgets, i18n, and neutral second adapter remain | P2 |
+| [2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md](docs/superpowers/specs/2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md) | Phase A′ and B′ complete; constrained Markdown/typed-IR authoring and the standalone `reportkit render` command landed in v1.9.3; budgets, i18n, and neutral second adapter remain | P2 |
 | [2026-09-10-reportkit-fork-port-fixes-spec.md](docs/superpowers/specs/2026-09-10-reportkit-fork-port-fixes-spec.md) | Implemented in v1.9.1 via PR #19; all 11 applicable fixes landed | Complete |
 | [2026-09-12-reportkit-code-quality-and-dependency-remediation-spec.md](docs/superpowers/specs/2026-09-12-reportkit-code-quality-and-dependency-remediation-spec.md) | Implemented — merged via PR #25 (`7c5fafc`); all phases (0-2) landed; all 3 open questions resolved | Complete |
 
@@ -315,11 +315,17 @@ change record.
   the shipped non-tagged accessibility contract; constrained authoring is
   also implemented in v1.9.3.** The canonical contract is now in
   [references/agent-contract.md](references/agent-contract.md), and the
-  spec's eight open questions are resolved. Remaining work is the standalone
-  `reportkit render` command and visual feedback loop, then
-  progressive-disclosure context budgets, a neutral non-Claude adapter, and
-  i18n extensions. Tagged PDF remains explicitly unsupported pending the
-  separate toolchain-gated tagging spike.
+  spec's eight open questions are resolved. **The standalone `reportkit
+  render` command and visual feedback loop are implemented (2026-09-16):**
+  page/range selection (`--pages "1"`/`"1-3"`/`"1,3,5-7"`), `--dpi`, a
+  predictable `--out` directory (default `<output-root>/render`), an
+  `index.html` contact sheet plus `pages.json` manifest, and the same
+  venv-detection/honest-degradation contract as `reportkit inspect`
+  (`RK_PYMUPDF_MISSING`, exit 5, when the environment cannot render).
+  `references/agent-contract.md` and `SKILL.md` document the build → render →
+  inspect loop. Remaining work is progressive-disclosure context budgets, a
+  neutral non-Claude adapter, and i18n extensions. Tagged PDF remains
+  explicitly unsupported pending the separate toolchain-gated tagging spike.
   See
   [the spec](docs/superpowers/specs/2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md).
 
@@ -380,6 +386,76 @@ comparison against a checked-in baseline as informative, not authoritative,
 from a session provisioned this way.
 
 ## History
+
+- 2026-09-16: implemented the agent-interface spec's last outstanding item,
+  the standalone `reportkit render` command (§12, agent visual feedback
+  loop), on `claude/todos-outstanding-items-g9rbnx`, on top of `main` at
+  `4113e8b`. `publication_pipeline/scripts/render_pdf_pages.py` gained a pure
+  `parse_page_selection()` (accepts `"1"`, `"1-3"`, `"1,3,5-7"`; rejects
+  malformed/inverted/out-of-range input) and a `render()` used by both a new
+  `reportkit render` CLI command and the existing full-page build-time
+  renderer (unchanged behavior when no `--pages` is given). The CLI command
+  mirrors `reportkit inspect`'s exact resolution/venv-detection/JSON-envelope/
+  honest-degradation pattern: it resolves the most recently built PDF (or an
+  explicit path), writes to a predictable `--out` directory (default
+  `<output-root>/render`), and exits 5 with `RK_PYMUPDF_MISSING` rather than
+  claiming a visual check it did not perform. `registry.py`'s
+  `COMMANDS`/`COMMAND_CONTRACT`, `references/agent-contract.md` (new "Agent
+  visual feedback loop" section documenting the build → render → inspect
+  loop), and `SKILL.md`'s "Build and inspect" section were all updated to
+  match; `reportkit docs --check --json` passes with zero drift.
+
+  Verifying this end-to-end required an actual PDF-rendering toolchain, so
+  this session built one from scratch per this file's own "Environment
+  notes" recipe (`apt-get install texlive-luatex texlive-latex-extra
+  texlive-latex-recommended texlive-fonts-recommended texlive-fonts-extra
+  texlive-science texlive-plain-generic pandoc poppler-utils`, the documented
+  `LinBiolinum_K.otf` stub, and `pip install pymupdf matplotlib numpy pandas
+  jsonschema pytest` since no pre-existing venv was present) — the first
+  session recorded here with `texlive-fonts-extra` installed, which is what
+  let `libertinus.sty` resolve at all. That, in turn, let the
+  equity-research/institutional-research pipeline compile far enough under
+  `lualatex` for the first time in this project's history to hit two real,
+  previously-undetected defects (every prior session's host was missing
+  `algorithmicx.sty` and failed earlier, before either bug could surface),
+  both fixed here with regression coverage rather than routed around:
+  1. `python_scripts/reportkit/theme_overrides.py`'s no-logo branch of
+     `render_tex_overrides()` emitted `\RKBrandHasLogoFalse`, but
+     `\newif\ifRKBrandHasLogo` only ever defines the lowercase-suffixed
+     `\RKBrandHasLogotrue`/`\RKBrandHasLogofalse` — an undefined-control-
+     sequence fatal error hit by any `brand_overrides`-enabled theme
+     (institutional-research today) built without a configured logo, i.e.
+     the common case. Fixed the casing; added
+     `tests/test_brand_overrides.py::test_no_logo_branch_emits_a_valid_newif_falsy_macro_name`.
+  2. `python_scripts/reportkit/diagnostics.py`'s `missing_font` regex also
+     matched luaotfload's own internal font-resolution trace lines
+     (`luaotfload | db : Reload initiated ... Font "X" not found.` /
+     `luaotfload | resolve : sequence of N lookups yielded nothing
+     appropriate.`), which are benign under `font_policy: fallback` (the
+     engine substitutes and finishes the compile; the theme package already
+     emits its own correctly-non-blocking warning for this exact case) —
+     turning every successful fallback substitution into a false-positive
+     blocking build failure and defeating the point of `font_policy:
+     fallback`. Fixed by skipping lines with the stable `luaotfload |`
+     prefix during classification (a genuinely fatal missing font still
+     surfaces via the existing `latex_error` patterns: Emergency/Fatal stop,
+     Undefined control sequence, `! ...`); added two cases to
+     `publication_pipeline/tests/test_log_gate.py` (a genuine
+     `fontspec: ... not found.` still fails; the luaotfload trace plus the
+     theme's own fallback warning now passes).
+
+  With both fixes, `latex_templates/examples/equity-research/` now builds to
+  `status: "passed"` end to end under `lualatex` for the first time recorded
+  in this file (previously blocked at a missing-package error before either
+  bug was ever reached). `python -m pytest tests publication_pipeline/tests`:
+  304 passed, 1 skipped, zero failures — the first fully clean run recorded
+  here; every prior session carried at least the `pdflatex`/`microtype`
+  font-expansion failures or an algorithmicx-driven equity-pipeline skip/
+  failure. `reportkit docs --check --json` and `scripts/contract_acceptance.py
+  --json` both pass. Not attempted: A0's pinned Docker baseline capture
+  (a separate, larger undertaking; this session's from-scratch toolchain is
+  informative, not the authoritative pinned fingerprint) and the remaining
+  context-budget/i18n/second-adapter work.
 
 - 2026-09-16: fixed a real documentation/reality mismatch found while doing a
   status-report pass on the repo: `SKILL.md`'s frontmatter `description` and

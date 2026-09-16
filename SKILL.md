@@ -363,6 +363,18 @@ gate, page rendering, and build manifest are applied consistently:
 
 Read the `.log` before retrying a failed compile. Inspect every rendered page for clipped text, overlapping labels, broken arrows, bad page breaks, missing figures, and meanings conveyed only by colour. A successful TeX exit code alone is not completion.
 
+After a small revision, re-render just the affected page(s) instead of the
+whole document:
+
+```bash
+./reportkit render --source-root <publication-project> --pages 3-4
+```
+
+`reportkit render` writes PNGs plus an `index.html` contact sheet to
+`<output-root>/render` (or `--out`); use `--dpi` for resolution. It degrades
+honestly when the environment cannot render (no PyMuPDF): it reports the gap
+rather than claiming a visual check it did not perform.
+
 When modifying ReportKit itself, run its regression suite:
 
 ```bash

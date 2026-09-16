@@ -369,6 +369,16 @@ def inspect_log(
     for physical_line, raw in enumerate(lines, 1):
         if physical_line in allowlisted_lines:
             continue
+        # luaotfload's own "db : Reload initiated ... Font ... not found" /
+        # "resolve : sequence of N lookups yielded nothing appropriate" trace
+        # lines report font *resolution* attempts, not failure: under
+        # ``font_policy: fallback`` the engine substitutes and keeps
+        # compiling, and the theme package already emits its own (correctly
+        # non-blocking) warning for that case. A genuinely fatal missing font
+        # still surfaces through ``latex_error`` (Emergency/Fatal stop,
+        # Undefined control sequence, or a ``! ...`` LaTeX error line).
+        if raw.lstrip().startswith("luaotfload |"):
+            continue
         for kind, pattern in line_patterns:
             if pattern.search(raw):
                 add(kind, starts[physical_line - 1], raw)
