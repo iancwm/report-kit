@@ -1,6 +1,48 @@
 {
+  "class_options": [
+    "theme=institutional-research",
+    "publication-type=equity-research"
+  ],
   "dpi": 150,
+  "engine": "lualatex",
   "expected_toolchain_fingerprint": "6e0fc8ea7889634d3c337eacc4e4f68adb10c2c968e2e7e683f5c24de07408e5",
+  "fixture": "latex_templates/examples/equity-research/report.tex",
+  "fonts": [
+    {"name": "BPMBND+CMSY8", "pages": [1]},
+    {"name": "CALOJO+GoogleSans-Regular", "pages": [2, 2, 2, 3, 3, 3]},
+    {"name": "GLYFBQ+GoogleSans-Regular", "pages": [1, 2, 3, 4]},
+    {"name": "WBBSWC+GoogleSans-Regular", "pages": [1, 2, 3, 4]}
+  ],
+  "link_count": 0,
+  "metadata": {
+    "author": "ReportKit Research",
+    "creationDate": "D:19700101000001Z",
+    "creator": "LaTeX with hyperref",
+    "encryption": null,
+    "format": "PDF 1.7",
+    "keywords": "ReportKit, equity research, institutional-research theme",
+    "modDate": "D:19700101000001Z",
+    "producer": "LuaTeX-1.18.0",
+    "subject": "Equity research update",
+    "title": "AI Infrastructure Demand Is Holding Up Better Than Feared; Services Mix Provides an Offset",
+    "trapped": ""
+  },
+  "bookmarks": {
+    "count": 3,
+    "items": [
+      [1, "Analysis", 2],
+      [1, "NXCL Risk/Reward", 3],
+      [1, "NXCL Financial Model", 4]
+    ]
+  },
+  "page_count": 4,
+  "page_dimensions": [
+    {"height": 792.0, "page": 1, "width": 612.0},
+    {"height": 792.0, "page": 2, "width": 612.0},
+    {"height": 792.0, "page": 3, "width": 612.0},
+    {"height": 792.0, "page": 4, "width": 612.0}
+  ],
+  "pdf_sha256": "2bd1060b386b05391285e3a4214a148c6fa16b7648da67178752591ff28dc4fd",
   "pages": [
     "page-01.png",
     "page-02.png",
