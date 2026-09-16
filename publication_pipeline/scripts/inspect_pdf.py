@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import argparse
+import ast
 import json
 from pathlib import Path
+import re
 import sys
 from typing import Any, Mapping, Sequence
 
@@ -27,6 +29,257 @@ from reportkit.diagnostics import diagnostic_envelope, make_diagnostic  # noqa: 
 
 
 SLIDE_METADATA_FIELDS = ("title", "author", "subject", "keywords")
+SELECTION_MARKER_PREFIX = "REPORTKIT-SELECTED"
+SELECTION_MARKER_FIELDS = (
+    "publication_type",
+    "requested_theme",
+    "theme",
+    "renderer",
+    "class",
+    "template",
+    "writer",
+    "engine",
+    "paper",
+    "canvas",
+)
+_SELECTION_MARKER_FIELD_NAMES = "|".join(re.escape(field) for field in SELECTION_MARKER_FIELDS)
+_SELECTION_MARKER_FIELD = re.compile(
+    rf"(?P<key>{_SELECTION_MARKER_FIELD_NAMES})=(?P<value>.*?)(?=\s+(?:{_SELECTION_MARKER_FIELD_NAMES})=|$)"
+)
+
+
+def _selection_marker_diagnostic(
+    message: str,
+    *,
+    code: str,
+    source: str,
+    details: dict[str, object],
+) -> dict[str, object]:
+    """Create a stable diagnostic for the target-selection PDF gate."""
+    return make_diagnostic(
+        "configuration_error",
+        message,
+        code=code,
+        source={"file": source},
+        remediation="Rebuild the PDF and verify that its resolved target marker matches the requested publication configuration.",
+        details=details,
+    )
+
+
+def _selection_marker_source(source: Path | str) -> tuple[str, str]:
+    if isinstance(source, Path):
+        return str(source), source.read_text(encoding="utf-8", errors="replace")
+    return "<inline selection marker>", source
+
+
+def _parse_selection_marker_line(line: str) -> tuple[dict[str, str] | None, str | None]:
+    marker = line.strip()
+    if marker == SELECTION_MARKER_PREFIX:
+        return None, "marker has no key/value fields"
+    if not marker.startswith(SELECTION_MARKER_PREFIX + " "):
+        return None, "line does not start with the selection-marker prefix"
+
+    body = marker[len(SELECTION_MARKER_PREFIX):].strip()
+    fields: dict[str, str] = {}
+    cursor = 0
+    for match in _SELECTION_MARKER_FIELD.finditer(body):
+        if body[cursor:match.start()].strip():
+            return None, f"unrecognised marker content {body[cursor:match.start()].strip()!r}"
+        key = match.group("key")
+        if key in fields:
+            return None, f"marker field {key!r} is repeated"
+        value = match.group("value").strip()
+        if not value:
+            return None, f"marker field {key!r} is empty"
+        fields[key] = value
+        cursor = match.end()
+    if body[cursor:].strip():
+        return None, f"unrecognised marker content {body[cursor:].strip()!r}"
+    missing = [field for field in SELECTION_MARKER_FIELDS if field not in fields]
+    if missing:
+        return None, f"marker is missing field(s): {', '.join(missing)}"
+    return fields, None
+
+
+def _selection_value(key: str, value: object) -> object:
+    if key == "paper":
+        return None if value is None or value == "-" else str(value)
+    if key == "canvas":
+        if value is None or value == "-":
+            return None
+        if isinstance(value, Mapping):
+            return dict(value)
+        try:
+            parsed = ast.literal_eval(str(value))
+        except (SyntaxError, ValueError):
+            raise ValueError("canvas must be '-' or a mapping") from None
+        if not isinstance(parsed, dict):
+            raise ValueError("canvas must be '-' or a mapping")
+        return parsed
+    return str(value)
+
+
+def _canonical_marker_theme(theme: str) -> str:
+    """Resolve the registry alias used by the marker's requested theme."""
+    try:
+        from reportkit.publications import THEMES
+    except ImportError:
+        return theme
+    record = THEMES.get(theme)
+    if isinstance(record, Mapping):
+        return str(record.get("alias_of") or theme)
+    return theme
+
+
+def _normalise_expected_selection(key: str, value: object) -> object:
+    marker_key = {
+        "class_name": "class",
+        "pandoc_writer": "writer",
+        "canonical_theme": "theme",
+        "requested_name": "requested_theme",
+    }.get(key, key)
+    return _selection_value(marker_key, value)
+
+
+def inspect_selection_marker(
+    source: Path | str,
+    *,
+    expected_selection: Mapping[str, object] | None = None,
+    required: bool = True,
+) -> dict:
+    """Inspect one ``REPORTKIT-SELECTED`` marker from a build log.
+
+    A marker is normally consumed from the log adjacent to the PDF by
+    :func:`inspect`. Passing the marker text directly makes this check useful
+    to other gates and keeps the parsing independent of PDF geometry.
+    ``expected_selection`` may be a full ``BuildTarget.as_dict()`` result;
+    fields not represented in the marker are ignored.
+    """
+    source_label = str(source) if isinstance(source, Path) else "<inline selection marker>"
+    try:
+        _, text = _selection_marker_source(source)
+    except OSError as exc:
+        diagnostic = _selection_marker_diagnostic(
+            f"unable to read PDF selection marker source {source}: {exc}",
+            code="RK_PDF_SELECTION_MARKER_INPUT",
+            source=source_label,
+            details={"source": source_label, "error": str(exc)},
+        )
+        return diagnostic_envelope(
+            [diagnostic],
+            passed=False,
+            selection_marker={"status": "error", "source": source_label, "marker_count": 0, "selection": None},
+        )
+
+    marker_lines = [
+        (line_number, line.strip())
+        for line_number, line in enumerate(text.splitlines(), 1)
+        if line.strip() == SELECTION_MARKER_PREFIX or line.strip().startswith(SELECTION_MARKER_PREFIX + " ")
+    ]
+    marker_summary: dict[str, object] = {
+        "source": source_label,
+        "marker_count": len(marker_lines),
+        "lines": [line_number for line_number, _ in marker_lines],
+        "selection": None,
+    }
+    if not marker_lines:
+        if required:
+            diagnostic = _selection_marker_diagnostic(
+                f"PDF selection marker is missing from {source_label}",
+                code="RK_PDF_SELECTION_MARKER_MISSING",
+                source=source_label,
+                details={"source": source_label, "marker_count": 0},
+            )
+            return diagnostic_envelope(
+                [diagnostic], passed=False,
+                selection_marker={**marker_summary, "status": "missing"},
+            )
+        return diagnostic_envelope([], passed=True, selection_marker={**marker_summary, "status": "not_found"})
+
+    diagnostics: list[dict[str, object]] = []
+    if len(marker_lines) != 1:
+        diagnostics.append(_selection_marker_diagnostic(
+            f"PDF selection marker must occur exactly once in {source_label}; found {len(marker_lines)}",
+            code="RK_PDF_SELECTION_MARKER_COUNT",
+            source=source_label,
+            details={"source": source_label, "marker_count": len(marker_lines), "lines": [line_number for line_number, _ in marker_lines]},
+        ))
+
+    line_number, marker_line = marker_lines[0]
+    raw_selection, parse_error = _parse_selection_marker_line(marker_line)
+    if parse_error:
+        diagnostics.append(_selection_marker_diagnostic(
+            f"PDF selection marker on line {line_number} is invalid: {parse_error}",
+            code="RK_PDF_SELECTION_MARKER_INVALID",
+            source=source_label,
+            details={"source": source_label, "line": line_number, "marker": marker_line, "error": parse_error},
+        ))
+        return diagnostic_envelope(
+            diagnostics,
+            passed=False,
+            selection_marker={**marker_summary, "status": "invalid", "line": line_number, "marker": marker_line},
+        )
+
+    try:
+        selection = {key: _selection_value(key, value) for key, value in raw_selection.items()}
+    except ValueError as exc:
+        diagnostics.append(_selection_marker_diagnostic(
+            f"PDF selection marker on line {line_number} is invalid: {exc}",
+            code="RK_PDF_SELECTION_MARKER_INVALID",
+            source=source_label,
+            details={"source": source_label, "line": line_number, "marker": marker_line, "error": str(exc)},
+        ))
+        return diagnostic_envelope(
+            diagnostics,
+            passed=False,
+            selection_marker={**marker_summary, "status": "invalid", "line": line_number, "marker": marker_line},
+        )
+
+    marker_summary.update({"line": line_number, "marker": marker_line, "selection": selection})
+    canonical_requested_theme = _canonical_marker_theme(str(selection["requested_theme"]))
+    theme_check = {
+        "requested": selection["requested_theme"],
+        "canonical_requested": canonical_requested_theme,
+        "resolved": selection["theme"],
+        "passed": canonical_requested_theme == selection["theme"],
+    }
+    marker_summary["theme"] = theme_check
+    if not theme_check["passed"]:
+        diagnostics.append(_selection_marker_diagnostic(
+            "PDF selection marker reports default-theme leakage: "
+            f"requested theme {selection['requested_theme']!r} resolves as {selection['theme']!r}, "
+            f"expected {canonical_requested_theme!r}",
+            code="RK_PDF_SELECTION_MARKER_THEME_LEAKAGE",
+            source=source_label,
+            details={"selection": selection, "theme_check": theme_check},
+        ))
+
+    mismatches: dict[str, dict[str, object]] = {}
+    for key, expected in (expected_selection or {}).items():
+        marker_key = {
+            "class_name": "class",
+            "pandoc_writer": "writer",
+            "canonical_theme": "theme",
+            "requested_name": "requested_theme",
+        }.get(key, key)
+        if marker_key not in selection:
+            continue
+        expected_value = _normalise_expected_selection(key, expected)
+        actual_value = selection[marker_key]
+        if expected_value != actual_value:
+            mismatches[marker_key] = {"expected": expected_value, "actual": actual_value}
+    expected_check = {"provided": bool(expected_selection), "mismatches": mismatches, "passed": not mismatches}
+    marker_summary["expected"] = expected_check
+    if mismatches:
+        diagnostics.append(_selection_marker_diagnostic(
+            f"PDF selection marker does not match the expected target: {', '.join(sorted(mismatches))}",
+            code="RK_PDF_SELECTION_MARKER_MISMATCH",
+            source=source_label,
+            details={"mismatches": mismatches, "selection": selection},
+        ))
+
+    marker_summary["status"] = "passed" if not diagnostics else "failed"
+    return diagnostic_envelope(diagnostics, passed=not diagnostics, selection_marker=marker_summary)
 
 
 def _pdf_string(value: object) -> str:
@@ -116,6 +369,9 @@ def inspect_slide_accessibility(
     expected_actual_text: int = 1,
     tagged_pdf_status: str = "unsupported",
     tagged_pdf_reason: str | None = None,
+    selection_log: Path | None = None,
+    expected_selection: Mapping[str, object] | None = None,
+    require_selection_marker: bool = False,
 ) -> dict:
     """Inspect the shipped, non-tagged slide accessibility contract.
 
@@ -125,7 +381,12 @@ def inspect_slide_accessibility(
     """
     if fitz is None:
         raise ModuleNotFoundError("PyMuPDF is not installed")
-    result = inspect(path)
+    result = inspect(
+        path,
+        selection_log=selection_log,
+        expected_selection=expected_selection,
+        require_selection_marker=require_selection_marker,
+    )
     diagnostics = list(result["diagnostics"])
     metadata = dict(result.get("metadata") or {})
     expected = dict(expected_metadata or {})
@@ -225,7 +486,28 @@ def inspect_slide_accessibility(
     return result
 
 
-def inspect(path: Path) -> dict:
+def _selection_log_for_pdf(path: Path) -> Path | None:
+    """Find the build log conventionally paired with a compiled PDF."""
+    candidates = (path.with_suffix(".log"), path.with_name("publication.log"))
+    for candidate in candidates:
+        if candidate.is_file():
+            return candidate
+    return None
+
+
+def inspect(
+    path: Path,
+    *,
+    selection_log: Path | None = None,
+    expected_selection: Mapping[str, object] | None = None,
+    require_selection_marker: bool = False,
+) -> dict:
+    """Inspect a PDF and consume a nearby resolved-target marker when present.
+
+    Existing standalone PDF inspection remains valid without a build log. A
+    marker found in the adjacent log is always checked; callers can require a
+    marker explicitly with ``require_selection_marker`` or ``selection_log``.
+    """
     if fitz is None:
         raise ModuleNotFoundError("PyMuPDF is not installed")
     doc = fitz.open(path)
@@ -262,9 +544,31 @@ def inspect(path: Path) -> dict:
         "blank_page", f"page {page} is blank", code="RK_PDF_BLANK_PAGE",
         source={"file": str(path)}, details={"page": page},
     ) for page in blank_pages)
+    marker_required = require_selection_marker or expected_selection is not None
+    marker_log = selection_log or _selection_log_for_pdf(path)
+    if marker_log is None and marker_required:
+        marker_log = path.with_name("publication.log")
+    if marker_log is None:
+        marker_result = diagnostic_envelope(
+            [],
+            passed=True,
+            selection_marker={
+                "status": "not_checked",
+                "source": None,
+                "marker_count": 0,
+                "selection": None,
+            },
+        )
+    else:
+        marker_result = inspect_selection_marker(
+            marker_log,
+            expected_selection=expected_selection,
+            required=selection_log is not None or marker_required,
+        )
+        diagnostics.extend(marker_result["diagnostics"])
     return diagnostic_envelope(
         diagnostics,
-        passed=not outside and not blank_pages and len(doc) > 0,
+        passed=not outside and not blank_pages and len(doc) > 0 and marker_result["passed"],
         page_count=len(doc),
         outside_media_box=outside,
         near_margin_content=near_margin,
@@ -274,6 +578,7 @@ def inspect(path: Path) -> dict:
         fonts=sorted(fonts.values(), key=lambda item: str(item["name"])),
         metadata=doc.metadata,
         link_count=sum(len(page.get_links()) for page in doc),
+        selection_marker=marker_result["selection_marker"],
     )
 
 
@@ -281,6 +586,8 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("pdf", type=Path)
     parser.add_argument("--json", dest="json_path", type=Path)
+    parser.add_argument("--selection-log", type=Path, help="read the resolved-target marker from this build log")
+    parser.add_argument("--require-selection-marker", action="store_true", help="fail if the paired build log has no resolved-target marker")
     parser.add_argument("--slide-accessibility", action="store_true", help="also enforce the declared slide accessibility contract")
     parser.add_argument("--expected-title")
     parser.add_argument("--expected-author")
@@ -311,9 +618,15 @@ def main() -> int:
                 expected_actual_text=args.expected_actual_text,
                 tagged_pdf_status=args.tagged_pdf_status,
                 tagged_pdf_reason=args.tagged_pdf_reason or None,
+                selection_log=args.selection_log,
+                require_selection_marker=args.require_selection_marker,
             )
         else:
-            result = inspect(args.pdf)
+            result = inspect(
+                args.pdf,
+                selection_log=args.selection_log,
+                require_selection_marker=args.require_selection_marker,
+            )
     except ModuleNotFoundError as exc:
         result = diagnostic_envelope([
             make_diagnostic("environment_error", f"PDF inspection requires PyMuPDF: {exc}", code="RK_PYMUPDF_MISSING")
@@ -336,6 +649,9 @@ def main() -> int:
         if args.slide_accessibility:
             failures = [item["message"] for item in result["diagnostics"] if item.get("severity") == "error"]
             print(f"FAIL: slide accessibility inspection: {'; '.join(failures)}", file=sys.stderr)
+        elif result.get("selection_marker", {}).get("status") in {"failed", "missing", "invalid", "error"}:
+            failures = [item["message"] for item in result["diagnostics"] if item.get("severity") == "error"]
+            print(f"FAIL: PDF selection inspection: {'; '.join(failures)}", file=sys.stderr)
         else:
             print(f"FAIL: {len(result['outside_media_box'])} glyph boxes fall outside the media box; {len(result['blank_pages'])} blank pages", file=sys.stderr)
         return 3

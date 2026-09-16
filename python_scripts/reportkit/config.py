@@ -34,13 +34,14 @@ THEME_ENGINE_REQUIREMENTS: dict[str, str] = {
 # is unstarted follow-up, not a Step 2 requirement -- see the
 # institutional-theme implementation plan.
 THEME_KEYS = ("font_family", "font_path", "font_policy")
+BRAND_KEYS = ("primary", "secondary", "logo", "display_font")
 VALIDATION_KEYS = (
     "fail_on_undefined_refs", "fail_on_missing_assets",
     "overfull_hbox_threshold", "underfull_badness_threshold",
 )
 OUTPUT_KEYS = ("directory",)
 KNOWN = IDENTITY_KEYS + DOCUMENT_KEYS + LICENSE_KEYS + VALIDATION_KEYS + OUTPUT_KEYS + THEME_KEYS
-SECTIONS = ("publication", "document", "license", "theme", "profiles", "validation", "output")
+SECTIONS = ("publication", "document", "license", "theme", "brand", "profiles", "validation", "output")
 
 
 def _strip_comment(value: str) -> str:
@@ -221,6 +222,7 @@ def _known_for(section: str) -> tuple[str, ...]:
         "document": DOCUMENT_KEYS,
         "license": LICENSE_KEYS,
         "theme": THEME_KEYS,
+        "brand": BRAND_KEYS,
         "validation": VALIDATION_KEYS,
         "output": OUTPUT_KEYS,
     }.get(section, KNOWN)
@@ -247,7 +249,7 @@ def _validate_and_normalize(raw: dict[str, Any], source: Path) -> dict[str, Any]
     if unknown_top:
         key = sorted(unknown_top)[0]
         raise ValueError(f"{source}: unknown key {key}; known keys: {', '.join(SECTIONS)}")
-    for section in ("publication", "document", "license", "theme", "validation", "output"):
+    for section in ("publication", "document", "license", "theme", "brand", "validation", "output"):
         value = raw.get(section)
         if value is not None and not isinstance(value, dict):
             raise ValueError(f"{source}: {section} must be a mapping")
@@ -346,6 +348,7 @@ def _profile_section(config: dict[str, Any], name: str, profile: str | None) -> 
             "document": DOCUMENT_KEYS,
             "license": LICENSE_KEYS,
             "theme": THEME_KEYS,
+            "brand": BRAND_KEYS,
             "validation": VALIDATION_KEYS,
             "output": OUTPUT_KEYS,
         }.get(name, ())
@@ -410,10 +413,97 @@ def theme_font_policy_conflict(theme: dict[str, Any]) -> str | None:
     unrecognized policy would otherwise reach \\ifdefstring in the .sty file
     and silently take the fallback branch regardless of what was requested.
     """
-    policy = str(theme.get("font_policy") or "fallback")
-    if policy not in ("strict", "fallback"):
+    configured = theme.get("font_policy")
+    policy = configured if configured is not None else "fallback"
+    if not isinstance(policy, str) or policy not in ("strict", "fallback"):
         return f"theme.font_policy {policy!r} is not recognized; use 'strict' or 'fallback'."
     return None
+
+
+def resolve_brand(
+    config: dict[str, Any],
+    theme: str | None = None,
+    source_root: Path | None = None,
+    profile: str | None = None,
+    *,
+    publication_root: Path | None = None,
+    registry: dict[str, dict[str, Any]] | None = None,
+) -> Any:
+    """Resolve and strictly normalize the optional top-level ``brand`` section.
+
+    Brand values are intentionally separate from ``theme:``: the selected
+    theme name comes from ``document.theme``, while the registry decides if
+    that theme is allowed to consume the four controlled brand keys.  An
+    absent or empty section returns an empty immutable ``BrandOverrides``
+    record and preserves all legacy behavior.
+    """
+    if source_root is not None and publication_root is not None and Path(source_root) != Path(publication_root):
+        raise ValueError("source_root and publication_root refer to different paths")
+    root = publication_root if publication_root is not None else source_root
+    values = _profile_section(config, "brand", profile)
+    if not values:
+        from .theme_overrides import BrandOverrides
+
+        return BrandOverrides()
+    selected_theme = theme or str(resolve_document(config, profile).get("theme", "default"))
+    theme_config = resolve_theme(config, profile)
+    policy_error = theme_font_policy_conflict(theme_config)
+    if policy_error:
+        raise ValueError(policy_error)
+    from .theme_overrides import normalize_brand_overrides
+
+    return normalize_brand_overrides(
+        values,
+        theme=selected_theme,
+        publication_root=root,
+        font_policy=theme_config.get("font_policy", "fallback"),
+        registry=registry,
+    )
+
+
+def resolve_effective_theme(
+    config: dict[str, Any],
+    source_root: Path | None = None,
+    profile: str | None = None,
+    *,
+    theme: str | None = None,
+    publication_root: Path | None = None,
+    registry: dict[str, dict[str, Any]] | None = None,
+) -> Any:
+    """Resolve config and return the shared immutable effective-theme record."""
+    if source_root is not None and publication_root is not None and Path(source_root) != Path(publication_root):
+        raise ValueError("source_root and publication_root refer to different paths")
+    root = publication_root if publication_root is not None else source_root
+    document = resolve_document(config, profile)
+    selected_theme = theme or str(document.get("theme", "default"))
+    theme_config = resolve_theme(config, profile)
+    policy_error = theme_font_policy_conflict(theme_config)
+    if policy_error:
+        raise ValueError(policy_error)
+    from .theme_overrides import build_effective_theme
+
+    brand = resolve_brand(
+        config,
+        theme=selected_theme,
+        source_root=root,
+        profile=profile,
+        registry=registry,
+    )
+    return build_effective_theme(
+        selected_theme,
+        brand,
+        publication_root=root,
+        font_policy=theme_config.get("font_policy", "fallback"),
+        font_family=theme_config.get("font_family"),
+        font_path=theme_config.get("font_path", ""),
+        font_configured=bool(_profile_section(config, "theme", profile)),
+        registry=registry,
+    )
+
+
+# The longer name mirrors the low-level materializer and is convenient for
+# callers that want to make the distinction from ``resolve_theme`` explicit.
+resolve_brand_overrides = resolve_brand
 
 
 def resolve_validation(config: dict[str, Any], profile: str | None = None) -> dict[str, Any]:

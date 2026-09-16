@@ -24,8 +24,8 @@ The PR-time synchronization directive is in
 | [2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md](docs/superpowers/specs/2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md) | Implemented (Steps 1–5); open questions resolved in the plan below | P2 |
 | [2026-09-09-reportkit-institutional-theme-implementation-plan.md](docs/superpowers/plans/2026-09-09-reportkit-institutional-theme-implementation-plan.md) | Complete — Steps 1–5 implemented; local LuaLaTeX verification passes; pinned visual QA remains | P2 |
 | [2026-09-09-reportkit-fix-post-implementation-findings.md](docs/superpowers/plans/2026-09-09-reportkit-fix-post-implementation-findings.md) | Complete — all 8 tasks done and reviewed clean; fixture verification complete | Complete |
-| [2026-09-09-reportkit-multi-format-publication-architecture-spec.md](docs/superpowers/specs/2026-09-09-reportkit-multi-format-publication-architecture-spec.md) | Phase A in progress — A1–A3 implemented (A3 pending the pinned-toolchain CI gate); A4 implementation is in the working tree with runtime/pinned verification outstanding; A5 target-aware pipeline and equity acceptance implemented; B4 automated slide accessibility gate retained; A0 remains | P2 |
-| [2026-09-10-reportkit-multi-format-publication-implementation-plan.md](docs/superpowers/plans/2026-09-10-reportkit-multi-format-publication-implementation-plan.md) | Phase A in progress — A1–A3 complete (A3 pending the pinned-toolchain CI gate); A4 implementation is in the working tree with runtime/pinned verification outstanding; A5 target-aware pipeline and equity acceptance implemented; B4 automated slide accessibility gate retained; A0 remains; Phase B started early at request | P2 |
+| [2026-09-09-reportkit-multi-format-publication-architecture-spec.md](docs/superpowers/specs/2026-09-09-reportkit-multi-format-publication-architecture-spec.md) | Phase A implementation complete in the working tree: A1–A5, D7 entrypoints, constrained Markdown directives, brand override materialization, and selection-marker inspection landed; pinned-toolchain/runtime gates and A0 remain | P2 |
+| [2026-09-10-reportkit-multi-format-publication-implementation-plan.md](docs/superpowers/plans/2026-09-10-reportkit-multi-format-publication-implementation-plan.md) | Phase A implementation complete in the working tree; A0 and pinned-toolchain/runtime verification remain; Phase B renderer/accessibility work is complete, with executive design promotion and tagging still review-gated | P2 |
 | [2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md](docs/superpowers/specs/2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md) | Implemented for v1.9.0 — Phase A′ and paged-renderer B′ complete; additive algorithmblock contract coverage landed; renderer-dependent work deferred | P2 |
 | [2026-09-10-reportkit-fork-port-fixes-spec.md](docs/superpowers/specs/2026-09-10-reportkit-fork-port-fixes-spec.md) | Implemented in v1.9.1 via PR #19; all 11 applicable fixes landed | Complete |
 | [2026-09-12-reportkit-code-quality-and-dependency-remediation-spec.md](docs/superpowers/specs/2026-09-12-reportkit-code-quality-and-dependency-remediation-spec.md) | Implemented — merged via PR #25 (`7c5fafc`); all phases (0-2) landed; all 3 open questions resolved | Complete |
@@ -186,9 +186,10 @@ change record.
   and pinned-toolchain verification remain outstanding. The remaining Phase A
   work is ordered in the plan: capture the pinned compatibility baseline
   (A0 — attempted and blocked by sandbox networking, see the plan). A5's
-  equity-research pipeline acceptance is now implemented; the remaining
-  follow-up is the D7 paged-template split and theme/brand override plumbing
-  recorded in the plan.
+  equity-research pipeline acceptance, the D7 paged-template split,
+  theme/brand override plumbing, selection-marker inspection, and the
+  constrained directive/fragment-based composition path are now implemented
+  and verified in the worktree.
   See [the spec](docs/superpowers/specs/2026-09-09-reportkit-multi-format-publication-architecture-spec.md)
   and [the implementation plan](docs/superpowers/plans/2026-09-10-reportkit-multi-format-publication-implementation-plan.md).
 
@@ -242,10 +243,10 @@ change record.
   produce a presentation** — see the A5 entry below; that was this entry's
   main "not done" item. B4's findings now have an automated PDF-inspection
   gate; `executive` stays experimental pending Phase C's
-  design review; directive/fragment-based presentation composition
-  authoring from Markdown (only Pandoc's own "plain Markdown frames" path
-  is proven through the pipeline). See the plan's Phase B section for the
-  full verification record.
+  design review; the constrained directive/fragment-based composition path
+  is now proven through the pipeline with source-line validation and explicit
+  trusted-fragment handling. See the plan's Phase B section for the full
+  verification record.
 
 - **Multi-format publication architecture — Phase A5 (make the pipeline
   target-aware) is essentially complete**, done after Phase B at explicit
@@ -288,16 +289,18 @@ change record.
   trusted figure fragments; static validation passes and a local LuaLaTeX
   body compile succeeds. The host's normal build stops before body
   compilation because `algorithmicx.sty` is absent; the pinned
-  `texlive-science` toolchain supplies it. **Not done**: the full D7
-  paged-base.tex/technical-report.tex/equity-research.tex split
-  (`publication-template.tex` stays the one self-contained, combined/
-  section/cover-page-capable entrypoint both paged types resolve to —
-  judged too high-risk for this slice given how much existing
-  pipeline-test behavior depends on its current branching); directive/
-  fragment-based presentation composition authoring from Markdown;
-  materializing theme font settings/brand overrides into generated
-  preamble files (nothing needs it yet); PDF inspection actually reading
-  the resolved-selection marker to flag default-theme leakage.
+  `texlive-science` toolchain supplies it. **Follow-up implemented
+  2026-09-16:** the D7 paged split now provides `paged-base.tex`,
+  `technical-report.tex`, and `equity-research.tex`; the constrained
+  Markdown directive/typed-IR path supports presentation compositions with
+  source-line diagnostics and explicit trusted fragments; D6/A5 now has
+  registry-gated brand parsing plus deterministic TeX/chart effective-theme
+  materialization and build-report hashes; and PDF inspection consumes the
+  adjacent `REPORTKIT-SELECTED` marker to detect missing, malformed,
+  mismatched, or default-theme-leaking selections.
+
+  **Remaining:** A0's pinned baseline, pinned/runtime verification for the
+  new slices, and promotion of a reviewed venture/editorial visual system.
 
   **Post-rebase focused verification on 2026-09-16:** slide accessibility,
   slide-renderer, and non-compiling target-selection checks report 23 passed

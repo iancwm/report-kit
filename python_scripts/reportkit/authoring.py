@@ -10,6 +10,8 @@ from urllib.parse import urlparse
 from .config import _parse_subset
 from .diagnostics import make_diagnostic, suggest
 from .latex import tex_escape, tex_escape_url
+from .authoring_ir import AuthoringIR, validate_ir
+from .markdown_directives import ParsedMarkdown, directive_source_files, parse_markdown
 
 LINK_TYPES = {"citation", "documentation", "repository", "dataset", "further_reading", "interactive_resource"}
 
@@ -20,6 +22,7 @@ class AuthoringResult:
     sources: list[str] = field(default_factory=list)
     chapters: list[str] = field(default_factory=list)
     links: list[str] = field(default_factory=list)
+    documents: dict[str, AuthoringIR] = field(default_factory=dict)
 
     @property
     def ok(self) -> bool:
@@ -57,7 +60,45 @@ def _require_mapping(value: Any, location: str, result: AuthoringResult) -> dict
     return value
 
 
-def validate_authoring(root: Path, *, model_name: str = "sources.yaml", links_name: str = "links.yaml") -> AuthoringResult:
+def _configured_target(root: Path) -> tuple[str | None, str | None, str | None]:
+    """Read the base target for directive availability without compiling.
+
+    ``reportkit check`` calls :func:`validate_authoring` before its existing
+    configuration diagnostics are assembled.  Best-effort selection here
+    keeps that call site compatible while ensuring a normal publication gets
+    primitive availability checks.  Invalid configuration is reported by the
+    existing config validator and is intentionally not duplicated here.
+    """
+    config_path = root / "publication.yaml"
+    if not config_path.is_file():
+        return None, None, None
+    try:
+        from .config import load_publication_config, resolve_document
+        from .publications import resolve_build_target
+
+        config = load_publication_config(config_path)
+        document = resolve_document(config, None)
+        target = resolve_build_target(
+            str(document.get("publication_type")),
+            str(document.get("theme")),
+            explicit_paper=document.get("paper"),
+            engine=str(document.get("engine")),
+            repo_root=Path(__file__).resolve().parents[2],
+        )
+        return target.publication_type, target.requested_theme, target.renderer
+    except (OSError, TypeError, ValueError, KeyError):
+        return None, None, None
+
+
+def validate_authoring(
+    root: Path,
+    *,
+    model_name: str = "sources.yaml",
+    links_name: str = "links.yaml",
+    publication_type: str | None = None,
+    theme: str | None = None,
+    renderer: str | None = None,
+) -> AuthoringResult:
     result = AuthoringResult()
     model_path = root / model_name
     links_path = root / links_name
@@ -144,6 +185,31 @@ def validate_authoring(root: Path, *, model_name: str = "sources.yaml", links_na
                         f"sources.{source_id}.links: unknown link {link_id!r}", rule="unknown_link",
                         file=model_path.name, candidates=suggest(str(link_id), link_ids),
                     )
+    configured_publication, configured_theme, configured_renderer = _configured_target(root)
+    publication_type = publication_type if publication_type is not None else configured_publication
+    theme = theme if theme is not None else configured_theme
+    renderer = renderer if renderer is not None else configured_renderer
+    link_names = set(link_ids)
+    # Directive parsing is deliberately independent of Pandoc.  The returned
+    # IR is retained for the build stage and is also useful to check/context
+    # callers that want a machine-readable authoring inventory.
+    for manuscript in directive_source_files(root):
+        try:
+            relative = str(manuscript.relative_to(root))
+            parsed: ParsedMarkdown = parse_markdown(manuscript.read_text(encoding="utf-8"), source_file=relative)
+        except (OSError, UnicodeError) as exc:
+            result.add(f"{manuscript}: could not read Markdown: {exc}", rule="manuscript_read", file=str(manuscript.relative_to(root)))
+            continue
+        result.documents[relative] = parsed.ir
+        result.diagnostics.extend(parsed.diagnostics)
+        result.diagnostics.extend(validate_ir(
+            parsed.ir,
+            publication_type=publication_type,
+            theme=theme,
+            renderer=renderer,
+            root=root,
+            links=link_names,
+        ))
     return result
 
 

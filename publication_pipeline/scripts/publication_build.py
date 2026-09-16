@@ -20,6 +20,7 @@ import re
 import shutil
 import subprocess
 import sys
+import tempfile
 import time
 try:
     import resource
@@ -73,11 +74,13 @@ def template_files() -> list[Path]:
 
 
 from reportkit.authoring import render_links_tex, validate_authoring  # noqa: E402
+from reportkit.authoring_ir import AuthoringValidationError  # noqa: E402
 from reportkit.config import (  # noqa: E402
     CONFIG_NAME,
     load_publication_config,
     resolve_license,
     resolve_document,
+    resolve_effective_theme,
     resolve_identity,
     resolve_output,
     resolve_theme,
@@ -87,6 +90,9 @@ from reportkit.config import (  # noqa: E402
 from reportkit.manifest import unique_build_id, write_report  # noqa: E402
 from reportkit.diagnostics import diagnostic_envelope, inspect_log, make_diagnostic  # noqa: E402
 from reportkit.latex import tex_escape  # noqa: E402
+from reportkit.markdown_directives import parse_markdown, replace_placeholders  # noqa: E402
+from reportkit.tex_renderer import render_ir  # noqa: E402
+from reportkit.theme_overrides import ThemeOverrideError, materialize_tex_overrides  # noqa: E402
 from reportkit.publications import PublicationRegistryError, resolve_build_target  # noqa: E402
 from reportkit.toolchain import toolchain_context  # noqa: E402
 from reportkit.toolchain import version_line  # noqa: E402
@@ -173,6 +179,10 @@ def render_markdown(
     map_path: Path | None = None,
     *,
     writer: str = "latex",
+    publication_type: str | None = None,
+    theme: str | None = None,
+    renderer: str | None = None,
+    links: list[str] | None = None,
     timeout: int = 120,
     memory_limit_mb: int = 2048,
 ) -> None:
@@ -187,18 +197,94 @@ def render_markdown(
     # that file's own header). Meaningless for the latex writer, so only
     # added for beamer.
     slide_level = ["--slide-level=1"] if writer == "beamer" else []
-    proc = run_limited(
+    source = manuscript.read_text(encoding="utf-8")
+    parsed = parse_markdown(source, source_file=str(manuscript.relative_to(root)))
+    if parsed.diagnostics:
+        raise AuthoringValidationError(parsed.diagnostics)
+    # Directive TeX is generated and inserted after Pandoc.  Consequently it
+    # never becomes a raw-TeX extension in the Markdown reader, while ordinary
+    # Markdown continues through the existing markdown-raw_tex restriction.
+    replacements = render_ir(
+        parsed.ir,
+        fragment_root=root,
+        publication_type=publication_type,
+        theme=theme,
+        renderer=renderer,
+        links=set(links or ()),
+    )
+    def run_pandoc(input_path: Path):
         # Raw TeX is deliberately disabled in Markdown. Trusted TeX belongs in
         # a validated fragment or a direct .tex document, never a content field.
         # `writer` comes from the resolved BuildTarget's pandoc_writer (Phase
         # A5, decision D3: Python is canonical) -- "latex" for the paged
         # renderer (unchanged), "beamer" for slides.
-        ["pandoc", "-f", "markdown-raw_tex", "-t", writer, *slide_level, str(manuscript)],
-        cwd=root.parent, timeout=timeout, memory_limit_mb=memory_limit_mb, capture_output=True, text=True,
-    )
-    if proc.returncode:
-        raise RuntimeError(proc.stderr or f"Pandoc failed for {manuscript}")
-    source_lines = manuscript.read_text(encoding="utf-8").splitlines()
+        return run_limited(
+            ["pandoc", "-f", "markdown-raw_tex", "-t", writer, *slide_level, str(input_path)],
+            cwd=root.parent, timeout=timeout, memory_limit_mb=memory_limit_mb, capture_output=True, text=True,
+        )
+
+    pandoc_output: list[str] = []
+    if writer == "beamer" and parsed.directives:
+        # Beamer's frame environment scans the literal Pandoc output.  A
+        # directive marker inside one Pandoc invocation would therefore land
+        # inside the preceding Markdown frame.  Separate ordinary Markdown
+        # segments ensure every generated composition is inserted between
+        # complete frame batches.  This also permits a directive-only deck to
+        # render without an unnecessary Pandoc call.
+        markers = sorted(parsed.placeholders, key=len, reverse=True)
+        marker_pattern = re.compile(rf"(?m)^({'|'.join(re.escape(marker) for marker in markers)})[ \t]*\n?")
+        cursor = 0
+        for match in marker_pattern.finditer(parsed.markdown):
+            segment = parsed.markdown[cursor:match.start()]
+            if segment.strip():
+                with tempfile.NamedTemporaryFile(
+                    mode="w", encoding="utf-8", suffix=".md", prefix=".reportkit-", dir=output.parent, delete=False,
+                ) as stream:
+                    stream.write(segment)
+                    segment_path = Path(stream.name)
+                try:
+                    proc = run_pandoc(segment_path)
+                finally:
+                    segment_path.unlink(missing_ok=True)
+                if proc.returncode:
+                    raise RuntimeError(proc.stderr or f"Pandoc failed for {manuscript}")
+                pandoc_output.append(proc.stdout)
+            pandoc_output.append(match.group(1) + "\n")
+            cursor = match.end()
+        tail = parsed.markdown[cursor:]
+        if tail.strip():
+            with tempfile.NamedTemporaryFile(
+                mode="w", encoding="utf-8", suffix=".md", prefix=".reportkit-", dir=output.parent, delete=False,
+            ) as stream:
+                stream.write(tail)
+                tail_path = Path(stream.name)
+            try:
+                proc = run_pandoc(tail_path)
+            finally:
+                tail_path.unlink(missing_ok=True)
+            if proc.returncode:
+                raise RuntimeError(proc.stderr or f"Pandoc failed for {manuscript}")
+            pandoc_output.append(proc.stdout)
+        pandoc_text = "\n".join(pandoc_output)
+    else:
+        pandoc_input = manuscript
+        temporary_input: Path | None = None
+        if parsed.directives:
+            with tempfile.NamedTemporaryFile(
+                mode="w", encoding="utf-8", suffix=".md", prefix=".reportkit-", dir=output.parent, delete=False,
+            ) as stream:
+                stream.write(parsed.markdown)
+                temporary_input = Path(stream.name)
+            pandoc_input = temporary_input
+        try:
+            proc = run_pandoc(pandoc_input)
+        finally:
+            if temporary_input is not None:
+                temporary_input.unlink(missing_ok=True)
+        if proc.returncode:
+            raise RuntimeError(proc.stderr or f"Pandoc failed for {manuscript}")
+        pandoc_text = proc.stdout
+    source_lines = source.splitlines()
     source_locations = {
         match.group(1): line_number
         for line_number, raw in enumerate(source_lines, 1)
@@ -206,7 +292,30 @@ def render_markdown(
     }
     lines: list[str] = []
     fragments: list[dict[str, object]] = []
-    for line in proc.stdout.splitlines():
+    directives: list[dict[str, object]] = []
+    for line in pandoc_text.splitlines():
+        directive_marker = next((marker for marker in replacements if marker in line), None)
+        if directive_marker is not None:
+            generated_start = len(lines) + 1
+            replacement = replacements[directive_marker]
+            if line.strip() == directive_marker:
+                lines.extend(replacement.splitlines())
+            else:
+                lines.extend(replace_placeholders(line, replacements).splitlines())
+            generated_end = generated_start + max(0, len(replacement.splitlines()) - 1)
+            node = parsed.placeholders[directive_marker]
+            directives.append({
+                "start": generated_start,
+                "end": generated_end,
+                "generated_start": generated_start,
+                "generated_end": generated_end,
+                "source_start": node.source.line,
+                "source_end": node.source.line_end,
+                "primitive": node.primitive,
+                "path": node.fragment,
+                "trusted_fragment": bool(node.fragment),
+            })
+            continue
         match = re.fullmatch(
             r"\s*(?:\[\[|\{\[\}\{\[\})REPORTKIT-VISUAL:fig:"
             r"([a-z0-9]+(?:-[a-z0-9]+)*)"
@@ -235,7 +344,7 @@ def render_markdown(
             lines.append(line)
     output.write_text("\n".join(lines) + "\n", encoding="utf-8")
     sidecar = map_path or output.with_name(f"{output.stem}.map.json")
-    sidecar.write_text(json.dumps({"source": str(manuscript.relative_to(root)), "fragments": fragments}, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    sidecar.write_text(json.dumps({"source": str(manuscript.relative_to(root)), "fragments": fragments, "directives": directives}, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
 def _resolve_publication_date(value: str, *, now: datetime | None = None) -> str:
@@ -433,6 +542,16 @@ def build(args: argparse.Namespace) -> int:
     if font_policy_conflict:
         print(f"publication config: {font_policy_conflict}", file=sys.stderr)
         return 2
+    try:
+        effective_theme = resolve_effective_theme(
+            config,
+            source_root=source_root,
+            profile=profile,
+            theme=target.requested_theme,
+        )
+    except (OSError, ThemeOverrideError, ValueError) as exc:
+        print(f"publication config: theme/brand overrides: {exc}", file=sys.stderr)
+        return 2
     entries = order_entries(source_root)
     if args.mode == "section":
         chosen = getattr(args, "section", None)
@@ -489,6 +608,27 @@ def build(args: argparse.Namespace) -> int:
     for base_file in (PIPELINE_ROOT / "templates").glob("*-base.tex"):
         shutil.copy2(base_file, output / base_file.name)
     staged_assets = stage_project_assets(source_root, output)
+    if effective_theme.brand.logo:
+        try:
+            logo_relative = effective_theme.brand.logo.relative_to(source_root).as_posix()
+        except ValueError as exc:
+            print(f"publication config: brand.logo escaped the publication root: {exc}", file=sys.stderr)
+            return 2
+        if not any(item["path"] == logo_relative for item in staged_assets):
+            logo_destination = output / logo_relative
+            logo_destination.parent.mkdir(parents=True, exist_ok=True)
+            try:
+                shutil.copy2(effective_theme.brand.logo, logo_destination)
+            except OSError as exc:
+                print(f"publication config: could not stage brand.logo: {exc}", file=sys.stderr)
+                return 2
+            staged_assets.append({"path": logo_relative, "sha256": sha256(effective_theme.brand.logo)})
+    if effective_theme.configured:
+        try:
+            materialize_tex_overrides(effective_theme, output / "reportkit-theme-overrides.tex")
+        except (OSError, ThemeOverrideError, ValueError) as exc:
+            print(f"publication config: could not materialize theme overrides: {exc}", file=sys.stderr)
+            return 2
     cover_name = None
     if args.cover:
         cover = Path(args.cover).resolve()
@@ -508,7 +648,13 @@ def build(args: argparse.Namespace) -> int:
         try:
             render_markdown(
                 source_root, source_root / "manuscript" / manuscript, rendered,
-                writer=target.pandoc_writer, timeout=timeout, memory_limit_mb=memory_limit_mb,
+                writer=target.pandoc_writer,
+                publication_type=target.publication_type,
+                theme=target.requested_theme,
+                renderer=target.renderer,
+                links=authoring.links,
+                timeout=timeout,
+                memory_limit_mb=memory_limit_mb,
             )
         except subprocess.TimeoutExpired:
             print(f"compile timeout: pandoc exceeded {timeout} seconds", file=sys.stderr)
@@ -516,6 +662,10 @@ def build(args: argparse.Namespace) -> int:
         except FileNotFoundError:
             print("environment: pandoc is not installed", file=sys.stderr)
             return 5
+        except AuthoringValidationError as exc:
+            for diagnostic in exc.diagnostics:
+                print(f"authoring validation: {diagnostic['message']}", file=sys.stderr)
+            return 3
         except RuntimeError as exc:
             print(f"compile failure: {exc}", file=sys.stderr)
             return 4
@@ -557,6 +707,7 @@ def build(args: argparse.Namespace) -> int:
         # produced it (requested vs. canonical theme distinguishes an alias
         # like "technical" from what actually rendered).
         "selection": target.as_dict(),
+        "effective_theme": effective_theme.as_dict(),
         "commands": [], "exit_codes": [], "diagnostics": {}, "figures": figure_count, "tables": table_count, "pdf_sha256": None,
     }
     report_path = output / "build-report.json"

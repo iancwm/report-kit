@@ -1,0 +1,20 @@
+% ReportKit entrypoint: technical-report. The builder replaces these
+% explicit placeholders from the resolved BuildTarget; no unrestricted TeX
+% formatting is applied to this source.
+\documentclass[theme=%%REPORTKIT_THEME%%,publication-type=%%REPORTKIT_PUBLICATION_TYPE%%]{%%REPORTKIT_CLASS%%}
+\newcommand{\RKFrontMatter}{%
+  \ifRKPubHasCover
+    \clearpage\thispagestyle{empty}\noindent
+    \makebox[\textwidth][c]{\includegraphics[page=1,width=\textwidth,height=\textheight,keepaspectratio]{\RKPubCoverPath}}\clearpage
+  \fi
+  \ifRKPubIsCombined
+    \RKFrontMatterBegin
+    \RKTitlePage[\RKPubSubtitle]{\RKPubTitle}
+    \RKPubPublicationDetails
+    \RKContents
+    \RKMainMatterBegin
+  \else
+    \maketitle
+  \fi
+}
+\input{paged-base.tex}

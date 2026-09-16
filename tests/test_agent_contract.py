@@ -149,7 +149,7 @@ def test_context_is_versioned_filterable_and_legacy_compatible() -> None:
         "publication_type": "equity-research", "requested_theme": "institutional-research",
         "requested_name": "institutional-research",
         "theme": "institutional-research", "alias_of": None, "renderer": "paged",
-        "class": "reportkit", "template": "publication-template.tex", "writer": "latex",
+        "class": "reportkit", "template": "equity-research.tex", "writer": "latex",
         "engine": "lualatex", "paper": "letter", "canvas": None,
         "geometry": {"kind": "paper", "papers": ["a4", "letter"], "paper": "letter"},
         "accessibility": {

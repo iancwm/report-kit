@@ -118,8 +118,9 @@ RENDERERS: dict[str, dict[str, Any]] = {
         "since": "1.0.0",
         "class_adapter": "reportkit",
         "class_file": "latex_templates/reportkit.cls",
-        # This is the legacy template until the target-aware pipeline slice
-        # adds paged-base.tex and per-publication entrypoints.
+        # Retain the monolithic template as the renderer-level compatibility
+        # witness. Paged publication targets select their dedicated
+        # entrypoints below; each one inputs paged-base.tex.
         "template_base": "publication-template.tex",
         "pandoc_writer": "latex",
         "geometry": {"kind": "paper", "papers": ["a4", "letter"]},
@@ -254,7 +255,7 @@ PUBLICATION_TYPES: dict[str, dict[str, Any]] = {
         "paper": "a4",
         "themes": ["default", "technical"],
         "default_target": {"theme": "default", "paper": "a4"},
-        "template": "publication-template.tex",
+        "template": "technical-report.tex",
         "package": None,
         "selection_criteria": "General technical reports, guides, and long-form analytical documents.",
         "stability": "stable",
@@ -266,7 +267,7 @@ PUBLICATION_TYPES: dict[str, dict[str, Any]] = {
         "paper": "letter",
         "themes": ["institutional-research"],
         "default_target": {"theme": "institutional-research", "paper": "letter"},
-        "template": "publication-template.tex",
+        "template": "equity-research.tex",
         "package": "reportkit-equity-research",
         "selection_criteria": "Exhibit-led institutional equity research and investment analysis.",
         "stability": "stable",

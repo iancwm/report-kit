@@ -1,15 +1,16 @@
 # ReportKit Multi-Format Publication Architecture — Implementation Plan
 
-**Status:** Phase A in progress; Phase B started out of the plan's own
+**Status:** Phase A implementation complete in the working tree; Phase B started out of the plan's own
 recommended order (see below), then A5 followed it. Architecture decisions
 are resolved; A1, A2 and A3 are complete (A3 pending the pinned-toolchain
 CI gate); **A4's diagram work (the last item the plan's own A4 section
 named as "not started") is now implemented** -- theme/adapter split,
 callout/metric token work, and diagram chrome tokens are all in the tree;
 the Python/theme-contract extension is now implemented in the working tree.
-A5 is complete for the currently registered targets (theme/font/brand
-override materialization remains future work, and the equity pipeline
-acceptance is now implemented); A0 was attempted but remains blocked on the
+A5 is complete for the currently registered targets; theme/font/brand
+override materialization, the full D7 paged split, constrained directive
+authoring, and selection-marker inspection are now implemented in the working
+tree, and the equity pipeline acceptance is implemented; A0 was attempted but remains blocked on the
 pinned-toolchain network path. B1 and B2 are
 essentially complete, now proven through `reportkit build` itself (not
 just direct-TeX authoring) for the "plain Markdown frames" authoring path;
@@ -354,8 +355,9 @@ section below for verification detail and scope actually covered — not yet
 released as a version bump, and the pinned-toolchain CI gate has not run
 against it). A4 is implemented in the working tree, also not yet released;
 runtime and pinned-toolchain verification remain. A5 is complete for the
-currently registered targets; theme/font/brand override materialization and
-the full D7 paged split remain follow-up work. A0 remains open because its
+currently registered targets; theme/font/brand override materialization, the
+full D7 paged split, constrained directive authoring, and selection-marker
+inspection are implemented in the working tree. A0 remains open because its
 pinned baseline still needs a trusted network path. Phase B (slide renderer and
 presentation semantics) is essentially complete too, implemented before A5
 at explicit request — see its own section.
@@ -996,7 +998,8 @@ The equity pipeline acceptance sub-item is implemented below.
   compiling, not just argued). This is B1's "plain Markdown frames"
   authoring path; directive/fragment-based composition authoring (the
   *other* path B1 names, using `reportkit-presentation.sty`'s compositions
-  from Markdown) remains unimplemented -- see "Not done" below.
+  from Markdown) is now implemented by the constrained authoring IR and
+  trusted-fragment path described below.
   `slides-base.tex` gained `\RequirePackage{reportkit-pandoc}` (the same
   `\tightlist`/syntax-highlighting/proportional-image compatibility layer
   the paged pipeline already requires via `reportkit-longform.sty`;
@@ -1037,19 +1040,16 @@ The equity pipeline acceptance sub-item is implemented below.
   static equity `reportkit check`, shell syntax, Ruff, and `git diff --check`
   pass. The full pinned build/test gate remains authoritative.
 
-**Not done:** the D7 paged-base.tex/technical-report.tex/equity-research.tex split
-(`publication-template.tex` remains the single, self-contained,
-combined/section/cover-page-capable entrypoint both paged publication
-types resolve to -- splitting it was judged too high-risk for this slice
-given how much existing pipeline-test behavior depends on its current
-combined-mode branching, and D7 does not strictly require every renderer
-to have a split entrypoint on day one); directive/fragment-based
-presentation composition authoring from Markdown (only "plain Markdown
-frames" is proven); materializing theme font settings/brand overrides into
-generated preamble files (no current theme/publication type needs it, see
-above); PDF inspection actually reading the resolved-selection marker to
-flag default-theme leakage (the marker exists and is machine-readable, but
-nothing consumes it yet).
+**Follow-up implemented 2026-09-16:** the D7 paged-base.tex/
+technical-report.tex/equity-research.tex split is landed; constrained
+directive/fragment-based presentation authoring now validates a typed IR and
+renders safe TeX with explicit trusted fragments; theme/font/brand settings
+materialize through one effective-theme record and are recorded in the build
+report; and PDF inspection consumes the resolved-selection marker to flag
+missing, malformed, mismatched, or default-theme-leaking targets.
+
+**Remaining:** A0's pinned baseline, pinned/runtime verification for the new
+slices, and the future visual design/review phases.
 
 ### Phase A definition of done
 
@@ -1146,8 +1146,9 @@ separate reviewed change. Do not claim parity merely because Beamer compiled.
 after rebasing onto `main` at `f45ab86` -- B1 and B2
 essentially complete via direct-TeX authoring; B3 implemented for the one
 existing slide theme; B4 is now verified by a reusable PDF inspector and a
-compiled-fixture pytest/acceptance gate. The pipeline does not yet expose the
-directive/fragment composition path from Markdown (see the scope note below).**
+compiled-fixture pytest/acceptance gate. The constrained directive/fragment
+composition path is now exposed from Markdown and covered by source-line
+validation and build integration.**
 
 - **B1 (class + slides core + registry):** `reportkit-slides.cls` mirrors
   `reportkit.cls`'s option-parsing/registry-validation/theme-and-adapter-
@@ -1313,8 +1314,9 @@ directive/fragment composition path from Markdown (see the scope note below).**
   (entrypoint: class declaration + a `\RKFrontMatter` hook calling
   `titleslide`). A5 now selects and stages these files from the resolved
   `BuildTarget`; `reportkit build` produces a presentation through Pandoc's
-  Beamer writer. The remaining gap is directive/fragment-based composition
-  authoring from Markdown, not renderer selection or compilation.
+  Beamer writer. Directive/fragment-based composition authoring is now
+  integrated through the typed IR and safe TeX renderer, not just renderer
+  selection or compilation.
 - **A necessary correctness fix in the shared config/registry layer, found
   while wiring the canvas/paper split (decision D5), not scoped to slides
   only:** `config.py`'s `resolve_document()` previously defaulted
@@ -1394,11 +1396,10 @@ directive/fragment composition path from Markdown (see the scope note below).**
     address, not something any code change in this session touches).
     `ruff check` is clean on every file this slice touched.
 
-**Not done / explicitly out of scope for this slice:** the tagging spike
-re-run mentioned in B4; promoting `executive` out of `"experimental"`
-(explicitly Phase C's job); and Pandoc directive/fragment-based presentation
-composition authoring from Markdown (only Pandoc's plain Markdown frame path
-is proven through `reportkit build`).
+**Remaining / explicitly out of scope for this slice:** the tagging spike
+re-run mentioned in B4 and promoting `executive` out of `"experimental"`
+(explicitly Phase C's job). The directive/fragment-based presentation path
+is now proven through `reportkit build`.
 
 ### Phase B definition of done
 
@@ -1415,13 +1416,9 @@ reportkit-slides.cls + Pandoc's Beamer writer ✅, and
 **"builds from publication.yaml through the normal pipeline" ✅** -- A5
 made `reportkit build` resolve and stage `presentation.tex`, select the
 Beamer writer, and compile through `reportkit-slides.cls`; verified with a
-real end-to-end build (see A5's own section). One caveat: only the "plain
-Markdown frames" authoring path (Pandoc's native heading-based frame
-splitting) is proven through the pipeline; directive/fragment-based
-authoring using `reportkit-presentation.sty`'s own compositions from
-Markdown remains unimplemented, so Phase B's compositions are today
-provably reachable through direct-TeX authoring (the smoke fixture) but
-not yet through `reportkit build`. Phase B's definition of done is
+real end-to-end build (see A5's own section). The constrained
+directive/fragment authoring path now validates and renders the same
+composition API through `reportkit build`; Phase B's definition of done is
 otherwise met.
 
 ## 6. Phase C — executive theme
