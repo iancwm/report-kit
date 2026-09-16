@@ -1,6 +1,6 @@
 # ReportKit — Outstanding Work
 
-**Last updated:** 2026-09-15
+**Last updated:** 2026-09-16
 
 This is an index, not an audit. Each spec/plan under `docs/superpowers/`
 carries its own `**Status:**` line, updated at the workflow checkpoint that
@@ -24,8 +24,8 @@ The PR-time synchronization directive is in
 | [2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md](docs/superpowers/specs/2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md) | Implemented (Steps 1–5); open questions resolved in the plan below | P2 |
 | [2026-09-09-reportkit-institutional-theme-implementation-plan.md](docs/superpowers/plans/2026-09-09-reportkit-institutional-theme-implementation-plan.md) | Complete — Steps 1–5 implemented; local LuaLaTeX verification passes; pinned visual QA remains | P2 |
 | [2026-09-09-reportkit-fix-post-implementation-findings.md](docs/superpowers/plans/2026-09-09-reportkit-fix-post-implementation-findings.md) | Complete — all 8 tasks done and reviewed clean; fixture verification complete | Complete |
-| [2026-09-09-reportkit-multi-format-publication-architecture-spec.md](docs/superpowers/specs/2026-09-09-reportkit-multi-format-publication-architecture-spec.md) | Phase A in progress — A1–A3 implemented (A3 pending the pinned-toolchain CI gate); A4 implementation is in the working tree with runtime/pinned verification outstanding; A5 target-aware pipeline and equity acceptance implemented; A0 remains | P2 |
-| [2026-09-10-reportkit-multi-format-publication-implementation-plan.md](docs/superpowers/plans/2026-09-10-reportkit-multi-format-publication-implementation-plan.md) | Phase A in progress — A1–A3 complete (A3 pending the pinned-toolchain CI gate); A4 implementation is in the working tree with runtime/pinned verification outstanding; A5 target-aware pipeline and equity acceptance implemented; A0 remains; Phase B started early at request | P2 |
+| [2026-09-09-reportkit-multi-format-publication-architecture-spec.md](docs/superpowers/specs/2026-09-09-reportkit-multi-format-publication-architecture-spec.md) | Phase A in progress — A1–A3 implemented (A3 pending the pinned-toolchain CI gate); A4 implementation is in the working tree with runtime/pinned verification outstanding; A5 target-aware pipeline and equity acceptance implemented; B4 automated slide accessibility gate retained; A0 remains | P2 |
+| [2026-09-10-reportkit-multi-format-publication-implementation-plan.md](docs/superpowers/plans/2026-09-10-reportkit-multi-format-publication-implementation-plan.md) | Phase A in progress — A1–A3 complete (A3 pending the pinned-toolchain CI gate); A4 implementation is in the working tree with runtime/pinned verification outstanding; A5 target-aware pipeline and equity acceptance implemented; B4 automated slide accessibility gate retained; A0 remains; Phase B started early at request | P2 |
 | [2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md](docs/superpowers/specs/2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md) | Implemented for v1.9.0 — Phase A′ and paged-renderer B′ complete; additive algorithmblock contract coverage landed; renderer-dependent work deferred | P2 |
 | [2026-09-10-reportkit-fork-port-fixes-spec.md](docs/superpowers/specs/2026-09-10-reportkit-fork-port-fixes-spec.md) | Implemented in v1.9.1 via PR #19; all 11 applicable fixes landed | Complete |
 | [2026-09-12-reportkit-code-quality-and-dependency-remediation-spec.md](docs/superpowers/specs/2026-09-12-reportkit-code-quality-and-dependency-remediation-spec.md) | Implemented — merged via PR #25 (`7c5fafc`); all phases (0-2) landed; all 3 open questions resolved | Complete |
@@ -238,7 +238,7 @@ change record.
   canvas-renderer publication type existed to default against; now
   conditional on the renderer's geometry kind, and `resolve_build_target()`
   now actually rejects an explicit paper for a canvas renderer instead of
-  silently dropping it. **Update 2026-09-14: `reportkit build` can now
+  silently dropping it. **Update 2026-09-16: `reportkit build` can now
   produce a presentation** — see the A5 entry below; that was this entry's
   main "not done" item. B4's findings now have an automated PDF-inspection
   gate; `executive` stays experimental pending Phase C's
@@ -297,12 +297,16 @@ change record.
   fragment-based presentation composition authoring from Markdown;
   materializing theme font settings/brand overrides into generated
   preamble files (nothing needs it yet); PDF inspection actually reading
-  the resolved-selection marker to flag default-theme leakage. `python -m
-  pytest tests publication_pipeline/tests`: 222 passed, 2 pre-existing/
-  environment-dependent failures (same two, unchanged). `bash
-  scripts/acceptance_check.sh --require-tex` (both compile blocks exit 0),
-  `reportkit docs --check --json`, and `scripts/contract_acceptance.py
-  --json` all pass. See the plan's A5 section for the full record.
+  the resolved-selection marker to flag default-theme leakage.
+
+  **Post-rebase focused verification on 2026-09-16:** slide accessibility,
+  slide-renderer, and non-compiling target-selection checks report 23 passed
+  and 5 skipped; three toolchain-dependent target-selection build tests were
+  deselected because this host lacks `algorithmicx.sty` (the pinned
+  `texlive-science` toolchain supplies it). `reportkit docs --check --json`,
+  static equity `reportkit check`, shell syntax, Ruff, and `git diff --check`
+  pass. The full pinned build/test gate remains authoritative.
+  See the plan's A5 section for the full record.
 
 - **Agent interface & platform contract — Phase A′ and the
   non-renderer-dependent parts of Phase B′ implemented in v1.9.0; remaining
@@ -500,6 +504,16 @@ from a session provisioned this way.
   maturitymodel/continuum/riskheatmap accent literals left un-tokenized
   (outside the plan's explicitly named styles), and A0/the equity pipeline
   acceptance sub-item.
+
+- 2026-09-16: reconciled the retained multi-format follow-up with `main` at
+  `f45ab86` and rebased the branch cleanly. Kept the target-aware entrypoint,
+  writer, engine, and class-option staging; the equity-research Markdown and
+  trusted-fragment acceptance fixture; and the automated B4 slide PDF
+  accessibility profile and gate. Mainline tooling-hardening changes,
+  including bounded parallel section builds, remain in the rebased base.
+  Focused post-rebase checks and the documentation/status records were
+  refreshed; the pinned full-build gate remains open because this host lacks
+  `algorithmicx.sty`.
 
 - 2026-09-15: completed multi-format Phase A4's Python/theme-contract slice.
   Theme now exposes explicit typography, geometry, spacing, rule, table, chart,

@@ -24,13 +24,15 @@ implemented first here at explicit request, and A5 followed once B's own
 status notes kept naming it as the biggest remaining gap. Task sizing and
 visual design details should receive engineering/design review before
 execution.
-**Last updated:** 2026-09-15
+**Last updated:** 2026-09-16
 **Plans:** [2026-09-09-reportkit-multi-format-publication-architecture-spec.md](../specs/2026-09-09-reportkit-multi-format-publication-architecture-spec.md)
 **Amended by:** [2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md](../specs/2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md)
 **Baseline:** planning baseline `main` at `4f2b27f`, ReportKit v1.9.1.
-**Current status:** base verified against `main` at `7bee3a4`, with the
-Python/theme-contract slice in this working branch, ReportKit v1.9.3, on
-2026-09-15.
+**Current status:** base verified against `main` at `f45ab86`, with the
+Python/theme-contract, target-aware A5/equity-acceptance, and automated B4
+slide-accessibility changes retained in this branch, ReportKit v1.9.3, on
+2026-09-16. Mainline bounded parallel section-build tooling remains in the
+rebased base.
 
 ---
 
@@ -346,7 +348,7 @@ renderer supplies the required capability fields.
 
 ## 4. Phase A — architecture hardening
 
-**Execution status (updated 2026-09-15):** A1 and A2 are complete in
+**Execution status (updated 2026-09-16):** A1 and A2 are complete in
 ReportKit v1.9.2 and v1.9.3. A3 is implemented in the working tree (see its
 section below for verification detail and scope actually covered — not yet
 released as a version bump, and the pinned-toolchain CI gate has not run
@@ -932,7 +934,8 @@ compatibility witness. Both paths must render the same theme/publication
 identity; the pipeline version need not be byte-identical if Pandoc changes
 source ordering, but it must pass the same visual and semantic checks.
 
-**Implemented 2026-09-14; updated 2026-09-15 -- every currently applicable
+**Implemented 2026-09-14; updated 2026-09-16 after rebasing onto `main` at
+`f45ab86` -- every currently applicable
 "Work" item above is implemented.** Class options are now materialized into
 the staged entrypoint through three explicit placeholders, with values taken
 only from the resolved `BuildTarget`; theme font settings and future brand
@@ -1026,16 +1029,13 @@ The equity pipeline acceptance sub-item is implemented below.
   manuscript is read (decision D5, enforced at the pipeline entrypoint, not
   just the registry function directly -- `tests/test_slide_renderer.py`
   already covers that layer).
-- **Verified 2026-09-14** in the same local, unpinned toolchain prior
-  sessions used: `python -m pytest tests publication_pipeline/tests`: 222
-  passed, 2 failed (the same two pre-existing, environment-dependent
-  failures every prior verification record in this plan documents; +6 vs.
-  the prior checkpoint, all from the new test file). `bash
-  scripts/acceptance_check.sh --require-tex` (both its pdflatex and
-  lualatex compile blocks report exit status 0; the script's overall exit
-  still reflects the two pre-existing pytest cases), `reportkit docs
-  --check --json`, and `scripts/contract_acceptance.py --json` all pass.
-  `ruff check` is clean on every file this slice touched.
+- **Post-rebase verification 2026-09-16:** focused slide-accessibility,
+  slide-renderer, and non-compiling target-selection checks report 23 passed
+  and 5 skipped; three toolchain-dependent target-selection build tests were
+  deselected because this host lacks `algorithmicx.sty` (the pinned
+  `texlive-science` toolchain supplies it). `reportkit docs --check --json`,
+  static equity `reportkit check`, shell syntax, Ruff, and `git diff --check`
+  pass. The full pinned build/test gate remains authoritative.
 
 **Not done:** the D7 paged-base.tex/technical-report.tex/equity-research.tex split
 (`publication-template.tex` remains the single, self-contained,
@@ -1142,7 +1142,8 @@ For a canonical slide PDF, inspect:
 If the updated tagging spike succeeds, enable tagging for both renderers in a
 separate reviewed change. Do not claim parity merely because Beamer compiled.
 
-**Implemented 2026-09-14; B4 automation added 2026-09-15 -- B1 and B2
+**Implemented 2026-09-14; B4 automation retained and documented 2026-09-16
+after rebasing onto `main` at `f45ab86` -- B1 and B2
 essentially complete via direct-TeX authoring; B3 implemented for the one
 existing slide theme; B4 is now verified by a reusable PDF inspector and a
 compiled-fixture pytest/acceptance gate. The pipeline does not yet expose the
@@ -1405,11 +1406,12 @@ A presentation builds from publication.yaml through the normal pipeline, uses
 reportkit-slides.cls and Pandoc's Beamer writer, has the declared canvas, carries
 the paged accessibility features, and loads no paged-only mechanics.
 
-**Status (updated 2026-09-14, after A5):** canvas ✅ (verified via PDF
+**Status (updated 2026-09-16, after A5 and the B4 gate):** canvas ✅ (verified via PDF
 inspection), paged-only-mechanics-free ✅ (reportkit-slides-core.sty's own
 header documents the absence), accessibility features ✅ for the ones
 checked (title/author/subject/keywords/catalog language/outline/bookmarks/
-diagram ActualText), reportkit-slides.cls + Pandoc's Beamer writer ✅, and
+meaningful links/diagram ActualText/truthful tagged-PDF status),
+reportkit-slides.cls + Pandoc's Beamer writer ✅, and
 **"builds from publication.yaml through the normal pipeline" ✅** -- A5
 made `reportkit build` resolve and stage `presentation.tex`, select the
 Beamer writer, and compile through `reportkit-slides.cls`; verified with a

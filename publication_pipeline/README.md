@@ -35,6 +35,13 @@ remains supported. Set `REPORTKIT_PDF_PYTHON` to override the consumer
 project's default `<output-root>/.venv/bin/python` for page rendering and PDF
 inspection.
 
+`build` resolves the publication type, theme, renderer, entrypoint, Pandoc
+writer, TeX engine, and paper/canvas from `publication.yaml`. It stages the
+selected entrypoint as `publication.tex`, records the resolved target under
+`selection` in `build-report.json`, and emits a `REPORTKIT-SELECTED` marker in
+the build log. The registered presentation target uses the Beamer writer and
+the slides renderer; the registered paged targets use the LaTeX writer.
+
 The canonical slide acceptance fixture has a stricter profile available to
 the repository gate: `inspect_pdf.py --slide-accessibility` checks PDF
 metadata, catalog language, outline entries, meaningful external links,
