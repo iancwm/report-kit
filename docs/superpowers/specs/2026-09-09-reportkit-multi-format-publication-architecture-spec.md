@@ -8,14 +8,16 @@ across the diagram, structure, process, and spatial modules) landed
 tree, with focused pure-Python validation complete and the Matplotlib/pinned
 runtime gate still outstanding. A5 (pipeline target-awareness) and Phase B
 (slide renderer and presentation semantics) are essentially implemented, out
-of this spec's original phase order, with scoped follow-up recorded below; A0
-remains. Phases C–F have not started.
+of this spec's original phase order, with the equity-research pipeline
+acceptance and the automated B4 slide-accessibility gate now retained in the
+working branch; scoped follow-up is recorded below and A0 remains.
+Phases C–F have not started.
 Supersedes nothing; extends the architecture introduced by
 [2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md](2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md)
 (Steps 1–5 implemented, `reportkit.cls` v1.9.3).
-**Last updated:** 2026-09-15
-**Current-state claims:** verified against `main` at `7bee3a4`
-(see [Current state](#1-current-state-verified-2026-09-15)). Every premise below
+**Last updated:** 2026-09-16
+**Current-state claims:** verified against `main` at `f45ab86`
+(see [Current state](#1-current-state-verified-2026-09-16)). Every premise below
 carries a `file:line` anchor so the implementer does not re-derive it.
 **Priority:** P2 — architectural hardening, ahead of any new theme.
 **Companion:** [2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md](2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md)
@@ -71,7 +73,7 @@ whole specification; everything below is its consequences.
 
 ---
 
-## 1. Current state (verified 2026-09-15)
+## 1. Current state (verified 2026-09-16)
 
 ### 1.1 What exists — do not reimplement
 
@@ -109,6 +111,7 @@ whole specification; everything below is its consequences.
 | Diagram token contract covers the four semantic modules | `reportkit-core.sty:198+`; `tests/test_theme_contract.py:37-75` |
 | Pipeline resolves the target's class, template, writer, and engine | `publication_pipeline/scripts/publication_build.py:build()` and `publications.py:resolve_build_target()` |
 | Presentation pipeline target is exercised end to end | `publication_pipeline/templates/presentation.tex`; `publication_pipeline/tests/test_build_target_selection.py` |
+| Slide accessibility claims have an automated PDF gate | `publication_pipeline/scripts/inspect_pdf.py:inspect_slide_accessibility()`; `tests/test_slide_accessibility.py`; `scripts/acceptance_check.sh` |
 | `algorithmblock` uses renderer hooks and remains non-floating | `latex_templates/reportkit-algorithms.sty`; `reportkit.cls:101-107` |
 | Config resolves `document.theme` / `.publication_type` / `.paper` | `config.py:resolve_document()`; canvas paper rejection in `resolve_build_target()` |
 | Theme→engine requirements are enforced | `config.py:THEME_ENGINE_REQUIREMENTS`, `theme_engine_conflict()` |
@@ -131,8 +134,9 @@ LaTeX.** A5 now fixes the load-bearing defect: `publication_build.py` retains
 the resolved `BuildTarget`, selects the entrypoint and Pandoc writer from it,
 and stages the resolved class/selection through the target-aware templates.
 The presentation path is verified end to end. The equity-research fixture's
-dedicated pipeline acceptance case and the full D7 paged-template split remain
-open, so §7's original acceptance requirement is not fully closed.
+dedicated pipeline acceptance case is now implemented; the full D7
+paged-template split remains open, so §7's original acceptance requirement is
+not fully closed.
 
 **(c) The figure-size slots the draft proposes mostly already exist.** The
 draft's §10 asks to "extend toward" `full / wide / compact / square / half /
@@ -507,11 +511,13 @@ readable for diagnostics; it stops being the thing that decides.
 markdown pipeline must produce an institutional-themed, equity-research PDF —
 closing the gap that file's own header comment records.
 
-**A5 status:** target resolution, template/writer selection, stable staged
-output names, build-report selection data and a log-visible selection marker
-are implemented. A real presentation build is verified through the normal
-pipeline using Pandoc's Beamer writer. The equity-research pipeline acceptance
-case and the full D7 paged-template split remain open.
+**A5 status:** target resolution, template/writer selection, explicit staged
+class-option plumbing, stable output names, build-report selection data and a
+log-visible selection marker are implemented. A real presentation build is
+verified through the normal pipeline using Pandoc's Beamer writer. The
+equity-research pipeline acceptance case is also implemented with Markdown
+source and trusted figure fragments; the full D7 paged-template split remains
+open.
 
 ---
 
@@ -955,17 +961,17 @@ in the changelog.
 
 ### Phase A — Architecture hardening
 
-**Current status (verified 2026-09-15):** A1 and A2 are complete. A3 (item 3
+**Current status (verified 2026-09-16, after rebasing onto `main` at `f45ab86`):** A1 and A2 are complete. A3 (item 3
 below: shared/paged core split, item 5's `\Needspace`/`\captionof` half via
 renderer hooks) is implemented and verified in a local non-pinned
 LuaLaTeX/pdfLaTeX toolchain; the pinned-toolchain CI gate still needs to run
 and, if it passes, stand as the recorded baseline. A4's theme/adapter,
 callout/metric, diagram-appearance, and Python `Theme` contract work are
 implemented in the working tree; runtime and pinned-toolchain verification
-remain. A5 is
-essentially complete: the target-aware pipeline and a real presentation build
-are verified, with the equity pipeline-acceptance case and full D7 template
-split still open. A0 remains open.
+remain. A5 is essentially complete: the target-aware pipeline, real
+presentation build, and equity pipeline-acceptance case are verified; the full
+D7 paged-template split remains open. A0 remains open. Mainline bounded
+parallel section-build tooling is retained in the rebased base.
 
 A0 specifically (building the pinned toolchain image and capturing baseline
 PDF hashes/metadata) could not be attempted from the sandbox this phase was
@@ -1004,11 +1010,12 @@ pipeline rather than only by direct compile.
 compositions are proven through direct-TeX authoring; the normal pipeline also
 proves the plain Markdown heading-to-frame path.
 
-**Current status (verified 2026-09-15):** the canvas, renderer separation,
+**Current status (verified 2026-09-16):** the canvas, renderer separation,
 Pandoc Beamer writer and checked accessibility features are verified. B4's
-findings are still manual rather than an automated pytest gate, and
-directive/fragment-based composition authoring from Markdown is not yet
-implemented. `executive` remains experimental pending Phase C review.
+findings now have a reusable PDF inspector and compiled-fixture pytest/
+acceptance gate. Directive/fragment-based composition authoring from Markdown
+is not yet implemented. `executive` remains experimental pending Phase C
+review.
 
 **Definition of done:** a presentation compiles through the normal ReportKit
 pipeline without touching the article renderer. This is met for the proven

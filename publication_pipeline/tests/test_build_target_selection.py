@@ -15,6 +15,8 @@ import subprocess
 import pytest
 
 from reportkit.publications import PUBLICATION_TYPES, RENDERERS, resolve_build_target
+from publication_pipeline.scripts.publication_build import stage_entrypoint
+from reportkit.publication_validation import validate_publication
 
 REPO = Path(__file__).resolve().parents[2]
 PIPELINE_ROOT = REPO / "publication_pipeline"
@@ -31,9 +33,54 @@ def test_every_registered_publication_type_has_an_existing_entrypoint() -> None:
         assert entrypoint.is_file(), f"publication type {name!r} names a missing entrypoint: {entrypoint}"
 
 
+def test_every_registered_entrypoint_exposes_the_target_placeholders() -> None:
+    placeholders = (
+        "%%REPORTKIT_THEME%%",
+        "%%REPORTKIT_PUBLICATION_TYPE%%",
+        "%%REPORTKIT_CLASS%%",
+    )
+    for name, record in PUBLICATION_TYPES.items():
+        entrypoint = PIPELINE_ROOT / "templates" / str(record["template"])
+        text = entrypoint.read_text(encoding="utf-8")
+        for placeholder in placeholders:
+            assert text.count(placeholder) == 1, f"{name} entrypoint has an invalid {placeholder} slot"
+
+
 def test_every_renderer_writer_is_a_real_pandoc_writer() -> None:
     assert RENDERERS["paged"]["pandoc_writer"] == "latex"
     assert RENDERERS["slides"]["pandoc_writer"] == "beamer"
+
+
+def test_stage_entrypoint_replaces_only_registry_target_placeholders(tmp_path: Path) -> None:
+    source = tmp_path / "entrypoint.tex"
+    destination = tmp_path / "staged.tex"
+    source.write_text(
+        r"\documentclass[theme=%%REPORTKIT_THEME%%,publication-type=%%REPORTKIT_PUBLICATION_TYPE%%]{%%REPORTKIT_CLASS%%}" + "\n",
+        encoding="utf-8",
+    )
+
+    stage_entrypoint(
+        source,
+        destination,
+        theme="institutional-research",
+        publication_type="equity-research",
+        class_name="reportkit",
+    )
+
+    assert destination.read_text(encoding="utf-8") == (
+        r"\documentclass[theme=institutional-research,publication-type=equity-research]{reportkit}" + "\n"
+    )
+
+
+def test_equity_fixture_is_a_pipeline_publication() -> None:
+    source = REPO / "latex_templates" / "examples" / "equity-research"
+    assert (source / "publication.yaml").is_file()
+    assert (source / "manuscript" / "order.txt").is_file()
+    assert list((source / "manuscript").glob("*.md")), "equity fixture needs Markdown source"
+    assert list((source / "fragments").glob("fig-*.tex")), "equity fixture needs trusted fragments"
+    result = validate_publication(source)
+    assert result.ok, result.errors
+    assert result.slugs == ["usage-index", "platform-mix", "risk-reward"]
 
 
 def test_resolved_build_target_drives_template_and_writer_selection() -> None:
@@ -90,6 +137,35 @@ def test_paged_build_stages_a_stable_publication_tex_and_records_selection(tmp_p
     assert "REPORTKIT-SELECTED" in log_text
     assert "publication_type=technical-report" in log_text
     assert "renderer=paged" in log_text
+
+
+@pytest.mark.skipif(
+    any(shutil.which(command) is None for command in ("lualatex", "pandoc")),
+    reason="requires a real LuaLaTeX/Pandoc toolchain",
+)
+def test_equity_fixture_builds_through_the_normal_pipeline(tmp_path: Path) -> None:
+    """The direct-TeX equity witness has a Markdown/fragments pipeline path."""
+    source = tmp_path / "publication"
+    shutil.copytree(REPO / "latex_templates" / "examples" / "equity-research", source)
+    output = tmp_path / "build"
+    code, payload = _build(source, output)
+    assert code == 0, payload
+
+    report = payload["report"]
+    selection = report["selection"]
+    assert selection["publication_type"] == "equity-research"
+    assert selection["theme"] == "institutional-research"
+    assert selection["renderer"] == "paged"
+    assert selection["class"] == "reportkit"
+    assert selection["template"] == "publication-template.tex"
+    assert selection["writer"] == "latex"
+    assert selection["engine"] == "lualatex"
+    assert selection["paper"] == "letter"
+
+    staged = output / "combined" / "publication.tex"
+    staged_text = staged.read_text(encoding="utf-8")
+    assert r"\documentclass[theme=institutional-research,publication-type=equity-research]{reportkit}" in staged_text
+    assert report["page_count"] >= 3
 
 
 @pytest.mark.skipif(

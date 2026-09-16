@@ -34,6 +34,9 @@ def test_title_page_does_not_draw_rule_when_author_is_empty():
 
 def test_publication_template_sets_empty_author_and_date_macros():
     template = (Path(__file__).resolve().parents[1] / "templates" / "publication-template.tex").read_text(encoding="utf-8")
+    assert "%%REPORTKIT_THEME%%" in template
+    assert "%%REPORTKIT_PUBLICATION_TYPE%%" in template
+    assert "%%REPORTKIT_CLASS%%" in template
     assert r"\detokenize\expandafter{\RKPubAuthor}" in template
     assert r"\author{}\else\author{\RKPubAuthor}" in template
     assert r"\date{}\else\date{\RKPubDate}" in template

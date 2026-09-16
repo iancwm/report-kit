@@ -2,7 +2,9 @@
 % (Phase A5) whenever document.publication_type resolves to "presentation".
 % Owns only the class declaration and the front-matter hook (D7); everything
 % shared lives in slides-base.tex.
-\documentclass[theme=executive,publication-type=presentation]{reportkit-slides}
+% The builder replaces these explicit placeholders from the resolved
+% BuildTarget; see publication-template.tex for the shared paged entrypoint.
+\documentclass[theme=%%REPORTKIT_THEME%%,publication-type=%%REPORTKIT_PUBLICATION_TYPE%%]{%%REPORTKIT_CLASS%%}
 \newcommand{\RKFrontMatter}{%
   \begin{frame}[plain]
   \begin{titleslide}

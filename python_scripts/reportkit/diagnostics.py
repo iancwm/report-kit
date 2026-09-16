@@ -39,6 +39,7 @@ DIAGNOSTIC_DEFINITIONS: dict[str, dict[str, str]] = {
     "compile_memory": {"severity": "error", "remediation": "Reduce document memory use or have a trusted operator raise the memory limit."},
     "compile_failure": {"severity": "error", "remediation": "Inspect the structured TeX diagnostics and correct the authored source."},
     "pdf_geometry": {"severity": "error", "remediation": "Adjust the content or primitive so every object remains within the page media box."},
+    "pdf_accessibility": {"severity": "error", "remediation": "Restore the declared PDF accessibility feature and rerun the slide accessibility inspection."},
     "blank_page": {"severity": "error", "remediation": "Remove the unintended page break or add the missing page content."},
     "visual_regression": {"severity": "error", "remediation": "Review the rendered difference; fix the regression or explicitly regenerate the pinned baseline."},
     "security_violation": {"severity": "error", "remediation": "Use paths inside the publication root and do not enable shell escape."},

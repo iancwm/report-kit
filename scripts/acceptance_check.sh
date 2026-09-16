@@ -214,6 +214,47 @@ else
   fi
 fi
 
+# B4: the slide fixture's accessibility contract is checked against the
+# compiled PDF, not inferred from a successful TeX run. The status is kept
+# truthful: ReportKit currently ships metadata/language/bookmarks/links and
+# diagram ActualText, while tagged PDF remains explicitly unsupported until
+# the documented tagging spike succeeds in a compatible TeX format.
+slide_accessibility_status=0
+slide_inspect_python="${TEST_PYTHON:-$(command -v python3 2>/dev/null || true)}"
+if [[ "$lua_status" -eq 0 && -n "$slide_inspect_python" ]] \
+  && "$slide_inspect_python" -c 'import pymupdf' >/dev/null 2>&1; then
+  if ! PYTHONPATH="$ROOT/python_scripts:$ROOT/publication_pipeline/scripts${PYTHONPATH:+:$PYTHONPATH}" \
+    "$slide_inspect_python" "$ROOT/publication_pipeline/scripts/inspect_pdf.py" \
+      "$WORKDIR/presentation_acceptance_test.pdf" \
+      --slide-accessibility \
+      --expected-title "Every presentation composition, once - Phase B compile coverage, not a real deck" \
+      --expected-author "Test build" \
+      --expected-subject "Presentation accessibility acceptance" \
+      --expected-keywords "ReportKit, presentation, accessibility" \
+      --expected-language "en-US" \
+      --minimum-bookmarks 1 \
+      --expected-bookmark-title "Message and evidence" \
+      --expected-bookmark-title "Visuals" \
+      --expected-bookmark-title "Structure" \
+      --expected-bookmark-title "Appendix: Chart, table, and architecture aliases" \
+      --minimum-meaningful-links 1 \
+      --expected-actual-text 3 \
+      --tagged-pdf-status unsupported \
+      --tagged-pdf-reason "The pinned LaTeX format has not yet passed the documented tagging spike." \
+      --json "$WORKDIR/presentation-accessibility.json"; then
+    echo "FAIL: slide accessibility inspection failed." >&2
+    slide_accessibility_status=1
+  else
+    echo "-- slide accessibility inspection: OK --"
+  fi
+else
+  echo "WARN: slide accessibility inspection skipped because PyMuPDF is unavailable (not blocking)." >&2
+  if [[ "$require_tex" -eq 1 && "$lua_status" -eq 0 ]]; then
+    echo "FAIL: --require-tex was requested but the slide accessibility inspector is unavailable." >&2
+    slide_accessibility_status=1
+  fi
+fi
+
 # Known failure signatures -- see references/known-fixes.md for the defects
 # these correspond to.
 SIGNATURES=(
@@ -269,7 +310,7 @@ else
   echo "WARN: full Python/TeX publication environment unavailable -- skipping fresh-clone dry run (not blocking)." >&2
 fi
 
-if [ "$status" -ne 0 ] || [ "$lua_status" -ne 0 ] || [ "$hit" -ne 0 ]; then
+if [ "$status" -ne 0 ] || [ "$lua_status" -ne 0 ] || [ "$slide_accessibility_status" -ne 0 ] || [ "$hit" -ne 0 ]; then
   echo "FAIL: acceptance check did not pass. Full log:" >&2
   cat "$WORKDIR/compile.log" >&2
   exit 1

@@ -118,6 +118,29 @@ def stage_project_assets(source_root: Path, output: Path) -> list[dict[str, str]
     return staged
 
 
+def stage_entrypoint(entrypoint: Path, destination: Path, *, theme: str, publication_type: str, class_name: str) -> None:
+    """Stage a registry-selected entrypoint with its three safe substitutions.
+
+    Pipeline templates are intentionally not general format strings. Only
+    these exact placeholders are replaced, and all replacement values have
+    already passed ``resolve_build_target()``'s registry validation.
+    """
+    text = entrypoint.read_text(encoding="utf-8")
+    replacements = {
+        "%%REPORTKIT_THEME%%": theme,
+        "%%REPORTKIT_PUBLICATION_TYPE%%": publication_type,
+        "%%REPORTKIT_CLASS%%": class_name,
+    }
+    for placeholder, value in replacements.items():
+        count = text.count(placeholder)
+        if count != 1:
+            raise ValueError(
+                f"{entrypoint}: expected exactly one {placeholder} placeholder, found {count}"
+            )
+        text = text.replace(placeholder, value)
+    destination.write_text(text, encoding="utf-8")
+
+
 def order_entries(root: Path) -> list[str]:
     return [line.strip() for line in (root / "manuscript" / "order.txt").read_text(encoding="utf-8").splitlines() if line.strip() and not line.strip().startswith("#")]
 
@@ -447,7 +470,17 @@ def build(args: argparse.Namespace) -> int:
     # Stable staged/compiled filename (A5), independent of which entrypoint
     # source template was selected -- downstream packaging/inspection reads
     # "publication.tex"/"publication.pdf" regardless of publication_type.
-    shutil.copy2(entrypoint, output / "publication.tex")
+    try:
+        stage_entrypoint(
+            entrypoint,
+            output / "publication.tex",
+            theme=target.requested_theme,
+            publication_type=target.publication_type,
+            class_name=target.class_name,
+        )
+    except (OSError, ValueError) as exc:
+        print(f"publication config: could not stage resolved entrypoint: {exc}", file=sys.stderr)
+        return 2
     # Per-renderer shared base files an entrypoint may \input{} (D7) -- e.g.
     # slides-base.tex for presentation.tex. publication-template.tex is
     # still self-contained (no *-base.tex dependency), so this is a no-op
