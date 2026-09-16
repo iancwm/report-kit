@@ -381,6 +381,21 @@ from a session provisioned this way.
 
 ## History
 
+- 2026-09-16: fixed a real documentation/reality mismatch found while doing a
+  status-report pass on the repo: `SKILL.md`'s frontmatter `description` and
+  opening paragraph still told callers not to use ReportKit "for ... a
+  presentation," left over from before Phase B/A5 landed the experimental
+  slides renderer. Updated the description, removed the stale prohibition,
+  and added a "Presentations (experimental)" subsection covering
+  `publication_type: presentation`/`theme: executive`, the Beamer
+  `--slide-level=1` heading-to-frame conversion, the thirteen named slide
+  compositions, and the caveats already recorded elsewhere in this file
+  (only `executive` has a slide adapter; it's a placeholder-font theme;
+  tagged PDF is unsupported). `reportkit docs --check --json` still passes
+  (prose-only change, no primitive-contract drift). No code changes; this is
+  a documentation-only entry, not a new History checkpoint for the
+  multi-format work itself.
+
 - 2026-09-15: closed out P1-1, the tooling-hardening spec's last open item
   (B4 contrast/grayscale audit, then F2's measure-before-optimising), on
   `claude/todos-outstanding-work-dwlrpl`, on top of `main` at `7ba4f55`.
