@@ -118,8 +118,9 @@ RENDERERS: dict[str, dict[str, Any]] = {
         "since": "1.0.0",
         "class_adapter": "reportkit",
         "class_file": "latex_templates/reportkit.cls",
-        # This is the legacy template until the target-aware pipeline slice
-        # adds paged-base.tex and per-publication entrypoints.
+        # Retain the monolithic template as the renderer-level compatibility
+        # witness. Paged publication targets select their dedicated
+        # entrypoints below; each one inputs paged-base.tex.
         "template_base": "publication-template.tex",
         "pandoc_writer": "latex",
         "geometry": {"kind": "paper", "papers": ["a4", "letter"]},
@@ -138,10 +139,9 @@ RENDERERS: dict[str, dict[str, Any]] = {
     # frame natively (16.00cm x 9.00cm in beamer.cls's own aspect-ratio
     # table -- verified by reading beamer.cls, not assumed), so no extra
     # paperwidth/paperheight override is needed to hit the declared canvas.
-    # "experimental": the pipeline does not yet route reportkit build through
-    # this renderer (that is Phase A5's target-aware pipeline slice, not yet
-    # implemented); direct \documentclass{reportkit-slides} authoring is the
-    # only proven path so far -- see the implementation plan's B1 section.
+    # "experimental": the renderer and presentation target are routed through
+    # reportkit build, but the executive visual system remains experimental
+    # pending the design review described in the implementation plan.
     "slides": {
         "name": "slides",
         "stability": "experimental",
@@ -254,7 +254,7 @@ PUBLICATION_TYPES: dict[str, dict[str, Any]] = {
         "paper": "a4",
         "themes": ["default", "technical"],
         "default_target": {"theme": "default", "paper": "a4"},
-        "template": "publication-template.tex",
+        "template": "technical-report.tex",
         "package": None,
         "selection_criteria": "General technical reports, guides, and long-form analytical documents.",
         "stability": "stable",
@@ -266,7 +266,7 @@ PUBLICATION_TYPES: dict[str, dict[str, Any]] = {
         "paper": "letter",
         "themes": ["institutional-research"],
         "default_target": {"theme": "institutional-research", "paper": "letter"},
-        "template": "publication-template.tex",
+        "template": "equity-research.tex",
         "package": "reportkit-equity-research",
         "selection_criteria": "Exhibit-led institutional equity research and investment analysis.",
         "stability": "stable",

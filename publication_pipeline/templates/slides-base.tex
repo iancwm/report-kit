@@ -17,6 +17,7 @@
 % that macro is defined.
 \input{metadata.tex}
 \IfFileExists{links.tex}{\input{links.tex}}{}
+\IfFileExists{reportkit-theme-overrides.tex}{\input{reportkit-theme-overrides.tex}}{}
 % Markdown-driven content (Pandoc's Beamer writer, --slide-level=1 -- see
 % publication_build.py's render_markdown()) needs the same compatibility
 % layer the paged pipeline requires via reportkit-longform.sty

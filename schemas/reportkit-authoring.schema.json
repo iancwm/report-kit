@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:reportkit:schema:authoring:1.0.0",
+  "title": "ReportKit constrained Markdown authoring IR",
+  "type": "object",
+  "required": ["schema_version", "source", "source_file", "nodes"],
+  "$defs": {
+    "source": {
+      "type": "object",
+      "required": ["file", "line", "line_end"],
+      "properties": {
+        "file": {"type": "string", "minLength": 1},
+        "line": {"type": "integer", "minimum": 1},
+        "line_end": {"type": "integer", "minimum": 1}
+      },
+      "additionalProperties": false
+    },
+    "directive": {
+      "type": "object",
+      "required": ["type", "primitive", "kind", "arguments", "content", "fragment", "source", "children"],
+      "properties": {
+        "type": {"const": "directive"},
+        "primitive": {"type": "string", "minLength": 1},
+        "kind": {"type": ["string", "null"]},
+        "arguments": {"type": "object", "additionalProperties": {"type": "string"}},
+        "content": {"type": "string"},
+        "fragment": {"type": ["string", "null"], "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]*\\.tex$"},
+        "source": {"$ref": "#/$defs/source"},
+        "children": {"type": "array", "items": {"$ref": "#/$defs/directive"}},
+        "placeholder": {"type": "string"}
+      },
+      "additionalProperties": false
+    }
+  },
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "source": {"type": "string"},
+    "source_file": {"type": "string"},
+    "nodes": {"type": "array", "items": {"$ref": "#/$defs/directive"}},
+    "diagnostics": {"type": "array", "items": {"type": "object"}},
+    "placeholders": {"type": "array", "items": {"type": "string"}}
+  },
+  "additionalProperties": false
+}

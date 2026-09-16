@@ -88,7 +88,7 @@ def test_resolved_build_target_drives_template_and_writer_selection() -> None:
     of these ever silently reverted to a hardcoded value, this is the test
     that would catch it without needing a full compile."""
     paged = resolve_build_target("technical-report", "default", repo_root=REPO)
-    assert paged.template == "publication-template.tex"
+    assert paged.template == "technical-report.tex"
     assert paged.pandoc_writer == "latex"
 
     slides = resolve_build_target("presentation", "executive", engine="lualatex", repo_root=REPO)
@@ -128,7 +128,7 @@ def test_paged_build_stages_a_stable_publication_tex_and_records_selection(tmp_p
     assert selection["publication_type"] == "technical-report"
     assert selection["renderer"] == "paged"
     assert selection["class"] == "reportkit"
-    assert selection["template"] == "publication-template.tex"
+    assert selection["template"] == "technical-report.tex"
     assert selection["writer"] == "latex"
     assert selection["paper"] == "a4"
     assert selection["canvas"] is None
@@ -157,7 +157,7 @@ def test_equity_fixture_builds_through_the_normal_pipeline(tmp_path: Path) -> No
     assert selection["theme"] == "institutional-research"
     assert selection["renderer"] == "paged"
     assert selection["class"] == "reportkit"
-    assert selection["template"] == "publication-template.tex"
+    assert selection["template"] == "equity-research.tex"
     assert selection["writer"] == "latex"
     assert selection["engine"] == "lualatex"
     assert selection["paper"] == "letter"

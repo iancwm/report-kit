@@ -1,8 +1,8 @@
-% The builder replaces these explicit placeholders with values from the
-% resolved Python BuildTarget. Keeping the replacement surface deliberately
-% small prevents arbitrary TeX formatting over this template and makes a
-% target mismatch visible in the staged publication.tex.
-\documentclass[theme=%%REPORTKIT_THEME%%,publication-type=%%REPORTKIT_PUBLICATION_TYPE%%]{%%REPORTKIT_CLASS%%}
+% ReportKit paged base -- shared preamble, metadata, licensing, and body
+% inclusion for every paged publication entrypoint. The selected entrypoint
+% owns the class declaration and defines \RKFrontMatter before inputting this
+% file; keeping that hook at the entrypoint preserves publication-specific
+% front matter without duplicating the renderer plumbing.
 \input{metadata.tex}
 \IfFileExists{links.tex}{\input{links.tex}}{}
 \IfFileExists{reportkit-theme-overrides.tex}{\input{reportkit-theme-overrides.tex}}{}
@@ -34,18 +34,6 @@
 }
 
 \begin{document}
-\ifRKPubHasCover
-  \clearpage\thispagestyle{empty}\noindent
-  \makebox[\textwidth][c]{\includegraphics[page=1,width=\textwidth,height=\textheight,keepaspectratio]{\RKPubCoverPath}}\clearpage
-\fi
-\ifRKPubIsCombined
-  \RKFrontMatterBegin
-  \RKTitlePage[\RKPubSubtitle]{\RKPubTitle}
-  \RKPubPublicationDetails
-  \RKContents
-  \RKMainMatterBegin
-\else
-  \maketitle
-\fi
+\RKFrontMatter
 \input{body.tex}
 \end{document}

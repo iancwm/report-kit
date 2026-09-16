@@ -24,6 +24,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, fields
 import importlib
+from typing import Any, Mapping
 
 
 @dataclass(frozen=True)
@@ -191,6 +192,40 @@ def get_theme(name: str) -> Theme:
 
 def available_themes() -> tuple[str, ...]:
     return tuple(sorted(_MODULES))
+
+
+def theme_supports_brand_overrides(
+    name: str,
+    *,
+    registry: Mapping[str, Mapping[str, Any]] | None = None,
+) -> bool:
+    """Return the registry-declared brand capability for a theme or alias.
+
+    The publication registry, rather than a duplicated flag on each Python
+    ``Theme``, is authoritative.  Import it lazily to keep this package safe
+    for the theme modules themselves and to make the contract easy to test
+    with a small registry mapping.
+    """
+    if registry is None:
+        from ..publications import THEMES as registry
+
+    current = str(name)
+    seen: set[str] = set()
+    while current and current not in seen:
+        seen.add(current)
+        record = registry.get(current)
+        if record is None:
+            return False
+        alias = record.get("alias_of")
+        if alias:
+            current = str(alias)
+            continue
+        return bool(record.get("brand_overrides", False))
+    return False
+
+
+# Registry terminology used by build-layer callers.
+brand_overrides_enabled = theme_supports_brand_overrides
 
 
 def validate_theme_contract(theme: Theme) -> list[str]:

@@ -60,8 +60,11 @@ fixture can be built with:
 
 `report.tex` remains the direct-TeX compatibility witness, while the
 `manuscript/` and `fragments/` files exercise the normal pipeline. Theme font
-settings and brand overrides are still resolved by configuration but are not
-yet materialized into pipeline-generated preamble files.
+settings and the constrained brand surface resolve through one effective-theme
+record; the pipeline materializes configured values into its generated TeX
+override file and records the corresponding hashes in `build-report.json`.
+The current registry keeps brand overrides opt-in, and no registered theme
+currently enables them.
 
 ## Exhibit-led authoring
 
@@ -141,8 +144,9 @@ rkv.save_figure(fig, "figures/risk_reward")
 `FIGURE_SIZES`, ...), so every existing chart function
 (`bar_chart`, `timeseries`, `waterfall_chart`, ...) becomes theme-aware
 automatically -- there is no separate institutional-theme chart API.
-`FIGURE_SIZES` gains `half` (sized for an `exhibitpair` pane) and
-`dominant` (an alias of the pre-existing `wide`) under every theme.
+For paged themes, `FIGURE_SIZES` gains `half` (sized for an `exhibitpair`
+pane) and `dominant` (an alias of the pre-existing `wide`). Slide-only themes
+use their own `slide-*` slots instead.
 `risk_reward_chart()` is the Python-side counterpart to the
 Bull/Base/Bear primitives above; there is no dedicated stacked-bar
 helper yet, so a platform-mix-style chart is ordinary Matplotlib code

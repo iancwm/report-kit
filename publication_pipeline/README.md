@@ -42,6 +42,24 @@ selected entrypoint as `publication.tex`, records the resolved target under
 the build log. The registered presentation target uses the Beamer writer and
 the slides renderer; the registered paged targets use the LaTeX writer.
 
+Presentation Markdown may also contain fenced `reportkit` directives such as
+```reportkit messageslide
+headline: One clear message
+content: Supporting evidence.
+```
+These are parsed into a typed IR before Pandoc, validated against the
+capability contract with source-line diagnostics, and rendered as safe TeX.
+Only an explicit `fragment:` may include trusted TeX, and it must name a
+contained `fragments/*.tex` file. Generated body maps include directive
+locations alongside the existing visual-fragment mappings.
+
+The optional top-level `brand:` section accepts only `primary`, `secondary`,
+`logo`, and `display_font`. A theme must explicitly opt into brand overrides;
+accepted values are normalized once into a shared effective-theme record and
+materialized for both TeX and charts. `inspect_pdf.py` automatically consumes
+the adjacent `publication.log` selection marker; use `--selection-log` or
+`--require-selection-marker` to make that check explicit for another log.
+
 The canonical slide acceptance fixture has a stricter profile available to
 the repository gate: `inspect_pdf.py --slide-accessibility` checks PDF
 metadata, catalog language, outline entries, meaningful external links,

@@ -1,24 +1,26 @@
 # ReportKit — Multi-Format Publication Architecture
 
-**Status:** Phase A in progress. A1 landed in v1.9.2 and A2 in v1.9.3; A3
+**Status:** Phase A implementation is complete in the working tree for the
+currently registered targets. A1 landed in v1.9.2 and A2 in v1.9.3; A3
 (shared/paged core split and renderer hooks) is implemented, pending the
 pinned-toolchain CI gate. A4's diagram work (theme-populated TikZ styles
 across the diagram, structure, process, and spatial modules) landed
-2026-09-15; the Python/theme-contract extension is implemented in the working
-tree, with focused pure-Python validation complete and the Matplotlib/pinned
-runtime gate still outstanding. A5 (pipeline target-awareness) and Phase B
-(slide renderer and presentation semantics) are essentially implemented, out
-of this spec's original phase order, with the equity-research pipeline
-acceptance and the automated B4 slide-accessibility gate now retained in the
-working branch; scoped follow-up is recorded below and A0 remains.
-Phases C–F have not started.
+2026-09-15; the Python/theme-contract extension is implemented, with focused
+pure-Python validation complete and the Matplotlib/pinned runtime gate still
+outstanding. A5's target-aware pipeline, D7 entrypoint split, constrained
+authoring path, effective-theme materialization, and selection-marker gate are
+implemented. Phase B (slide renderer and presentation semantics) is also
+implemented out of this spec's original phase order, with its automated B4
+slide-accessibility gate retained in the working branch. A0 and the pinned
+runtime gates remain. Phases C–F have not started.
 Supersedes nothing; extends the architecture introduced by
 [2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md](2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md)
 (Steps 1–5 implemented, `reportkit.cls` v1.9.3).
 **Last updated:** 2026-09-16
-**Current-state claims:** verified against `main` at `f45ab86`
-(see [Current state](#1-current-state-verified-2026-09-16)). Every premise below
-carries a `file:line` anchor so the implementer does not re-derive it.
+**Current-state claims:** verified against `origin/main` at `f45ab86` plus the
+implementation checkpoint at `a7e83f9` (see [Current state](#1-current-state-verified-2026-09-16)).
+Every premise below carries a `file:line` anchor so the implementer does not
+re-derive it.
 **Priority:** P2 — architectural hardening, ahead of any new theme.
 **Companion:** [2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md](2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md)
 covers the agent-facing contract (capability discovery, authoring input,
@@ -93,6 +95,10 @@ whole specification; everything below is its consequences.
 | Theme-aware visualization | `python_scripts/reportkit_viz.py` (`apply_theme()`, `new_figure()`) |
 | Config resolution + engine gating | `python_scripts/reportkit/config.py` |
 | Target-aware publication pipeline | `publication_pipeline/scripts/publication_build.py`, `publication_pipeline/templates/presentation.tex` |
+| Constrained Markdown authoring and typed IR | `python_scripts/reportkit/markdown_directives.py`, `authoring_ir.py`, `tex_renderer.py` |
+| Effective theme and constrained brand materialization | `python_scripts/reportkit/theme_overrides.py`, `publication_build.py` |
+| Split paged entrypoints | `publication_pipeline/templates/paged-base.tex`, `technical-report.tex`, `equity-research.tex` |
+| Resolved-selection PDF inspection | `publication_pipeline/scripts/inspect_pdf.py`, `tests/test_selection_marker_inspection.py` |
 | Fixtures | `latex_templates/examples/career_guide_en/`, `latex_templates/examples/equity-research/`, `latex_templates/examples/presentation_acceptance_test.tex` |
 | Algorithm/pseudocode semantic module | `latex_templates/reportkit-algorithms.sty` (`algorithmblock`; paged class only) |
 
@@ -111,16 +117,21 @@ whole specification; everything below is its consequences.
 | Diagram token contract covers the four semantic modules | `reportkit-core.sty:198+`; `tests/test_theme_contract.py:37-75` |
 | Pipeline resolves the target's class, template, writer, and engine | `publication_pipeline/scripts/publication_build.py:build()` and `publications.py:resolve_build_target()` |
 | Presentation pipeline target is exercised end to end | `publication_pipeline/templates/presentation.tex`; `publication_pipeline/tests/test_build_target_selection.py` |
+| Constrained directives validate before Pandoc/TeX and render safe TeX | `authoring.py:validate_authoring()`; `authoring_ir.py:validate_ir()`; `tex_renderer.py:render_ir()`; `tests/test_authoring_ir.py` |
+| One effective theme feeds TeX/chart projections and build-report hashes | `theme_overrides.py:EffectiveTheme`; `publication_build.py:effective_theme`; `tests/test_brand_overrides.py` |
+| Paged publication types select dedicated entrypoints | `publication_pipeline/templates/paged-base.tex`; `publication_pipeline/tests/test_paged_entrypoints.py` |
 | Slide accessibility claims have an automated PDF gate | `publication_pipeline/scripts/inspect_pdf.py:inspect_slide_accessibility()`; `tests/test_slide_accessibility.py`; `scripts/acceptance_check.sh` |
+| PDF inspection consumes the adjacent resolved-selection marker | `publication_pipeline/scripts/inspect_pdf.py:inspect_selection_marker()`; `tests/test_selection_marker_inspection.py` |
 | `algorithmblock` uses renderer hooks and remains non-floating | `latex_templates/reportkit-algorithms.sty`; `reportkit.cls:101-107` |
 | Config resolves `document.theme` / `.publication_type` / `.paper` | `config.py:resolve_document()`; canvas paper rejection in `resolve_build_target()` |
 | Theme→engine requirements are enforced | `config.py:THEME_ENGINE_REQUIREMENTS`, `theme_engine_conflict()` |
 
 ### 1.3 Corrections to the source draft
 
-The source draft captured four risks. A2 resolved the first one; the other
-findings remain part of the verified implementation status below. The
-requirements remain normative for the work still open.
+The source draft captured four risks. A2 resolved the first one, and the A5
+follow-up resolved the pipeline-selection and entrypoint risks. The dated
+findings remain below as historical context; the requirements remain normative
+for future formats and the gates still open.
 
 **(a) Unknown themes used to fail open.** Before A2, `reportkit.cls` forwarded
 unrecognized options to `article`, so `theme=venture` produced a warning and a
@@ -134,9 +145,10 @@ LaTeX.** A5 now fixes the load-bearing defect: `publication_build.py` retains
 the resolved `BuildTarget`, selects the entrypoint and Pandoc writer from it,
 and stages the resolved class/selection through the target-aware templates.
 The presentation path is verified end to end. The equity-research fixture's
-dedicated pipeline acceptance case is now implemented; the full D7
-paged-template split remains open, so §7's original acceptance requirement is
-not fully closed.
+dedicated pipeline acceptance case and the full D7 paged-template split are
+implemented; §7's original acceptance requirement is closed for the currently
+registered paged publication types. Pinned-toolchain verification remains a
+release gate.
 
 **(c) The figure-size slots the draft proposes mostly already exist.** The
 draft's §10 asks to "extend toward" `full / wide / compact / square / half /
@@ -515,9 +527,11 @@ closing the gap that file's own header comment records.
 class-option plumbing, stable output names, build-report selection data and a
 log-visible selection marker are implemented. A real presentation build is
 verified through the normal pipeline using Pandoc's Beamer writer. The
-equity-research pipeline acceptance case is also implemented with Markdown
-source and trusted figure fragments; the full D7 paged-template split remains
-open.
+equity-research pipeline acceptance case and the full D7 paged-template split
+are implemented with Markdown source and trusted figure fragments. The
+follow-up also materializes the effective theme and makes PDF inspection
+consume the selection marker, covering missing, malformed, mismatched and
+default-theme-leaking selections. Pinned/runtime verification remains open.
 
 ---
 
@@ -913,13 +927,11 @@ images, following the existing pattern at
 **Inspect changed layouts before accepting a baseline update.** An
 auto-accepted baseline is indistinguishable from no test at all.
 
-**Known gap to close, not inherit:** the institutional spec records that no
-implementing session had a TeX Live install with `lualatex`, leaving its
-LaTeX-level compiles and visual baselines unverified. This phase adds three
-more themes and a second renderer; carrying that gap forward would leave the
-majority of ReportKit's output unverified by compilation. Establish a real
-compile environment as part of [Phase A](#phase-a--architecture-hardening),
-before new themes land.
+The institutional spec's historical gap — no implementing session had a
+TeX Live install with `lualatex` — was closed for local, unpinned LuaLaTeX
+compiles and rendered checks during the A4/B work. The pinned image remains the
+authoritative release environment; its compatibility baseline and the new
+runtime slices still require A0/pinned verification before new themes land.
 
 ---
 
@@ -961,17 +973,18 @@ in the changelog.
 
 ### Phase A — Architecture hardening
 
-**Current status (verified 2026-09-16, after rebasing onto `main` at `f45ab86`):** A1 and A2 are complete. A3 (item 3
+**Current status (verified 2026-09-16, against `origin/main` at `f45ab86` plus `a7e83f9`):** A1 and A2 are complete. A3 (item 3
 below: shared/paged core split, item 5's `\Needspace`/`\captionof` half via
 renderer hooks) is implemented and verified in a local non-pinned
 LuaLaTeX/pdfLaTeX toolchain; the pinned-toolchain CI gate still needs to run
 and, if it passes, stand as the recorded baseline. A4's theme/adapter,
 callout/metric, diagram-appearance, and Python `Theme` contract work are
 implemented in the working tree; runtime and pinned-toolchain verification
-remain. A5 is essentially complete: the target-aware pipeline, real
-presentation build, and equity pipeline-acceptance case are verified; the full
-D7 paged-template split remains open. A0 remains open. Mainline bounded
-parallel section-build tooling is retained in the rebased base.
+remain. A5 is complete for the currently registered targets: the target-aware
+pipeline, real presentation build, equity pipeline acceptance, full D7 paged
+split, constrained authoring path, effective-theme materialization and
+selection-marker inspection are implemented. A0 remains open. Mainline
+bounded parallel section-build tooling is retained in the rebased base.
 
 A0 specifically (building the pinned toolchain image and capturing baseline
 PDF hashes/metadata) could not be attempted from the sandbox this phase was
@@ -1007,19 +1020,21 @@ pipeline rather than only by direct compile.
 `reportkit-slides.cls`, the `presentation` publication type,
 `reportkit-slides-core.sty`, the slide pipeline template and the experimental
 `executive` theme are implemented. The thirteen named presentation
-compositions are proven through direct-TeX authoring; the normal pipeline also
-proves the plain Markdown heading-to-frame path.
+compositions are proven through direct-TeX authoring, and the constrained
+Markdown directive path now renders them through the normal pipeline. The
+pipeline also proves the plain Markdown heading-to-frame path.
 
 **Current status (verified 2026-09-16):** the canvas, renderer separation,
 Pandoc Beamer writer and checked accessibility features are verified. B4's
-findings now have a reusable PDF inspector and compiled-fixture pytest/
-acceptance gate. Directive/fragment-based composition authoring from Markdown
-is not yet implemented. `executive` remains experimental pending Phase C
-review.
+findings have a reusable PDF inspector and compiled-fixture pytest/acceptance
+gate. Directive/fragment-based composition authoring from Markdown is
+implemented through the typed IR and safe-TeX renderer. `executive` remains
+experimental pending Phase C review.
 
 **Definition of done:** a presentation compiles through the normal ReportKit
-pipeline without touching the article renderer. This is met for the proven
-plain-Markdown path; the composition-authoring caveat above remains.
+pipeline without touching the article renderer. This is met for both the
+plain-Markdown and constrained composition paths; the pinned release gate and
+the experimental status of `executive` remain separate concerns.
 
 ### Phase C — Executive theme
 
