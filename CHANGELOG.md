@@ -26,6 +26,10 @@ tags on this repository, not a published package registry.
   error instead of being silently accepted.
 
 ### Changed
+- Pinned compatibility baselines for the career-guide and equity-research
+  fixtures now record their PDF metadata, fonts, dimensions, hashes, and
+  representative renders; the accessibility tagging record reflects the
+  current pinned-format no-go result.
 - Diagram/structure/process/spatial chrome (node, edge, edge-label, layer,
   matrix-axis, timeline appearance, and `reportkit-structure.sty`'s own
   card/title/muted/arrow chrome) now reads theme-owned style tokens instead

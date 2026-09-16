@@ -1,6 +1,6 @@
 # ReportKit — Outstanding Work
 
-**Last updated:** 2026-09-16
+**Last updated:** 2026-09-17
 
 This is an index, not an audit. Each spec/plan under `docs/superpowers/`
 carries its own `**Status:**` line, updated at the workflow checkpoint that
@@ -24,8 +24,8 @@ The PR-time synchronization directive is in
 | [2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md](docs/superpowers/specs/2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md) | Implemented (Steps 1–5); open questions resolved in the plan below | P2 |
 | [2026-09-09-reportkit-institutional-theme-implementation-plan.md](docs/superpowers/plans/2026-09-09-reportkit-institutional-theme-implementation-plan.md) | Complete — Steps 1–5 implemented; local LuaLaTeX verification passes; pinned visual QA remains | P2 |
 | [2026-09-09-reportkit-fix-post-implementation-findings.md](docs/superpowers/plans/2026-09-09-reportkit-fix-post-implementation-findings.md) | Complete — all 8 tasks done and reviewed clean; fixture verification complete | Complete |
-| [2026-09-09-reportkit-multi-format-publication-architecture-spec.md](docs/superpowers/specs/2026-09-09-reportkit-multi-format-publication-architecture-spec.md) | Phase A implementation complete in the working tree: A1–A5, D7 entrypoints, constrained Markdown directives, brand override materialization, and selection-marker inspection landed; pinned-toolchain/runtime gates and A0 remain | P2 |
-| [2026-09-10-reportkit-multi-format-publication-implementation-plan.md](docs/superpowers/plans/2026-09-10-reportkit-multi-format-publication-implementation-plan.md) | Phase A implementation complete in the working tree; A0 and pinned-toolchain/runtime verification remain; Phase B renderer/accessibility work is complete, with executive design promotion and tagging still review-gated | P2 |
+| [2026-09-09-reportkit-multi-format-publication-architecture-spec.md](docs/superpowers/specs/2026-09-09-reportkit-multi-format-publication-architecture-spec.md) | Phase A implementation complete in the working tree: A1–A5, D7 entrypoints, constrained Markdown directives, brand override materialization, and selection-marker inspection landed; A0 is verified against the available pinned image, while pinned-toolchain/runtime gates remain | P2 |
+| [2026-09-10-reportkit-multi-format-publication-implementation-plan.md](docs/superpowers/plans/2026-09-10-reportkit-multi-format-publication-implementation-plan.md) | Phase A implementation complete in the working tree; A0 is verified against the available pinned image and A3/A4 pinned/runtime verification remains; Phase B renderer/accessibility work is complete, with executive design promotion and tagging still review-gated | P2 |
 | [2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md](docs/superpowers/specs/2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md) | Phase A′ and B′ complete; constrained Markdown/typed-IR authoring landed in v1.9.3; standalone render command, budgets, i18n, and neutral second adapter remain | P2 |
 | [2026-09-10-reportkit-fork-port-fixes-spec.md](docs/superpowers/specs/2026-09-10-reportkit-fork-port-fixes-spec.md) | Implemented in v1.9.1 via PR #19; all 11 applicable fixes landed | Complete |
 | [2026-09-12-reportkit-code-quality-and-dependency-remediation-spec.md](docs/superpowers/specs/2026-09-12-reportkit-code-quality-and-dependency-remediation-spec.md) | Implemented — merged via PR #25 (`7c5fafc`); all phases (0-2) landed; all 3 open questions resolved | Complete |
@@ -184,8 +184,8 @@ change record.
   renderer-adapter packages. Focused pure-Python validation and bytecode
   compilation pass; this host lacks pytest, Matplotlib, and pandas, so runtime
   and pinned-toolchain verification remain outstanding. The remaining Phase A
-  work is ordered in the plan: capture the pinned compatibility baseline
-  (A0 — attempted and blocked by sandbox networking, see the plan). A5's
+  work is ordered in the plan: A0's pinned compatibility baseline is now
+  captured and verified against the available image. A5's
   equity-research pipeline acceptance, the D7 paged-template split,
   theme/brand override plumbing, selection-marker inspection, and the
   constrained directive/fragment-based composition path are now implemented
@@ -299,8 +299,8 @@ change record.
   adjacent `REPORTKIT-SELECTED` marker to detect missing, malformed,
   mismatched, or default-theme-leaking selections.
 
-  **Remaining:** A0's pinned baseline, pinned/runtime verification for the
-  new slices, and promotion of a reviewed venture/editorial visual system.
+  **Remaining:** pinned/runtime verification for the new slices, and promotion
+  of a reviewed venture/editorial visual system.
 
   **Post-rebase focused verification on 2026-09-16:** slide accessibility,
   slide-renderer, and non-compiling target-selection checks report 23 passed

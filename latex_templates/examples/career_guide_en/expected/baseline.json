@@ -1,0 +1,66 @@
+{
+  "bookmarks": {
+    "count": 15,
+    "items": [
+      [1, "A system, not a sequence", 1],
+      [1, "Career discovery and market research", 1],
+      [2, "What does the profession actually involve?", 2],
+      [2, "Recruitment reverse engineering", 2],
+      [1, "Self-assessment", 3],
+      [1, "Skill acquisition", 3],
+      [1, "Project and portfolio development", 4],
+      [2, "Communicating what a project accomplished", 4],
+      [2, "The career evidence stack", 4],
+      [1, "Professional experience and network", 5],
+      [1, "Application engineering and interview capability", 5],
+      [1, "Recruitment analytics", 5],
+      [1, "Experimentation and decision framework", 6],
+      [1, "The continuous feedback loop", 6],
+      [1, "The eight living artifacts", 7]
+    ]
+  },
+  "class_options": [],
+  "dpi": 150,
+  "engine": "pdflatex",
+  "expected_toolchain_fingerprint": "6e0fc8ea7889634d3c337eacc4e4f68adb10c2c968e2e7e683f5c24de07408e5",
+  "fixture": "latex_templates/examples/career_guide_en/report.tex",
+  "fonts": [
+    {"name": "ADIZFW+LibertinusSerif-Italic", "pages": [1]},
+    {"name": "BMQQDV+DejaVuSans", "pages": [2]},
+    {"name": "DJPOGP+LibertinusSans-Regular", "pages": [1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7]},
+    {"name": "LGUWAB+LibertinusSans-Bold", "pages": [1, 2, 3, 4, 5, 6, 7]},
+    {"name": "NPCFHK+LibertinusSerif-Bold", "pages": [2, 3, 4, 5, 6, 7]},
+    {"name": "OMBRAE+LibertinusT1Math", "pages": [1, 1, 1, 5]},
+    {"name": "SZAVSQ+LibertinusSerif-Regular", "pages": [1, 2, 3, 4, 5, 6, 7]},
+    {"name": "USCJNM+LibertinusSans-Italic", "pages": [2, 3, 4, 6, 7]}
+  ],
+  "link_count": 15,
+  "metadata": {
+    "author": "Career Development Practice",
+    "creationDate": "D:19700101000001Z",
+    "creator": "LaTeX with hyperref",
+    "encryption": null,
+    "format": "PDF 1.7",
+    "keywords": "ReportKit, technical report",
+    "modDate": "D:19700101000001Z",
+    "producer": "pdfTeX-1.40.26",
+    "subject": "Technical report",
+    "title": "The Professional Career Exploration Framework",
+    "trapped": ""
+  },
+  "page_count": 7,
+  "page_dimensions": [
+    {"height": 841.89, "page": 1, "width": 595.276},
+    {"height": 841.89, "page": 2, "width": 595.276},
+    {"height": 841.89, "page": 3, "width": 595.276},
+    {"height": 841.89, "page": 4, "width": 595.276},
+    {"height": 841.89, "page": 5, "width": 595.276},
+    {"height": 841.89, "page": 6, "width": 595.276},
+    {"height": 841.89, "page": 7, "width": 595.276}
+  ],
+  "pdf_sha256": "acd8ebdc29028baa8d64dad18120f9719cdcbca6a2d401261110710f9392d0ba",
+  "representative_pages": ["page-01.png", "page-04.png", "page-07.png"],
+  "resolved_toolchain_fingerprint": "6e0fc8ea7889634d3c337eacc4e4f68adb10c2c968e2e7e683f5c24de07408e5",
+  "schema_version": 1,
+  "toolchain_fingerprint": "6e0fc8ea7889634d3c337eacc4e4f68adb10c2c968e2e7e683f5c24de07408e5"
+}

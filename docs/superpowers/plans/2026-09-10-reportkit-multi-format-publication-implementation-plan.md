@@ -10,8 +10,9 @@ the Python/theme-contract extension is now implemented in the working tree.
 A5 is complete for the currently registered targets; theme/font/brand
 override materialization, the full D7 paged split, constrained directive
 authoring, and selection-marker inspection are now implemented in the working
-tree, and the equity pipeline acceptance is implemented; A0 was attempted but remains blocked on the
-pinned-toolchain network path. B1 and B2 are
+tree, and the equity pipeline acceptance is implemented; A0 is now complete
+against the available pinned toolchain image, with both fixture baselines
+checked in. B1 and B2 are
 essentially complete, now proven through `reportkit build` itself (not
 just direct-TeX authoring) for the "plain Markdown frames" authoring path;
 B3 is implemented for the one existing slide theme; B4 is verified by
@@ -25,15 +26,15 @@ implemented first here at explicit request, and A5 followed once B's own
 status notes kept naming it as the biggest remaining gap. Task sizing and
 visual design details should receive engineering/design review before
 execution.
-**Last updated:** 2026-09-16
+**Last updated:** 2026-09-17
 **Plans:** [2026-09-09-reportkit-multi-format-publication-architecture-spec.md](../specs/2026-09-09-reportkit-multi-format-publication-architecture-spec.md)
 **Amended by:** [2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md](../specs/2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md)
 **Baseline:** planning baseline `main` at `4f2b27f`, ReportKit v1.9.1.
-**Current status:** base verified against `main` at `f45ab86`, with the
-Python/theme-contract, target-aware A5/equity-acceptance, and automated B4
-slide-accessibility changes retained in this branch, ReportKit v1.9.3, on
-2026-09-16. Mainline bounded parallel section-build tooling remains in the
-rebased base.
+**Current status:** base verified against `main` at `b5807e8`, with the
+Python/theme-contract, target-aware A5/equity-acceptance, automated B4
+slide-accessibility changes, and pinned fixture baselines retained in this
+branch, ReportKit v1.9.3, on 2026-09-17. Mainline bounded parallel
+section-build tooling remains in the rebased base.
 
 ---
 
@@ -349,7 +350,7 @@ renderer supplies the required capability fields.
 
 ## 4. Phase A — architecture hardening
 
-**Execution status (updated 2026-09-16):** A1 and A2 are complete in
+**Execution status (updated 2026-09-17):** A0, A1 and A2 are complete in
 ReportKit v1.9.2 and v1.9.3. A3 is implemented in the working tree (see its
 section below for verification detail and scope actually covered — not yet
 released as a version bump, and the pinned-toolchain CI gate has not run
@@ -357,8 +358,11 @@ against it). A4 is implemented in the working tree, also not yet released;
 runtime and pinned-toolchain verification remain. A5 is complete for the
 currently registered targets; theme/font/brand override materialization, the
 full D7 paged split, constrained directive authoring, and selection-marker
-inspection are implemented in the working tree. A0 remains open because its
-pinned baseline still needs a trusted network path. Phase B (slide renderer and
+inspection are implemented in the working tree. A0 is complete against the
+available pinned image: the career and equity fixtures compile reproducibly,
+their metadata and representative renders are checked in, and the tagged-PDF
+no-go result is recorded. The pinned-toolchain CI gate for the broader A3/A4
+work remains outstanding. Phase B (slide renderer and
 presentation semantics) is essentially complete too, implemented before A5
 at explicit request — see its own section.
 
@@ -390,21 +394,19 @@ unreviewable diff.
 **Gate:** no architecture code starts until both current fixtures compile in the
 pinned environment and the baseline metadata is checked in.
 
-**Attempted 2026-09-13, blocked by sandbox networking, not deferred by choice:**
-`docker build -f toolchain/Dockerfile` fails inside this workflow's sandbox —
-its outbound network path TLS-intercepts `snapshot.debian.org` and
-`pypi.org` (the two hosts the Dockerfile fetches the pinned `ca-certificates`
-package and Python requirements from) with a proxy CA the container's
-minimal Debian base does not trust, so `apt-get`/`pip install` both fail
-`certificate verify failed`. A throwaway, unpinned variant (current
-`deb.debian.org` mirror, no version pins, proxy CA imported) does build in
-this sandbox and was used to verify A3 below by compiling fixtures and
-running the test suite — but it does not carry the pinned toolchain
-fingerprint, so it cannot produce A0's actual deliverable (a baseline
-checked in against the real pinned image). A0 still needs to run somewhere
-with a trusted direct path to those two hosts — this repository's own
-`contract-ci.yml` runner is the natural place — before its baseline is
-checked in.
+**Verified 2026-09-17:** the available `reportkit:toolchain` image carries
+the locked fingerprint
+`6e0fc8ea7889634d3c337eacc4e4f68adb10c2c968e2e7e683f5c24de07408e5`, passes
+`reportkit doctor --json`, and its image history uses the pinned Debian
+snapshot/package versions from `toolchain/Dockerfile`. The current `main`
+career fixture produced PDF SHA-256
+`acd8ebdc29028baa8d64dad18120f9719cdcbca6a2d401261110710f9392d0ba` on two
+independent two-pass builds; the equity fixture produced
+`2bd1060b386b05391285e3a4214a148c6fa16b7648da67178752591ff28dc4fd` on two
+independent two-pass builds. Career representative pages remain within the
+recorded pixel threshold, while all four equity pages are pixel-identical to
+their checked-in baseline. A0 is therefore closed locally; the CI gate for
+the broader un-released A3/A4 slices remains the authoritative follow-up.
 
 ### A1 — turn publications.py into a build-target registry
 
@@ -1051,8 +1053,8 @@ materialize through one effective-theme record and are recorded in the build
 report; and PDF inspection consumes the resolved-selection marker to flag
 missing, malformed, mismatched, or default-theme-leaking targets.
 
-**Remaining:** A0's pinned baseline, pinned/runtime verification for the new
-slices, and the future visual design/review phases.
+**Remaining:** pinned/runtime verification for the new A3/A4 slices and the
+future visual design/review phases.
 
 ### Phase A definition of done
 
