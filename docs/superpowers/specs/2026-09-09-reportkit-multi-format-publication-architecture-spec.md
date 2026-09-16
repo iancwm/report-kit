@@ -4,11 +4,13 @@
 (shared/paged core split and renderer hooks) is implemented, pending the
 pinned-toolchain CI gate. A4's diagram work (theme-populated TikZ styles
 across the diagram, structure, process, and spatial modules) landed
-2026-09-15; the Python/theme-contract extension is implemented in the working
-tree, with focused pure-Python validation complete and the Matplotlib/pinned
-runtime gate still outstanding. A5 (pipeline target-awareness) and Phase B
+2026-09-15; the Python/theme-contract extension is implemented and, as of
+2026-09-16, runtime-verified in a Matplotlib/pandas-equipped (non-pinned)
+toolchain. A5 (pipeline target-awareness) and Phase B
 (slide renderer and presentation semantics) are essentially implemented, out
-of this spec's original phase order, with scoped follow-up recorded below; A0
+of this spec's original phase order, with scoped follow-up recorded below;
+Phase B's B4 accessibility-parity check is now an automated pytest gate
+(2026-09-16). A0
 remains. Phases C–F have not started.
 Supersedes nothing; extends the architecture introduced by
 [2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md](2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md)
@@ -1004,11 +1006,12 @@ pipeline rather than only by direct compile.
 compositions are proven through direct-TeX authoring; the normal pipeline also
 proves the plain Markdown heading-to-frame path.
 
-**Current status (verified 2026-09-15):** the canvas, renderer separation,
-Pandoc Beamer writer and checked accessibility features are verified. B4's
-findings are still manual rather than an automated pytest gate, and
-directive/fragment-based composition authoring from Markdown is not yet
-implemented. `executive` remains experimental pending Phase C review.
+**Current status (verified 2026-09-15, B4 automated 2026-09-16):** the canvas,
+renderer separation, Pandoc Beamer writer and checked accessibility features
+are verified. B4's findings are now an automated pytest gate
+(`tests/test_slide_accessibility.py`), including a meaningful-link-annotation
+check; directive/fragment-based composition authoring from Markdown is not
+yet implemented. `executive` remains experimental pending Phase C review.
 
 **Definition of done:** a presentation compiles through the normal ReportKit
 pipeline without touching the article renderer. This is met for the proven

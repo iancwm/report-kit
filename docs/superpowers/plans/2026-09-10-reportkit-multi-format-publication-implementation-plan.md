@@ -6,15 +6,21 @@ are resolved; A1, A2 and A3 are complete (A3 pending the pinned-toolchain
 CI gate); **A4's diagram work (the last item the plan's own A4 section
 named as "not started") is now implemented** -- theme/adapter split,
 callout/metric token work, and diagram chrome tokens are all in the tree;
-the Python/theme-contract extension is now implemented in the working tree.
+the Python/theme-contract extension is implemented and, as of 2026-09-16,
+runtime-verified (`tests/test_theme_contract.py`,
+`tests/test_reportkit_viz_themes.py`, and the `check-theme`-path tests all
+green in a Matplotlib/pandas-equipped, non-pinned toolchain).
 A5 is essentially
 complete (every "Work" item but
 materializing theme/brand overrides, which nothing yet needs, and the
-equity-pipeline-acceptance sub-item); A0 remains untouched. B1 and B2 are
+equity-pipeline-acceptance sub-item); A0 remains untouched (reconfirmed
+blocked 2026-09-16, same root cause). B1 and B2 are
 essentially complete, now proven through `reportkit build` itself (not
 just direct-TeX authoring) for the "plain Markdown frames" authoring path;
-B3 is implemented for the one existing slide theme; B4 is verified by
-manual PDF inspection, not yet an automated gate. **`reportkit build` can
+B3 is implemented for the one existing slide theme; **B4 is now an
+automated pytest gate as of 2026-09-16** (`tests/test_slide_accessibility.py`),
+and the previously-open meaningful-link-annotation gap under slides is
+closed too. **`reportkit build` can
 now produce both a technical-report/equity-research-style paged
 publication and a presentation** -- see A5's own section for the
 verification record. **Note on sequencing:** §13's recommended PR sequence
@@ -1139,8 +1145,11 @@ separate reviewed change. Do not claim parity merely because Beamer compiled.
 
 **Implemented 2026-09-14 -- B1 and B2 essentially complete via direct-TeX
 authoring; B3 implemented for the one existing slide theme; B4 verified by
-PDF inspection on a compiled fixture, not yet automated as a gate. The
-pipeline does not build a presentation yet (see the scope note below).**
+PDF inspection on a compiled fixture. The
+pipeline does not build a presentation yet (see the scope note below).
+Update 2026-09-16: B4 is now an automated pytest gate
+(`tests/test_slide_accessibility.py`); see that section's own update note
+below.**
 
 - **B1 (class + slides core + registry):** `reportkit-slides.cls` mirrors
   `reportkit.cls`'s option-parsing/registry-validation/theme-and-adapter-
@@ -1269,7 +1278,7 @@ pipeline does not build a presentation yet (see the scope note below).**
   unchanged from every other theme, so this is low-risk, but genuinely
   unverified for `executive`).
 - **B4 (accessibility parity), verified by direct PDF inspection on the
-  compiled smoke fixture below, not yet an automated gate:** title/author/
+  compiled smoke fixture below:** title/author/
   subject/keywords metadata all correct (subject/keywords only after the
   bug fix above); `/Lang (en-US)` present in the PDF catalog (initially
   appeared absent under a naive raw-bytes grep -- a false negative from PDF
@@ -1281,16 +1290,18 @@ pipeline does not build a presentation yet (see the scope note below).**
   default); diagram `ActualText` alternatives present in the content stream
   of every page containing a `\begin{diagram}` (3 of 3, matching the
   fixture's 3 diagrams) -- the same mechanism, unmodified, that already
-  works under the paged renderer. Meaningful link annotations were not
-  exercised (the fixture contains no `\RKLink`/`\href` call) but use the
-  identical, renderer-neutral `\href` mechanism reportkit-core.sty already
-  provides -- not verified empirically for slides specifically, an honest
-  gap. Tagged-PDF capability is declared `"unsupported"` in the slides
-  renderer's registry record, the same truthful status the paged renderer
-  already declares, for the same reason. None of this is wired into an
-  automated pytest gate yet (`tests/test_slide_renderer.py` covers the
-  static/registry contract, not PDF inspection) -- doing so is listed as
-  remaining scope below.
+  works under the paged renderer. Tagged-PDF capability is declared
+  `"unsupported"` in the slides renderer's registry record, the same
+  truthful status the paged renderer already declares, for the same reason.
+  **Update 2026-09-16: all of the above is now an automated pytest gate**
+  (`tests/test_slide_accessibility.py`, 7 tests, compiling the fixture under
+  a real `lualatex` via `publication_build.template_files()` and inspecting
+  the result with PyMuPDF) -- `tests/test_slide_renderer.py` still covers
+  the separate static/registry contract this file does not repeat. The
+  fixture also gained a real `\RKLink` call and a passing test asserting
+  PyMuPDF finds the resulting URI link annotation, closing the "meaningful
+  link annotations... not verified empirically for slides specifically"
+  gap this section used to record.
 - **Compiled smoke fixture:** `latex_templates/examples/
   presentation_acceptance_test.tex` -- one frame per composition (17
   frames total), reusing `reportkit-boxes`/`reportkit-code`/
@@ -1396,10 +1407,11 @@ pipeline does not build a presentation yet (see the scope note below).**
 writer and Markdown-driven slide authoring (Pandoc directive/fragment-based
 compositions, `reportkit build` producing a presentation at all -- blocked
 on Phase A5, not attempted here); the tagging spike re-run mentioned in B4;
-promoting `executive` out of `"experimental"` (explicitly Phase C's job);
-automated PDF-inspection tests for the B4 findings above (currently manual/
-one-off, per the verification record); a meaningful-link-annotations check
-under slides specifically. The Phase B definition of done below is
+promoting `executive` out of `"experimental"` (explicitly Phase C's job).
+(Automated PDF-inspection tests for the B4 findings, and a
+meaningful-link-annotations check under slides, were both closed
+2026-09-16 -- see B4's own update note above; they no longer belong on
+this list.) The Phase B definition of done below is
 therefore not yet fully met -- rereading it makes that explicit rather than
 declaring victory on the parts that compile.
 

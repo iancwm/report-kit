@@ -24,8 +24,8 @@ The PR-time synchronization directive is in
 | [2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md](docs/superpowers/specs/2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md) | Implemented (Steps 1–5); open questions resolved in the plan below | P2 |
 | [2026-09-09-reportkit-institutional-theme-implementation-plan.md](docs/superpowers/plans/2026-09-09-reportkit-institutional-theme-implementation-plan.md) | Complete — Steps 1–5 implemented; local LuaLaTeX verification passes; pinned visual QA remains | P2 |
 | [2026-09-09-reportkit-fix-post-implementation-findings.md](docs/superpowers/plans/2026-09-09-reportkit-fix-post-implementation-findings.md) | Complete — all 8 tasks done and reviewed clean; fixture verification complete | Complete |
-| [2026-09-09-reportkit-multi-format-publication-architecture-spec.md](docs/superpowers/specs/2026-09-09-reportkit-multi-format-publication-architecture-spec.md) | Phase A in progress — A1–A3 implemented (A3 pending the pinned-toolchain CI gate); A4 implementation is in the working tree with runtime/pinned verification outstanding; A5 essentially complete; A0 remains | P2 |
-| [2026-09-10-reportkit-multi-format-publication-implementation-plan.md](docs/superpowers/plans/2026-09-10-reportkit-multi-format-publication-implementation-plan.md) | Phase A in progress — A1–A3 complete (A3 pending the pinned-toolchain CI gate); A4 implementation is in the working tree with runtime/pinned verification outstanding; A5 essentially complete; A0 remains; Phase B started early at request | P2 |
+| [2026-09-09-reportkit-multi-format-publication-architecture-spec.md](docs/superpowers/specs/2026-09-09-reportkit-multi-format-publication-architecture-spec.md) | Phase A in progress — A1–A3 implemented (A3 pending the pinned-toolchain CI gate); A4 implemented and runtime-verified in a non-pinned toolchain; A5 and Phase B essentially complete (B4 now an automated pytest gate); A0 remains | P2 |
+| [2026-09-10-reportkit-multi-format-publication-implementation-plan.md](docs/superpowers/plans/2026-09-10-reportkit-multi-format-publication-implementation-plan.md) | Phase A in progress — A1–A3 complete (A3 pending the pinned-toolchain CI gate); A4 implemented and runtime-verified in a non-pinned toolchain; A5 essentially complete; A0 remains; Phase B (done early, out of the plan's order) essentially complete, B4 now an automated pytest gate | P2 |
 | [2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md](docs/superpowers/specs/2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md) | Implemented for v1.9.0 — Phase A′ and paged-renderer B′ complete; additive algorithmblock contract coverage landed; renderer-dependent work deferred | P2 |
 | [2026-09-10-reportkit-fork-port-fixes-spec.md](docs/superpowers/specs/2026-09-10-reportkit-fork-port-fixes-spec.md) | Implemented in v1.9.1 via PR #19; all 11 applicable fixes landed | Complete |
 | [2026-09-12-reportkit-code-quality-and-dependency-remediation-spec.md](docs/superpowers/specs/2026-09-12-reportkit-code-quality-and-dependency-remediation-spec.md) | Implemented — merged via PR #25 (`7c5fafc`); all phases (0-2) landed; all 3 open questions resolved | Complete |
@@ -182,8 +182,16 @@ change record.
   `check-theme` validates those records, palette synchronization,
   semantic-module token declarations/population, and registered common/
   renderer-adapter packages. Focused pure-Python validation and bytecode
-  compilation pass; this host lacks pytest, Matplotlib, and pandas, so runtime
-  and pinned-toolchain verification remain outstanding. The remaining Phase A
+  compilation pass. **Update 2026-09-16:** runtime verification is no
+  longer outstanding — a from-scratch Matplotlib/pandas/numpy-equipped
+  toolchain now runs `tests/test_theme_contract.py` (15 tests),
+  `tests/test_reportkit_viz_themes.py` (20 tests), and the `check-theme`-
+  path tests in `tests/test_reportkit_vnext.py` and `tests/
+  test_slide_renderer.py` all green, alongside the full `python -m pytest
+  tests publication_pipeline/tests` (251 passed, 0 failed). This is still a
+  non-pinned toolchain, so the pinned-CI-image gate remains the
+  authoritative check (same caveat A3/A4's diagram work already carries).
+  The remaining Phase A
   work is ordered in the plan: capture the pinned compatibility baseline
   (A0 — attempted and blocked by sandbox networking, see the plan). A5 is
   essentially complete; the original architecture risk is narrowed to the
@@ -213,10 +221,20 @@ change record.
   marked `stability: "experimental"` throughout, per D8. **B3 implemented
   for executive only**: `slide-main`/`slide-half`/`slide-hero` figure
   sizes, derived from the canvas and the slides adapter's safe margin, with
-  regression coverage that no paged theme gained slide keys. **B4 verified
-  by direct PDF inspection** on a compiled smoke fixture (title/author/
-  subject/keywords metadata, catalog language, PDF outline/bookmarks,
-  diagram ActualText — not yet an automated gate). Two real bugs were found
+  regression coverage that no paged theme gained slide keys. **B4 is now an
+  automated pytest gate as of 2026-09-16** (`tests/test_slide_accessibility.py`,
+  7 tests compiling the checked-in `presentation_acceptance_test.tex` fixture
+  under a real `lualatex` and inspecting the result with PyMuPDF): title/
+  author/subject/keywords metadata (including regression coverage for the
+  pdfsubject/pdfkeywords race-condition bug below — defaults must survive,
+  not just explicit overrides), `/Lang` catalog language,
+  `/ViewerPreferences` `DisplayDocTitle`, the four outline/bookmark entries
+  from the fixture's section dividers, and diagram `ActualText` on exactly
+  the 3 of 3 pages containing a `\begin{diagram}`. The fixture also gained a
+  real `\RKLink` call (closing the plan's own documented "meaningful link
+  annotations... not verified empirically for slides specifically" gap), with
+  a new test asserting PyMuPDF actually finds the resulting URI link
+  annotation. Two real bugs were found
   and fixed along the way, not just new code written: (1) A3's own semantic-
   module migration had missed `reportkit-code.sty`, which still called
   `\Needspace` directly — harmless under paged, fatal under slides, no
@@ -239,12 +257,13 @@ change record.
   now actually rejects an explicit paper for a canvas renderer instead of
   silently dropping it. **Update 2026-09-14: `reportkit build` can now
   produce a presentation** — see the A5 entry below; that was this entry's
-  main "not done" item. Still not done: B4's findings are not yet an
-  automated pytest gate; `executive` stays experimental pending Phase C's
-  design review; directive/fragment-based presentation composition
-  authoring from Markdown (only Pandoc's own "plain Markdown frames" path
-  is proven through the pipeline). See the plan's Phase B section for the
-  full verification record.
+  main "not done" item. **Update 2026-09-16:** B4's findings are now an
+  automated pytest gate, and the meaningful-link-annotations gap is closed
+  (both above). Still not done: `executive` stays experimental pending
+  Phase C's design review; directive/fragment-based presentation
+  composition authoring from Markdown (only Pandoc's own "plain Markdown
+  frames" path is proven through the pipeline). See the plan's Phase B
+  section for the full verification record.
 
 - **Multi-format publication architecture — Phase A5 (make the pipeline
   target-aware) is essentially complete**, done after Phase B at explicit
@@ -368,6 +387,59 @@ comparison against a checked-in baseline as informative, not authoritative,
 from a session provisioned this way.
 
 ## History
+
+- 2026-09-16: closed multi-format Phase B's B4 automated-gate and
+  meaningful-link-annotation gaps, both explicitly named as remaining scope
+  in the plan's Phase B section. New `tests/test_slide_accessibility.py` (7
+  tests) compiles the checked-in `presentation_acceptance_test.tex` fixture
+  under a real `lualatex` (via `publication_build.template_files()`, the
+  same canonical TeX-input list `scripts/acceptance_check.sh` uses) and
+  inspects the result with PyMuPDF, automating what the plan's B4 section
+  previously recorded as a one-off manual finding: title/author/subject/
+  keywords PDF metadata (subject/keywords regression coverage matters
+  because the underlying bug — Beamer's own earlier `\hypersetup` call
+  silently wins the race and drops later attempts — applies to
+  ReportKit's own *default* values too, not only explicit overrides), the
+  `/Lang` catalog entry, `/ViewerPreferences` `DisplayDocTitle`, the four
+  outline/bookmark entries from the fixture's section dividers, and diagram
+  `ActualText` on exactly the 3 of 3 pages containing a `\begin{diagram}`.
+  The fixture also gained one real `\RKLink` call (previously the plan
+  recorded "the fixture contains no `\RKLink`/`\href` call... an honest
+  gap"); a new test confirms PyMuPDF finds the resulting URI link
+  annotation, not just that it compiles. `ruff check` is clean on the new
+  test file. Also attempted **A0** again now that this session has working
+  `docker`/`dockerd` (unlike prior sessions) and reconfirmed the exact
+  finding already on record, not a new blocker: `docker build -f
+  toolchain/Dockerfile` still fails with `certificate verify failed`
+  fetching `texlive-science`/`texlive-latex-base`/etc. from
+  `snapshot.debian.org` — this session's outbound-proxy CA
+  (`/root/.ccr/ca-bundle.crt`) is trusted by the outer sandbox shell (which
+  is why plain `curl`/`apt-get` against `pypi.org`/`deb.debian.org` work
+  fine in this same session) but not by the isolated network namespace
+  `docker build`'s `RUN` steps execute in, and the pinned Dockerfile
+  deliberately bootstraps its own minimal `ca-certificates` from
+  `snapshot.debian.org` directly rather than trusting an ambient proxy —
+  patching that in would stop the result from being a baseline of the
+  actual pinned image. A0 remains blocked exactly as documented: it needs
+  to run somewhere with a trusted direct path to `snapshot.debian.org`,
+  e.g. `contract-ci.yml`'s own runner.
+  Verified in a from-scratch toolchain built this session (`apt-get
+  install texlive-luatex texlive-latex-extra texlive-latex-recommended
+  texlive-fonts-recommended texlive-fonts-extra texlive-science
+  texlive-plain-generic pandoc poppler-utils` — `texlive-fonts-extra` was
+  actually required this time for `libertinus.sty` to resolve, unlike some
+  prior sessions, confirming the environment recipe's own conditional
+  wording; plus the documented `LinBiolinum_K.otf` stub and a fresh
+  `build/.venv-tests` with matplotlib/numpy/pandas/pymupdf/jsonschema also
+  on the system Python for `acceptance_check.sh`'s own import check):
+  `python -m pytest tests publication_pipeline/tests` — 251 passed, 0
+  failed, 0 skipped (better than every previously recorded baseline, which
+  always carried either 2 pre-existing `pdflatex`/microtype failures or
+  12 jsonschema-optional skips). `bash scripts/acceptance_check.sh
+  --require-tex` (fresh-project init/check/build dry run, `pdflatex` and
+  `lualatex` compile blocks, and the pytest suite it runs internally) exits
+  0. `reportkit docs --check --json` and `scripts/contract_acceptance.py
+  --json` both pass with no blocking diagnostics.
 
 - 2026-09-15: closed out P1-1, the tooling-hardening spec's last open item
   (B4 contrast/grayscale audit, then F2's measure-before-optimising), on
