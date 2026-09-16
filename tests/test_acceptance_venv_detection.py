@@ -11,6 +11,8 @@ import os
 import subprocess
 from pathlib import Path
 
+import pytest
+
 
 def test_acceptance_check_uses_venv():
     """Verify that acceptance_check.sh uses the test venv when it exists."""

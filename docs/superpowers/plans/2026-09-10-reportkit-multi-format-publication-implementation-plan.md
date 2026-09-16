@@ -938,11 +938,13 @@ source ordering, but it must pass the same visual and semantic checks.
 
 **Implemented 2026-09-14; updated 2026-09-16 after rebasing onto `main` at
 `f45ab86` -- every currently applicable
-"Work" item above is implemented.** Class options are now materialized into
-the staged entrypoint through three explicit placeholders, with values taken
-only from the resolved `BuildTarget`; theme font settings and future brand
-overrides remain unneeded by the registered targets and are still deferred.
-The equity pipeline acceptance sub-item is implemented below.
+"Work" item above is implemented.** Class options are materialized into the
+staged entrypoint through three explicit placeholders, with values taken only
+from the resolved `BuildTarget`. Theme font settings and the constrained brand
+override surface now materialize through one `EffectiveTheme` record; because
+no currently registered theme opts into `brand_overrides`, the venture-specific
+visual and brand fixture remain future work. The equity pipeline acceptance
+sub-item is implemented below.
 
 - `publication_build.py`'s `build()` now calls `resolve_build_target(...)`
   and keeps the result (`target`) instead of discarding it after validation.
@@ -962,10 +964,11 @@ The equity pipeline acceptance sub-item is implemented below.
   (`cli.py`'s `_find_pdf()` fallback filter, used only when
   `build-report.json`'s own `pdf` field lookup fails) was updated to match.
 - Per-renderer shared base files (`*-base.tex` under
-  `publication_pipeline/templates/` -- today just `slides-base.tex`) are
-  staged unconditionally alongside the entrypoint, so an entrypoint that
-  `\input{}`s one (every entrypoint but the still-self-contained
-  `publication-template.tex`) finds it.
+  `publication_pipeline/templates/` -- today `paged-base.tex` and
+  `slides-base.tex`) are staged unconditionally alongside the entrypoint, so
+  every split entrypoint that `\input{}`s one finds it. The legacy
+  `publication-template.tex` remains self-contained as a compatibility
+  witness.
 - `build-report.json` gained a `"selection"` key: `target.as_dict()`
   verbatim (publication_type, requested vs. canonical theme, alias_of,
   renderer, class, template, writer, engine, paper/canvas, accessibility,
@@ -1294,8 +1297,11 @@ validation and build integration.**
   annotation. Tagged-PDF capability is declared `"unsupported"` in the slides
   renderer's registry record, the same truthful status the paged renderer
   already declares, for the same reason. `inspect_slide_accessibility()` in
-  `publication_pipeline/scripts/inspect_pdf.py` checks these claims, while
-  `tests/test_slide_accessibility.py` compiles and inspects this fixture and
+  `publication_pipeline/scripts/inspect_pdf.py` checks these claims. Its
+  `/ActualText` reader decodes PDF literal and hexadecimal strings, rejects
+  empty alternatives, and can compare exact expected values through both the
+  Python API and CLI. `tests/test_slide_accessibility.py` covers the decoder
+  and canonical values, compiles and inspects this fixture, and
   `scripts/acceptance_check.sh` runs the same profile when PyMuPDF is present.
 - **Compiled smoke fixture:** `latex_templates/examples/
   presentation_acceptance_test.tex` -- one frame per composition (17
@@ -1481,8 +1487,9 @@ editorial work.
 
 ## 8. Phase C-prime — constrained authoring and visual feedback
 
-This is the remaining agent-contract Phase C-prime work and starts only after
-the paged and slide renderers both exist.
+The paged and slide renderers now exist. C-prime 1 is implemented in the
+working tree; C-prime 2 remains the separate first-class visual-feedback
+command work.
 
 ### C-prime 1 — constrained Markdown directives and typed IR
 
@@ -1510,6 +1517,17 @@ available as explicit escape hatches.
 
 **Acceptance:** the deliberate three-error corpus returns all three structured
 diagnostics in under one second with no Pandoc or TeX subprocess.
+
+**Implemented 2026-09-16 in `a7e83f9`:** fenced `reportkit` directives are
+parsed into `AuthoringIR` nodes with source locations; `validate_authoring()`
+and `validate_ir()` check primitive names, availability, arguments, structural
+and numeric constraints, links, and trusted-fragment containment before
+Pandoc or TeX. `render_ir()` escapes content-derived values and admits only an
+explicit, validated `fragments/*.tex` escape hatch. `publication_build.py`
+integrates the path for both the paged and slides writers, including the
+literal-frame boundary required by Beamer. Coverage is in
+`tests/test_authoring_ir.py`; the authoring schema is
+`schemas/reportkit-authoring.schema.json`.
 
 ### C-prime 2 — first-class render command
 
@@ -1685,7 +1703,8 @@ theme-specific body syntax fails the proof.
 6. Slide class, slides core, presentation semantics and accessibility.
 7. Executive theme and fixture.
 8. Venture theme, brand overrides and fixture.
-9. Constrained Markdown IR and reportkit render.
+9. Constrained Markdown IR (implemented); the first-class `reportkit render`
+   command remains open.
 10. Editorial theme, feature article and fixture.
 11. Executive brief and book.
 12. Progressive disclosure, neutral adapter, i18n and release documentation.

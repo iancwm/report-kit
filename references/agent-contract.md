@@ -1,6 +1,6 @@
 # Agent contract, diagnostics, and trusted build boundary
 
-ReportKit 1.9 exposes its host-neutral interface through the `reportkit` CLI.
+ReportKit 1.9.3 exposes its host-neutral interface through the `reportkit` CLI.
 `reportkit init` scaffolds a consumer project outside the engine clone; its
 font installation is opt-in because `TEXMFLOCAL` may be system-owned.
 `reportkit context --json` is the authoritative capability catalog; generated
@@ -18,12 +18,25 @@ reportkit context --schema diagnostic
 reportkit docs --check --json
 ```
 
-Contract schema `1.1.0` describes only the combinations that ship today:
-`technical-report/{default,technical}/paged` and
-`equity-research/institutional-research/paged`. Theme entries expose semantic
+Contract version `1.1.0` describes the combinations registered today:
+`technical-report/{default,technical}/paged`,
+`equity-research/institutional-research/paged`, and the experimental
+`presentation/executive/slides` target. Theme entries expose semantic
 capability names, not visual values; `technical` resolves to the same
 implementation as `default`. English with Latin script is verified;
 Vietnamese is metadata-only pending the i18n phase, and RTL is unsupported.
+
+Fenced `reportkit` blocks in ordinary Markdown are an additive constrained
+authoring surface. `reportkit check` validates them into the 1.0.0 authoring
+IR before Pandoc or TeX, including primitive availability, arguments,
+constraints, source locations, and trusted-fragment containment; `reportkit
+build` renders the validated nodes to escaped TeX. Ordinary Markdown remains
+Pandoc input. Content-derived fields cannot supply raw TeX. A `fragment:`
+field may select only an existing filename under the consumer project's
+`fragments/` directory, which is the explicit trusted escape hatch. The
+context payload's legacy `capabilities.authoring.mode` remains `trusted-latex`
+for compatibility; use the checked-in `schemas/reportkit-authoring.schema.json`
+for the constrained dialect's machine contract.
 
 The contract and the ReportKit release have independent versions. `check` and
 `build` accept `--contract-version`: a different major version is rejected;
@@ -67,8 +80,10 @@ docker run --rm reportkit-pinned doctor --require pinned-toolchain --json
 
 A pixel comparison made under another fingerprint fails as a toolchain
 mismatch; it is never reported as a visual regression. PDF-visible generated
-dates and TeX metadata use the fixed `SOURCE_DATE_EPOCH`. Pixel output is the
-release gate; ReportKit does not promise byte-identical PDF files in v1.9.
+dates and TeX metadata use the fixed `SOURCE_DATE_EPOCH`. Build reports also
+record the resolved publication/theme/renderer selection and effective-theme
+hashes. Pixel output is the release gate; ReportKit does not promise
+byte-identical PDF files in v1.9.
 
 ## Security and trust
 
@@ -87,6 +102,11 @@ trusted `REPORTKIT_COMPILE_TIMEOUT_SECONDS` /
 limits; publication YAML cannot. If the host cannot enforce the memory limit,
 the build exits as an environment failure instead of silently weakening it.
 
-Validated Markdown/IR authoring, first-class render/inspect authoring commands,
-context-token budgets, broader i18n, slide accessibility parity, and a second
-host adapter remain deferred until the companion renderer reaches Phase B.
+Validated Markdown/IR authoring and slide accessibility parity are implemented
+in the current tree. `reportkit inspect` and build-time full rendering are
+available; a separate `reportkit render` command with page/range and DPI
+controls remains deferred, as do context-token budgets, broader i18n, and a
+second host adapter. The slide parity claim is non-tagged: metadata, catalog
+language, outline/bookmarks, meaningful links, and diagram `/ActualText` are
+gated, while tagged PDF remains unsupported pending the separate
+`DocumentMetadata` tagging spike.

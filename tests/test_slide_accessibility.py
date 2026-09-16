@@ -8,10 +8,37 @@ import subprocess
 
 import pytest
 
-from publication_pipeline.scripts.inspect_pdf import inspect_slide_accessibility
+from publication_pipeline.scripts.inspect_pdf import _page_actual_text_values, inspect_slide_accessibility
 from reportkit.publications import resolve_build_target
 
 REPO = Path(__file__).resolve().parents[1]
+
+
+class _ContentStreamPage:
+    def get_contents(self) -> list[int]:
+        return [1]
+
+
+class _ContentStreamDocument:
+    def __init__(self, stream: bytes) -> None:
+        self.stream = stream
+
+    def xref_stream(self, xref: int) -> bytes:
+        assert xref == 1
+        return self.stream
+
+
+def test_actual_text_inspector_decodes_pdf_literal_and_hex_strings() -> None:
+    hex_value = "A hex alternative".encode("utf-16-be").hex().encode("ascii")
+    stream = (
+        b"/Span << /ActualText (A \\(literal\\) and \\\\ slash) >> BDC "
+        b"/Span << /ActualText <FEFF" + hex_value + b"> >> BDC"
+    )
+
+    assert _page_actual_text_values(_ContentStreamDocument(stream), _ContentStreamPage()) == [
+        "A (literal) and \\ slash",
+        "A hex alternative",
+    ]
 
 
 def _stage_slide_fixture(destination: Path) -> str:
@@ -69,6 +96,11 @@ def test_canonical_slide_pdf_satisfies_accessibility_contract(tmp_path: Path) ->
         ],
         minimum_meaningful_links=1,
         expected_actual_text=3,
+        expected_actual_text_values=[
+            "Three stacked layers: presentation, application logic, and data storage.",
+            "A 2x2 matrix.",
+            "Two stacked layers.",
+        ],
         tagged_pdf_status=str(target.accessibility["tagged_pdf"]),
         tagged_pdf_reason=str(target.accessibility["tagged_pdf_reason"]),
     )
@@ -80,6 +112,11 @@ def test_canonical_slide_pdf_satisfies_accessibility_contract(tmp_path: Path) ->
     assert checks["bookmarks"]["passed"] is True
     assert checks["links"]["passed"] is True
     assert checks["diagram_actual_text"]["passed"] is True
+    assert checks["diagram_actual_text"]["values"] == [
+        "Three stacked layers: presentation, application logic, and data storage.",
+        "A 2x2 matrix.",
+        "Two stacked layers.",
+    ]
     assert checks["tagged_pdf"] == {
         "status": "unsupported",
         "reason": "The pinned LaTeX format has not yet passed the documented tagging spike.",

@@ -26,7 +26,7 @@ The PR-time synchronization directive is in
 | [2026-09-09-reportkit-fix-post-implementation-findings.md](docs/superpowers/plans/2026-09-09-reportkit-fix-post-implementation-findings.md) | Complete — all 8 tasks done and reviewed clean; fixture verification complete | Complete |
 | [2026-09-09-reportkit-multi-format-publication-architecture-spec.md](docs/superpowers/specs/2026-09-09-reportkit-multi-format-publication-architecture-spec.md) | Phase A implementation complete in the working tree: A1–A5, D7 entrypoints, constrained Markdown directives, brand override materialization, and selection-marker inspection landed; pinned-toolchain/runtime gates and A0 remain | P2 |
 | [2026-09-10-reportkit-multi-format-publication-implementation-plan.md](docs/superpowers/plans/2026-09-10-reportkit-multi-format-publication-implementation-plan.md) | Phase A implementation complete in the working tree; A0 and pinned-toolchain/runtime verification remain; Phase B renderer/accessibility work is complete, with executive design promotion and tagging still review-gated | P2 |
-| [2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md](docs/superpowers/specs/2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md) | Implemented for v1.9.0 — Phase A′ and paged-renderer B′ complete; additive algorithmblock contract coverage landed; renderer-dependent work deferred | P2 |
+| [2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md](docs/superpowers/specs/2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md) | Phase A′ and B′ complete; constrained Markdown/typed-IR authoring landed in v1.9.3; standalone render command, budgets, i18n, and neutral second adapter remain | P2 |
 | [2026-09-10-reportkit-fork-port-fixes-spec.md](docs/superpowers/specs/2026-09-10-reportkit-fork-port-fixes-spec.md) | Implemented in v1.9.1 via PR #19; all 11 applicable fixes landed | Complete |
 | [2026-09-12-reportkit-code-quality-and-dependency-remediation-spec.md](docs/superpowers/specs/2026-09-12-reportkit-code-quality-and-dependency-remediation-spec.md) | Implemented — merged via PR #25 (`7c5fafc`); all phases (0-2) landed; all 3 open questions resolved | Complete |
 
@@ -311,14 +311,15 @@ change record.
   pass. The full pinned build/test gate remains authoritative.
   See the plan's A5 section for the full record.
 
-- **Agent interface & platform contract — Phase A′ and the
-  non-renderer-dependent parts of Phase B′ implemented in v1.9.0; remaining
-  work deferred.** The canonical contract is now in
+- **Agent interface & platform contract — Phase A′ and B′ are complete for
+  the shipped non-tagged accessibility contract; constrained authoring is
+  also implemented in v1.9.3.** The canonical contract is now in
   [references/agent-contract.md](references/agent-contract.md), and the
-  spec's eight open questions are resolved. Upcoming work is renderer-gated:
-  slide-renderer accessibility parity (B′ item 7), the authoring IR and
-  constrained dialect/visual feedback loop (C′), then progressive-disclosure
-  context budgets, a neutral non-Claude adapter, and i18n extensions (D′).
+  spec's eight open questions are resolved. Remaining work is the standalone
+  `reportkit render` command and visual feedback loop, then
+  progressive-disclosure context budgets, a neutral non-Claude adapter, and
+  i18n extensions. Tagged PDF remains explicitly unsupported pending the
+  separate toolchain-gated tagging spike.
   See
   [the spec](docs/superpowers/specs/2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md).
 

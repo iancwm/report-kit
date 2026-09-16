@@ -310,19 +310,92 @@ def _catalog_language(doc: Any) -> str | None:
     return _pdf_string(value[1]) or None
 
 
-def _page_actual_text_count(doc: Any, page: Any) -> int:
-    """Count decompressed ``/ActualText`` spans in one page's content streams."""
+def _decode_actual_text(value: bytes) -> str:
+    """Decode the PDF string used as a diagram's ``/ActualText`` value."""
+    if value.startswith(b"\xfe\xff"):
+        return value[2:].decode("utf-16-be", errors="replace")
+    return value.decode("utf-8", errors="replace")
+
+
+def _read_actual_text_string(stream: bytes, opening: int) -> tuple[bytes | None, int]:
+    """Read a PDF literal or hexadecimal string beginning at ``opening``."""
+    if stream[opening] == ord("<"):
+        closing = stream.find(b">", opening + 1)
+        if closing < 0:
+            return None, len(stream)
+        encoded = re.sub(rb"\s+", b"", stream[opening + 1:closing])
+        if len(encoded) % 2:
+            encoded += b"0"
+        try:
+            return bytes.fromhex(encoded.decode("ascii")), closing + 1
+        except (UnicodeDecodeError, ValueError):
+            return None, closing + 1
+
+    # PDF literal strings may contain balanced parentheses and use the usual
+    # backslash, octal, and line-continuation escapes. The slide renderer emits
+    # plain literals for ordinary descriptions and hexadecimal strings when a
+    # description contains parentheses.
+    depth = 1
+    value = bytearray()
+    cursor = opening + 1
+    escapes = {ord("n"): 10, ord("r"): 13, ord("t"): 9, ord("b"): 8, ord("f"): 12}
+    while cursor < len(stream):
+        character = stream[cursor]
+        if character == ord("\\"):
+            cursor += 1
+            if cursor >= len(stream):
+                return None, cursor
+            escaped = stream[cursor]
+            if escaped in escapes:
+                value.append(escapes[escaped])
+            elif escaped in b"\\()":
+                value.append(escaped)
+            elif escaped in b"\r\n":
+                if escaped == ord("\r") and cursor + 1 < len(stream) and stream[cursor + 1] == ord("\n"):
+                    cursor += 1
+            elif ord("0") <= escaped <= ord("7"):
+                octal = bytearray([escaped])
+                while len(octal) < 3 and cursor + 1 < len(stream) and ord("0") <= stream[cursor + 1] <= ord("7"):
+                    cursor += 1
+                    octal.append(stream[cursor])
+                value.append(int(octal, 8))
+            else:
+                value.append(escaped)
+        elif character == ord("("):
+            depth += 1
+            value.append(character)
+        elif character == ord(")"):
+            depth -= 1
+            if depth == 0:
+                return bytes(value), cursor + 1
+            value.append(character)
+        else:
+            value.append(character)
+        cursor += 1
+    return None, cursor
+
+
+def _page_actual_text_values(doc: Any, page: Any) -> list[str]:
+    """Read decompressed ``/ActualText`` values from one page's content streams."""
     get_contents = getattr(page, "get_contents", None)
     xref_stream = getattr(doc, "xref_stream", None)
     if get_contents is None or xref_stream is None:
-        return 0
-    count = 0
+        return []
+    values: list[str] = []
     for xref in get_contents() or []:
         stream = xref_stream(xref)
         if isinstance(stream, str):
             stream = stream.encode("latin-1", errors="replace")
-        count += bytes(stream).count(b"/ActualText")
-    return count
+        stream_bytes = bytes(stream)
+        for marker in re.finditer(rb"/ActualText\s*(?P<opening>[<(])", stream_bytes):
+            raw_value, _ = _read_actual_text_string(stream_bytes, marker.end() - 1)
+            values.append("" if raw_value is None else _decode_actual_text(raw_value))
+    return values
+
+
+def _page_actual_text_count(doc: Any, page: Any) -> int:
+    """Count decompressed ``/ActualText`` spans in one page's content streams."""
+    return len(_page_actual_text_values(doc, page))
 
 
 def _meaningful_links(doc: Any) -> list[dict[str, object]]:
@@ -367,6 +440,7 @@ def inspect_slide_accessibility(
     expected_bookmark_titles: Sequence[str] | None = None,
     minimum_meaningful_links: int = 1,
     expected_actual_text: int = 1,
+    expected_actual_text_values: Sequence[str] | None = None,
     tagged_pdf_status: str = "unsupported",
     tagged_pdf_reason: str | None = None,
     selection_log: Path | None = None,
@@ -443,18 +517,28 @@ def inspect_slide_accessibility(
             source=str(path),
         )
 
-    actual_text_by_page = {
-        page_number: _page_actual_text_count(doc, page)
+    actual_text_values_by_page = {
+        page_number: _page_actual_text_values(doc, page)
         for page_number, page in enumerate(doc, 1)
     }
-    actual_text_count = sum(actual_text_by_page.values())
-    actual_text_passed = actual_text_count == expected_actual_text
+    actual_text_by_page = {
+        page_number: len(page_values)
+        for page_number, page_values in actual_text_values_by_page.items()
+    }
+    actual_text_values = [value for page_values in actual_text_values_by_page.values() for value in page_values]
+    actual_text_count = len(actual_text_values)
+    expected_values = list(expected_actual_text_values) if expected_actual_text_values is not None else None
+    actual_text_values_passed = (
+        all(value.strip() for value in actual_text_values)
+        and (expected_values is None or actual_text_values == expected_values)
+    )
+    actual_text_passed = actual_text_count == expected_actual_text and actual_text_values_passed
     if not actual_text_passed:
         _append_accessibility_diagnostic(
             diagnostics,
-            f"slide PDF must contain exactly {expected_actual_text} diagram ActualText alternatives; got {actual_text_count}",
+            f"slide PDF must contain exactly {expected_actual_text} non-empty diagram ActualText alternatives with the expected values; got {actual_text_values!r}",
             code="RK_PDF_ACCESSIBILITY_ACTUAL_TEXT",
-            details={"expected": expected_actual_text, "actual": actual_text_count, "pages": actual_text_by_page},
+            details={"expected": expected_actual_text, "expected_values": expected_values, "actual": actual_text_count, "actual_values": actual_text_values, "pages": actual_text_by_page},
             source=str(path),
         )
 
@@ -479,7 +563,7 @@ def inspect_slide_accessibility(
             "catalog_language": {"expected": expected_language, "actual": language, "passed": language_passed},
             "bookmarks": {"minimum": minimum_bookmarks, "count": len(toc), "items": toc, "expected_titles": expected_titles, "titles": bookmark_titles, "passed": bookmarks_passed},
             "links": {"minimum_meaningful": minimum_meaningful_links, "external": links, "meaningful": meaningful_links, "passed": links_passed},
-            "diagram_actual_text": {"expected": expected_actual_text, "count": actual_text_count, "pages": actual_text_by_page, "passed": actual_text_passed},
+            "diagram_actual_text": {"expected": expected_actual_text, "expected_values": expected_values, "count": actual_text_count, "values": actual_text_values, "pages": actual_text_by_page, "passed": actual_text_passed},
             "tagged_pdf": {"status": tagged_pdf_status, "reason": tagged_pdf_reason, "verified": tagged_status_passed},
         },
     })
@@ -598,6 +682,7 @@ def main() -> int:
     parser.add_argument("--expected-bookmark-title", action="append")
     parser.add_argument("--minimum-meaningful-links", type=int, default=1)
     parser.add_argument("--expected-actual-text", type=int, default=1)
+    parser.add_argument("--expected-actual-text-value", action="append")
     parser.add_argument("--tagged-pdf-status", choices=("supported", "unsupported"), default="unsupported")
     parser.add_argument("--tagged-pdf-reason", default="")
     args = parser.parse_args()
@@ -616,6 +701,7 @@ def main() -> int:
                 expected_bookmark_titles=args.expected_bookmark_title,
                 minimum_meaningful_links=args.minimum_meaningful_links,
                 expected_actual_text=args.expected_actual_text,
+                expected_actual_text_values=args.expected_actual_text_value,
                 tagged_pdf_status=args.tagged_pdf_status,
                 tagged_pdf_reason=args.tagged_pdf_reason or None,
                 selection_log=args.selection_log,

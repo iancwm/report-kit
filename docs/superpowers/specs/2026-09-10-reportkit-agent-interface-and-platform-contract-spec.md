@@ -1,22 +1,28 @@
 # ReportKit — Agent Interface & Platform Contract
 
-**Status:** Implemented for ReportKit v1.9.0: Phase A′ and the
-non-renderer-dependent parts of Phase B′ are complete. An additive
-`algorithmblock` primitive is now included in the generated contract;
-renderer-dependent work remains explicitly deferred. Companion to
+**Status:** Phase A′ is complete in ReportKit v1.9.0. Phase B′ diagnostics and
+security are complete in v1.9.0, and its slide-renderer accessibility item 7
+is implemented in the current v1.9.3 tree. The constrained Markdown/typed-IR
+authoring slice (Phase C′ item 8) is also implemented in v1.9.3; the standalone
+render command (item 9), progressive-disclosure budgets, i18n extensions and a
+second host adapter remain deferred. An additive `algorithmblock` primitive is
+included in the generated contract.
+Companion to
 [2026-09-09-reportkit-multi-format-publication-architecture-spec.md](2026-09-09-reportkit-multi-format-publication-architecture-spec.md)
 (the "renderer spec"), which it amends in [§18](#18-amendments-to-the-renderer-spec).
-**Last updated:** 2026-09-15
+**Last updated:** 2026-09-16
 **Current-state claims:** the historical baseline below is verified against the
 working tree at `2587e03`; the additive checkpoint is verified against `main`
-at `74197e6`. Every premise carries a `file:line` anchor.
+at `74197e6`; the current authoring checkpoint is verified against `a7e83f9`.
+Every premise carries a `file:line` anchor.
 **Priority:** P2 — [§3](#3-the-capability-contract), [§5](#5-documentation-derivation-and-drift)
 and [§8](#8-reproducibility-and-toolchain-pinning) are Phase A work in the
 renderer spec's sequencing; the rest follows.
 
 **Implementation record:** the current-state section below is the historical
-baseline used to scope this change. The implemented contract is schema 1.0.0;
-its canonical operational summary is
+baseline used to scope this change. The implemented contract version is 1.1.0;
+the context, diagnostic and authoring schemas are each currently 1.0.0. Its
+canonical operational summary is
 [`references/agent-contract.md`](../../../references/agent-contract.md).
 
 **Additive checkpoint (2026-09-15):** `algorithmblock` plus the
@@ -28,6 +34,23 @@ the exact primitive counts to 32 compositions and 66 commands, and
 by `reportkit.cls` and follows the non-floating, renderer-hook pattern; no
 slide-renderer availability is claimed because `reportkit-slides.cls` does not
 load this paged-class semantic module yet.
+
+**Current implementation checkpoint (2026-09-16, `a7e83f9`):** Phase C′ item 8
+is implemented. Fenced `reportkit` directives in ordinary Markdown are parsed
+by `markdown_directives.py` into the typed `AuthoringIR`; `validate_authoring()`
+and `validate_ir()` validate primitive names, availability, arguments,
+structural/numeric constraints, links and trusted-fragment containment before
+Pandoc or TeX. `tex_renderer.py` escapes content-derived values and permits
+only an explicit, validated `fragments/*.tex` escape hatch. The normal build
+integrates this path for both `latex` and `beamer`, including the literal frame
+boundary required by Beamer. `tests/test_authoring_ir.py` and
+`schemas/reportkit-authoring.schema.json` cover the path. The build also now
+records one effective theme and the PDF inspector consumes the adjacent
+`REPORTKIT-SELECTED` marker; those cross-cutting selection checks are covered
+by `tests/test_brand_overrides.py` and
+`tests/test_selection_marker_inspection.py`. The separate `reportkit render`
+command with page/range and DPI controls is not implemented yet; `reportkit
+inspect` and build-time full rendering remain available.
 
 ---
 
@@ -128,8 +151,9 @@ Claude-skill frontmatter. **That is the vendor lock**, and it is one regex wide.
 The diagnosis above is retained as the pre-v1.9 baseline. The generated
 contract now includes full signatures, arguments, constraints, examples and
 availability records for the additive algorithm primitive as well as the
-existing inventory; the remaining renderer-gated limitation is its absence
-from the slides class.
+existing inventory; the renderer-gated limitation is its absence from the
+slides class. The later authoring checkpoint adds validation and safe
+generation around that contract without changing the raw-LaTeX escape hatch.
 
 ---
 
@@ -223,10 +247,12 @@ group. Extend the extractor to capture and normalize it:
 
 ## 5. Documentation derivation and drift
 
-`check_skill_drift()` compares name sets. Usage prose is unchecked and can rot
-silently. The renderer spec multiplies documented combinations by five themes ×
-six publication types, so prose grows combinatorially against a check that only
-sees identifiers.
+At the v1.9.0 baseline, `check_skill_drift()` compared name sets. Usage prose
+was unchecked and could rot silently. The renderer spec multiplied documented
+combinations by five themes × six publication types, so prose grew
+combinatorially against a check that only saw identifiers. The current
+documentation checker retains the generated-contract check while the richer
+contract and authoring records below continue to define the intended coverage.
 
 **Requirements:**
 
@@ -244,11 +270,12 @@ sees identifiers.
 
 ## 6. The authoring contract
 
-**The largest gap, and the one the renderer spec is entirely silent on.**
+**Historical baseline:** the largest gap at the v1.9.0 baseline, and one the
+renderer spec was entirely silent on.
 
-Today an agent authors by emitting LaTeX (`report.tex`) or Markdown into
-`manuscript/`. Nothing validates *primitive usage* before `lualatex` runs:
-`validate_publication()` checks the manuscript/fragment/label contract, not
+At that baseline an agent authored by emitting LaTeX (`report.tex`) or Markdown
+into `manuscript/`. Nothing validated *primitive usage* before `lualatex` ran:
+`validate_publication()` checked the manuscript/fragment/label contract, not
 whether `\begin{reportmatrix}` was given the right number of arguments.
 
 For an LLM — especially a smaller, non-Claude one — raw LaTeX generation is the
@@ -266,8 +293,9 @@ Either shape is acceptable:
 - **Constrained Markdown dialect** — the existing manuscript pipeline plus a
   declared block/directive syntax for primitives, validated before conversion.
 
-The second is the smaller change and reuses the existing pipeline. The choice is
-[open question 2](#21-open-questions).
+The selected implementation is the constrained Markdown dialect: it reuses the
+existing pipeline, parses into a typed IR, and validates before conversion.
+Raw LaTeX and trusted fragments remain explicit escape hatches.
 
 **Non-negotiable properties:**
 
@@ -286,6 +314,12 @@ The second is the smaller change and reuses the existing pipeline. The choice is
 An agent that emits a document with three deliberate primitive-usage errors
 receives all three, structurally, in one sub-second validation pass, with no TeX
 invocation.
+
+**Status (updated 2026-09-16):** the constrained Markdown/typed-IR path meets
+this contract in v1.9.3. The validation suite covers multiple deliberate
+directive errors in one pass, with no subprocess or TeX invocation; the safe
+renderer escapes content-derived values and only permits explicitly trusted
+fragments from the consumer fragment directory.
 
 ---
 
@@ -465,6 +499,12 @@ institutional plan, actually rendering the charts is what caught a real
   consistent with `bootstrap.sh`'s existing `MODE:` contract — an agent must
   never claim a visual check it did not perform.
 
+**Current status:** `reportkit build` performs the existing full-page render and
+PDF inspection, and `reportkit inspect` is available as a first-class PDF
+inspection command. A separate `reportkit render` command with page/range and
+DPI controls remains deferred; the build path does not yet expose that
+selection surface.
+
 ---
 
 ## 13. Internationalization
@@ -508,7 +548,8 @@ deferral. What ships — PDF metadata, catalog language, bookmarks, meaningful
 link text, diagram `/ActualText` alternatives — is above average for a LaTeX
 toolkit.
 
-The gap is not the deferral. It is that neither spec **protects** what ships.
+At the baseline, the gap was not the deferral itself but that neither spec
+**protected** what shipped. The current release gate is recorded below.
 
 **Requirements:**
 
@@ -525,6 +566,16 @@ The gap is not the deferral. It is that neither spec **protects** what ships.
   spike is not forgotten.
 - `context` reports the accessibility level actually achieved per renderer, so
   an agent can state it honestly rather than guessing.
+
+**Status (updated 2026-09-16):** Phase B′ item 7 is implemented for the
+shipped, non-tagged accessibility contract. The slide renderer is checked by
+`inspect_slide_accessibility()` and its fixture tests for metadata, catalog
+language, outline/bookmarks, meaningful links, diagram `/ActualText`, and the
+declared tagged-PDF status. The inspector decodes literal/hex PDF strings and
+rejects empty alternatives; the canonical fixture asserts the exact three
+diagram alternatives. Tagged PDF remains explicitly unsupported: the
+separate `DocumentMetadata` tagging spike is still a future toolchain-gated
+task, not part of the parity claim.
 
 ---
 
@@ -641,9 +692,10 @@ generate from it; CI fails on drift; builds reproduce on a pinned image.
 
 ### Phase B′ — Diagnostics and security (with renderer Phase B)
 
-**Complete in v1.9.0 for the paged renderer.** Items 5 and 6 are implemented.
-Item 7 remains deferred because the slide renderer does not yet exist; no
-accessibility parity claim is made for it.
+**Complete in v1.9.0 for the paged renderer and extended in v1.9.3.** Items 5
+and 6 are implemented. Item 7 is implemented for the shipped non-tagged
+accessibility features of the slide renderer; tagged PDF remains unsupported
+pending the separate tagging spike.
 
 5. Unified diagnostic schema with remediation ([§7](#7-unified-diagnostic-contract)).
 6. Security posture stated and tested ([§10](#10-security-posture)).
@@ -654,15 +706,20 @@ remediation; security properties are asserted by tests.
 
 ### Phase C′ — Authoring contract (after renderer Phase B)
 
+**Status (updated 2026-09-16):** the selected constrained Markdown/typed-IR
+authoring surface is implemented in v1.9.3. The standalone render command and
+the remaining context-budget, i18n, and second-adapter work remain deferred.
+
 8. Authoring IR or constrained dialect ([§6](#6-the-authoring-contract)).
 9. Agent visual feedback loop ([§12](#12-agent-visual-feedback-loop)).
 
 **Done when:** an agent authoring three deliberate errors gets all three
 structurally, sub-second, with no TeX invoked.
 
-Deferred to after the renderer spec's Phase B so the IR is designed against both
-renderers. Designing it against `paged` alone would repeat the coupling mistake
-both specs exist to prevent.
+The original sequencing rationale is retained as history: the IR was deferred
+until both renderers existed so it could target both rather than coupling to
+`paged`. That implementation gate has now been met; only the separate visual
+feedback command remains in this phase.
 
 ### Phase D′ — Neutrality and scale (with renderer Phase E–F)
 
@@ -699,9 +756,9 @@ All questions affecting v1.9.0 are resolved:
 1. Contract metadata is multiline JSON in comments immediately adjacent to
    each public LaTeX or Python declaration. This keeps syntax extraction and
    semantic metadata co-located while still allowing schema validation.
-2. Constrained Markdown parsed into a typed IR is the intended later authoring
-   surface. Both the IR and validation grammar remain deferred until the
-   companion renderer reaches Phase B; v1.9 keeps raw LaTeX compatible.
+2. Constrained Markdown parsed into a typed IR is the selected authoring
+   surface. The grammar and safe renderer landed in v1.9.3; v1.9 continues to
+   support raw LaTeX and trusted fragments as explicit escape hatches.
 3. Themes expose semantic capability and token names, not styling values.
 4. A different contract major is rejected. Same-major older callers continue
    with a structured stale-contract warning.

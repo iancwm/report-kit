@@ -139,10 +139,9 @@ RENDERERS: dict[str, dict[str, Any]] = {
     # frame natively (16.00cm x 9.00cm in beamer.cls's own aspect-ratio
     # table -- verified by reading beamer.cls, not assumed), so no extra
     # paperwidth/paperheight override is needed to hit the declared canvas.
-    # "experimental": the pipeline does not yet route reportkit build through
-    # this renderer (that is Phase A5's target-aware pipeline slice, not yet
-    # implemented); direct \documentclass{reportkit-slides} authoring is the
-    # only proven path so far -- see the implementation plan's B1 section.
+    # "experimental": the renderer and presentation target are routed through
+    # reportkit build, but the executive visual system remains experimental
+    # pending the design review described in the implementation plan.
     "slides": {
         "name": "slides",
         "stability": "experimental",
