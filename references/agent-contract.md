@@ -103,10 +103,31 @@ limits; publication YAML cannot. If the host cannot enforce the memory limit,
 the build exits as an environment failure instead of silently weakening it.
 
 Validated Markdown/IR authoring and slide accessibility parity are implemented
-in the current tree. `reportkit inspect` and build-time full rendering are
-available; a separate `reportkit render` command with page/range and DPI
-controls remains deferred, as do context-token budgets, broader i18n, and a
-second host adapter. The slide parity claim is non-tagged: metadata, catalog
-language, outline/bookmarks, meaningful links, and diagram `/ActualText` are
-gated, while tagged PDF remains unsupported pending the separate
-`DocumentMetadata` tagging spike.
+in the current tree. Context-token budgets, broader i18n, and a second host
+adapter remain deferred. The slide parity claim is non-tagged: metadata,
+catalog language, outline/bookmarks, meaningful links, and diagram
+`/ActualText` are gated, while tagged PDF remains unsupported pending the
+separate `DocumentMetadata` tagging spike.
+
+## Agent visual feedback loop
+
+Most current models are multimodal: looking at a rendered page catches
+overfull lines, collided diagram labels, bad page breaks, and broken slide
+composition -- failures that compile cleanly and are invisible in the log.
+Treat build, render, and inspect as one authoring loop, not separate CI-only
+steps:
+
+```bash
+reportkit build --json
+reportkit render --pages 1-3 --dpi 150 --json   # cheap: only the pages named
+reportkit inspect --json
+```
+
+`reportkit render` resolves the most recently built PDF the same way
+`reportkit inspect` does (or takes an explicit path), writes PNGs plus an
+`index.html` contact sheet and `pages.json` manifest to a predictable
+`--out` directory (default: `<output-root>/render`), and accepts a `--pages`
+selection (`"1"`, `"1-3"`, `"1,3,5-7"`) so an agent can inspect one slide
+without rasterizing an entire book. Like `inspect`, it degrades honestly: with
+no PyMuPDF available it exits 5 with `RK_PYMUPDF_MISSING` rather than
+claiming a visual check it did not perform.

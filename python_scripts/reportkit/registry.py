@@ -31,6 +31,7 @@ PRIMITIVE_KINDS = ("callout", "figure", "chart", "composition", "command")
 COMMANDS = {
     "init": "reportkit init", "doctor": "reportkit doctor", "context": "reportkit context", "check": "reportkit check",
     "build": "reportkit build", "diagnose": "reportkit diagnose", "inspect": "reportkit inspect",
+    "render": "reportkit render",
     "package": "reportkit package", "analyse-history": "reportkit analyse-history", "docs": "reportkit docs",
 }
 COMMAND_CONTRACT: dict[str, dict[str, Any]] = {
@@ -41,6 +42,7 @@ COMMAND_CONTRACT: dict[str, dict[str, Any]] = {
     "build": {"summary": "Validate, convert, compile, diagnose, render, and inspect a publication.", "arguments": ["--source-root", "--output-root", "--profile", "--mode", "--section", "--chapter", "--workers", "--engine", "--title", "--author", "--version", "--cover", "--contract-version", "--compile-timeout-seconds", "--memory-limit-mb", "--json"], "exit_codes": [0, 2, 3, 4, 5, 70]},
     "diagnose": {"summary": "Parse a TeX log into source-aware diagnostics.", "arguments": ["log", "--source-root", "--output-root", "--profile", "--allowlist", "--underfull-badness", "--json"], "exit_codes": [0, 2, 3, 70]},
     "inspect": {"summary": "Inspect PDF geometry, metadata, fonts, links, and bookmarks.", "arguments": ["pdf", "--source-root", "--output-root", "--profile", "--json"], "exit_codes": [0, 2, 3, 5, 70]},
+    "render": {"summary": "Render selected PDF pages to PNGs for agent visual inspection.", "arguments": ["pdf", "--source-root", "--output-root", "--profile", "--out", "--pages", "--dpi", "--json"], "exit_codes": [0, 2, 3, 5, 70]},
     "package": {"summary": "Package a passing combined build.", "arguments": ["--source-root", "--output-root", "--profile", "--build-dir", "--destination", "--json"], "exit_codes": [0, 2, 3, 70]},
     "analyse-history": {"summary": "Summarize recurring diagnostics in build history.", "arguments": ["--source-root", "--history-dir", "--json"], "exit_codes": [0, 2, 70]},
     "docs": {"summary": "Write or check contract-derived reference sections.", "arguments": ["--write", "--check", "--json"], "exit_codes": [0, 2, 3, 70]},

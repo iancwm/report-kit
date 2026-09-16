@@ -216,6 +216,34 @@ def test_full_build_emits_schema_v3_report_and_lock(tmp_path: Path) -> None:
     assert lock["toolchain_fingerprint"] == toolchain_fingerprint(load_toolchain_lock(REPO))
 
 
+@pytest.mark.skipif(shutil.which("pdflatex") is None, reason="pdflatex not on PATH")
+def test_render_resolves_the_built_pdf_and_honours_a_page_range(tmp_path: Path) -> None:
+    pytest.importorskip("pymupdf")
+    source = tmp_path / "publication"
+    output = tmp_path / "build"
+    shutil.copytree(REPO / "publication_pipeline" / "example_publication", source)
+    build = subprocess.run(
+        [str(REPO / "reportkit"), "build", "--source-root", str(source), "--output-root", str(output), "--json"],
+        capture_output=True, text=True,
+    )
+    assert build.returncode == 0, build.stdout
+
+    result = subprocess.run(
+        [
+            str(REPO / "reportkit"), "render", "--source-root", str(source), "--output-root", str(output),
+            "--pages", "1", "--json",
+        ],
+        capture_output=True, text=True,
+    )
+    payload = json.loads(result.stdout)
+    assert result.returncode == 0, payload
+    assert payload["rendered_pages"] == [1]
+    assert payload["files"] == ["page-01.png"]
+    render_dir = output / "render"
+    assert (render_dir / "page-01.png").is_file()
+    assert (render_dir / "index.html").is_file()
+
+
 def test_context_catalog_contains_only_the_current_publication_matrix() -> None:
     capabilities = build_context(REPO)["capabilities"]
     # Phase B added the slides renderer, the experimental executive theme,
@@ -347,6 +375,7 @@ def test_older_same_major_contract_warns_and_continues(monkeypatch: pytest.Monke
         (["analyse-history", "--history-dir", "/path/that/does/not/exist", "--json"], 0),
         (["diagnose", "/path/that/does/not/exist.log", "--json"], 2),
         (["inspect", "/path/that/does/not/exist.pdf", "--json"], 2),
+        (["render", "/path/that/does/not/exist.pdf", "--json"], 2),
         (["package", "--build-dir", "/path/that/does/not/exist", "--json"], 2),
         (["build", "--source-root", "/path/that/does/not/exist", "--json"], 3),
     ],

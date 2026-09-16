@@ -479,7 +479,7 @@ def render_tex_overrides(effective: EffectiveTheme) -> str:
         lines.extend([
             r"\newcommand{\RKBrandLogo}{}",
             r"\newif\ifRKBrandHasLogo",
-            r"\RKBrandHasLogoFalse",
+            r"\RKBrandHasLogofalse",
         ])
     return "\n".join(lines) + "\n"
 

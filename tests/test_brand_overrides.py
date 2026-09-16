@@ -164,6 +164,24 @@ def test_effective_theme_drives_deterministic_tex_and_chart_projections(tmp_path
     assert output.read_text(encoding="utf-8") == tex
 
 
+def test_no_logo_branch_emits_a_valid_newif_falsy_macro_name(tmp_path: Path) -> None:
+    # \newif\ifRKBrandHasLogo only ever defines the lowercase-suffixed
+    # \RKBrandHasLogotrue/\RKBrandHasLogofalse control sequences; a
+    # differently-cased falsy macro name is an undefined control sequence
+    # that halts compilation the moment a publication configures brand
+    # overrides (any theme.brand_overrides theme) without a logo.
+    effective = build_effective_theme(
+        "default",
+        {"primary": "#abcdef"},
+        publication_root=tmp_path,
+        font_policy="fallback",
+        registry=_enabled_registry(),
+    )
+    tex = render_tex_overrides(effective)
+    assert r"\RKBrandHasLogofalse" in tex
+    assert r"\RKBrandHasLogoFalse" not in tex
+
+
 def test_config_resolution_uses_profile_brand_and_selected_font_policy(tmp_path: Path) -> None:
     logo = tmp_path / "logo.svg"
     logo.write_text("svg", encoding="utf-8")
