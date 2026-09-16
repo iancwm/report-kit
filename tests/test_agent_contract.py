@@ -77,9 +77,9 @@ def test_every_in_tree_xparse_specifier_is_supported() -> None:
 def test_registry_is_complete_and_preserves_legacy_inventory() -> None:
     registry = generate_registry(REPO, strict=True)
     assert {kind: len(records) for kind, records in registry["primitives"].items()} == {
-        "callout": 14, "figure": 19, "chart": 13, "composition": 32, "command": 66,
+        "callout": 14, "figure": 21, "chart": 13, "composition": 32, "command": 72,
     }
-    assert len(registry["figures"]) == 19
+    assert len(registry["figures"]) == 21
     assert len(registry["callouts"]["public"]) == 10
     assert len(registry["charts"]) == 11
     assert "risk_reward_chart" in registry["primitives"]["chart"]

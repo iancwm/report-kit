@@ -1,0 +1,466 @@
+% ReportKit v1.0.0 -- algorithm-state visualization primitives (Phase 1)
+%
+% Implements the "Phase 1 -- Core state grammar" milestone of
+% docs/superpowers/specs/2026-09-16-reportkit-algorithm-visualization-primitives-spec.md:
+%   1. the shared algorithm-state vocabulary (current/active/candidate/
+%      frontier/visited/resolved/discarded/blocked/unseen),
+%   2. theme-owned style tokens for that vocabulary (reportkit-core.sty's
+%      "Algorithm-state visualization" token family, populated by every
+%      theme's common package),
+%   3. `arraystate`, the foundational indexed-linear-data primitive,
+%   4. `algorithmtrace`, the ordered-snapshot temporal composition.
+%
+% Everything else in the spec (windowstate, stackstate, queuestate,
+% graphstate, gridstate, dagstate, heapstate, intervalstate, dptable,
+% joinstate) is intentionally out of scope here -- the spec's own
+% "composition before specialization" principle (2.3) has those primitives
+% reuse arraystate/algorithmtrace and the shared state vocabulary rather
+% than inventing a parallel visual language, so this module is the
+% architecture the later phases build on, not a preview of them.
+%
+% Deliberately its own file, not folded into reportkit-diagrams.sty: an
+% algorithm-state snapshot answers a different reader question (what is
+% the data doing right now) than a conceptual diagram (how do these things
+% relate), and the spec's own module-structure section (3) calls for a
+% dedicated file. It still loads through reportkit-diagrams.sty's existing
+% `diagram` wrapper and TikZ styles rather than duplicating them (17):
+% every arraystate/algorithmtrace call is meant to be nested inside
+% \begin{diagram}...\end{diagram}, exactly like reportarchitecture or
+% reportcycle, and neither primitive opens its own tikzpicture.
+%
+% Static snapshots only (2.4): there is no animation system here, and
+% temporal explanations are ordered snapshots via algorithmtrace, not a
+% state machine that mutates in place.
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{reportkit-algorithm-viz}[2026/09/16 v1.0.0 ReportKit algorithm-state visualization primitives]
+
+\RequirePackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,calc}
+\RequirePackage{xparse}
+\RequirePackage{pgfkeys}
+\RequirePackage{etoolbox}
+\RequirePackage{reportkit-diagrams}
+
+% reportkit-diagrams.sty (required above) already asserted the shared
+% style-token gate before this module's tikzset below reads
+% \RKTokAlgorithm...; see reportkit-core.sty's "Algorithm-state
+% visualization" contract section for why these tokens share that gate
+% instead of a new one.
+\RKAssertStyleTokens
+
+\makeatletter
+
+% -----------------------------------------------------------------------------
+% Shared state vocabulary (spec section 4)
+% -----------------------------------------------------------------------------
+\def\rk@algoviz@states{current,active,candidate,frontier,visited,resolved,discarded,blocked,unseen}
+
+\newcommand{\rk@algoviz@error}[2]{%
+  \PackageError{reportkit-algorithm-viz}{#1}{#2}%
+}
+\newcommand{\rk@algoviz@unknownkey}[1]{%
+  \rk@algoviz@error{Unknown #1 key '\pgfkeyscurrentname'}{Check the primitive's documented keys.}%
+}
+% etoolbox's \ifstrequal/\ifstrempty detokenize their arguments instead of
+% expanding them, so they only compare literal text -- exactly wrong for
+% comparing a state-holding macro's *current value* (this module keeps that
+% state in plain macros like \rk@arr@mode, not in the literal option text
+% pgfkeys handed to a primitive). \rk@algoviz@ifeq fully expands both sides
+% with \edef first, so it works uniformly whether either side is a literal
+% or a macro.
+\newcommand{\rk@algoviz@ifeq}[2]{%
+  \begingroup
+  \edef\rk@algoviz@cmpa{#1}%
+  \edef\rk@algoviz@cmpb{#2}%
+  \ifx\rk@algoviz@cmpa\rk@algoviz@cmpb
+    \aftergroup\@firstoftwo
+  \else
+    \aftergroup\@secondoftwo
+  \fi
+  \endgroup
+}
+% #1 = state name to validate, #2 = context string for the error message.
+\newcommand{\rk@algoviz@checkstate}[2]{%
+  \edef\rk@algoviz@wantstate{#1}%
+  \def\rk@algoviz@statefound{0}%
+  \@for\rk@algoviz@known:=\rk@algoviz@states\do{%
+    \rk@algoviz@ifeq{\rk@algoviz@wantstate}{\rk@algoviz@known}{\def\rk@algoviz@statefound{1}}{}%
+  }%
+  \rk@algoviz@ifeq{\rk@algoviz@statefound}{0}{%
+    \rk@algoviz@error{Unknown algorithm state '\rk@algoviz@wantstate' in #2}%
+      {Use one of: current, active, candidate, frontier, visited, resolved, discarded, blocked, unseen.}%
+  }{}%
+}
+% #1 = 0-based index, #2 = last valid 0-based index, #3 = context string.
+\newcommand{\rk@algoviz@checkindex}[3]{%
+  \ifnum#1<0
+    \rk@algoviz@error{Index #1 in #3 is negative}{Indices are 0-based; use a value from 0 to #2.}%
+  \else
+    \ifnum#1>#2
+      \rk@algoviz@error{Index #1 in #3 is out of range}{This row only has indices 0 to #2.}%
+    \fi
+  \fi
+}
+
+% -----------------------------------------------------------------------------
+% TikZ styles -- state meaning is carried by draw color, fill, line weight,
+% and (hard-coded, not themed -- see reportkit-core.sty's contract note)
+% line style or a doubled rule, so it survives grayscale printing and does
+% not depend on fill color alone (spec 2.2, 19).
+% -----------------------------------------------------------------------------
+\tikzset{
+  rk algo cell/.style={rectangle,minimum width=1.05cm,minimum height=0.95cm,align=center,font=\RKTokAlgorithmCellFont},
+  rk algo state current/.style={draw=\RKTokAlgorithmCurrentDraw,fill=\RKTokAlgorithmCurrentFill,text=\RKTokAlgorithmCurrentText,line width=\RKTokAlgorithmCurrentLineWidth,font=\RKTokAlgorithmCellFont\bfseries},
+  rk algo state active/.style={draw=\RKTokAlgorithmActiveDraw,fill=\RKTokAlgorithmActiveFill,text=\RKTokAlgorithmActiveText,line width=\RKTokAlgorithmActiveLineWidth},
+  rk algo state candidate/.style={draw=\RKTokAlgorithmCandidateDraw,fill=\RKTokAlgorithmCandidateFill,text=\RKTokAlgorithmCandidateText,line width=\RKTokAlgorithmCandidateLineWidth,dashed},
+  rk algo state frontier/.style={draw=\RKTokAlgorithmFrontierDraw,fill=\RKTokAlgorithmFrontierFill,text=\RKTokAlgorithmFrontierText,line width=\RKTokAlgorithmFrontierLineWidth,dashed},
+  rk algo state visited/.style={draw=\RKTokAlgorithmVisitedDraw,fill=\RKTokAlgorithmVisitedFill,text=\RKTokAlgorithmVisitedText,line width=\RKTokAlgorithmVisitedLineWidth},
+  rk algo state resolved/.style={draw=\RKTokAlgorithmResolvedDraw,fill=\RKTokAlgorithmResolvedFill,text=\RKTokAlgorithmResolvedText,line width=\RKTokAlgorithmResolvedLineWidth,double,double distance=1pt},
+  rk algo state discarded/.style={draw=\RKTokAlgorithmDiscardedDraw,fill=\RKTokAlgorithmDiscardedFill,text=\RKTokAlgorithmDiscardedText,line width=\RKTokAlgorithmDiscardedLineWidth},
+  rk algo state blocked/.style={draw=\RKTokAlgorithmBlockedDraw,fill=\RKTokAlgorithmBlockedFill,text=\RKTokAlgorithmBlockedText,line width=\RKTokAlgorithmBlockedLineWidth,densely dotted},
+  rk algo state unseen/.style={draw=\RKTokAlgorithmUnseenDraw,fill=\RKTokAlgorithmUnseenFill,text=\RKTokAlgorithmUnseenText,line width=\RKTokAlgorithmUnseenLineWidth},
+  rk algo pointer text/.style={font=\RKTokAlgorithmPointerFont,text=\RKTokAlgorithmPointerText},
+  rk algo pointer line/.style={draw=\RKTokAlgorithmPointerLineColor,line width=\RKTokAlgorithmPointerLineWidth},
+  rk algo index text/.style={font=\RKTokAlgorithmIndexFont,text=\RKTokAlgorithmIndexText},
+  rk algo annotation text/.style={font=\RKTokAlgorithmAnnotationFont,text=\RKTokAlgorithmAnnotationText,align=center},
+  rk algo row label/.style={font=\RKTokAlgorithmRowLabelFont,text=\RKTokAlgorithmRowLabelText,anchor=east},
+  rk algo trace title/.style={font=\RKTokAlgorithmTraceTitleFont,text=\RKTokAlgorithmTraceTitleText,align=center},
+  rk algo trace arrow/.style={-{Stealth[length=4pt,width=4pt]},draw=\RKTokAlgorithmTraceArrowColor,line width=\RKTokAlgorithmTraceArrowWidth}
+}
+
+% Fixed geometry (cm), not tokenized -- authored layout constants stay with
+% the primitive, the same rule reportkit-diagrams.sty's own contract note
+% already applies to its stack/cycle/funnel setup commands.
+\newcommand{\rk@arr@cellw}{1.05}
+\newcommand{\rk@arr@cellh}{0.95}
+\newcommand{\rk@arr@rowgap}{1.15}
+\newcommand{\rk@arr@rangepad}{0.07}
+
+% -----------------------------------------------------------------------------
+% arraystate (spec section 5)
+% -----------------------------------------------------------------------------
+\newcount\rk@arr@n
+\newcount\rk@arr@rows
+\newcount\rk@arr@ptrcount
+\newcount\rk@arr@rangecount
+\newcount\rk@arr@annotationcount
+\newcount\rk@arr@rowlencount
+\newcommand{\rk@arr@mode}{single}
+\newcommand{\rk@arr@showindices}{false}
+\newcommand{\rk@arr@rowsopt}{1}
+\newcommand{\rk@arr@cellstate}{unseen}
+\newcommand{\rk@arr@ptrposition}{below}
+\newcommand{\rk@arr@rangestate}{active}
+\newcommand{\rk@arr@rangerow}{}
+
+\pgfkeys{
+  /reportkit/arraystate/.is family,
+  /reportkit/arraystate,
+  rows/.store in=\rk@arr@rowsopt,
+  indices/.store in=\rk@arr@showindices,
+  .unknown/.code={\rk@algoviz@unknownkey{arraystate}}
+}
+\pgfkeys{
+  /reportkit/arraystate/cell/.is family,
+  /reportkit/arraystate/cell,
+  state/.store in=\rk@arr@cellstate,
+  .unknown/.code={\rk@algoviz@unknownkey{\string\cell}}
+}
+\pgfkeys{
+  /reportkit/arraystate/pointer/.is family,
+  /reportkit/arraystate/pointer,
+  above/.code={\renewcommand{\rk@arr@ptrposition}{above}},
+  below/.code={\renewcommand{\rk@arr@ptrposition}{below}},
+  .unknown/.code={\rk@algoviz@unknownkey{\string\pointer}}
+}
+\pgfkeys{
+  /reportkit/arraystate/range/.is family,
+  /reportkit/arraystate/range,
+  state/.store in=\rk@arr@rangestate,
+  row/.store in=\rk@arr@rangerow,
+  .unknown/.code={\rk@algoviz@unknownkey{\string\range}}
+}
+
+% <reportkit-contract>
+% {"kind":"figure","description":"Indexed linear data with values, pointers, active ranges, and annotations -- the foundational algorithm-state primitive.","arguments":[{"name":"options","type":"options","description":"rows= (2 or more switches to multi-row \\row authoring) and indices= (true shows a muted index row under single-row cells)."}],"constraints":[{"code":"inside_diagram","description":"Use inside diagram, like reportarchitecture or reportcycle; it does not open its own tikzpicture."},{"code":"single_or_multi_row","description":"With rows unset or 1, author with \\cell/\\pointer/\\range/\\annotation. With rows=2 or more, author with \\row/\\range[row=...]/\\annotation instead."}],"example":"\\begin{diagram}[caption={Two-pointer scan.},description={A sorted array with left and right pointers bounding the active range.}]\n\\begin{arraystate}\n\\cell{-4}\n\\cell{-1}\n\\cell{-1}\n\\cell{0}\n\\cell{1}\n\\cell{2}\n\\pointer[below]{L}{2}\n\\pointer[below]{R}{5}\n\\range[state=active]{2}{5}\n\\end{arraystate}\n\\end{diagram}","stability":"stable","since":"1.0.0"}
+% </reportkit-contract>
+\NewDocumentEnvironment{arraystate}{O{}}{%
+  \begingroup
+  \renewcommand{\rk@arr@rowsopt}{1}%
+  \renewcommand{\rk@arr@showindices}{false}%
+  \pgfkeys{/reportkit/arraystate,#1}%
+  \rk@arr@n=0\relax
+  \rk@arr@rows=0\relax
+  \rk@arr@ptrcount=0\relax
+  \rk@arr@rangecount=0\relax
+  \rk@arr@annotationcount=0\relax
+  \ifnum\rk@arr@rowsopt>1
+    \renewcommand{\rk@arr@mode}{multi}%
+  \else
+    \renewcommand{\rk@arr@mode}{single}%
+  \fi
+}{%
+  \rk@algoviz@ifeq{\rk@arr@mode}{single}{%
+    \ifnum\rk@arr@n<1
+      \rk@algoviz@error{arraystate requires at least one \string\cell}{Add one or more \string\cell, or set rows=2 or more and use \string\row\space instead.}%
+    \fi
+    \rk@arr@render@single
+  }{%
+    \ifnum\rk@arr@rows<2
+      \rk@algoviz@error{arraystate declared rows=\rk@arr@rowsopt, which needs at least two uses of \string\row}{Add one \string\row\space per declared row.}%
+    \fi
+    \rk@arr@render@multi
+  }%
+  \endgroup
+}
+
+% reportkit-contract: internal
+\newcommand{\rk@arr@requiremode}[2]{%
+  \rk@algoviz@ifeq{\rk@arr@mode}{#1}{}{\rk@algoviz@error{#2 cannot be used in this arraystate}{With rows=2 or more, use \string\row\space and \string\range}}%
+}
+
+% <reportkit-contract>
+% {"kind":"command","description":"One array element, in declaration order, optionally tagged with a semantic state.","arguments":[{"name":"options","type":"options","description":"state= (one of the shared algorithm states; default unseen)."},{"name":"value","type":"text","description":"The rendered cell value."}],"constraints":[{"code":"single_row_only","description":"Only valid when arraystate's rows key is unset or 1."}],"example":"\\cell[state=current]{7}","stability":"stable","since":"1.0.0","parent":"arraystate"}
+% </reportkit-contract>
+\NewDocumentCommand{\cell}{O{} m}{%
+  \rk@arr@requiremode{single}{\string\cell}%
+  \renewcommand{\rk@arr@cellstate}{unseen}%
+  \pgfkeys{/reportkit/arraystate/cell,#1}%
+  \rk@algoviz@checkstate{\rk@arr@cellstate}{\string\cell}%
+  \advance\rk@arr@n by 1\relax
+  \expandafter\xdef\csname rk@arr@val@\the\rk@arr@n\endcsname{#2}%
+  \expandafter\xdef\csname rk@arr@state@\the\rk@arr@n\endcsname{\rk@arr@cellstate}%
+}
+
+% <reportkit-contract>
+% {"kind":"command","description":"A labelled cursor at a 0-based index, drawn as a small tick and tag above or below the cell.","arguments":[{"name":"options","type":"options","description":"above or below (default below)."},{"name":"label","type":"text","description":"The pointer's label, e.g. L, R, or mid."},{"name":"index","type":"text","description":"The 0-based cell index the pointer marks."}],"constraints":[{"code":"single_row_only","description":"Only valid when arraystate's rows key is unset or 1."},{"code":"index_in_range","description":"Index must be within the declared cells."}],"example":"\\pointer[below]{L}{2}","stability":"stable","since":"1.0.0","parent":"arraystate"}
+% </reportkit-contract>
+\NewDocumentCommand{\pointer}{O{} m m}{%
+  \rk@arr@requiremode{single}{\string\pointer}%
+  \renewcommand{\rk@arr@ptrposition}{below}%
+  \pgfkeys{/reportkit/arraystate/pointer,#1}%
+  \pgfmathtruncatemacro{\rk@arr@lastidx}{\rk@arr@n-1}%
+  \rk@algoviz@checkindex{#3}{\rk@arr@lastidx}{\string\pointer}%
+  \advance\rk@arr@ptrcount by 1\relax
+  \expandafter\xdef\csname rk@arr@ptrlabel@\the\rk@arr@ptrcount\endcsname{#2}%
+  \expandafter\xdef\csname rk@arr@ptridx@\the\rk@arr@ptrcount\endcsname{#3}%
+  \expandafter\xdef\csname rk@arr@ptrpos@\the\rk@arr@ptrcount\endcsname{\rk@arr@ptrposition}%
+}
+
+% <reportkit-contract>
+% {"kind":"command","description":"A highlighted background band across an inclusive 0-based index range, rendered behind the cells it covers.","arguments":[{"name":"options","type":"options","description":"state= (default active) and, in multi-row mode, row= naming a declared \\row."},{"name":"start","type":"text","description":"0-based start index, inclusive."},{"name":"end","type":"text","description":"0-based end index, inclusive."}],"constraints":[{"code":"range_in_row","description":"start must not exceed end, and both must lie within the target row's declared cells."}],"example":"\\range[state=active]{2}{5}","stability":"stable","since":"1.0.0","parent":"arraystate"}
+% </reportkit-contract>
+\NewDocumentCommand{\range}{O{} m m}{%
+  \renewcommand{\rk@arr@rangestate}{active}%
+  \renewcommand{\rk@arr@rangerow}{}%
+  \pgfkeys{/reportkit/arraystate/range,#1}%
+  \rk@algoviz@checkstate{\rk@arr@rangestate}{\string\range}%
+  \ifnum#2>#3
+    \rk@algoviz@error{Range start #2 is after end #3}{Give start and end as start <= end.}%
+  \fi
+  \rk@algoviz@ifeq{\rk@arr@mode}{single}{%
+    \pgfmathtruncatemacro{\rk@arr@lastidx}{\rk@arr@n-1}%
+    \rk@algoviz@checkindex{#2}{\rk@arr@lastidx}{\string\range}%
+    \rk@algoviz@checkindex{#3}{\rk@arr@lastidx}{\string\range}%
+  }{%
+    \rk@algoviz@ifeq{\rk@arr@rangerow}{}{%
+      \rk@algoviz@error{row= is required for \string\range\space when arraystate declared rows=\rk@arr@rowsopt}{Set row=<name> to one of your \string\row names}%
+    }{}%
+    \ifcsname rk@arr@rowindex@\rk@arr@rangerow\endcsname
+      \expandafter\let\expandafter\rk@arr@rowidx\csname rk@arr@rowindex@\rk@arr@rangerow\endcsname
+    \else
+      \rk@algoviz@error{Unknown row '\rk@arr@rangerow' in \string\range}{Use one of the names given to \string\row}%
+    \fi
+    \expandafter\let\expandafter\rk@arr@rowlen\csname rk@arr@rowlen@\rk@arr@rowidx\endcsname
+    \pgfmathtruncatemacro{\rk@arr@lastidx}{\rk@arr@rowlen-1}%
+    \rk@algoviz@checkindex{#2}{\rk@arr@lastidx}{\string\range}%
+    \rk@algoviz@checkindex{#3}{\rk@arr@lastidx}{\string\range}%
+  }%
+  \advance\rk@arr@rangecount by 1\relax
+  \expandafter\xdef\csname rk@arr@rangestart@\the\rk@arr@rangecount\endcsname{#2}%
+  \expandafter\xdef\csname rk@arr@rangeend@\the\rk@arr@rangecount\endcsname{#3}%
+  \expandafter\xdef\csname rk@arr@rangestate@\the\rk@arr@rangecount\endcsname{\rk@arr@rangestate}%
+  \expandafter\xdef\csname rk@arr@rangerow@\the\rk@arr@rangecount\endcsname{\rk@arr@rangerow}%
+}
+
+% <reportkit-contract>
+% {"kind":"command","description":"A centred caption-style line of supporting text below the array, e.g. a computed formula.","arguments":[{"name":"text","type":"text","description":"The annotation text."}],"constraints":[],"example":"\\annotation{$P_4 - P_1 = 7$}","stability":"stable","since":"1.0.0","parent":"arraystate"}
+% </reportkit-contract>
+\NewDocumentCommand{\annotation}{m}{%
+  \advance\rk@arr@annotationcount by 1\relax
+  \expandafter\xdef\csname rk@arr@annotation@\the\rk@arr@annotationcount\endcsname{#1}%
+}
+
+% <reportkit-contract>
+% {"kind":"command","description":"One named row of comma-separated values, for multi-row arraystate (e.g. an original array next to its prefix sums).","arguments":[{"name":"name","type":"text","description":"The row's name, referenced by \\range's row= key and shown as a row label."},{"name":"values","type":"text","description":"Comma-separated cell values."}],"constraints":[{"code":"multi_row_only","description":"Only valid when arraystate's rows key is 2 or more."}],"example":"\\row{values}{3,1,4,2}","stability":"stable","since":"1.0.0","parent":"arraystate"}
+% </reportkit-contract>
+\NewDocumentCommand{\row}{m m}{%
+  \rk@arr@requiremode{multi}{\string\row}%
+  \advance\rk@arr@rows by 1\relax
+  \expandafter\xdef\csname rk@arr@rowname@\the\rk@arr@rows\endcsname{#1}%
+  \expandafter\gdef\csname rk@arr@rowindex@#1\endcsname{\the\rk@arr@rows}%
+  \rk@arr@rowlencount=0\relax
+  \@for\rk@arr@rowitem:=#2\do{%
+    \advance\rk@arr@rowlencount by 1\relax
+    \expandafter\xdef\csname rk@arr@rowval@\the\rk@arr@rows @\the\rk@arr@rowlencount\endcsname{\rk@arr@rowitem}%
+  }%
+  \expandafter\xdef\csname rk@arr@rowlen@\the\rk@arr@rows\endcsname{\the\rk@arr@rowlencount}%
+}
+
+% reportkit-contract: internal
+\newcommand{\rk@arr@rangesforrow}[1]{%
+  \ifnum\rk@arr@rangecount>0
+    \foreach \rk@arr@ri in {1,...,\rk@arr@rangecount}{%
+      \expandafter\let\expandafter\rk@arr@rirow\csname rk@arr@rangerow@\rk@arr@ri\endcsname
+      \rk@algoviz@ifeq{\rk@arr@rirow}{#1}{%
+        \expandafter\let\expandafter\rk@arr@ristart\csname rk@arr@rangestart@\rk@arr@ri\endcsname
+        \expandafter\let\expandafter\rk@arr@riend\csname rk@arr@rangeend@\rk@arr@ri\endcsname
+        \expandafter\let\expandafter\rk@arr@ristate\csname rk@arr@rangestate@\rk@arr@ri\endcsname
+        \pgfmathsetmacro{\rk@arr@rx}{\rk@arr@ristart*\rk@arr@cellw}%
+        \pgfmathsetmacro{\rk@arr@rw}{(\rk@arr@riend-\rk@arr@ristart)*\rk@arr@cellw}%
+        \draw[rk algo state \rk@arr@ristate,rounded corners=1.4pt]
+          ({\rk@arr@rx-0.5*\rk@arr@cellw-\rk@arr@rangepad},{\rk@arr@ry-0.5*\rk@arr@cellh-\rk@arr@rangepad})
+          rectangle
+          ({\rk@arr@rx+\rk@arr@rw+0.5*\rk@arr@cellw+\rk@arr@rangepad},{\rk@arr@ry+0.5*\rk@arr@cellh+\rk@arr@rangepad});
+      }{}%
+    }%
+  \fi
+}
+
+% reportkit-contract: internal
+\newcommand{\rk@arr@render@single}{%
+  \def\rk@arr@ry{0}%
+  \rk@arr@rangesforrow{}%
+  \foreach \rk@arr@i in {1,...,\rk@arr@n}{%
+    \pgfmathsetmacro{\rk@arr@x}{(\rk@arr@i-1)*\rk@arr@cellw}%
+    \expandafter\let\expandafter\rk@arr@val\csname rk@arr@val@\rk@arr@i\endcsname
+    \expandafter\let\expandafter\rk@arr@state\csname rk@arr@state@\rk@arr@i\endcsname
+    \node[rk algo cell,rk algo state \rk@arr@state] at (\rk@arr@x,0) {\rk@arr@val};%
+    \rk@algoviz@ifeq{\rk@arr@state}{discarded}{%
+      \rk@algoviz@ifeq{\RKTokAlgorithmDiscardedPattern}{diagonal}{%
+        \draw[draw=\RKTokAlgorithmDiscardedDraw,line width=\RKTokAlgorithmDiscardedLineWidth]
+          ({\rk@arr@x-0.42*\rk@arr@cellw},{-0.38*\rk@arr@cellh}) -- ({\rk@arr@x+0.42*\rk@arr@cellw},{0.38*\rk@arr@cellh});
+      }{}%
+    }{}%
+  }%
+  \def\rk@arr@belowoffset{0.16}%
+  \rk@algoviz@ifeq{\rk@arr@showindices}{true}{%
+    \foreach \rk@arr@i in {1,...,\rk@arr@n}{%
+      \pgfmathsetmacro{\rk@arr@x}{(\rk@arr@i-1)*\rk@arr@cellw}%
+      \pgfmathtruncatemacro{\rk@arr@idxval}{\rk@arr@i-1}%
+      \node[rk algo index text,anchor=north] at (\rk@arr@x,{-0.5*\rk@arr@cellh-0.06}) {\rk@arr@idxval};%
+    }%
+    \def\rk@arr@belowoffset{0.42}%
+  }{}%
+  \ifnum\rk@arr@ptrcount>0
+    \foreach \rk@arr@p in {1,...,\rk@arr@ptrcount}{%
+      \expandafter\let\expandafter\rk@arr@plabel\csname rk@arr@ptrlabel@\rk@arr@p\endcsname
+      \expandafter\let\expandafter\rk@arr@pidx\csname rk@arr@ptridx@\rk@arr@p\endcsname
+      \expandafter\let\expandafter\rk@arr@ppos\csname rk@arr@ptrpos@\rk@arr@p\endcsname
+      \pgfmathsetmacro{\rk@arr@px}{\rk@arr@pidx*\rk@arr@cellw}%
+      \rk@algoviz@ifeq{\rk@arr@ppos}{above}{%
+        \pgfmathsetmacro{\rk@arr@pedge}{0.5*\rk@arr@cellh}%
+        \pgfmathsetmacro{\rk@arr@ptip}{\rk@arr@pedge+0.16}%
+        \draw[rk algo pointer line] (\rk@arr@px,\rk@arr@pedge) -- (\rk@arr@px,\rk@arr@ptip);
+        \node[rk algo pointer text,anchor=south] at (\rk@arr@px,\rk@arr@ptip) {\rk@arr@plabel};%
+      }{%
+        \pgfmathsetmacro{\rk@arr@pedge}{-0.5*\rk@arr@cellh-\rk@arr@belowoffset}%
+        \pgfmathsetmacro{\rk@arr@ptip}{\rk@arr@pedge-0.16}%
+        \draw[rk algo pointer line] ({\rk@arr@px},{-0.5*\rk@arr@cellh}) -- (\rk@arr@px,\rk@arr@pedge);
+        \node[rk algo pointer text,anchor=north] at (\rk@arr@px,\rk@arr@pedge) {\rk@arr@plabel};%
+      }%
+    }%
+  \fi
+  \rk@arr@renderannotations{-0.5*\rk@arr@cellh-\rk@arr@belowoffset-0.34}%
+}
+
+% reportkit-contract: internal
+\newcommand{\rk@arr@render@multi}{%
+  \foreach \rk@arr@r in {1,...,\rk@arr@rows}{%
+    \pgfmathsetmacro{\rk@arr@ry}{-(\rk@arr@r-1)*\rk@arr@rowgap}%
+    \expandafter\let\expandafter\rk@arr@rowname\csname rk@arr@rowname@\rk@arr@r\endcsname
+    \rk@arr@rangesforrow{\rk@arr@rowname}%
+    \node[rk algo row label] at ({-0.5*\rk@arr@cellw-0.18},\rk@arr@ry) {\rk@arr@rowname};%
+    \expandafter\let\expandafter\rk@arr@rowlen\csname rk@arr@rowlen@\rk@arr@r\endcsname
+    \foreach \rk@arr@c in {1,...,\rk@arr@rowlen}{%
+      \pgfmathsetmacro{\rk@arr@x}{(\rk@arr@c-1)*\rk@arr@cellw}%
+      \expandafter\let\expandafter\rk@arr@val\csname rk@arr@rowval@\rk@arr@r @\rk@arr@c\endcsname
+      \node[rk algo cell,rk algo state unseen] at (\rk@arr@x,\rk@arr@ry) {\rk@arr@val};%
+    }%
+  }%
+  \pgfmathsetmacro{\rk@arr@lastrowy}{-(\rk@arr@rows-1)*\rk@arr@rowgap}%
+  \rk@arr@renderannotations{\rk@arr@lastrowy-0.5*\rk@arr@cellh-0.34}%
+}
+
+% reportkit-contract: internal
+\newcommand{\rk@arr@renderannotations}[1]{%
+  \ifnum\rk@arr@annotationcount>0
+    \def\rk@arr@ay{#1}%
+    \foreach \rk@arr@a in {1,...,\rk@arr@annotationcount}{%
+      \expandafter\let\expandafter\rk@arr@atext\csname rk@arr@annotation@\rk@arr@a\endcsname
+      \node[rk algo annotation text,anchor=north] at (0,\rk@arr@ay) {\rk@arr@atext};%
+      \pgfmathsetmacro{\rk@arr@ay}{\rk@arr@ay-0.34}%
+    }%
+  \fi
+}
+
+% -----------------------------------------------------------------------------
+% algorithmtrace (spec section 14)
+% -----------------------------------------------------------------------------
+\newcount\rk@trace@count
+\newcommand{\rk@trace@columns}{3}
+\newcommand{\rk@trace@columnwidth}{5.0}
+\newcommand{\rk@trace@rowheight}{4.6}
+
+\pgfkeys{
+  /reportkit/algorithmtrace/.is family,
+  /reportkit/algorithmtrace,
+  columns/.store in=\rk@trace@columns,
+  columnwidth/.store in=\rk@trace@columnwidth,
+  rowheight/.store in=\rk@trace@rowheight,
+  .unknown/.code={\rk@algoviz@unknownkey{algorithmtrace}}
+}
+
+% <reportkit-contract>
+% {"kind":"figure","description":"An ordered sequence of algorithm-state snapshots read left to right, top to bottom, with an optional connecting arrow between consecutive snapshots.","arguments":[{"name":"options","type":"options","description":"columns= (default 3), columnwidth= and rowheight= in cm (defaults 5.0 and 4.6)."}],"constraints":[{"code":"inside_diagram","description":"Use inside diagram; it does not open its own tikzpicture."},{"code":"min_two_snapshots","description":"Requires at least one \\snapshot; a single snapshot is not a trace."}],"example":"\\begin{diagram}[caption={Sliding window advances by one.},description={Three snapshots show the window advancing one step to the right.}]\n\\begin{algorithmtrace}[columns=3]\n\\snapshot{Initial}{\\begin{arraystate}\\cell{4}\\cell{2}\\cell{7}\\cell{1}\\range[state=active]{0}{1}\\end{arraystate}}\n\\snapshot{Advance right}{\\begin{arraystate}\\cell{4}\\cell{2}\\cell{7}\\cell{1}\\range[state=active]{1}{2}\\end{arraystate}}\n\\snapshot{Advance again}{\\begin{arraystate}\\cell{4}\\cell{2}\\cell{7}\\cell{1}\\range[state=active]{2}{3}\\end{arraystate}}\n\\end{algorithmtrace}\n\\end{diagram}","stability":"stable","since":"1.0.0"}
+% </reportkit-contract>
+\NewDocumentEnvironment{algorithmtrace}{O{}}{%
+  \begingroup
+  \renewcommand{\rk@trace@columns}{3}%
+  \renewcommand{\rk@trace@columnwidth}{5.0}%
+  \renewcommand{\rk@trace@rowheight}{4.6}%
+  \pgfkeys{/reportkit/algorithmtrace,#1}%
+  \rk@trace@count=0\relax
+}{%
+  \ifnum\rk@trace@count<1
+    \rk@algoviz@error{algorithmtrace requires at least one \string\snapshot}{Add one or more \string\snapshot\space commands.}%
+  \fi
+  \endgroup
+}
+
+% <reportkit-contract>
+% {"kind":"command","description":"One titled algorithm-state snapshot inside algorithmtrace, positioned automatically in reading order.","arguments":[{"name":"title","type":"text","description":"A short label for this step, e.g. \"Advance right\"."},{"name":"content","type":"text","description":"The snapshot's own state primitive, e.g. an arraystate."}],"constraints":[{"code":"inside_algorithmtrace","description":"Only valid inside algorithmtrace."}],"example":"\\snapshot{Initial}{\\begin{arraystate}\\cell{1}\\cell{2}\\end{arraystate}}","stability":"stable","since":"1.0.0","parent":"algorithmtrace"}
+% </reportkit-contract>
+\NewDocumentCommand{\snapshot}{m m}{%
+  \pgfmathtruncatemacro{\rk@trace@col}{mod(\rk@trace@count,\rk@trace@columns)}%
+  \pgfmathtruncatemacro{\rk@trace@row}{(\rk@trace@count-\rk@trace@col)/\rk@trace@columns}%
+  \pgfmathsetmacro{\rk@trace@x}{\rk@trace@col*\rk@trace@columnwidth}%
+  \pgfmathsetmacro{\rk@trace@y}{-\rk@trace@row*\rk@trace@rowheight}%
+  \ifnum\rk@trace@col>0
+    % A snapshot's content (an arraystate or other state primitive) starts at
+    % its own local x=0 and grows rightward by however many cells the author
+    % gave it -- algorithmtrace cannot know that width in advance, so the
+    % arrow is anchored to the *incoming* column's known start rather than a
+    % bisection of the two columns, which would assume symmetric content and
+    % can land on top of a wide outgoing snapshot's trailing cells.
+    \draw[rk algo trace arrow] ({\rk@trace@x-0.85},\rk@trace@y) -- ({\rk@trace@x-0.25},\rk@trace@y);
+  \fi
+  \begin{scope}[shift={(\rk@trace@x,\rk@trace@y)}]
+    \node[rk algo trace title,anchor=south] at (0,0.85) {#1};
+    #2
+  \end{scope}
+  \advance\rk@trace@count by 1\relax
+}
+
+\makeatother
+\endinput

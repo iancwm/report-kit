@@ -301,6 +301,76 @@
 \newcommand{\RKTokDiagramStructureArrowColor}{\rk@styletokenerror{\RKTokDiagramStructureArrowColor}}
 \newcommand{\RKTokDiagramStructureArrowWidth}{\rk@styletokenerror{\RKTokDiagramStructureArrowWidth}}
 \newcommand{\RKTokDiagramStructureArrowTip}{\rk@styletokenerror{\RKTokDiagramStructureArrowTip}}
+% Algorithm-state visualization (reportkit-algorithm-viz.sty's `arraystate`
+% and `algorithmtrace`, and every specialized primitive built on them in a
+% later phase). Same contract and gate as the diagram-chrome tokens above:
+% only appearance is tokenized (draw/fill/text colors, line weight, font);
+% the semantic-state *shape* differences the spec requires (dashed for a
+% not-yet-committed state, dotted for blocked, a doubled rule for resolved)
+% are structural, not themeable, so they stay hard-coded in the module
+% itself, exactly like `rk edge handoff`'s hard-coded `dashed` above.
+\newcommand{\RKTokAlgorithmCellFont}{\rk@styletokenerror{\RKTokAlgorithmCellFont}}
+\newcommand{\RKTokAlgorithmCurrentDraw}{\rk@styletokenerror{\RKTokAlgorithmCurrentDraw}}
+\newcommand{\RKTokAlgorithmCurrentFill}{\rk@styletokenerror{\RKTokAlgorithmCurrentFill}}
+\newcommand{\RKTokAlgorithmCurrentText}{\rk@styletokenerror{\RKTokAlgorithmCurrentText}}
+\newcommand{\RKTokAlgorithmCurrentLineWidth}{\rk@styletokenerror{\RKTokAlgorithmCurrentLineWidth}}
+\newcommand{\RKTokAlgorithmActiveDraw}{\rk@styletokenerror{\RKTokAlgorithmActiveDraw}}
+\newcommand{\RKTokAlgorithmActiveFill}{\rk@styletokenerror{\RKTokAlgorithmActiveFill}}
+\newcommand{\RKTokAlgorithmActiveText}{\rk@styletokenerror{\RKTokAlgorithmActiveText}}
+\newcommand{\RKTokAlgorithmActiveLineWidth}{\rk@styletokenerror{\RKTokAlgorithmActiveLineWidth}}
+\newcommand{\RKTokAlgorithmCandidateDraw}{\rk@styletokenerror{\RKTokAlgorithmCandidateDraw}}
+\newcommand{\RKTokAlgorithmCandidateFill}{\rk@styletokenerror{\RKTokAlgorithmCandidateFill}}
+\newcommand{\RKTokAlgorithmCandidateText}{\rk@styletokenerror{\RKTokAlgorithmCandidateText}}
+\newcommand{\RKTokAlgorithmCandidateLineWidth}{\rk@styletokenerror{\RKTokAlgorithmCandidateLineWidth}}
+\newcommand{\RKTokAlgorithmFrontierDraw}{\rk@styletokenerror{\RKTokAlgorithmFrontierDraw}}
+\newcommand{\RKTokAlgorithmFrontierFill}{\rk@styletokenerror{\RKTokAlgorithmFrontierFill}}
+\newcommand{\RKTokAlgorithmFrontierText}{\rk@styletokenerror{\RKTokAlgorithmFrontierText}}
+\newcommand{\RKTokAlgorithmFrontierLineWidth}{\rk@styletokenerror{\RKTokAlgorithmFrontierLineWidth}}
+\newcommand{\RKTokAlgorithmVisitedDraw}{\rk@styletokenerror{\RKTokAlgorithmVisitedDraw}}
+\newcommand{\RKTokAlgorithmVisitedFill}{\rk@styletokenerror{\RKTokAlgorithmVisitedFill}}
+\newcommand{\RKTokAlgorithmVisitedText}{\rk@styletokenerror{\RKTokAlgorithmVisitedText}}
+\newcommand{\RKTokAlgorithmVisitedLineWidth}{\rk@styletokenerror{\RKTokAlgorithmVisitedLineWidth}}
+\newcommand{\RKTokAlgorithmResolvedDraw}{\rk@styletokenerror{\RKTokAlgorithmResolvedDraw}}
+\newcommand{\RKTokAlgorithmResolvedFill}{\rk@styletokenerror{\RKTokAlgorithmResolvedFill}}
+\newcommand{\RKTokAlgorithmResolvedText}{\rk@styletokenerror{\RKTokAlgorithmResolvedText}}
+\newcommand{\RKTokAlgorithmResolvedLineWidth}{\rk@styletokenerror{\RKTokAlgorithmResolvedLineWidth}}
+\newcommand{\RKTokAlgorithmDiscardedDraw}{\rk@styletokenerror{\RKTokAlgorithmDiscardedDraw}}
+\newcommand{\RKTokAlgorithmDiscardedFill}{\rk@styletokenerror{\RKTokAlgorithmDiscardedFill}}
+\newcommand{\RKTokAlgorithmDiscardedText}{\rk@styletokenerror{\RKTokAlgorithmDiscardedText}}
+\newcommand{\RKTokAlgorithmDiscardedLineWidth}{\rk@styletokenerror{\RKTokAlgorithmDiscardedLineWidth}}
+% Literal pattern keyword (currently only "diagonal" is implemented; any
+% other value renders the discarded state with no strike-through) rather
+% than a color/weight, matching this token's spec-named role as a shape
+% treatment, not a themeable appearance value.
+\newcommand{\RKTokAlgorithmDiscardedPattern}{\rk@styletokenerror{\RKTokAlgorithmDiscardedPattern}}
+\newcommand{\RKTokAlgorithmBlockedDraw}{\rk@styletokenerror{\RKTokAlgorithmBlockedDraw}}
+\newcommand{\RKTokAlgorithmBlockedFill}{\rk@styletokenerror{\RKTokAlgorithmBlockedFill}}
+\newcommand{\RKTokAlgorithmBlockedText}{\rk@styletokenerror{\RKTokAlgorithmBlockedText}}
+\newcommand{\RKTokAlgorithmBlockedLineWidth}{\rk@styletokenerror{\RKTokAlgorithmBlockedLineWidth}}
+\newcommand{\RKTokAlgorithmUnseenDraw}{\rk@styletokenerror{\RKTokAlgorithmUnseenDraw}}
+\newcommand{\RKTokAlgorithmUnseenFill}{\rk@styletokenerror{\RKTokAlgorithmUnseenFill}}
+\newcommand{\RKTokAlgorithmUnseenText}{\rk@styletokenerror{\RKTokAlgorithmUnseenText}}
+\newcommand{\RKTokAlgorithmUnseenLineWidth}{\rk@styletokenerror{\RKTokAlgorithmUnseenLineWidth}}
+% Pointer tag (`\pointer`) -- the small labelled tick below/above a cell.
+\newcommand{\RKTokAlgorithmPointerFont}{\rk@styletokenerror{\RKTokAlgorithmPointerFont}}
+\newcommand{\RKTokAlgorithmPointerText}{\rk@styletokenerror{\RKTokAlgorithmPointerText}}
+\newcommand{\RKTokAlgorithmPointerLineColor}{\rk@styletokenerror{\RKTokAlgorithmPointerLineColor}}
+\newcommand{\RKTokAlgorithmPointerLineWidth}{\rk@styletokenerror{\RKTokAlgorithmPointerLineWidth}}
+% Optional index row (`indices=true`).
+\newcommand{\RKTokAlgorithmIndexFont}{\rk@styletokenerror{\RKTokAlgorithmIndexFont}}
+\newcommand{\RKTokAlgorithmIndexText}{\rk@styletokenerror{\RKTokAlgorithmIndexText}}
+% Annotation line (`\annotation`).
+\newcommand{\RKTokAlgorithmAnnotationFont}{\rk@styletokenerror{\RKTokAlgorithmAnnotationFont}}
+\newcommand{\RKTokAlgorithmAnnotationText}{\rk@styletokenerror{\RKTokAlgorithmAnnotationText}}
+% Multi-row label (`\row`'s own name, e.g. "values"/"prefix").
+\newcommand{\RKTokAlgorithmRowLabelFont}{\rk@styletokenerror{\RKTokAlgorithmRowLabelFont}}
+\newcommand{\RKTokAlgorithmRowLabelText}{\rk@styletokenerror{\RKTokAlgorithmRowLabelText}}
+% Temporal composition (`algorithmtrace`'s snapshot title and the optional
+% connecting arrow between consecutive snapshots).
+\newcommand{\RKTokAlgorithmTraceTitleFont}{\rk@styletokenerror{\RKTokAlgorithmTraceTitleFont}}
+\newcommand{\RKTokAlgorithmTraceTitleText}{\rk@styletokenerror{\RKTokAlgorithmTraceTitleText}}
+\newcommand{\RKTokAlgorithmTraceArrowColor}{\rk@styletokenerror{\RKTokAlgorithmTraceArrowColor}}
+\newcommand{\RKTokAlgorithmTraceArrowWidth}{\rk@styletokenerror{\RKTokAlgorithmTraceArrowWidth}}
 \newif\ifrk@styletokensloaded
 \rk@styletokensloadedfalse
 % Called by reportkit-boxes.sty (or any future style-token consumer)
