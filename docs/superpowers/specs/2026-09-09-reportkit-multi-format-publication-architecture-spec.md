@@ -8,8 +8,9 @@ across the diagram, structure, process, and spatial modules) landed
 tree, with focused pure-Python validation complete and the Matplotlib/pinned
 runtime gate still outstanding. A5 (pipeline target-awareness) and Phase B
 (slide renderer and presentation semantics) are essentially implemented, out
-of this spec's original phase order, with scoped follow-up recorded below; A0
-remains. Phases C–F have not started.
+of this spec's original phase order, with the equity-research pipeline
+acceptance now implemented and scoped follow-up recorded below; A0 remains.
+Phases C–F have not started.
 Supersedes nothing; extends the architecture introduced by
 [2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md](2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md)
 (Steps 1–5 implemented, `reportkit.cls` v1.9.3).
@@ -131,8 +132,9 @@ LaTeX.** A5 now fixes the load-bearing defect: `publication_build.py` retains
 the resolved `BuildTarget`, selects the entrypoint and Pandoc writer from it,
 and stages the resolved class/selection through the target-aware templates.
 The presentation path is verified end to end. The equity-research fixture's
-dedicated pipeline acceptance case and the full D7 paged-template split remain
-open, so §7's original acceptance requirement is not fully closed.
+dedicated pipeline acceptance case is now implemented; the full D7
+paged-template split remains open, so §7's original acceptance requirement is
+not fully closed.
 
 **(c) The figure-size slots the draft proposes mostly already exist.** The
 draft's §10 asks to "extend toward" `full / wide / compact / square / half /
@@ -507,11 +509,13 @@ readable for diagnostics; it stops being the thing that decides.
 markdown pipeline must produce an institutional-themed, equity-research PDF —
 closing the gap that file's own header comment records.
 
-**A5 status:** target resolution, template/writer selection, stable staged
-output names, build-report selection data and a log-visible selection marker
-are implemented. A real presentation build is verified through the normal
-pipeline using Pandoc's Beamer writer. The equity-research pipeline acceptance
-case and the full D7 paged-template split remain open.
+**A5 status:** target resolution, template/writer selection, explicit staged
+class-option plumbing, stable output names, build-report selection data and a
+log-visible selection marker are implemented. A real presentation build is
+verified through the normal pipeline using Pandoc's Beamer writer. The
+equity-research pipeline acceptance case is also implemented with Markdown
+source and trusted figure fragments; the full D7 paged-template split remains
+open.
 
 ---
 
@@ -1006,9 +1010,10 @@ proves the plain Markdown heading-to-frame path.
 
 **Current status (verified 2026-09-15):** the canvas, renderer separation,
 Pandoc Beamer writer and checked accessibility features are verified. B4's
-findings are still manual rather than an automated pytest gate, and
-directive/fragment-based composition authoring from Markdown is not yet
-implemented. `executive` remains experimental pending Phase C review.
+findings now have a reusable PDF inspector and compiled-fixture pytest/
+acceptance gate. Directive/fragment-based composition authoring from Markdown
+is not yet implemented. `executive` remains experimental pending Phase C
+review.
 
 **Definition of done:** a presentation compiles through the normal ReportKit
 pipeline without touching the article renderer. This is met for the proven

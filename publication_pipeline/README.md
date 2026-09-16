@@ -35,6 +35,12 @@ remains supported. Set `REPORTKIT_PDF_PYTHON` to override the consumer
 project's default `<output-root>/.venv/bin/python` for page rendering and PDF
 inspection.
 
+The canonical slide acceptance fixture has a stricter profile available to
+the repository gate: `inspect_pdf.py --slide-accessibility` checks PDF
+metadata, catalog language, outline entries, meaningful external links,
+diagram `/ActualText`, and the declared tagged-PDF capability. The profile is
+run by `scripts/acceptance_check.sh` and `tests/test_slide_accessibility.py`.
+
 `<publication-project>/publication.yaml` supplies the title, subtitle, author,
 date, and version; set `date: build` to print the local calendar date for each
 build, or provide a literal date for a fixed publication date. The

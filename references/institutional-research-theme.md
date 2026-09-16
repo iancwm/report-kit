@@ -47,11 +47,21 @@ theme:
 
 `font_policy: fallback` (the default) walks Google Sans -> Inter -> Noto
 Sans -> TeX Gyre Heros and warns which one it used; `strict` fails the
-build if Google Sans specifically cannot be resolved. Neither
-`document.theme` nor `theme.*` are wired into the markdown-driven
-publication pipeline yet -- every example that uses this theme sets
-`\documentclass[...]` options directly in `report.tex`, the same way it
-already sets `\setreportkitleftheader` etc.
+build if Google Sans specifically cannot be resolved. The target-aware
+pipeline now propagates `document.theme` and `document.publication_type` into
+the staged class options. The Markdown/fragments path for the worked equity
+fixture can be built with:
+
+```bash
+<report-kit-clone>/reportkit build \
+  --source-root <report-kit-clone>/latex_templates/examples/equity-research \
+  --output-root <report-kit-clone>/build/equity-research
+```
+
+`report.tex` remains the direct-TeX compatibility witness, while the
+`manuscript/` and `fragments/` files exercise the normal pipeline. Theme font
+settings and brand overrides are still resolved by configuration but are not
+yet materialized into pipeline-generated preamble files.
 
 ## Exhibit-led authoring
 
