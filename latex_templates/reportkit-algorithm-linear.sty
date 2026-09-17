@@ -67,7 +67,7 @@
     \pgfmathsetmacro{\rk@lineary}{0}%
   }%
   \edef\rk@linearcellname{rkalgolinear-\the\rk@linearindex}%
-  \node[rk algo cell\rk@algostateoverlay] (\rk@linearcellname) at (\rk@linearx,\rk@lineary) {\strut #2};%
+  \node[rk algo cell,\rk@algostateoverlay] (\rk@linearcellname) at (\rk@linearx,\rk@lineary) {\strut #2};%
   \advance\rk@linearindex by 1\relax
 }
 

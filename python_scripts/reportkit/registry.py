@@ -15,6 +15,7 @@ FIGURE_ENVIRONMENTS = {
     "reportarchitecture", "reportcompare", "reportcycle", "reportflow", "reportfunnel",
     "reportmatrix", "reportnetwork", "reportroadmap", "reportstate", "reportswimlane",
     "reporttimeline", "reporttree", "riskheatmap", "strategicpillars",
+    "joinstate", "unionfindstate", "linkedliststate", "recursiontree",
 }
 CALLOUT_ENVIRONMENTS = {
     "principle", "decisionpoint", "researchproblem", "assumption", "redflag",

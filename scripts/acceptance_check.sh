@@ -30,6 +30,7 @@ TEST_TEXES=(
   "latex_templates/examples/algorithm_visuals_graph_acceptance_test.tex"
   "latex_templates/examples/algorithm_visuals_order_acceptance_test.tex"
   "latex_templates/examples/algorithm_visuals_dp_acceptance_test.tex"
+  "latex_templates/examples/algorithm_visuals_p3_acceptance_test.tex"
 )
 
 echo "== ReportKit acceptance check =="

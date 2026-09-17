@@ -24,6 +24,10 @@ tags on this repository, not a published package registry.
   (`reportkit-algorithm-dp.sty`), and `dagstate` (appended to
   `reportkit-algorithm-graph.sty`, with an indegree badge and dependency
   edges reusing `reportnetwork`'s existing edge style).
+- P3 algorithm-visualization extensions in `reportkit-algorithm-p3.sty`:
+  `joinstate` for keyed/hash joins, `unionfindstate` for disjoint-set
+  operations, `linkedliststate` for next-pointer traversal, and
+  `recursiontree` for argument/return/memoization state.
 - A new `algorithmblock` primitive (`reportkit-algorithms.sty`) for
   language-neutral algorithm/pseudocode, built on algorithmicx/algpseudocode
   (never the floating `algorithm` package) with ReportKit's own keyword

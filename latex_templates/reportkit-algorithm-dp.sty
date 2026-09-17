@@ -119,7 +119,7 @@
   \pgfmathsetmacro{\rk@dpx}{(#2-1)*\rk@dpcellsize}%
   \pgfmathsetmacro{\rk@dpy}{-(#1-1)*\rk@dpcellsize}%
   \edef\rk@dpcellname{rkdpcell-#1-#2}%
-  \node[rk algo cell\rk@algostateoverlay] (\rk@dpcellname) at (\rk@dpx,\rk@dpy) {\strut #4};%
+  \node[rk algo cell,\rk@algostateoverlay] (\rk@dpcellname) at (\rk@dpx,\rk@dpy) {\strut #4};%
 }
 
 % Shared background-layer highlight used by \currentcell/\dependencycell/
@@ -136,7 +136,7 @@
   \pgfmathsetmacro{\rk@dpsx}{(#3-1)*\rk@dpcellsize}%
   \pgfmathsetmacro{\rk@dpsy}{-(#2-1)*\rk@dpcellsize}%
   \begin{pgfonlayer}{background}
-    \node[rk algo cell\rk@algostateoverlay,rounded corners=2.6pt,fill opacity=.9,
+    \node[rk algo cell,\rk@algostateoverlay,rounded corners=2.6pt,fill opacity=.9,
           minimum width=\rk@dpcellsize cm,minimum height=\rk@dpcellsize cm,inner sep=0pt]
       at (\rk@dpsx,\rk@dpsy) {};%
   \end{pgfonlayer}

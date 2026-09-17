@@ -42,15 +42,15 @@
     rectangle,minimum size=\RKTokAlgorithmCellMinSize,inner sep=\RKTokAlgorithmCellPad,
     rounded corners=\RKTokAlgorithmCellRounding,font=\RKTokAlgorithmCellFont,align=center
   },
-  rk algo state current/.style={draw=\RKTokAlgorithmCurrentDraw,fill=\RKTokAlgorithmCurrentFill,text=\RKTokAlgorithmCurrentText,\RKTokAlgorithmCurrentLineStyle},
-  rk algo state active/.style={draw=\RKTokAlgorithmActiveDraw,fill=\RKTokAlgorithmActiveFill,text=\RKTokAlgorithmActiveText,\RKTokAlgorithmActiveLineStyle},
-  rk algo state candidate/.style={draw=\RKTokAlgorithmCandidateDraw,fill=\RKTokAlgorithmCandidateFill,text=\RKTokAlgorithmCandidateText,\RKTokAlgorithmCandidateLineStyle},
-  rk algo state frontier/.style={draw=\RKTokAlgorithmFrontierDraw,fill=\RKTokAlgorithmFrontierFill,text=\RKTokAlgorithmFrontierText,\RKTokAlgorithmFrontierLineStyle},
-  rk algo state visited/.style={draw=\RKTokAlgorithmVisitedDraw,fill=\RKTokAlgorithmVisitedFill,text=\RKTokAlgorithmVisitedText,\RKTokAlgorithmVisitedLineStyle},
-  rk algo state resolved/.style={draw=\RKTokAlgorithmResolvedDraw,fill=\RKTokAlgorithmResolvedFill,text=\RKTokAlgorithmResolvedText,\RKTokAlgorithmResolvedLineStyle},
-  rk algo state discarded/.style={draw=\RKTokAlgorithmDiscardedDraw,fill=\RKTokAlgorithmDiscardedFill,text=\RKTokAlgorithmDiscardedText,\RKTokAlgorithmDiscardedLineStyle},
-  rk algo state blocked/.style={draw=\RKTokAlgorithmBlockedDraw,fill=\RKTokAlgorithmBlockedFill,text=\RKTokAlgorithmBlockedText,\RKTokAlgorithmBlockedLineStyle},
-  rk algo state unseen/.style={draw=\RKTokAlgorithmUnseenDraw,fill=\RKTokAlgorithmUnseenFill,text=\RKTokAlgorithmUnseenText,\RKTokAlgorithmUnseenLineStyle},
+  rk algo state current/.estyle={draw=\RKTokAlgorithmCurrentDraw,fill=\RKTokAlgorithmCurrentFill,text=\RKTokAlgorithmCurrentText,\RKTokAlgorithmCurrentLineStyle},
+  rk algo state active/.estyle={draw=\RKTokAlgorithmActiveDraw,fill=\RKTokAlgorithmActiveFill,text=\RKTokAlgorithmActiveText,\RKTokAlgorithmActiveLineStyle},
+  rk algo state candidate/.estyle={draw=\RKTokAlgorithmCandidateDraw,fill=\RKTokAlgorithmCandidateFill,text=\RKTokAlgorithmCandidateText,\RKTokAlgorithmCandidateLineStyle},
+  rk algo state frontier/.estyle={draw=\RKTokAlgorithmFrontierDraw,fill=\RKTokAlgorithmFrontierFill,text=\RKTokAlgorithmFrontierText,\RKTokAlgorithmFrontierLineStyle},
+  rk algo state visited/.estyle={draw=\RKTokAlgorithmVisitedDraw,fill=\RKTokAlgorithmVisitedFill,text=\RKTokAlgorithmVisitedText,\RKTokAlgorithmVisitedLineStyle},
+  rk algo state resolved/.estyle={draw=\RKTokAlgorithmResolvedDraw,fill=\RKTokAlgorithmResolvedFill,text=\RKTokAlgorithmResolvedText,\RKTokAlgorithmResolvedLineStyle},
+  rk algo state discarded/.estyle={draw=\RKTokAlgorithmDiscardedDraw,fill=\RKTokAlgorithmDiscardedFill,text=\RKTokAlgorithmDiscardedText,\RKTokAlgorithmDiscardedLineStyle},
+  rk algo state blocked/.estyle={draw=\RKTokAlgorithmBlockedDraw,fill=\RKTokAlgorithmBlockedFill,text=\RKTokAlgorithmBlockedText,\RKTokAlgorithmBlockedLineStyle},
+  rk algo state unseen/.estyle={draw=\RKTokAlgorithmUnseenDraw,fill=\RKTokAlgorithmUnseenFill,text=\RKTokAlgorithmUnseenText,\RKTokAlgorithmUnseenLineStyle},
   rk algo index/.style={font=\RKTokAlgorithmIndexFont,text=\RKTokAlgorithmIndexText},
   rk algo pointer/.style={-{Stealth[length=4.2pt,width=3.2pt]},draw=\RKTokAlgorithmPointerColor,line width=\RKTokAlgorithmPointerWidth},
   rk algo pointer label/.style={font=\RKTokAlgorithmPointerFont,text=\RKTokAlgorithmPointerColor},
@@ -67,17 +67,18 @@
 % nine words -- see the spec's section 2.2.
 \newcommand{\rk@algostateoverlay}{}
 \newcommand{\rk@setalgostate}[1]{%
-  \ifstrempty{#1}{\def\rk@algostateoverlay{}}{%
-  \ifstrequal{#1}{current}{\def\rk@algostateoverlay{,rk algo state current}}{%
-  \ifstrequal{#1}{active}{\def\rk@algostateoverlay{,rk algo state active}}{%
-  \ifstrequal{#1}{candidate}{\def\rk@algostateoverlay{,rk algo state candidate}}{%
-  \ifstrequal{#1}{frontier}{\def\rk@algostateoverlay{,rk algo state frontier}}{%
-  \ifstrequal{#1}{visited}{\def\rk@algostateoverlay{,rk algo state visited}}{%
-  \ifstrequal{#1}{resolved}{\def\rk@algostateoverlay{,rk algo state resolved}}{%
-  \ifstrequal{#1}{discarded}{\def\rk@algostateoverlay{,rk algo state discarded}}{%
-  \ifstrequal{#1}{blocked}{\def\rk@algostateoverlay{,rk algo state blocked}}{%
-  \ifstrequal{#1}{unseen}{\def\rk@algostateoverlay{,rk algo state unseen}}{%
-    \PackageError{reportkit-algorithm-viz}{Unknown algorithm state '#1'}%
+  \edef\rk@algostatevalue{#1}%
+  \expandafter\ifstrempty\expandafter{\rk@algostatevalue}{\def\rk@algostateoverlay{}}{%
+  \ifdefstring{\rk@algostatevalue}{current}{\def\rk@algostateoverlay{rk algo state current}}{%
+  \ifdefstring{\rk@algostatevalue}{active}{\def\rk@algostateoverlay{rk algo state active}}{%
+  \ifdefstring{\rk@algostatevalue}{candidate}{\def\rk@algostateoverlay{rk algo state candidate}}{%
+  \ifdefstring{\rk@algostatevalue}{frontier}{\def\rk@algostateoverlay{rk algo state frontier}}{%
+  \ifdefstring{\rk@algostatevalue}{visited}{\def\rk@algostateoverlay{rk algo state visited}}{%
+  \ifdefstring{\rk@algostatevalue}{resolved}{\def\rk@algostateoverlay{rk algo state resolved}}{%
+  \ifdefstring{\rk@algostatevalue}{discarded}{\def\rk@algostateoverlay{rk algo state discarded}}{%
+  \ifdefstring{\rk@algostatevalue}{blocked}{\def\rk@algostateoverlay{rk algo state blocked}}{%
+  \ifdefstring{\rk@algostatevalue}{unseen}{\def\rk@algostateoverlay{rk algo state unseen}}{%
+    \PackageError{reportkit-algorithm-viz}{Unknown algorithm state '\rk@algostatevalue'}%
       {Use one of current, active, candidate, frontier, visited, resolved,\MessageBreak
        discarded, blocked, unseen, or omit state= for the plain unmarked cell.}%
     \def\rk@algostateoverlay{}%
@@ -170,7 +171,7 @@
   \pgfmathsetmacro{\rk@algox}{\the\rk@algocol*\rk@algocellwidth}%
   \pgfmathsetmacro{\rk@algoy}{-\the\rk@algorow*\rk@algorowheight}%
   \edef\rk@algocellname{rkalgocell-\the\rk@algorow-\the\rk@algocol}%
-  \node[rk algo cell\rk@algostateoverlay] (\rk@algocellname) at (\rk@algox,\rk@algoy) {\strut #2};%
+  \node[rk algo cell,\rk@algostateoverlay] (\rk@algocellname) at (\rk@algox,\rk@algoy) {\strut #2};%
   \ifnum\rk@algorow=0\relax
     \ifrk@algoindices
       \node[rk algo index] at (\rk@algox,{\rk@algoy-0.62*\rk@algorowheight}) {\the\rk@algocol};%
@@ -234,7 +235,7 @@
   \pgfmathsetmacro{\rk@algoy}{-\the\rk@algorowquery*\rk@algorowheight}%
   \pgfmathsetmacro{\rk@algorangewidth}{\rk@algoxb-\rk@algoxa}%
   \begin{pgfonlayer}{background}
-    \node[rk algo cell\rk@algostateoverlay,rounded corners=2.6pt,fill opacity=.9,
+    \node[rk algo cell,\rk@algostateoverlay,rounded corners=2.6pt,fill opacity=.9,
           minimum height=\rk@algorowheight cm,minimum width=\rk@algorangewidth cm,inner sep=0pt]
       at ({(\rk@algoxa+\rk@algoxb)/2},\rk@algoy) {};%
   \end{pgfonlayer}
@@ -362,6 +363,10 @@
 % this already-asserting entry point, exactly as the Phase 2 modules above
 % -- see reportkit-algorithm-order.sty's own top-of-file note.
 \RequirePackage{reportkit-algorithm-order}
+% P3: domain-specific algorithm-state extensions (joinstate,
+% unionfindstate, linkedliststate, and recursiontree).  They are loaded last
+% so they can compose every shared state and automatic-layout style above.
+\RequirePackage{reportkit-algorithm-p3}
 
 \makeatother
 \endinput

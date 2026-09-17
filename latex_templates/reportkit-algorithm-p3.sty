@@ -1,0 +1,658 @@
+% ReportKit v1.10.0 -- P3 algorithm-state extensions
+%
+% Domain-specific algorithm views from section 15 of
+% docs/superpowers/specs/2026-09-16-reportkit-algorithm-visualization-primitives-spec.md:
+%   * joinstate       -- keyed/hash joins for data-engineering documents;
+%   * unionfindstate  -- disjoint-set forests and union/find operations;
+%   * linkedliststate -- singly linked-list traversal and mutation;
+%   * recursiontree   -- recursive calls with arguments, return values, and
+%                        memoization markers.
+%
+% This file is loaded by reportkit-algorithm-viz.sty after the shared state
+% grammar and all P0--P2 layout styles have been defined.  It deliberately
+% reuses `rk algo cell`, `rk algo graph node`, `rk algo graph edge`,
+% `rk algo pointer`, and `rk algo container`: P3 adds semantic compositions,
+% not a second palette or a coordinate-level drawing API.
+
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{reportkit-algorithm-p3}[2026/09/17 v1.0.0 ReportKit P3 algorithm extensions]
+\RequirePackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,calc,fit,backgrounds}
+\RequirePackage{xparse}
+\RequirePackage{pgfkeys}
+\RequirePackage{etoolbox}
+
+\makeatletter
+
+\newcommand{\rk@pthree@unknownkey}[1]{%
+  \PackageError{reportkit-algorithm-p3}{Unknown #1 key '\pgfkeyscurrentname'}%
+    {Check the documented options for this algorithm-state primitive.}%
+}
+\newcommand{\rk@pthree@unknownid}[3]{%
+  \PackageError{reportkit-algorithm-p3}{#1 references unknown node id '#2'}%
+    {Declare '#2' before using it in \string#3.}%
+}
+
+% -----------------------------------------------------------------------------
+% joinstate -- keyed/hash join state (spec section 15)
+%
+% The layout is intentionally a semantic three-stage composition:
+% source relations on the left/right, a central hash/index, and matched output
+% rows below it.  Authors declare records and keys; they never supply x/y
+% coordinates.  `side=left|right` and `state=` are the only input semantics.
+% -----------------------------------------------------------------------------
+\newcount\rk@joinleftcount
+\newcount\rk@joinrightcount
+\newcount\rk@joinbucketcount
+\newcount\rk@joinmatchcount
+\newcount\rk@joinoutputcount
+\newcommand{\rk@joininputstate}{}
+\newcommand{\rk@joinbucketstate}{}
+\newcommand{\rk@joinmatchstate}{}
+\newcommand{\rk@joinoutputstate}{}
+\newcommand{\rk@joinside}{left}
+\newcommand{\rk@joinwidth}{12.4}
+\newcommand{\rk@joinrowstep}{0.92}
+\newcommand{\rk@joininputstep}{1.18}
+
+\pgfkeys{
+  /reportkit/joinstate/.is family,
+  /reportkit/joinstate,
+  width/.store in=\rk@joinwidth,
+  row spacing/.store in=\rk@joinrowstep,
+  input spacing/.store in=\rk@joininputstep,
+  .unknown/.code={\rk@pthree@unknownkey{joinstate}}
+}
+\pgfkeys{
+  /reportkit/joininput/.is family,
+  /reportkit/joininput,
+  side/.store in=\rk@joinside,
+  state/.store in=\rk@joininputstate,
+  .unknown/.code={\rk@pthree@unknownkey{joininput}}
+}
+\pgfkeys{
+  /reportkit/joinbucket/.is family,
+  /reportkit/joinbucket,
+  state/.store in=\rk@joinbucketstate,
+  .unknown/.code={\rk@pthree@unknownkey{hashbucket}}
+}
+\pgfkeys{
+  /reportkit/joinmatch/.is family,
+  /reportkit/joinmatch,
+  state/.store in=\rk@joinmatchstate,
+  .unknown/.code={\rk@pthree@unknownkey{joinmatch}}
+}
+\pgfkeys{
+  /reportkit/joinoutput/.is family,
+  /reportkit/joinoutput,
+  state/.store in=\rk@joinoutputstate,
+  .unknown/.code={\rk@pthree@unknownkey{joinoutput}}
+}
+
+% Internal input recorder.  #1 side, #2 label, #3 shared algorithm state.
+\newcommand{\rk@joinaddinput}[3]{%
+  \edef\rk@joinselectedside{#1}%
+  \ifdefstring{\rk@joinselectedside}{left}{%
+    \advance\rk@joinleftcount by 1\relax
+    \expandafter\protected@edef\csname rk@join@input@left@label@\the\rk@joinleftcount\endcsname{#2}%
+    \expandafter\edef\csname rk@join@input@left@state@\the\rk@joinleftcount\endcsname{#3}%
+  }{\ifdefstring{\rk@joinselectedside}{right}{%
+    \advance\rk@joinrightcount by 1\relax
+    \expandafter\protected@edef\csname rk@join@input@right@label@\the\rk@joinrightcount\endcsname{#2}%
+    \expandafter\edef\csname rk@join@input@right@state@\the\rk@joinrightcount\endcsname{#3}%
+  }{%
+    \PackageError{reportkit-algorithm-p3}{joininput side '#1' is invalid}%
+      {Use side=left or side=right.}%
+  }}%
+}
+
+% <reportkit-contract>
+% {"kind":"figure","description":"Keyed join state with two input relations, a central hash/index structure, matched rows, and optional output rows.","arguments":[{"name":"options","type":"options","description":"width=, row spacing=, and input spacing= layout keys."}],"constraints":[{"code":"two_sides","description":"At least one left and one right input declaration are required."}],"example":"\\begin{diagram}[type=join,caption={Hash join.},description={Two input relations feed a central hash index; matching keys produce joined output rows.}]\n\\begin{joinstate}\n\\joininput[side=left]{orders}{Orders}\n\\joininput[side=right]{customers}{Customers}\n\\hashbucket[state=active]{customer_id}{C42,C73}\n\\joinmatch{customer_id}{C42 -> joined row}\n\\joinoutput{Joined rows}\n\\end{joinstate}\n\\end{diagram}","stability":"experimental","since":"1.10.0"}
+% </reportkit-contract>
+\NewDocumentEnvironment{joinstate}{O{}}{%
+  \begingroup
+  \pgfkeys{/reportkit/joinstate,width=12.4,row spacing=.92,input spacing=1.18,#1}%
+  \rk@joinleftcount=0\relax
+  \rk@joinrightcount=0\relax
+  \rk@joinbucketcount=0\relax
+  \rk@joinmatchcount=0\relax
+  \rk@joinoutputcount=0\relax
+}{%
+  \ifnum\rk@joinleftcount<1
+    \PackageError{reportkit-algorithm-p3}{joinstate requires a left input}{Declare at least one \string\joininput[side=left]{id}{label}.}%
+  \fi
+  \ifnum\rk@joinrightcount<1
+    \PackageError{reportkit-algorithm-p3}{joinstate requires a right input}{Declare at least one \string\joininput[side=right]{id}{label}.}%
+  \fi
+  \rk@joinrender
+  \endgroup
+}
+
+% <reportkit-contract>
+% {"kind":"command","description":"Declare one relation or stream feeding a keyed join from the left or right.","arguments":[{"name":"options","type":"options","description":"side=left|right and state= shared algorithm state."},{"name":"side","type":"text","description":"Input side; retained as a positional convenience when side= is omitted."},{"name":"label","type":"text","description":"Relation or stream label."}],"constraints":[{"code":"inside_joinstate","description":"Only valid inside joinstate."},{"code":"known_side","description":"side must be left or right."}],"example":"\\joininput[side=left,state=unseen]{orders}{Orders}","stability":"experimental","since":"1.10.0","parent":"joinstate"}
+% </reportkit-contract>
+\NewDocumentCommand{\joininput}{O{} m m}{%
+  \pgfkeys{/reportkit/joininput,side=#2,state=unseen,#1}%
+  \rk@joinaddinput{\rk@joinside}{#3}{\rk@joininputstate}%
+}
+
+% <reportkit-contract>
+% {"kind":"command","description":"Declare a hash/index bucket with its join key and one or more indexed values.","arguments":[{"name":"options","type":"options","description":"state= shared algorithm state for the index bucket."},{"name":"key","type":"text","description":"Join key or key expression."},{"name":"values","type":"text","description":"Indexed values, usually comma-separated."}],"constraints":[{"code":"inside_joinstate","description":"Only valid inside joinstate."}],"example":"\\hashbucket[state=active]{customer_id}{C42,C73}","stability":"experimental","since":"1.10.0","parent":"joinstate"}
+% </reportkit-contract>
+\NewDocumentCommand{\hashbucket}{O{} m m}{%
+  \pgfkeys{/reportkit/joinbucket,state=active,#1}%
+  \advance\rk@joinbucketcount by 1\relax
+  \expandafter\protected@edef\csname rk@join@bucket@key@\the\rk@joinbucketcount\endcsname{#2}%
+  \expandafter\protected@edef\csname rk@join@bucket@values@\the\rk@joinbucketcount\endcsname{#3}%
+  \expandafter\edef\csname rk@join@bucket@state@\the\rk@joinbucketcount\endcsname{\rk@joinbucketstate}%
+}
+\let\hashindex\hashbucket
+
+% <reportkit-contract>
+% {"kind":"command","description":"Declare one key match and the resulting joined row description.","arguments":[{"name":"options","type":"options","description":"state= shared algorithm state for the match; resolved is the default."},{"name":"key","type":"text","description":"Key matching a declared hashbucket."},{"name":"result","type":"text","description":"Joined-row description."}],"constraints":[{"code":"inside_joinstate","description":"Only valid inside joinstate."}],"example":"\\joinmatch{customer_id}{C42 -> order/customer row}","stability":"experimental","since":"1.10.0","parent":"joinstate"}
+% </reportkit-contract>
+\NewDocumentCommand{\joinmatch}{O{} m m}{%
+  \pgfkeys{/reportkit/joinmatch,state=resolved,#1}%
+  \advance\rk@joinmatchcount by 1\relax
+  \expandafter\protected@edef\csname rk@join@match@key@\the\rk@joinmatchcount\endcsname{#2}%
+  \expandafter\protected@edef\csname rk@join@match@result@\the\rk@joinmatchcount\endcsname{#3}%
+  \expandafter\edef\csname rk@join@match@state@\the\rk@joinmatchcount\endcsname{\rk@joinmatchstate}%
+}
+\let\joinpair\joinmatch
+
+% <reportkit-contract>
+% {"kind":"command","description":"Declare a key that did not produce a match on one side of the join.","arguments":[{"name":"options","type":"options","description":"state= shared algorithm state; discarded is the default."},{"name":"side","type":"text","description":"Input side, left or right."},{"name":"key","type":"text","description":"Unmatched key."}],"constraints":[{"code":"inside_joinstate","description":"Only valid inside joinstate."},{"code":"known_side","description":"side must be left or right."}],"example":"\\joinunmatched{right}{C99}","stability":"experimental","since":"1.10.0","parent":"joinstate"}
+% </reportkit-contract>
+\NewDocumentCommand{\joinunmatched}{O{} m m}{%
+  \pgfkeys{/reportkit/joininput,side=#2,state=discarded,#1}%
+  \rk@joinaddinput{\rk@joinside}{Unmatched key: #3}{\rk@joininputstate}%
+}
+
+% <reportkit-contract>
+% {"kind":"command","description":"Declare a labelled output relation or result of the join.","arguments":[{"name":"options","type":"options","description":"state= shared algorithm state; resolved is the default."},{"name":"label","type":"text","description":"Output label."}],"constraints":[{"code":"inside_joinstate","description":"Only valid inside joinstate."}],"example":"\\joinoutput{Joined rows}","stability":"experimental","since":"1.10.0","parent":"joinstate"}
+% </reportkit-contract>
+\NewDocumentCommand{\joinoutput}{O{} m}{%
+  \pgfkeys{/reportkit/joinoutput,state=resolved,#1}%
+  \advance\rk@joinoutputcount by 1\relax
+  \expandafter\protected@edef\csname rk@join@output@label@\the\rk@joinoutputcount\endcsname{#2}%
+  \expandafter\edef\csname rk@join@output@state@\the\rk@joinoutputcount\endcsname{\rk@joinoutputstate}%
+}
+\let\joinresult\joinoutput
+
+% The two side renderers keep input declaration order independent of which
+% side was declared first.
+\newcommand{\rk@joinrenderinputs}{%
+  \ifnum\rk@joinleftcount>0
+    \foreach \rk@i in {1,...,\the\rk@joinleftcount}{%
+      \edef\rk@joinstate{\csname rk@join@input@left@state@\rk@i\endcsname}%
+      \rk@setalgostate{\rk@joinstate}%
+      \pgfmathsetmacro{\rk@joiny}{-(\rk@i-1)*\rk@joininputstep}%
+      \node[rk algo graph node,\rk@algostateoverlay] (rk-join-input-left-\rk@i)
+        at (0,\rk@joiny) {\strut \csname rk@join@input@left@label@\rk@i\endcsname};%
+    }%
+  \fi
+  \ifnum\rk@joinrightcount>0
+    \foreach \rk@i in {1,...,\the\rk@joinrightcount}{%
+      \edef\rk@joinstate{\csname rk@join@input@right@state@\rk@i\endcsname}%
+      \rk@setalgostate{\rk@joinstate}%
+      \pgfmathsetmacro{\rk@joiny}{-(\rk@i-1)*\rk@joininputstep}%
+      \node[rk algo graph node,\rk@algostateoverlay] (rk-join-input-right-\rk@i)
+        at (\rk@joinwidth,\rk@joiny) {\strut \csname rk@join@input@right@label@\rk@i\endcsname};%
+    }%
+  \fi
+}
+\newcommand{\rk@joinrender}{%
+  \rk@joinrenderinputs
+  \node[rk algo graph node,rk algo state active,text width=31mm,minimum height=11mm]
+    (rk-join-index) at ({0.5*\rk@joinwidth},0) {\strut HASH / INDEX};%
+  \ifnum\rk@joinleftcount>0
+    \foreach \rk@i in {1,...,\the\rk@joinleftcount}{%
+      \draw[rk algo graph edge,dashed] (rk-join-input-left-\rk@i.east) -- (rk-join-index.west);%
+    }%
+  \fi
+  \ifnum\rk@joinrightcount>0
+    \foreach \rk@i in {1,...,\the\rk@joinrightcount}{%
+      \draw[rk algo graph edge,dashed] (rk-join-input-right-\rk@i.west) -- (rk-join-index.east);%
+    }%
+  \fi
+  \ifnum\rk@joinbucketcount>0
+    \foreach \rk@i in {1,...,\the\rk@joinbucketcount}{%
+      \edef\rk@joinstate{\csname rk@join@bucket@state@\rk@i\endcsname}%
+      \rk@setalgostate{\rk@joinstate}%
+      \pgfmathsetmacro{\rk@joiny}{-1.20-(\rk@i-1)*\rk@joinrowstep}%
+      \node[rk algo cell,\rk@algostateoverlay,text width=31mm,minimum height=7mm]
+        (rk-join-bucket-\rk@i) at ({0.5*\rk@joinwidth},\rk@joiny)
+        {\strut \csname rk@join@bucket@key@\rk@i\endcsname:\ \csname rk@join@bucket@values@\rk@i\endcsname};%
+    }%
+  \fi
+  \ifnum\rk@joinmatchcount>0
+    \foreach \rk@j in {1,...,\the\rk@joinmatchcount}{%
+      \edef\rk@joinstate{\csname rk@join@match@state@\rk@j\endcsname}%
+      \rk@setalgostate{\rk@joinstate}%
+      \pgfmathsetmacro{\rk@joiny}{-2.20-(\rk@joinbucketcount)*\rk@joinrowstep-(\rk@j-1)*\rk@joinrowstep}%
+      \node[rk algo cell,\rk@algostateoverlay,text width=31mm,minimum height=7mm]
+        (rk-join-match-\rk@j) at ({0.5*\rk@joinwidth},\rk@joiny)
+        {\strut MATCH: \csname rk@join@match@key@\rk@j\endcsname\\\csname rk@join@match@result@\rk@j\endcsname};%
+      \foreach \rk@i in {1,...,\the\rk@joinbucketcount}{%
+        \edef\rk@joinbucketkey{\csname rk@join@bucket@key@\rk@i\endcsname}%
+        \edef\rk@joinmatchkey{\csname rk@join@match@key@\rk@j\endcsname}%
+        \ifdefstrequal{\rk@joinbucketkey}{\rk@joinmatchkey}{%
+          \draw[rk algo graph edge] (rk-join-bucket-\rk@i.south) -- (rk-join-match-\rk@j.north);%
+        }{}%
+      }%
+    }%
+  \fi
+  \ifnum\rk@joinoutputcount>0
+    \foreach \rk@k in {1,...,\the\rk@joinoutputcount}{%
+      \edef\rk@joinstate{\csname rk@join@output@state@\rk@k\endcsname}%
+      \rk@setalgostate{\rk@joinstate}%
+      \pgfmathsetmacro{\rk@joiny}{-2.55-(\rk@joinbucketcount+\rk@joinmatchcount)*\rk@joinrowstep-(\rk@k-1)*\rk@joinrowstep}%
+      \node[rk algo graph node,\rk@algostateoverlay,text width=31mm,minimum height=8mm]
+        (rk-join-output-\rk@k) at ({0.5*\rk@joinwidth},\rk@joiny)
+        {\strut OUTPUT: \csname rk@join@output@label@\rk@k\endcsname};%
+      \ifnum\rk@joinmatchcount>0
+        \foreach \rk@j in {1,...,\the\rk@joinmatchcount}{%
+          \draw[rk algo graph edge] (rk-join-match-\rk@j.south) -- (rk-join-output-\rk@k.north);%
+        }%
+      \fi
+    }%
+  \fi
+}
+
+% -----------------------------------------------------------------------------
+% unionfindstate -- disjoint-set forest and union/find operations
+% -----------------------------------------------------------------------------
+\newcount\rk@ufindex
+\newcount\rk@ufparentcount
+\newcount\rk@ufunioncount
+\newcount\rk@uffindcount
+\newcommand{\rk@ufcolumns}{4}
+\newcommand{\rk@ufxstep}{3.1}
+\newcommand{\rk@ufystep}{1.9}
+\newcommand{\rk@ufnodestate}{}
+\newcommand{\rk@ufedgelabel}{}
+\newcommand{\rk@ufunionlabel}{}
+\newcommand{\rk@uffindlabel}{}
+\pgfkeys{
+  /reportkit/unionfindstate/.is family,
+  /reportkit/unionfindstate,
+  columns/.store in=\rk@ufcolumns,
+  x spacing/.store in=\rk@ufxstep,
+  y spacing/.store in=\rk@ufystep,
+  .unknown/.code={\rk@pthree@unknownkey{unionfindstate}}
+}
+\pgfkeys{
+  /reportkit/ufnode/.is family,
+  /reportkit/ufnode,
+  state/.store in=\rk@ufnodestate,
+  .unknown/.code={\rk@pthree@unknownkey{ufnode}}
+}
+\pgfkeys{
+  /reportkit/ufedge/.is family,
+  /reportkit/ufedge,
+  label/.store in=\rk@ufedgelabel,
+  .unknown/.code={\rk@pthree@unknownkey{parent}}
+}
+\pgfkeys{
+  /reportkit/ufunion/.is family,
+  /reportkit/ufunion,
+  label/.store in=\rk@ufunionlabel,
+  .unknown/.code={\rk@pthree@unknownkey{union}}
+}
+\pgfkeys{
+  /reportkit/uffind/.is family,
+  /reportkit/uffind,
+  label/.store in=\rk@uffindlabel,
+  .unknown/.code={\rk@pthree@unknownkey{findpath}}
+}
+
+% <reportkit-contract>
+% {"kind":"figure","description":"Disjoint-set forest with automatic node layout, parent pointers, union operations, and find-path markers.","arguments":[{"name":"options","type":"options","description":"columns=, x spacing=, and y spacing= automatic layout keys."}],"constraints":[],"example":"\\begin{diagram}[type=union-find,caption={Union/find components.},description={Four nodes form two components; a parent pointer and a union operation join the components.}]\n\\begin{unionfindstate}\n\\ufnode{A}{A}\n\\ufnode{B}{B}\n\\ufnode{C}{C}\n\\ufnode[state=current]{D}{D}\n\\parent{B}{A}\n\\union{A}{C}\n\\findpath{D}{A}\n\\end{unionfindstate}\n\\end{diagram}","stability":"experimental","since":"1.10.0"}
+% </reportkit-contract>
+\NewDocumentEnvironment{unionfindstate}{O{}}{%
+  \begingroup
+  \pgfkeys{/reportkit/unionfindstate,columns=4,x spacing=3.1,y spacing=1.9,#1}%
+  \rk@ufindex=0\relax
+  \rk@ufparentcount=0\relax
+  \rk@ufunioncount=0\relax
+  \rk@uffindcount=0\relax
+}{%
+  \rk@ufrenderedges
+  \endgroup
+}
+
+% <reportkit-contract>
+% {"kind":"command","description":"Place one disjoint-set node on the automatic layout grid.","arguments":[{"name":"options","type":"options","description":"state= one of the nine shared algorithm states."},{"name":"id","type":"text","description":"Node id referenced by parent, union, and findpath."},{"name":"label","type":"text","description":"Node label."}],"constraints":[{"code":"inside_unionfindstate","description":"Only valid inside unionfindstate."}],"example":"\\ufnode[state=current]{D}{D}","stability":"experimental","since":"1.10.0","parent":"unionfindstate"}
+% </reportkit-contract>
+\NewDocumentCommand{\ufnode}{O{} m m}{%
+  \@ifundefined{rk@uf@x@#2}{%
+    \pgfkeys{/reportkit/ufnode,state={},#1}%
+    \rk@setalgostate{\rk@ufnodestate}%
+    \pgfmathsetmacro{\rk@ufx}{mod(\the\rk@ufindex,\rk@ufcolumns)*\rk@ufxstep}%
+    \pgfmathsetmacro{\rk@ufy}{-floor(\the\rk@ufindex/\rk@ufcolumns)*\rk@ufystep}%
+    \node[rk algo graph node,\rk@algostateoverlay] (#2) at (\rk@ufx,\rk@ufy) {\strut #3};%
+    \@namedef{rk@uf@x@#2}{\rk@ufx}%
+    \@namedef{rk@uf@y@#2}{\rk@ufy}%
+    \@namedef{rk@uf@label@#2}{#3}%
+    \advance\rk@ufindex by 1\relax
+  }{%
+    \PackageError{reportkit-algorithm-p3}{Duplicate unionfind node id '#2'}{Use unique ids so parent and find operations are unambiguous.}%
+  }%
+}
+
+% <reportkit-contract>
+% {"kind":"command","description":"Draw a parent pointer from a child node to its representative or parent node.","arguments":[{"name":"options","type":"options","description":"Optional label= for the parent edge."},{"name":"child","type":"text","description":"Child node id."},{"name":"parent","type":"text","description":"Parent or representative node id."}],"constraints":[{"code":"inside_unionfindstate","description":"Only valid inside unionfindstate."},{"code":"known_node_ids","description":"Both ids must already be declared with ufnode."}],"example":"\\parent{B}{A}","stability":"experimental","since":"1.10.0","parent":"unionfindstate"}
+% </reportkit-contract>
+\NewDocumentCommand{\parent}{O{} m m}{%
+  \pgfkeys{/reportkit/ufedge,label={},#1}%
+  \rk@ufrequireids{#2}{#3}{\string\parent}%
+  \advance\rk@ufparentcount by 1\relax
+  \expandafter\edef\csname rk@uf@parent@child@\the\rk@ufparentcount\endcsname{#2}%
+  \expandafter\edef\csname rk@uf@parent@parent@\the\rk@ufparentcount\endcsname{#3}%
+  \expandafter\protected@edef\csname rk@uf@parent@label@\the\rk@ufparentcount\endcsname{\rk@ufedgelabel}%
+}
+
+% <reportkit-contract>
+% {"kind":"command","description":"Show a union operation between two representatives or components.","arguments":[{"name":"options","type":"options","description":"Optional label=; UNION is the default label."},{"name":"left","type":"text","description":"First representative or component node id."},{"name":"right","type":"text","description":"Second representative or component node id."}],"constraints":[{"code":"inside_unionfindstate","description":"Only valid inside unionfindstate."},{"code":"known_node_ids","description":"Both ids must already be declared with ufnode."}],"example":"\\union{A}{C}","stability":"experimental","since":"1.10.0","parent":"unionfindstate"}
+% </reportkit-contract>
+\NewDocumentCommand{\union}{O{} m m}{%
+  \pgfkeys{/reportkit/ufunion,label={UNION},#1}%
+  \rk@ufrequireids{#2}{#3}{\string\union}%
+  \advance\rk@ufunioncount by 1\relax
+  \expandafter\edef\csname rk@uf@union@left@\the\rk@ufunioncount\endcsname{#2}%
+  \expandafter\edef\csname rk@uf@union@right@\the\rk@ufunioncount\endcsname{#3}%
+  \expandafter\protected@edef\csname rk@uf@union@label@\the\rk@ufunioncount\endcsname{\rk@ufunionlabel}%
+}
+
+% <reportkit-contract>
+% {"kind":"command","description":"Mark a find traversal from a node toward its representative.","arguments":[{"name":"options","type":"options","description":"Optional label=; FIND is the default label."},{"name":"from","type":"text","description":"Starting node id."},{"name":"to","type":"text","description":"Representative node id."}],"constraints":[{"code":"inside_unionfindstate","description":"Only valid inside unionfindstate."},{"code":"known_node_ids","description":"Both ids must already be declared with ufnode."}],"example":"\\findpath{D}{A}","stability":"experimental","since":"1.10.0","parent":"unionfindstate"}
+% </reportkit-contract>
+\NewDocumentCommand{\findpath}{O{} m m}{%
+  \pgfkeys{/reportkit/uffind,label={FIND},#1}%
+  \rk@ufrequireids{#2}{#3}{\string\findpath}%
+  \advance\rk@uffindcount by 1\relax
+  \expandafter\edef\csname rk@uf@find@from@\the\rk@uffindcount\endcsname{#2}%
+  \expandafter\edef\csname rk@uf@find@to@\the\rk@uffindcount\endcsname{#3}%
+  \expandafter\protected@edef\csname rk@uf@find@label@\the\rk@uffindcount\endcsname{\rk@uffindlabel}%
+}
+\let\findoperation\findpath
+
+\newcommand{\rk@ufrequireids}[3]{%
+  \@ifundefined{rk@uf@x@#1}{\rk@pthree@unknownid{unionfindstate}{#1}{#3}}{}%
+  \@ifundefined{rk@uf@x@#2}{\rk@pthree@unknownid{unionfindstate}{#2}{#3}}{}%
+}
+\newcommand{\rk@ufrenderedges}{%
+  \ifnum\rk@ufparentcount>0
+    \foreach \rk@i in {1,...,\the\rk@ufparentcount}{%
+      \edef\rk@uflabel{\csname rk@uf@parent@label@\rk@i\endcsname}%
+      \ifx\rk@uflabel\@empty
+        \draw[rk algo graph edge] (\csname rk@uf@parent@child@\rk@i\endcsname) -- (\csname rk@uf@parent@parent@\rk@i\endcsname);%
+      \else
+        \draw[rk algo graph edge] (\csname rk@uf@parent@child@\rk@i\endcsname) -- node[rk edge label]{\rk@uflabel} (\csname rk@uf@parent@parent@\rk@i\endcsname);%
+      \fi
+    }%
+  \fi
+  \ifnum\rk@ufunioncount>0
+    \foreach \rk@i in {1,...,\the\rk@ufunioncount}{%
+      \draw[rk algo graph edge,dashed] (\csname rk@uf@union@left@\rk@i\endcsname) to[bend left=18]
+        node[rk edge label]{\csname rk@uf@union@label@\rk@i\endcsname}
+        (\csname rk@uf@union@right@\rk@i\endcsname);%
+    }%
+  \fi
+  \ifnum\rk@uffindcount>0
+    \foreach \rk@i in {1,...,\the\rk@uffindcount}{%
+      \draw[rk algo pointer,dotted] (\csname rk@uf@find@from@\rk@i\endcsname) to[bend right=15]
+        node[rk algo pointer label]{\csname rk@uf@find@label@\rk@i\endcsname}
+        (\csname rk@uf@find@to@\rk@i\endcsname);%
+    }%
+  \fi
+}
+
+% -----------------------------------------------------------------------------
+% linkedliststate -- singly linked-list state
+% -----------------------------------------------------------------------------
+\newcount\rk@listindex
+\newcount\rk@listlinkcount
+\newcommand{\rk@listdirection}{horizontal}
+\newcommand{\rk@listspacing}{1.75}
+\newcommand{\rk@listnodestate}{}
+\newcommand{\rk@listlinklabel}{}
+\newcommand{\rk@listhead}{}
+\newcommand{\rk@listtail}{}
+\newcommand{\rk@listfirst}{}
+\newcommand{\rk@listlast}{}
+\pgfkeys{
+  /reportkit/linkedliststate/.is family,
+  /reportkit/linkedliststate,
+  direction/.store in=\rk@listdirection,
+  spacing/.store in=\rk@listspacing,
+  .unknown/.code={\rk@pthree@unknownkey{linkedliststate}}
+}
+\pgfkeys{
+  /reportkit/listnode/.is family,
+  /reportkit/listnode,
+  state/.store in=\rk@listnodestate,
+  .unknown/.code={\rk@pthree@unknownkey{listnode}}
+}
+\pgfkeys{
+  /reportkit/listlink/.is family,
+  /reportkit/listlink,
+  label/.store in=\rk@listlinklabel,
+  .unknown/.code={\rk@pthree@unknownkey{listlink}}
+}
+
+% <reportkit-contract>
+% {"kind":"figure","description":"Singly linked-list state with automatic node placement, next pointers, explicit HEAD and TAIL markers, and a NULL terminator.","arguments":[{"name":"options","type":"options","description":"direction=horizontal|vertical and spacing= layout keys."}],"constraints":[{"code":"at_least_one_node","description":"At least one listnode declaration is required."}],"example":"\\begin{diagram}[type=linked-list,caption={Linked-list traversal.},description={Three linked nodes run from HEAD to TAIL and terminate at NULL; the middle node is current.}]\n\\begin{linkedliststate}\n\\listnode{a}{A}\n\\listnode[state=current]{b}{B}\n\\listnode{c}{C}\n\\nextlink{a}{b}\n\\nextlink{b}{c}\n\\head{a}\n\\tail{c}\n\\end{linkedliststate}\n\\end{diagram}","stability":"experimental","since":"1.10.0"}
+% </reportkit-contract>
+\NewDocumentEnvironment{linkedliststate}{O{}}{%
+  \begingroup
+  \pgfkeys{/reportkit/linkedliststate,direction=horizontal,spacing=1.75,#1}%
+  \rk@listindex=0\relax
+  \rk@listlinkcount=0\relax
+  \def\rk@listhead{}\def\rk@listtail{}\def\rk@listfirst{}\def\rk@listlast{}%
+}{%
+  \ifnum\rk@listindex<1
+    \PackageError{reportkit-algorithm-p3}{linkedliststate requires at least one listnode}{Declare one or more \string\listnode commands.}%
+  \else
+      \ifx\rk@listhead\@empty\edef\rk@listhead{\rk@listfirst}\fi
+    \ifx\rk@listtail\@empty\edef\rk@listtail{\rk@listlast}\fi
+    \rk@listrenderlinks
+    \rk@listrendermarkers
+  \fi
+  \endgroup
+}
+
+% <reportkit-contract>
+% {"kind":"command","description":"Place one linked-list node in declaration order with an optional shared algorithm state.","arguments":[{"name":"options","type":"options","description":"state= one of the nine shared algorithm states."},{"name":"id","type":"text","description":"Node id referenced by nextlink, head, and tail."},{"name":"label","type":"text","description":"Node value or label."}],"constraints":[{"code":"inside_linkedliststate","description":"Only valid inside linkedliststate."}],"example":"\\listnode[state=current]{b}{B}","stability":"experimental","since":"1.10.0","parent":"linkedliststate"}
+% </reportkit-contract>
+\NewDocumentCommand{\listnode}{O{} m m}{%
+  \@ifundefined{rk@list@x@#2}{%
+    \pgfkeys{/reportkit/listnode,state={},#1}%
+    \rk@setalgostate{\rk@listnodestate}%
+    \pgfmathsetmacro{\rk@listx}{\the\rk@listindex*\rk@listspacing}%
+    \pgfmathsetmacro{\rk@listy}{0}%
+    \ifdefstring{\rk@listdirection}{vertical}{%
+      \pgfmathsetmacro{\rk@listx}{0}%
+      \pgfmathsetmacro{\rk@listy}{-\the\rk@listindex*\rk@listspacing}%
+    }{}%
+    \node[rk algo cell,\rk@algostateoverlay,text width=17mm,minimum height=8mm] (#2)
+      at (\rk@listx,\rk@listy) {\strut #3};%
+    \@namedef{rk@list@x@#2}{\rk@listx}%
+    \@namedef{rk@list@y@#2}{\rk@listy}%
+    \@namedef{rk@list@label@#2}{#3}%
+    \ifnum\rk@listindex=0\relax\edef\rk@listfirst{#2}\fi
+    \edef\rk@listlast{#2}%
+    \advance\rk@listindex by 1\relax
+  }{%
+    \PackageError{reportkit-algorithm-p3}{Duplicate linked-list node id '#2'}{Use unique ids so next pointers are unambiguous.}%
+  }%
+}
+\let\linkednode\listnode
+\let\listitem\listnode
+
+% <reportkit-contract>
+% {"kind":"command","description":"Draw a labelled next pointer between two linked-list nodes.","arguments":[{"name":"options","type":"options","description":"Optional label= for the pointer."},{"name":"source","type":"text","description":"Source node id."},{"name":"target","type":"text","description":"Target node id."}],"constraints":[{"code":"inside_linkedliststate","description":"Only valid inside linkedliststate."},{"code":"known_node_ids","description":"Both ids must already be declared with listnode."}],"example":"\\nextlink{a}{b}","stability":"experimental","since":"1.10.0","parent":"linkedliststate"}
+% </reportkit-contract>
+\NewDocumentCommand{\nextlink}{O{} m m}{%
+  \pgfkeys{/reportkit/listlink,label={},#1}%
+  \@ifundefined{rk@list@x@#2}{\rk@pthree@unknownid{linkedliststate}{#2}{\string\nextlink}}{}%
+  \@ifundefined{rk@list@x@#3}{\rk@pthree@unknownid{linkedliststate}{#3}{\string\nextlink}}{}%
+  \advance\rk@listlinkcount by 1\relax
+  \expandafter\edef\csname rk@list@link@source@\the\rk@listlinkcount\endcsname{#2}%
+  \expandafter\edef\csname rk@list@link@target@\the\rk@listlinkcount\endcsname{#3}%
+  \expandafter\protected@edef\csname rk@list@link@label@\the\rk@listlinkcount\endcsname{\rk@listlinklabel}%
+}
+\let\listlink\nextlink
+\let\nextpointer\nextlink
+
+% <reportkit-contract>
+% {"kind":"command","description":"Mark the head node of a linked list; an explicit HEAD label is rendered above or before it.","arguments":[{"name":"id","type":"text","description":"Head node id."}],"constraints":[{"code":"inside_linkedliststate","description":"Only valid inside linkedliststate."},{"code":"known_node_id","description":"id must be declared with listnode."}],"example":"\\head{a}","stability":"experimental","since":"1.10.0","parent":"linkedliststate"}
+% </reportkit-contract>
+\NewDocumentCommand{\head}{m}{%
+  \@ifundefined{rk@list@x@#1}{\rk@pthree@unknownid{linkedliststate}{#1}{\string\head}}{\edef\rk@listhead{#1}}%
+}
+
+% <reportkit-contract>
+% {"kind":"command","description":"Mark the tail node of a linked list; an explicit TAIL label and NULL terminator are rendered.","arguments":[{"name":"id","type":"text","description":"Tail node id."}],"constraints":[{"code":"inside_linkedliststate","description":"Only valid inside linkedliststate."},{"code":"known_node_id","description":"id must be declared with listnode."}],"example":"\\tail{c}","stability":"experimental","since":"1.10.0","parent":"linkedliststate"}
+% </reportkit-contract>
+\NewDocumentCommand{\tail}{m}{%
+  \@ifundefined{rk@list@x@#1}{\rk@pthree@unknownid{linkedliststate}{#1}{\string\tail}}{\edef\rk@listtail{#1}}%
+}
+
+\newcommand{\rk@listrenderlinks}{%
+  \ifnum\rk@listlinkcount>0
+    \foreach \rk@i in {1,...,\the\rk@listlinkcount}{%
+      \edef\rk@listlabel{\csname rk@list@link@label@\rk@i\endcsname}%
+      \ifx\rk@listlabel\@empty
+        \draw[rk algo graph edge] (\csname rk@list@link@source@\rk@i\endcsname) -- (\csname rk@list@link@target@\rk@i\endcsname);%
+      \else
+        \draw[rk algo graph edge] (\csname rk@list@link@source@\rk@i\endcsname) -- node[rk edge label]{\rk@listlabel} (\csname rk@list@link@target@\rk@i\endcsname);%
+      \fi
+    }%
+  \fi
+}
+\newcommand{\rk@listrendermarkers}{%
+  \ifdefstring{\rk@listdirection}{vertical}{%
+    \draw[rk algo pointer] (\rk@listhead.north) -- ++(0,.56);
+    \node[rk algo pointer label,anchor=south] at ([yshift=.60cm]\rk@listhead.north) {HEAD};
+    \draw[rk algo pointer] (\rk@listtail.south) -- ++(0,-.56);
+    \node[rk algo pointer label,anchor=north] at ([yshift=-.60cm]\rk@listtail.south) {TAIL};
+    \draw[rk algo graph edge] (\rk@listtail.south) -- ++(0,-.92) node[rk edge label,anchor=north] {NULL};
+  }{%
+    \draw[rk algo pointer] (\rk@listhead.north) -- ++(0,.56);
+    \node[rk algo pointer label,anchor=south] at ([yshift=.60cm]\rk@listhead.north) {HEAD};
+    \draw[rk algo pointer] (\rk@listtail.south) -- ++(0,-.56);
+    \node[rk algo pointer label,anchor=north] at ([yshift=-.60cm]\rk@listtail.south) {TAIL};
+    \draw[rk algo graph edge] (\rk@listtail.east) -- ++(.92,0) node[rk edge label,anchor=west] {NULL};
+  }%
+}
+
+% -----------------------------------------------------------------------------
+% recursiontree -- recursive calls as a labelled, state-aware tree
+% -----------------------------------------------------------------------------
+\newcount\rk@recursionindex
+\newcount\rk@recursionedgecount
+\newcommand{\rk@recursioncolumns}{4}
+\newcommand{\rk@recursionxstep}{3.3}
+\newcommand{\rk@recursionystep}{2.2}
+\newcommand{\rk@recursionwidth}{28mm}
+\newcommand{\rk@recursionargs}{}
+\newcommand{\rk@recursionstate}{}
+\newif\ifrk@recursionmemoized
+\newcommand{\rk@recursionedgelabel}{}
+\pgfkeys{
+  /reportkit/recursiontree/.is family,
+  /reportkit/recursiontree,
+  columns/.store in=\rk@recursioncolumns,
+  x spacing/.store in=\rk@recursionxstep,
+  y spacing/.store in=\rk@recursionystep,
+  node width/.store in=\rk@recursionwidth,
+  .unknown/.code={\rk@pthree@unknownkey{recursiontree}}
+}
+\pgfkeys{
+  /reportkit/recursionnode/.is family,
+  /reportkit/recursionnode,
+  arguments/.store in=\rk@recursionargs,
+  state/.store in=\rk@recursionstate,
+  memoized/.is if=rk@recursionmemoized,
+  .unknown/.code={\rk@pthree@unknownkey{recursionnode}}
+}
+\pgfkeys{
+  /reportkit/recursionedge/.is family,
+  /reportkit/recursionedge,
+  label/.store in=\rk@recursionedgelabel,
+  .unknown/.code={\rk@pthree@unknownkey{recursionedge}}
+}
+
+% <reportkit-contract>
+% {"kind":"figure","description":"Automatic recursive-call view with explicit arguments, return values, optional memoization markers, and ordered call edges.","arguments":[{"name":"options","type":"options","description":"columns=, x spacing=, y spacing=, and node width= layout keys."}],"constraints":[],"example":"\\begin{diagram}[type=recursion,caption={Memoized recursion.},description={A recursive call tree shows arguments, returned values, and one memoized subproblem.}]\n\\begin{recursiontree}\n\\recursionnode[arguments={n=4},state=current]{f4}{fib}{3}\n\\recursionnode[arguments={n=3}]{f3}{fib}{2}\n\\recursionnode[arguments={n=2},memoized]{f2}{fib}{1}\n\\recursionedge{f4}{f3}\n\\recursionedge{f3}{f2}\n\\end{recursiontree}\n\\end{diagram}","stability":"experimental","since":"1.10.0"}
+% </reportkit-contract>
+\NewDocumentEnvironment{recursiontree}{O{}}{%
+  \begingroup
+  \pgfkeys{/reportkit/recursiontree,columns=4,x spacing=3.3,y spacing=2.2,node width=28mm,#1}%
+  \rk@recursionindex=0\relax
+  \rk@recursionedgecount=0\relax
+}{%
+  \rk@recursionrenderedges
+  \endgroup
+}
+
+% <reportkit-contract>
+% {"kind":"command","description":"Place one recursive call with its function label, arguments, return value, shared state, and optional MEMOIZED marker.","arguments":[{"name":"options","type":"options","description":"arguments= text, state= shared algorithm state, and memoized flag."},{"name":"id","type":"text","description":"Call id referenced by recursionedge."},{"name":"call","type":"text","description":"Function or call label."},{"name":"return","type":"text","description":"Returned value."}],"constraints":[{"code":"inside_recursiontree","description":"Only valid inside recursiontree."}],"example":"\\recursionnode[arguments={n=4},state=current]{f4}{fib}{3}","stability":"experimental","since":"1.10.0","parent":"recursiontree"}
+% </reportkit-contract>
+\NewDocumentCommand{\recursionnode}{O{} m m m}{%
+  \@ifundefined{rk@recursion@x@#2}{%
+    \pgfkeys{/reportkit/recursionnode,arguments={},state={},memoized=false,#1}%
+    \rk@setalgostate{\rk@recursionstate}%
+    \pgfmathsetmacro{\rk@recursionx}{mod(\the\rk@recursionindex,\rk@recursioncolumns)*\rk@recursionxstep}%
+    \pgfmathsetmacro{\rk@recursiony}{-floor(\the\rk@recursionindex/\rk@recursioncolumns)*\rk@recursionystep}%
+    \def\rk@recursionmemo{}
+    \ifrk@recursionmemoized\def\rk@recursionmemo{\\{\RKTokAlgorithmAnnotationFont\textcolor{\RKTokAlgorithmAnnotationText}{MEMOIZED}}}\fi
+    \def\rk@recursionargline{}
+    \ifx\rk@recursionargs\@empty
+    \else
+      \def\rk@recursionargline{\\{\RKTokAlgorithmAnnotationFont\textcolor{\RKTokAlgorithmAnnotationText}{args: \rk@recursionargs}}}%
+    \fi
+    \node[rk algo cell,\rk@algostateoverlay,text width=\rk@recursionwidth,minimum height=12mm]
+      (#2) at (\rk@recursionx,\rk@recursiony)
+      {\strut #3\rk@recursionargline\\{\RKTokAlgorithmAnnotationFont\textcolor{\RKTokAlgorithmAnnotationText}{return: #4}\rk@recursionmemo}};%
+    \@namedef{rk@recursion@x@#2}{\rk@recursionx}%
+    \@namedef{rk@recursion@y@#2}{\rk@recursiony}%
+    \advance\rk@recursionindex by 1\relax
+  }{%
+    \PackageError{reportkit-algorithm-p3}{Duplicate recursion call id '#2'}{Use unique ids so recursion edges are unambiguous.}%
+  }%
+}
+\let\recursioncall\recursionnode
+\let\recursionroot\recursionnode
+
+% <reportkit-contract>
+% {"kind":"command","description":"Draw an ordered call edge between two recursive-call nodes.","arguments":[{"name":"options","type":"options","description":"Optional label= for the edge."},{"name":"parent","type":"text","description":"Calling node id."},{"name":"child","type":"text","description":"Called node id."}],"constraints":[{"code":"inside_recursiontree","description":"Only valid inside recursiontree."},{"code":"known_node_ids","description":"Both ids must already be declared with recursionnode."}],"example":"\\recursionedge{f4}{f3}","stability":"experimental","since":"1.10.0","parent":"recursiontree"}
+% </reportkit-contract>
+\NewDocumentCommand{\recursionedge}{O{} m m}{%
+  \@ifundefined{rk@recursion@x@#2}{\rk@pthree@unknownid{recursiontree}{#2}{\string\recursionedge}}{}%
+  \@ifundefined{rk@recursion@x@#3}{\rk@pthree@unknownid{recursiontree}{#3}{\string\recursionedge}}{}%
+  \pgfkeys{/reportkit/recursionedge,label={},#1}%
+  \advance\rk@recursionedgecount by 1\relax
+  \expandafter\edef\csname rk@recursion@edge@parent@\the\rk@recursionedgecount\endcsname{#2}%
+  \expandafter\edef\csname rk@recursion@edge@child@\the\rk@recursionedgecount\endcsname{#3}%
+  \expandafter\protected@edef\csname rk@recursion@edge@label@\the\rk@recursionedgecount\endcsname{\rk@recursionedgelabel}%
+}
+\let\recursionlink\recursionedge
+\let\recursionbranch\recursionedge
+
+\newcommand{\rk@recursionrenderedges}{%
+  \ifnum\rk@recursionedgecount>0
+    \foreach \rk@i in {1,...,\the\rk@recursionedgecount}{%
+      \edef\rk@recursionlabel{\csname rk@recursion@edge@label@\rk@i\endcsname}%
+      \ifx\rk@recursionlabel\@empty
+        \draw[rk algo graph edge] (\csname rk@recursion@edge@parent@\rk@i\endcsname) -- (\csname rk@recursion@edge@child@\rk@i\endcsname);%
+      \else
+        \draw[rk algo graph edge] (\csname rk@recursion@edge@parent@\rk@i\endcsname) -- node[rk edge label]{\rk@recursionlabel} (\csname rk@recursion@edge@child@\rk@i\endcsname);%
+      \fi
+    }%
+  \fi
+}
+
+\makeatother
+\endinput

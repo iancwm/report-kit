@@ -124,6 +124,7 @@ SEMANTIC_MODULES = [
     "reportkit-algorithm-graph.sty",
     "reportkit-algorithm-dp.sty",
     "reportkit-algorithm-order.sty",
+    "reportkit-algorithm-p3.sty",
 ]
 
 # Modules in the diagram-chrome family that reportkit-diagrams.sty itself
@@ -144,7 +145,7 @@ MODULES_WITHOUT_OWN_ASSERTION = {
 # instead of joining MODULES_WITHOUT_OWN_ASSERTION above.
 ALGORITHM_MODULES_WITHOUT_OWN_ASSERTION = {
     "reportkit-algorithm-linear.sty", "reportkit-algorithm-graph.sty",
-    "reportkit-algorithm-dp.sty", "reportkit-algorithm-order.sty",
+    "reportkit-algorithm-dp.sty", "reportkit-algorithm-order.sty", "reportkit-algorithm-p3.sty",
 }
 
 CANONICAL_THEMES = sorted({canonical_theme_name(name) for name in THEMES})

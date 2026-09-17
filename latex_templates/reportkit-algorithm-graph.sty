@@ -93,7 +93,7 @@
   \rk@setalgostate{\rk@algocellstate}%
   \pgfmathsetmacro{\rk@graphx}{mod(\the\rk@graphindex,\rk@graphcolumns)*\rk@graphxstep}%
   \pgfmathsetmacro{\rk@graphy}{-floor(\the\rk@graphindex/\rk@graphcolumns)*\rk@graphystep}%
-  \node[rk algo graph node\rk@algostateoverlay] (#2) at (\rk@graphx,\rk@graphy) {\strut #3};%
+  \node[rk algo graph node,\rk@algostateoverlay] (#2) at (\rk@graphx,\rk@graphy) {\strut #3};%
   \advance\rk@graphindex by 1\relax
 }
 
@@ -171,7 +171,7 @@
   \pgfmathsetmacro{\rk@gridx}{(#2-1)*\rk@gridcellsize}%
   \pgfmathsetmacro{\rk@gridy}{-(#1-1)*\rk@gridcellsize}%
   \edef\rk@gridcellname{rkgridcell-#1-#2}%
-  \node[rk algo cell\rk@algostateoverlay] (\rk@gridcellname) at (\rk@gridx,\rk@gridy) {\strut};%
+  \node[rk algo cell,\rk@algostateoverlay] (\rk@gridcellname) at (\rk@gridx,\rk@gridy) {\strut};%
 }
 
 % -----------------------------------------------------------------------------
@@ -252,7 +252,7 @@
   \rk@setalgostate{\rk@algocellstate}%
   \pgfmathsetmacro{\rk@dagx}{mod(\the\rk@graphindex,\rk@graphcolumns)*\rk@graphxstep}%
   \pgfmathsetmacro{\rk@dagy}{-floor(\the\rk@graphindex/\rk@graphcolumns)*\rk@graphystep}%
-  \node[rk algo graph node\rk@algostateoverlay] (#2) at (\rk@dagx,\rk@dagy) {\strut #3};%
+  \node[rk algo graph node,\rk@algostateoverlay] (#2) at (\rk@dagx,\rk@dagy) {\strut #3};%
   \ifstrempty{\rk@dagindegreevalue}{}{%
     \node[rk algo dag indegree badge] at (#2.north east) {\rk@dagindegreevalue};%
   }%

@@ -265,7 +265,34 @@ Reading order is left to right, then top to bottom. ReportKit produces static do
 
 Several of these primitives' spec-proposed state names aren't literally part of the shared nine-word vocabulary; each maps onto the closest real state instead of inventing new ones: intervalstate's "overlap"/"merged" become `active`/`resolved`; dptable's "solved"/"dependency"/"uncomputed" become `resolved`/`candidate`/the plain unmarked cell; dagstate's "ready"/"processed" become `frontier`/`resolved` (`blocked` is already shared).
 
-`joinstate`, `unionfindstate`, `linkedliststate`, and recursion-tree support are specified but not yet implemented (P3, lower priority) -- see `docs/superpowers/specs/2026-09-16-reportkit-algorithm-visualization-primitives-spec.md` and TODOS.md for status.
+P3 adds domain-specific extensions for the cases where the general state
+grammar needs one more semantic relationship:
+
+* `joinstate` shows two keyed inputs feeding a hash/index, matched keys, and
+  joined output rows. Use `\joininput{left|right}{label}`,
+  `\hashbucket{key}{values}`, `\joinmatch{key}{result}`, and
+  `\joinoutput{label}`. `\joinunmatched{side}{key}` marks an excluded key
+  with the shared `discarded` state.
+* `unionfindstate` shows a disjoint-set forest. Declare `\ufnode`, connect
+  parent relationships with `\parent{child}{parent}`, show a merge with
+  `\union{left}{right}`, and mark a representative lookup with
+  `\findpath{from}{to}`. Layout is automatic and all node state options use
+  the shared nine-word vocabulary.
+* `linkedliststate` shows singly linked nodes and next pointers. Declare
+  `\listnode`, connect nodes with `\nextlink`, and optionally mark `\head`
+  and `\tail`; HEAD, TAIL, and NULL labels are rendered explicitly. Set
+  `direction=vertical` when a tall list reads better than a horizontal one.
+* `recursiontree` extends the tree-like algorithm grammar with
+  `\recursionnode[arguments={...},memoized]{id}{call}{return}` and
+  `\recursionedge{parent}{child}`. Arguments, return values, and the
+  MEMOIZED marker remain textual, while `state=current` and the other shared
+  states show execution status.
+
+These are compositions, not replacements for the general primitives:
+`joinstate` is for keyed data movement, `unionfindstate` for component
+membership, `linkedliststate` for next-pointer structure, and `recursiontree`
+for call/return state. Put every one inside the standard `diagram` wrapper
+with a plain-language `description=`.
 
 ## Diagram contract
 
@@ -295,6 +322,7 @@ Place every conceptual visual in a `diagram` wrapper. It keeps the visual non-fl
 - `latex_templates/reportkit-algorithm-graph.sty`: graphstate, gridstate, and dagstate
 - `latex_templates/reportkit-algorithm-order.sty`: intervalstate and heapstate
 - `latex_templates/reportkit-algorithm-dp.sty`: dptable
+- `latex_templates/reportkit-algorithm-p3.sty`: joinstate, unionfindstate, linkedliststate, and recursiontree
 
 Read only the relevant source file before using a primitive not shown below.
 

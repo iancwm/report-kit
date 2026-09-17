@@ -47,14 +47,20 @@ consistency requirement — see SKILL.md's "Algorithm and execution-state
 visuals" section for the exact mapping. `python -m pytest tests` passes (169
 passed) with zero contract errors; three more fixtures added and wired into
 `scripts/acceptance_check.sh`, still unverified by an actual LuaLaTeX/
-pdfLaTeX compile in this environment. Only the P3 extensions (`joinstate`,
-`unionfindstate`, linked-list, and recursion-tree support) remain — see
-TODOS.md.
+pdfLaTeX compile in this environment. P3 extensions also implemented
+2026-09-17 in `latex_templates/reportkit-algorithm-p3.sty`: `joinstate`
+provides a keyed/hash-join composition, `unionfindstate` provides
+disjoint-set parent/union/find state, `linkedliststate` provides explicit
+next/head/tail/NULL semantics, and `recursiontree` provides call arguments,
+return values, and memoization markers. Contract metadata, generated
+references, documentation, and regression coverage are included; the full
+algorithm visualization feature is complete.
 **Target:** ReportKit vNext.
 **Baseline:** `main` at `4113e8b`, ReportKit class v1.9.3, contract v1.0.0.
 **Scope:** Native semantic visualization primitives for algorithms, data
 structures, and execution-state traces.
-**Primary module:** `latex_templates/reportkit-algorithm-viz.sty`.
+**Primary module:** `latex_templates/reportkit-algorithm-viz.sty`, with P3
+extensions in `latex_templates/reportkit-algorithm-p3.sty`.
 
 ---
 

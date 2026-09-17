@@ -136,7 +136,7 @@
   \pgfmathsetmacro{\rk@intervalwidth}{\rk@intervalxb-\rk@intervalxa}%
   \pgfmathsetmacro{\rk@intervaly}{-\the\rk@intervalrow*\rk@intervalrowheight}%
   \edef\rk@intervalbarname{rkalgointerval-\the\rk@intervalrow}%
-  \node[rk algo cell\rk@algostateoverlay,minimum width=\rk@intervalwidth cm]
+  \node[rk algo cell,\rk@algostateoverlay,minimum width=\rk@intervalwidth cm]
     (\rk@intervalbarname) at ({(\rk@intervalxa+\rk@intervalxb)/2},\rk@intervaly) {\strut #2};%
   \node[rk algo index] at (\rk@intervalxa,{\rk@intervaly-0.62*\rk@intervalrowheight}) {#3};%
   \node[rk algo index] at (\rk@intervalxb,{\rk@intervaly-0.62*\rk@intervalrowheight}) {#4};%
@@ -160,7 +160,7 @@
   \pgfmathsetmacro{\rk@intervalsepy}{\rk@intervaly+0.5*\rk@intervalrowheight}%
   \draw[rk algo trace separator] ({\rk@intervalxmin-0.15},\rk@intervalsepy) -- ({\rk@intervalxmax+0.15},\rk@intervalsepy);%
   \edef\rk@intervalbarname{rkalgointerval-merged-\the\rk@intervalrow}%
-  \node[rk algo cell\rk@algostateoverlay,minimum width=\rk@intervalwidth cm]
+  \node[rk algo cell,\rk@algostateoverlay,minimum width=\rk@intervalwidth cm]
     (\rk@intervalbarname) at ({(\rk@intervalxa+\rk@intervalxb)/2},\rk@intervaly) {};%
   \node[rk algo index] at (\rk@intervalxa,{\rk@intervaly-0.62*\rk@intervalrowheight}) {#2};%
   \node[rk algo index] at (\rk@intervalxb,{\rk@intervaly-0.62*\rk@intervalrowheight}) {#3};%
@@ -298,9 +298,9 @@
   \@ifundefined{rk@heapval@#1}{\def\rk@heapvaltext{}}{\edef\rk@heapvaltext{\csname rk@heapval@#1\endcsname}}%
   \rk@setalgostate{current}%
   \pgfmathsetmacro{\rk@heapx}{#1*\rk@heapcellwidth}%
-  \node[rk algo cell\rk@algostateoverlay] at (\rk@heapx,0) {\strut \rk@heapvaltext};%
+  \node[rk algo cell,\rk@algostateoverlay] at (\rk@heapx,0) {\strut \rk@heapvaltext};%
   \rk@heaptreecoords{#1}%
-  \node[rk algo cell\rk@algostateoverlay] at (\rk@heapcoordx,\rk@heapcoordy) {\strut \rk@heapvaltext};%
+  \node[rk algo cell,\rk@algostateoverlay] at (\rk@heapcoordx,\rk@heapcoordy) {\strut \rk@heapvaltext};%
 }
 
 \makeatother
