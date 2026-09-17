@@ -1,7 +1,23 @@
 # ReportKit Algorithm Visualization Primitives
 
-**Status:** Proposed — not yet implemented. No code in `latex_templates/`,
-`python_scripts/`, or `tests/` has been written against this document.
+**Status:** Phase 1 (core state grammar) implemented 2026-09-17: the shared
+nine-state vocabulary and its theme-owned `RKTokAlgorithm*` tokens (populated
+by all three themes), `arraystate` (with `\cell`/`\row`/`\pointer`/`\range`/
+`\annotation`), `windowstate`, and `algorithmtrace`/`\snapshot` all landed in
+`latex_templates/reportkit-algorithm-viz.sty`, wired into `reportkit.cls`,
+with contract metadata, generated-doc regeneration, `tests/
+test_theme_contract.py` coverage, a new `tests/test_algorithm_viz.py`
+compile-and-inspect suite, a canonical fixture
+(`latex_templates/examples/algorithm_visuals_acceptance_test.tex`, wired into
+`scripts/acceptance_check.sh`), and a new SKILL.md "Algorithm and
+execution-state visuals" section. Verified via `python -m pytest tests` (164
+passed) and `generate_registry(strict=True)` with zero contract errors; no
+LuaLaTeX/pdfLaTeX toolchain was available in this environment, so the new
+fixture and the new PDF-inspection tests are unverified by an actual compile
+and remain to be checked the next time this runs somewhere with TeX
+installed. Phases 2-4 (`stackstate`, `queuestate`, `graphstate`, `gridstate`,
+`dagstate`, `intervalstate`, `heapstate`, `dptable`, and the P3 extensions)
+are not yet implemented — see TODOS.md.
 **Target:** ReportKit vNext.
 **Baseline:** `main` at `4113e8b`, ReportKit class v1.9.3, contract v1.0.0.
 **Scope:** Native semantic visualization primitives for algorithms, data

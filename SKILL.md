@@ -138,6 +138,54 @@ Three primitives look superficially similar (a boxed reading unit with a small t
 
 `algorithmic` is opened and closed by `algorithmblock` itself -- do not write `\begin{algorithmic}`/`\end{algorithmic}` directly. Supported options are `label=` and `caption=` (rendered below the pseudocode using the same caption/provenance convention as `diagram`) plus an optional `linenumbers=<step>`; line numbers are off by default. `\AlgorithmInput`/`\AlgorithmOutput` render compact INPUT/OUTPUT metadata lines and are only valid inside `algorithmblock`, immediately after `\State` would otherwise begin.
 
+## Algorithm and execution-state visuals
+
+`algorithmblock` shows an algorithm's control-flow logic; the primitives in `reportkit-algorithm-viz.sty` show the *state of the data* while that algorithm runs -- values, indices, pointers, active regions, and how state changes between steps. Reach for one of these instead of a generic `reportflow`/`reportnetwork` diagram whenever the reader needs to see a data structure's contents, not a process's stages:
+
+| Reader question | Primitive |
+| --- | --- |
+| Where are the pointers in this array? | `arraystate` |
+| Which range is currently active? | `arraystate` / `windowstate` |
+| How does state change from one iteration to the next? | `algorithmtrace` |
+
+Every state-aware primitive shares one vocabulary of nine semantic states, set via `state=`: `current`, `active`, `candidate`, `frontier`, `visited`, `resolved`, `discarded`, `blocked`, `unseen`. Each carries a distinct border weight or line style in addition to its color, so meaning survives grayscale printing -- never the only signal for a state is its fill color.
+
+```latex
+\begin{diagram}[type=array,caption={Two-pointer scan.},description={A sorted array with left and right pointers bounding the active range.}]
+\begin{arraystate}
+  \cell{-4}
+  \cell{-1}
+  \cell{-1}
+  \cell{0}
+  \cell{1}
+  \cell{2}
+  \pointer[below]{L}{2}
+  \pointer[below]{R}{5}
+  \range[state=active]{2}{5}
+\end{arraystate}
+\end{diagram}
+```
+
+`arraystate` is the foundational primitive: `\cell[state=]{value}` appends a value (indices render automatically below row zero unless `indices=false`); `\pointer[above|below]{label}{index}` places a labelled cursor; `\range[state=][row=]{start}{end}` highlights an inclusive index span behind the row; `\annotation{text}` stacks a caption-style line below the array. Multi-row alignment (prefix sums, before/after arrays, DP rows) uses `\row{name}{v1,v2,...}` instead of bare `\cell` calls; `\pointer`/`\range`/`\annotation` then take `row=<name>` to target a specific row. Indices and ranges are zero-based.
+
+`windowstate` is a thin composition over `arraystate` for sliding/moving contiguous regions: `\values{...}` declares the backing array, `\window{start}{end}` marks the active span with automatic left/right cursors, and `\entering{v}`/`\leaving{v}` annotate the incoming and outgoing values.
+
+`algorithmtrace` composes ordered snapshots to show state evolving across steps -- the second highest-priority primitive after `arraystate`. Each `\snapshot{title}{content}` is a self-contained algorithm-state primitive (typically `arraystate` or `windowstate`), wrapping into a grid controlled by `columns=` (default 3):
+
+```latex
+\begin{diagram}[type=trace,caption={Sliding-window advance.},description={Three ordered snapshots show the window advancing by one element.}]
+\begin{algorithmtrace}[columns=3]
+  \snapshot{Initial}{\begin{arraystate}\cell{4}\cell{2}\cell{7}\end{arraystate}}
+  \snapshot{Advance}{\begin{arraystate}\cell{4}\cell{2}\cell{7}\end{arraystate}}
+  \snapshot{Shrink}{\begin{arraystate}\cell{4}\cell{2}\cell{7}\end{arraystate}}
+\end{algorithmtrace}
+\end{diagram}
+```
+
+Reading order is left to right, then top to bottom. ReportKit produces static documents -- `algorithmtrace` is the temporal-explanation mechanism; do not attempt animation.
+
+Graph, grid, stack/queue, heap, interval, DP-table, and DAG state primitives (`graphstate`, `gridstate`, `stackstate`, `queuestate`, `heapstate`, `intervalstate`, `dptable`, `dagstate`) are specified but not yet implemented -- see `docs/superpowers/specs/2026-09-16-reportkit-algorithm-visualization-primitives-spec.md` and TODOS.md for status. Until they land, compose graph/grid traversal state from `reportnetwork`/`reportkit-structure.sty` primitives instead.
+
 ## Diagram contract
 
 Place every conceptual visual in a `diagram` wrapper. It keeps the visual non-floating, reserves page space, and attaches caption and provenance to the prose.
@@ -161,6 +209,7 @@ Place every conceptual visual in a `diagram` wrapper. It keeps the visual non-fl
 - `latex_templates/reportkit-process.sty`: flows, swimlanes, networks, and causal loops
 - `latex_templates/reportkit-structure.sty`: architecture, roadmap, strategy, maturity, continuum, capability map, and tree
 - `latex_templates/reportkit-diagrams.sty`: wrapper plus low-level `RK...` primitives
+- `latex_templates/reportkit-algorithm-viz.sty`: arraystate, windowstate, and algorithmtrace (see "Algorithm and execution-state visuals" above)
 
 Read only the relevant source file before using a primitive not shown below.
 

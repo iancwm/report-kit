@@ -74,6 +74,27 @@ REQUIRED_STYLE_TOKENS = [
     "RKTokDiagramStructureMutedFont", "RKTokDiagramStructureMutedText",
     "RKTokDiagramStructureArrowColor", "RKTokDiagramStructureArrowWidth",
     "RKTokDiagramStructureArrowTip",
+    # Algorithm-visualization state grammar (reportkit-algorithm-viz.sty):
+    # one Draw/Fill/Text/LineStyle group per shared semantic state, plus the
+    # unmarked-cell default, so state meaning survives grayscale printing.
+    "RKTokAlgorithmCellDraw", "RKTokAlgorithmCellFill", "RKTokAlgorithmCellText", "RKTokAlgorithmCellLineStyle",
+    "RKTokAlgorithmCurrentDraw", "RKTokAlgorithmCurrentFill", "RKTokAlgorithmCurrentText", "RKTokAlgorithmCurrentLineStyle",
+    "RKTokAlgorithmActiveDraw", "RKTokAlgorithmActiveFill", "RKTokAlgorithmActiveText", "RKTokAlgorithmActiveLineStyle",
+    "RKTokAlgorithmCandidateDraw", "RKTokAlgorithmCandidateFill", "RKTokAlgorithmCandidateText", "RKTokAlgorithmCandidateLineStyle",
+    "RKTokAlgorithmFrontierDraw", "RKTokAlgorithmFrontierFill", "RKTokAlgorithmFrontierText", "RKTokAlgorithmFrontierLineStyle",
+    "RKTokAlgorithmVisitedDraw", "RKTokAlgorithmVisitedFill", "RKTokAlgorithmVisitedText", "RKTokAlgorithmVisitedLineStyle",
+    "RKTokAlgorithmResolvedDraw", "RKTokAlgorithmResolvedFill", "RKTokAlgorithmResolvedText", "RKTokAlgorithmResolvedLineStyle",
+    "RKTokAlgorithmDiscardedDraw", "RKTokAlgorithmDiscardedFill", "RKTokAlgorithmDiscardedText", "RKTokAlgorithmDiscardedLineStyle",
+    "RKTokAlgorithmBlockedDraw", "RKTokAlgorithmBlockedFill", "RKTokAlgorithmBlockedText", "RKTokAlgorithmBlockedLineStyle",
+    "RKTokAlgorithmUnseenDraw", "RKTokAlgorithmUnseenFill", "RKTokAlgorithmUnseenText", "RKTokAlgorithmUnseenLineStyle",
+    "RKTokAlgorithmCellFont", "RKTokAlgorithmCellMinSize", "RKTokAlgorithmCellPad", "RKTokAlgorithmCellRounding",
+    "RKTokAlgorithmIndexFont", "RKTokAlgorithmIndexText",
+    "RKTokAlgorithmPointerColor", "RKTokAlgorithmPointerFont", "RKTokAlgorithmPointerWidth",
+    "RKTokAlgorithmContainerDraw", "RKTokAlgorithmContainerWidth",
+    "RKTokAlgorithmAnnotationFont", "RKTokAlgorithmAnnotationText",
+    "RKTokAlgorithmRowLabelFont", "RKTokAlgorithmRowLabelText",
+    "RKTokAlgorithmTraceLabelFont", "RKTokAlgorithmTraceLabelText",
+    "RKTokAlgorithmTraceSeparatorColor", "RKTokAlgorithmTraceSeparatorWidth",
 ]
 
 # Semantic modules that must not know any theme's name. Phase A4's diagram
@@ -87,6 +108,7 @@ SEMANTIC_MODULES = [
     "reportkit-structure.sty",
     "reportkit-process.sty",
     "reportkit-spatial.sty",
+    "reportkit-algorithm-viz.sty",
 ]
 
 # Modules in the diagram-chrome family that reportkit-diagrams.sty itself

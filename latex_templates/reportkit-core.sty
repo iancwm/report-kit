@@ -301,6 +301,77 @@
 \newcommand{\RKTokDiagramStructureArrowColor}{\rk@styletokenerror{\RKTokDiagramStructureArrowColor}}
 \newcommand{\RKTokDiagramStructureArrowWidth}{\rk@styletokenerror{\RKTokDiagramStructureArrowWidth}}
 \newcommand{\RKTokDiagramStructureArrowTip}{\rk@styletokenerror{\RKTokDiagramStructureArrowTip}}
+% Algorithm-visualization state grammar (reportkit-algorithm-viz.sty and the
+% primitive families built on it -- arraystate, windowstate, algorithmtrace,
+% and any later stackstate/queuestate/graphstate/gridstate/dagstate/
+% heapstate/intervalstate/dptable module that composes the same shared
+% `rk algo state <name>` overlay styles). One Draw/Fill/Text/LineStyle group
+% per semantic state, plus an unmarked-cell default group, so state meaning
+% never depends on fill color alone (LineStyle is a real tikz style value --
+% solid/dashed/dotted -- not just a color swap). Same sentinel/assertion
+% pattern as the diagram-chrome family above.
+\newcommand{\RKTokAlgorithmCellDraw}{\rk@styletokenerror{\RKTokAlgorithmCellDraw}}
+\newcommand{\RKTokAlgorithmCellFill}{\rk@styletokenerror{\RKTokAlgorithmCellFill}}
+\newcommand{\RKTokAlgorithmCellText}{\rk@styletokenerror{\RKTokAlgorithmCellText}}
+\newcommand{\RKTokAlgorithmCellLineStyle}{\rk@styletokenerror{\RKTokAlgorithmCellLineStyle}}
+\newcommand{\RKTokAlgorithmCurrentDraw}{\rk@styletokenerror{\RKTokAlgorithmCurrentDraw}}
+\newcommand{\RKTokAlgorithmCurrentFill}{\rk@styletokenerror{\RKTokAlgorithmCurrentFill}}
+\newcommand{\RKTokAlgorithmCurrentText}{\rk@styletokenerror{\RKTokAlgorithmCurrentText}}
+\newcommand{\RKTokAlgorithmCurrentLineStyle}{\rk@styletokenerror{\RKTokAlgorithmCurrentLineStyle}}
+\newcommand{\RKTokAlgorithmActiveDraw}{\rk@styletokenerror{\RKTokAlgorithmActiveDraw}}
+\newcommand{\RKTokAlgorithmActiveFill}{\rk@styletokenerror{\RKTokAlgorithmActiveFill}}
+\newcommand{\RKTokAlgorithmActiveText}{\rk@styletokenerror{\RKTokAlgorithmActiveText}}
+\newcommand{\RKTokAlgorithmActiveLineStyle}{\rk@styletokenerror{\RKTokAlgorithmActiveLineStyle}}
+\newcommand{\RKTokAlgorithmCandidateDraw}{\rk@styletokenerror{\RKTokAlgorithmCandidateDraw}}
+\newcommand{\RKTokAlgorithmCandidateFill}{\rk@styletokenerror{\RKTokAlgorithmCandidateFill}}
+\newcommand{\RKTokAlgorithmCandidateText}{\rk@styletokenerror{\RKTokAlgorithmCandidateText}}
+\newcommand{\RKTokAlgorithmCandidateLineStyle}{\rk@styletokenerror{\RKTokAlgorithmCandidateLineStyle}}
+\newcommand{\RKTokAlgorithmFrontierDraw}{\rk@styletokenerror{\RKTokAlgorithmFrontierDraw}}
+\newcommand{\RKTokAlgorithmFrontierFill}{\rk@styletokenerror{\RKTokAlgorithmFrontierFill}}
+\newcommand{\RKTokAlgorithmFrontierText}{\rk@styletokenerror{\RKTokAlgorithmFrontierText}}
+\newcommand{\RKTokAlgorithmFrontierLineStyle}{\rk@styletokenerror{\RKTokAlgorithmFrontierLineStyle}}
+\newcommand{\RKTokAlgorithmVisitedDraw}{\rk@styletokenerror{\RKTokAlgorithmVisitedDraw}}
+\newcommand{\RKTokAlgorithmVisitedFill}{\rk@styletokenerror{\RKTokAlgorithmVisitedFill}}
+\newcommand{\RKTokAlgorithmVisitedText}{\rk@styletokenerror{\RKTokAlgorithmVisitedText}}
+\newcommand{\RKTokAlgorithmVisitedLineStyle}{\rk@styletokenerror{\RKTokAlgorithmVisitedLineStyle}}
+\newcommand{\RKTokAlgorithmResolvedDraw}{\rk@styletokenerror{\RKTokAlgorithmResolvedDraw}}
+\newcommand{\RKTokAlgorithmResolvedFill}{\rk@styletokenerror{\RKTokAlgorithmResolvedFill}}
+\newcommand{\RKTokAlgorithmResolvedText}{\rk@styletokenerror{\RKTokAlgorithmResolvedText}}
+\newcommand{\RKTokAlgorithmResolvedLineStyle}{\rk@styletokenerror{\RKTokAlgorithmResolvedLineStyle}}
+\newcommand{\RKTokAlgorithmDiscardedDraw}{\rk@styletokenerror{\RKTokAlgorithmDiscardedDraw}}
+\newcommand{\RKTokAlgorithmDiscardedFill}{\rk@styletokenerror{\RKTokAlgorithmDiscardedFill}}
+\newcommand{\RKTokAlgorithmDiscardedText}{\rk@styletokenerror{\RKTokAlgorithmDiscardedText}}
+\newcommand{\RKTokAlgorithmDiscardedLineStyle}{\rk@styletokenerror{\RKTokAlgorithmDiscardedLineStyle}}
+\newcommand{\RKTokAlgorithmBlockedDraw}{\rk@styletokenerror{\RKTokAlgorithmBlockedDraw}}
+\newcommand{\RKTokAlgorithmBlockedFill}{\rk@styletokenerror{\RKTokAlgorithmBlockedFill}}
+\newcommand{\RKTokAlgorithmBlockedText}{\rk@styletokenerror{\RKTokAlgorithmBlockedText}}
+\newcommand{\RKTokAlgorithmBlockedLineStyle}{\rk@styletokenerror{\RKTokAlgorithmBlockedLineStyle}}
+\newcommand{\RKTokAlgorithmUnseenDraw}{\rk@styletokenerror{\RKTokAlgorithmUnseenDraw}}
+\newcommand{\RKTokAlgorithmUnseenFill}{\rk@styletokenerror{\RKTokAlgorithmUnseenFill}}
+\newcommand{\RKTokAlgorithmUnseenText}{\rk@styletokenerror{\RKTokAlgorithmUnseenText}}
+\newcommand{\RKTokAlgorithmUnseenLineStyle}{\rk@styletokenerror{\RKTokAlgorithmUnseenLineStyle}}
+% Structural chrome shared by every algorithm-state primitive: cell/node
+% geometry, index labels, pointers, container rules, annotations, row
+% labels (multi-row arraystate), and algorithmtrace's snapshot furniture.
+\newcommand{\RKTokAlgorithmCellFont}{\rk@styletokenerror{\RKTokAlgorithmCellFont}}
+\newcommand{\RKTokAlgorithmCellMinSize}{\rk@styletokenerror{\RKTokAlgorithmCellMinSize}}
+\newcommand{\RKTokAlgorithmCellPad}{\rk@styletokenerror{\RKTokAlgorithmCellPad}}
+\newcommand{\RKTokAlgorithmCellRounding}{\rk@styletokenerror{\RKTokAlgorithmCellRounding}}
+\newcommand{\RKTokAlgorithmIndexFont}{\rk@styletokenerror{\RKTokAlgorithmIndexFont}}
+\newcommand{\RKTokAlgorithmIndexText}{\rk@styletokenerror{\RKTokAlgorithmIndexText}}
+\newcommand{\RKTokAlgorithmPointerColor}{\rk@styletokenerror{\RKTokAlgorithmPointerColor}}
+\newcommand{\RKTokAlgorithmPointerFont}{\rk@styletokenerror{\RKTokAlgorithmPointerFont}}
+\newcommand{\RKTokAlgorithmPointerWidth}{\rk@styletokenerror{\RKTokAlgorithmPointerWidth}}
+\newcommand{\RKTokAlgorithmContainerDraw}{\rk@styletokenerror{\RKTokAlgorithmContainerDraw}}
+\newcommand{\RKTokAlgorithmContainerWidth}{\rk@styletokenerror{\RKTokAlgorithmContainerWidth}}
+\newcommand{\RKTokAlgorithmAnnotationFont}{\rk@styletokenerror{\RKTokAlgorithmAnnotationFont}}
+\newcommand{\RKTokAlgorithmAnnotationText}{\rk@styletokenerror{\RKTokAlgorithmAnnotationText}}
+\newcommand{\RKTokAlgorithmRowLabelFont}{\rk@styletokenerror{\RKTokAlgorithmRowLabelFont}}
+\newcommand{\RKTokAlgorithmRowLabelText}{\rk@styletokenerror{\RKTokAlgorithmRowLabelText}}
+\newcommand{\RKTokAlgorithmTraceLabelFont}{\rk@styletokenerror{\RKTokAlgorithmTraceLabelFont}}
+\newcommand{\RKTokAlgorithmTraceLabelText}{\rk@styletokenerror{\RKTokAlgorithmTraceLabelText}}
+\newcommand{\RKTokAlgorithmTraceSeparatorColor}{\rk@styletokenerror{\RKTokAlgorithmTraceSeparatorColor}}
+\newcommand{\RKTokAlgorithmTraceSeparatorWidth}{\rk@styletokenerror{\RKTokAlgorithmTraceSeparatorWidth}}
 \newif\ifrk@styletokensloaded
 \rk@styletokensloadedfalse
 % Called by reportkit-boxes.sty (or any future style-token consumer)

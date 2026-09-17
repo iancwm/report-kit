@@ -103,7 +103,7 @@ def test_diagnostics_map_wrapped_fragment_message() -> None:
 
 def test_registry_matches_skill_inventories() -> None:
     registry = generate_registry(REPO)
-    assert len(registry["figures"]) == 19
+    assert len(registry["figures"]) == 22
     assert len(registry["callouts"]["public"]) == 10
     assert registry["callouts"]["aliases"]["evidence"] == "evidencenote"
     assert check_skill_drift(REPO) == []
@@ -403,6 +403,6 @@ def test_registry_and_skill_drift_unaffected_by_new_publication_type_file() -> N
     deeper (like themes/*.sty already did) and must not be picked up by
     that scan or start failing the skill-drift check."""
     registry = generate_registry(REPO)
-    assert len(registry["figures"]) == 19
+    assert len(registry["figures"]) == 22
     assert len(registry["callouts"]["public"]) == 10
     assert check_skill_drift(REPO) == []
