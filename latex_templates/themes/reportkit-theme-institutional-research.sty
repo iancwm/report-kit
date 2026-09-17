@@ -425,21 +425,11 @@
 \renewcommand{\RKTokAlgorithmDagBadgeText}{Muted}
 \renewcommand{\RKTokAlgorithmDagBadgeFont}{\sffamily\bfseries\fontsize{5.4}{6.4}\selectfont}
 \renewcommand{\RKTokAlgorithmDagBadgeSize}{3.4mm}
-\rk@styletokensloadedtrue
-
-% <reportkit-contract>
-% {"kind":"callout","description":"Execsummary","arguments":[],"constraints":[],"example":"\\begin{execsummary}\nExample content.\n\\end{execsummary}","stability":"stable","since":"1.7.0"}
-% </reportkit-contract>
-\NewDocumentEnvironment{execsummary}{}{%
-  \par\RKReserveSpace{7\baselineskip}%
-  \begin{list}{}{\setlength{\leftmargin}{0pt}\setlength{\rightmargin}{0pt}}\item\relax
-  \color{Ink}\sffamily\rksubsectionsize\textbf{EXECUTIVE SUMMARY}\par\vspace{2pt}\rmfamily\rkbodysize
-}{%
-  \end{list}\vspace{3pt}
-}
-
-% Figure/table provenance helper -- quieter than the default theme's, per
-% §16's "muted source line" table rule (applies equally to figures).
-\newcommand{\source}[1]{\par\vspace{1pt}{\sffamily\rksourcesize\color{Muted}Source: #1}\par}
-
-\endinput
+% intervalstate/heapstate chrome (reportkit-algorithm-order.sty). Reuses
+% this theme's existing named colors: the axis line matches the weight of
+% the existing container/trace-separator hairline, and the tree-edge line
+% matches the existing graph-edge weight.
+\renewcommand{\RKTokAlgorithmIntervalAxisColor}{Hairline}
+\renewcommand{\RKTokAlgorithmIntervalAxisWidth}{.5pt}
+\renewcommand{\RKTokAlgorithmHeapEdgeColor}{Muted}
+\renewcommand{\RKTokAlgorithmHeapEdgeWidth}{.7pt}

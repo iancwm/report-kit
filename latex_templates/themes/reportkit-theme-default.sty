@@ -270,20 +270,11 @@
 \renewcommand{\RKTokAlgorithmDagBadgeText}{Muted}
 \renewcommand{\RKTokAlgorithmDagBadgeFont}{\sffamily\bfseries\fontsize{5.4}{6.4}\selectfont}
 \renewcommand{\RKTokAlgorithmDagBadgeSize}{3.4mm}
-\rk@styletokensloadedtrue
-
-% <reportkit-contract>
-% {"kind":"callout","description":"Execsummary","arguments":[],"constraints":[],"example":"\\begin{execsummary}\nExample content.\n\\end{execsummary}","stability":"stable","since":"1.0.0"}
-% </reportkit-contract>
-\NewDocumentEnvironment{execsummary}{}{%
-  \par\RKReserveSpace{8\baselineskip}%
-  \begin{list}{}{\setlength{\leftmargin}{0pt}\setlength{\rightmargin}{0pt}}\item\relax
-  \color{Ink}\sffamily\small\textbf{EXECUTIVE SUMMARY}\par\vspace{2pt}\rmfamily\normalsize
-}{%
-  \end{list}\vspace{3pt}
-}
-
-% Figure/table provenance helper.
-\newcommand{\source}[1]{\par\vspace{1pt}{\sffamily\fontsize{7.4}{9}\selectfont\color{Muted}\textit{Source:} #1}\par}
-
-\endinput
+% intervalstate/heapstate chrome (reportkit-algorithm-order.sty). Reuses
+% this theme's existing named colors: the axis line matches the weight of
+% the existing container/trace-separator hairline, and the tree-edge line
+% matches the existing graph-edge weight.
+\renewcommand{\RKTokAlgorithmIntervalAxisColor}{Hairline}
+\renewcommand{\RKTokAlgorithmIntervalAxisWidth}{.5pt}
+\renewcommand{\RKTokAlgorithmHeapEdgeColor}{Muted}
+\renewcommand{\RKTokAlgorithmHeapEdgeWidth}{.7pt}

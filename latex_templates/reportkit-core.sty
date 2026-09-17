@@ -397,6 +397,16 @@
 \newcommand{\RKTokAlgorithmDagBadgeText}{\rk@styletokenerror{\RKTokAlgorithmDagBadgeText}}
 \newcommand{\RKTokAlgorithmDagBadgeFont}{\rk@styletokenerror{\RKTokAlgorithmDagBadgeFont}}
 \newcommand{\RKTokAlgorithmDagBadgeSize}{\rk@styletokenerror{\RKTokAlgorithmDagBadgeSize}}
+% intervalstate/heapstate chrome (reportkit-algorithm-order.sty, spec
+% sections 11-12). Both families reuse `rk algo cell` and the shared
+% `rk algo state <name>` overlay outright for their bars/nodes (an interval
+% bar is an arraystate cell given an explicit width; a heap node is an
+% arraystate cell placed on a computed coordinate), so the only new chrome
+% is intervalstate's shared-axis line and heapstate's tree-edge line.
+\newcommand{\RKTokAlgorithmIntervalAxisColor}{\rk@styletokenerror{\RKTokAlgorithmIntervalAxisColor}}
+\newcommand{\RKTokAlgorithmIntervalAxisWidth}{\rk@styletokenerror{\RKTokAlgorithmIntervalAxisWidth}}
+\newcommand{\RKTokAlgorithmHeapEdgeColor}{\rk@styletokenerror{\RKTokAlgorithmHeapEdgeColor}}
+\newcommand{\RKTokAlgorithmHeapEdgeWidth}{\rk@styletokenerror{\RKTokAlgorithmHeapEdgeWidth}}
 \newif\ifrk@styletokensloaded
 \rk@styletokensloadedfalse
 % Called by reportkit-boxes.sty (or any future style-token consumer)

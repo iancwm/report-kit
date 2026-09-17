@@ -358,6 +358,10 @@
 % reportkit-algorithm-graph.sty are -- see reportkit-algorithm-dp.sty's own
 % top-of-file note.
 \RequirePackage{reportkit-algorithm-dp}
+% Phase 3: intervalstate/heapstate (spec sections 11-12). Loaded from within
+% this already-asserting entry point, exactly as the Phase 2 modules above
+% -- see reportkit-algorithm-order.sty's own top-of-file note.
+\RequirePackage{reportkit-algorithm-order}
 
 \makeatother
 \endinput

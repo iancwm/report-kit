@@ -1,0 +1,86 @@
+\documentclass{reportkit}
+
+\setreportkitleftheader{REPORTKIT / ALGORITHM VISUALIZATION TEST}
+\setreportkitfooter{Algorithm visualization (interval/heap) acceptance test}
+\setreportkitversion{v1.10.0}
+
+\title{ReportKit -- interval and heap algorithm-visualization primitives}
+\author{Test build}
+\date{17 September 2026}
+
+\begin{document}
+\maketitle
+
+\begin{execsummary}
+This is an acceptance test for reportkit-algorithm-order.sty's
+\texttt{intervalstate} and \texttt{heapstate} primitives (spec sections 11
+and 12 of
+docs/superpowers/specs/2026-09-16-reportkit-algorithm-visualization-primitives-spec.md).
+Both reuse the shared nine-state algorithm vocabulary and the foundational
+\texttt{arraystate} cell chrome already exercised in
+algorithm\_visuals\_acceptance\_test.tex.
+\end{execsummary}
+
+\section{Merge intervals}
+\texttt{intervalstate}: three candidate intervals on a shared axis, one
+currently overlapping the running merge (\texttt{state=active}), followed by
+their merged summary span (\texttt{state=resolved} by default) on its own
+row below.
+
+\begin{diagram}[type=interval,width=\textwidth,caption={Merging three overlapping intervals into one summary span.},description={Three intervals on a shared numeric axis: A from one to four, B from three to six overlapping A, and C from eight to ten which does not overlap. A merged summary bar spans one to six below the individual intervals.}]
+\begin{intervalstate}
+  \interval[state=candidate]{A}{1}{4}
+  \interval[state=active]{B}{3}{6}
+  \interval[state=candidate]{C}{8}{10}
+  \merged{1}{6}
+\end{intervalstate}
+\end{diagram}
+
+\section{Session gaps and a discarded interval}
+A second \texttt{intervalstate} example: a short session below a minimum
+duration threshold is marked discarded, distinct from the candidate and
+resolved sessions around it.
+
+\begin{diagram}[type=interval,width=\textwidth,caption={Sessionization: one short session is discarded below a minimum-duration threshold.},description={Three sessions on a shared axis: a resolved session from zero to five, a discarded session from six to seven that falls below the minimum duration, and a candidate session from nine to fifteen.}]
+\begin{intervalstate}
+  \interval[state=resolved]{S1}{0}{5}
+  \interval[state=discarded]{S2}{6}{7}
+  \interval[state=candidate]{S3}{9}{15}
+\end{intervalstate}
+\end{diagram}
+
+\section{Heap: backing array plus tree view}
+\texttt{heapstate}: a small max-heap declared once via \texttt{\string\values},
+with both the backing array and the mirrored binary-tree view drawn
+automatically -- tree node positions are derived from array index, never
+placed by hand. The root is marked current.
+
+\begin{diagram}[type=heap,width=\textwidth,caption={A seven-element max-heap: backing array and derived tree view.},description={A backing array of seven values -- nine, seven, eight, four, five, six, two -- paired with its binary-tree view. The root, value nine, is marked current.}]
+\begin{heapstate}
+  \values{9,7,8,4,5,6,2}
+  \current{0}
+\end{heapstate}
+\end{diagram}
+
+\section{Heap: marking an internal node}
+\texttt{\string\current} can mark any declared index, not only the root --
+here the index-2 node (value eight) is marked current in both its array
+cell and its mirrored tree node.
+
+\begin{diagram}[type=heap,width=\textwidth,caption={Marking an internal heap node during a sift-down step.},description={The same seven-element max-heap with the index-two node, value eight, marked current in both the backing array and the tree view.}]
+\begin{heapstate}
+  \values{9,7,8,4,5,6,2}
+  \current{2}
+\end{heapstate}
+\end{diagram}
+
+\section{Grayscale and semantic check}
+\begin{principle}{State is not just color}
+\texttt{intervalstate} maps the spec's \texttt{overlap}/\texttt{merged}
+concepts onto the shared vocabulary's \texttt{active}/\texttt{resolved}
+states rather than inventing new ones, so every interval and heap node still
+carries the same border-weight and line-style distinctions as arraystate,
+and stays legible if printed in grayscale.
+\end{principle}
+
+\end{document}

@@ -276,11 +276,11 @@
 \renewcommand{\RKTokAlgorithmDagBadgeText}{Muted}
 \renewcommand{\RKTokAlgorithmDagBadgeFont}{\sffamily\bfseries\fontsize{5.4}{6.4}\selectfont}
 \renewcommand{\RKTokAlgorithmDagBadgeSize}{3.4mm}
-\rk@styletokensloadedtrue
-
-% Figure/table provenance helper (reportkit-core.sty's contract; every theme
-% defines this). Reused as-is under Beamer -- \RKDiagramSource calls it
-% unchanged (reportkit-slides-core.sty).
-\newcommand{\source}[1]{\par\vspace{1pt}{\sffamily\fontsize{6.6pt}{8pt}\selectfont\color{Muted}\textit{Source:} #1}\par}
-
-\endinput
+% intervalstate/heapstate chrome (reportkit-algorithm-order.sty). Reuses
+% this theme's existing named colors: the axis line matches the weight of
+% the existing container/trace-separator hairline, and the tree-edge line
+% matches the existing graph-edge weight.
+\renewcommand{\RKTokAlgorithmIntervalAxisColor}{Hairline}
+\renewcommand{\RKTokAlgorithmIntervalAxisWidth}{.5pt}
+\renewcommand{\RKTokAlgorithmHeapEdgeColor}{Muted}
+\renewcommand{\RKTokAlgorithmHeapEdgeWidth}{.7pt}
