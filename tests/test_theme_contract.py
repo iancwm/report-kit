@@ -95,6 +95,10 @@ REQUIRED_STYLE_TOKENS = [
     "RKTokAlgorithmRowLabelFont", "RKTokAlgorithmRowLabelText",
     "RKTokAlgorithmTraceLabelFont", "RKTokAlgorithmTraceLabelText",
     "RKTokAlgorithmTraceSeparatorColor", "RKTokAlgorithmTraceSeparatorWidth",
+    # graphstate/gridstate (reportkit-algorithm-graph.sty): nodes and grid
+    # cells reuse rk algo cell + the shared state overlay; edges get their
+    # own small token-driven style built on reportkit-diagrams.sty's rk edge.
+    "RKTokAlgorithmGraphNodeWidth", "RKTokAlgorithmGraphEdgeColor", "RKTokAlgorithmGraphEdgeWidth",
 ]
 
 # Semantic modules that must not know any theme's name. Phase A4's diagram
@@ -109,6 +113,8 @@ SEMANTIC_MODULES = [
     "reportkit-process.sty",
     "reportkit-spatial.sty",
     "reportkit-algorithm-viz.sty",
+    "reportkit-algorithm-linear.sty",
+    "reportkit-algorithm-graph.sty",
 ]
 
 # Modules in the diagram-chrome family that reportkit-diagrams.sty itself
@@ -120,6 +126,15 @@ SEMANTIC_MODULES = [
 # entry points a theme's tokens must be loaded before -- assert directly.
 MODULES_WITHOUT_OWN_ASSERTION = {
     "reportkit-structure.sty", "reportkit-process.sty", "reportkit-spatial.sty",
+}
+
+# Same relationship as above, one level down: reportkit-algorithm-linear.sty
+# and reportkit-algorithm-graph.sty are \RequirePackage'd from within
+# reportkit-algorithm-viz.sty (which does assert), not from
+# reportkit-diagrams.sty, so they get their own asserting-parent pairing
+# instead of joining MODULES_WITHOUT_OWN_ASSERTION above.
+ALGORITHM_MODULES_WITHOUT_OWN_ASSERTION = {
+    "reportkit-algorithm-linear.sty", "reportkit-algorithm-graph.sty",
 }
 
 CANONICAL_THEMES = sorted({canonical_theme_name(name) for name in THEMES})
@@ -184,7 +199,7 @@ def test_semantic_modules_do_not_branch_on_theme_name(module: str) -> None:
 
 def test_semantic_modules_assert_style_tokens_before_reading_them() -> None:
     for module in SEMANTIC_MODULES:
-        if module in MODULES_WITHOUT_OWN_ASSERTION:
+        if module in MODULES_WITHOUT_OWN_ASSERTION or module in ALGORITHM_MODULES_WITHOUT_OWN_ASSERTION:
             continue
         module_text = (REPO / "latex_templates" / module).read_text(encoding="utf-8")
         assert r"\RKAssertStyleTokens" in module_text, f"{module} reads style tokens without asserting them first"
@@ -199,4 +214,16 @@ def test_diagrams_requires_the_modules_that_skip_their_own_assertion() -> None:
         package = module.removesuffix(".sty")
         assert rf"\RequirePackage{{{package}}}" in diagrams_text, (
             f"reportkit-diagrams.sty no longer requires {module}; it must assert style tokens itself"
+        )
+
+
+def test_algorithm_viz_requires_the_modules_that_skip_their_own_assertion() -> None:
+    # Same relationship one level down: reportkit-algorithm-linear.sty and
+    # reportkit-algorithm-graph.sty rely on reportkit-algorithm-viz.sty
+    # having already asserted the token contract.
+    algo_viz_text = (REPO / "latex_templates" / "reportkit-algorithm-viz.sty").read_text(encoding="utf-8")
+    for module in ALGORITHM_MODULES_WITHOUT_OWN_ASSERTION:
+        package = module.removesuffix(".sty")
+        assert rf"\RequirePackage{{{package}}}" in algo_viz_text, (
+            f"reportkit-algorithm-viz.sty no longer requires {module}; it must assert style tokens itself"
         )

@@ -29,7 +29,7 @@ The PR-time synchronization directive is in
 | [2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md](docs/superpowers/specs/2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md) | Phase A′ and B′ complete; constrained Markdown/typed-IR authoring landed in v1.9.3; standalone render command, budgets, i18n, and neutral second adapter remain | P2 |
 | [2026-09-10-reportkit-fork-port-fixes-spec.md](docs/superpowers/specs/2026-09-10-reportkit-fork-port-fixes-spec.md) | Implemented in v1.9.1 via PR #19; all 11 applicable fixes landed | Complete |
 | [2026-09-12-reportkit-code-quality-and-dependency-remediation-spec.md](docs/superpowers/specs/2026-09-12-reportkit-code-quality-and-dependency-remediation-spec.md) | Implemented — merged via PR #25 (`7c5fafc`); all phases (0-2) landed; all 3 open questions resolved | Complete |
-| [2026-09-16-reportkit-algorithm-visualization-primitives-spec.md](docs/superpowers/specs/2026-09-16-reportkit-algorithm-visualization-primitives-spec.md) | Phase 1 (state vocabulary, `arraystate`, `windowstate`, `algorithmtrace`) implemented 2026-09-17; Phases 2-4 (`stackstate`, `queuestate`, `graphstate`, `gridstate`, `dagstate`, `heapstate`, `intervalstate`, `dptable`, P3 extensions) outstanding | P2 |
+| [2026-09-16-reportkit-algorithm-visualization-primitives-spec.md](docs/superpowers/specs/2026-09-16-reportkit-algorithm-visualization-primitives-spec.md) | Phases 1-2 implemented 2026-09-17: state vocabulary, `arraystate`, `windowstate`, `algorithmtrace`, `stackstate`, `queuestate`, `graphstate`, `gridstate`; Phases 3-4 (`dagstate`, `heapstate`, `intervalstate`, `dptable`, P3 extensions) outstanding | P2 |
 
 ## Open work
 
@@ -66,14 +66,31 @@ change record.
   suite); new canonical fixture
   `latex_templates/examples/algorithm_visuals_acceptance_test.tex`, wired
   into `scripts/acceptance_check.sh`; new SKILL.md "Algorithm and
-  execution-state visuals" section. `python -m pytest tests` passes (164
-  passed, 64 skipped) in this environment, which has no LuaLaTeX/pdfLaTeX —
-  the new fixture and PDF-inspection tests are unverified by an actual
-  compile and need to run once somewhere with TeX installed. **Phases 2-4
-  remain**: `stackstate`/`queuestate` (P1, shared linear-container
-  renderer), `graphstate`/`gridstate` (P1), `dagstate`/`heapstate`/
-  `intervalstate`/`dptable` (P2), and the P3 extensions
-  (`joinstate`/`unionfindstate`/linked-list/recursion-tree). See
+  execution-state visuals" section. **Phase 2 (core algorithm structures)
+  also implemented 2026-09-17**, fanned out to two parallel workstreams
+  built on the Phase 1 foundation: `stackstate`/`queuestate`
+  (`latex_templates/reportkit-algorithm-linear.sty`) share one internal
+  linear-container renderer per spec section 7.3 and reuse `arraystate`'s
+  cell/pointer chrome outright — no new theme tokens needed.
+  `graphstate`/`gridstate` (`latex_templates/reportkit-algorithm-graph.sty`)
+  add three new `RKTokAlgorithmGraph*` tokens (node text width, edge
+  color/width — populated in all three themes) and reuse `rk algo cell`/the
+  shared state overlay for nodes and grid cells; `graphstate` uses
+  `reportnetwork`-style automatic grid layout and builds no dedicated
+  BFS/DFS primitive (composition with `queuestate`/`stackstate` is left to
+  the document author, per spec section 2.3). Both new modules are
+  `\RequirePackage`d from within `reportkit-algorithm-viz.sty` itself (not
+  from `reportkit.cls`), so the public import stays
+  `\RequirePackage{reportkit-algorithm-viz}` per spec section 3. Two more
+  fixtures added (`algorithm_visuals_linear_acceptance_test.tex`,
+  `algorithm_visuals_graph_acceptance_test.tex`) and wired into
+  `scripts/acceptance_check.sh`; SKILL.md and the generated contract docs
+  updated. `python -m pytest tests` passes (167 passed, 73 skipped) in this
+  environment, which has no LuaLaTeX/pdfLaTeX — every new fixture and
+  PDF-inspection test across both phases is unverified by an actual compile
+  and needs to run once somewhere with TeX installed. **Phases 3-4 remain**:
+  `dagstate`/`heapstate`/`intervalstate`/`dptable` (P2), and the P3
+  extensions (`joinstate`/`unionfindstate`/linked-list/recursion-tree). See
   [the spec](docs/superpowers/specs/2026-09-16-reportkit-algorithm-visualization-primitives-spec.md)
   section 21 for the intended implementation order.
 

@@ -15,8 +15,23 @@ passed) and `generate_registry(strict=True)` with zero contract errors; no
 LuaLaTeX/pdfLaTeX toolchain was available in this environment, so the new
 fixture and the new PDF-inspection tests are unverified by an actual compile
 and remain to be checked the next time this runs somewhere with TeX
-installed. Phases 2-4 (`stackstate`, `queuestate`, `graphstate`, `gridstate`,
-`dagstate`, `intervalstate`, `heapstate`, `dptable`, and the P3 extensions)
+installed. Phase 2 (core algorithm structures) also implemented 2026-09-17:
+`stackstate`/`queuestate` (`latex_templates/reportkit-algorithm-linear.sty`,
+sharing one internal linear-container renderer per section 7.3, reusing
+`arraystate`'s cell/pointer chrome with no new theme tokens) and
+`graphstate`/`gridstate` (`latex_templates/reportkit-algorithm-graph.sty`,
+three new `RKTokAlgorithmGraph*` tokens for node width and edge color/width,
+populated in all three themes; auto-grid node layout, no dedicated
+BFS/DFS primitive per section 2.3 — pair `graphstate` with
+`queuestate`/`stackstate` by composition instead). Both are
+`\RequirePackage`d from within `reportkit-algorithm-viz.sty` itself, so the
+public import stays `\RequirePackage{reportkit-algorithm-viz}` per section 3.
+Registry/contract/theme-token tests extended accordingly;
+`python -m pytest tests` passes (167 passed) with zero contract errors; two
+more fixtures added and wired into `scripts/acceptance_check.sh`, still
+unverified by an actual LuaLaTeX/pdfLaTeX compile in this environment.
+Phases 3-4 (`intervalstate`, `heapstate`, `dptable`, `dagstate`, and the P3
+extensions `joinstate`/`unionfindstate`/linked-list/recursion-tree support)
 are not yet implemented — see TODOS.md.
 **Target:** ReportKit vNext.
 **Baseline:** `main` at `4113e8b`, ReportKit class v1.9.3, contract v1.0.0.

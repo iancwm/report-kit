@@ -146,6 +146,9 @@ Three primitives look superficially similar (a boxed reading unit with a small t
 | --- | --- |
 | Where are the pointers in this array? | `arraystate` |
 | Which range is currently active? | `arraystate` / `windowstate` |
+| What is currently on the stack or in the queue? | `stackstate` / `queuestate` |
+| Which graph nodes have been visited or are queued? | `graphstate` |
+| Which grid cells have been reached? | `gridstate` |
 | How does state change from one iteration to the next? | `algorithmtrace` |
 
 Every state-aware primitive shares one vocabulary of nine semantic states, set via `state=`: `current`, `active`, `candidate`, `frontier`, `visited`, `resolved`, `discarded`, `blocked`, `unseen`. Each carries a distinct border weight or line style in addition to its color, so meaning survives grayscale printing -- never the only signal for a state is its fill color.
@@ -184,7 +187,33 @@ Every state-aware primitive shares one vocabulary of nine semantic states, set v
 
 Reading order is left to right, then top to bottom. ReportKit produces static documents -- `algorithmtrace` is the temporal-explanation mechanism; do not attempt animation.
 
-Graph, grid, stack/queue, heap, interval, DP-table, and DAG state primitives (`graphstate`, `gridstate`, `stackstate`, `queuestate`, `heapstate`, `intervalstate`, `dptable`, `dagstate`) are specified but not yet implemented -- see `docs/superpowers/specs/2026-09-16-reportkit-algorithm-visualization-primitives-spec.md` and TODOS.md for status. Until they land, compose graph/grid traversal state from `reportnetwork`/`reportkit-structure.sty` primitives instead.
+`stackstate` (LIFO) and `queuestate` (FIFO), in `reportkit-algorithm-linear.sty`, share one internal linear-container renderer and the same `\cell`/pointer chrome as `arraystate`. `\push[state=]{value}` grows a `stackstate` upward, with the top entry visually marked; `\enqueue[state=]{value}` grows a `queuestate` rightward, with dequeue/enqueue ends marked:
+
+```latex
+\begin{diagram}[type=stack,caption={Bracket matching.},description={A stack of three open brackets with the most recent one current.}]
+\begin{stackstate}
+  \push{(}
+  \push{[}
+  \push[state=current]{<}
+\end{stackstate}
+\end{diagram}
+```
+
+`graphstate` and `gridstate`, in `reportkit-algorithm-graph.sty`, represent traversal state rather than static structure (that's `reportnetwork`'s job). `\graphnode[state=]{id}{label}` auto-lays-out nodes on a grid (`columns=` to control wrapping); `\graphedge{a}{b}` draws a directed edge between node ids. `\begin{gridstate}[rows=][columns=]` then `\gridcell{row}{col}[state=]` places a state-only cell at 1-based grid coordinates, for flood-fill/matrix-DP/maze-traversal explanations. Neither builds a dedicated BFS/DFS primitive -- pair `graphstate` with `queuestate` (BFS) or `stackstate` (DFS) in the same `diagram` or `algorithmtrace` snapshot instead, per the spec's composition-before-specialization principle:
+
+```latex
+\begin{diagram}[type=graph,caption={BFS frontier.},description={A start node visited, its current node, and two frontier nodes discovered but not yet processed.}]
+\begin{graphstate}[columns=2]
+  \graphnode[state=visited]{A}{Start}
+  \graphnode[state=current]{B}{Current}
+  \graphnode[state=frontier]{C}{Queued}
+  \graphedge{A}{B}
+  \graphedge{B}{C}
+\end{graphstate}
+\end{diagram}
+```
+
+Heap, interval, DP-table, and DAG state primitives (`heapstate`, `intervalstate`, `dptable`, `dagstate`) are specified but not yet implemented -- see `docs/superpowers/specs/2026-09-16-reportkit-algorithm-visualization-primitives-spec.md` and TODOS.md for status.
 
 ## Diagram contract
 
@@ -210,6 +239,8 @@ Place every conceptual visual in a `diagram` wrapper. It keeps the visual non-fl
 - `latex_templates/reportkit-structure.sty`: architecture, roadmap, strategy, maturity, continuum, capability map, and tree
 - `latex_templates/reportkit-diagrams.sty`: wrapper plus low-level `RK...` primitives
 - `latex_templates/reportkit-algorithm-viz.sty`: arraystate, windowstate, and algorithmtrace (see "Algorithm and execution-state visuals" above)
+- `latex_templates/reportkit-algorithm-linear.sty`: stackstate and queuestate
+- `latex_templates/reportkit-algorithm-graph.sty`: graphstate and gridstate
 
 Read only the relevant source file before using a primitive not shown below.
 

@@ -14,6 +14,10 @@ tags on this repository, not a published package registry.
   plus `arraystate`, `windowstate`, and `algorithmtrace` for visualizing a
   data structure's state while an algorithm executes -- distinct from
   `algorithmblock`'s control-flow pseudocode.
+- Phase 2 of the algorithm-visualization primitives spec, built on the above:
+  `stackstate`/`queuestate` (`reportkit-algorithm-linear.sty`, sharing one
+  internal linear-container renderer) and `graphstate`/`gridstate`
+  (`reportkit-algorithm-graph.sty`).
 - A new `algorithmblock` primitive (`reportkit-algorithms.sty`) for
   language-neutral algorithm/pseudocode, built on algorithmicx/algpseudocode
   (never the floating `algorithm` package) with ReportKit's own keyword
