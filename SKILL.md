@@ -149,6 +149,10 @@ Three primitives look superficially similar (a boxed reading unit with a small t
 | What is currently on the stack or in the queue? | `stackstate` / `queuestate` |
 | Which graph nodes have been visited or are queued? | `graphstate` |
 | Which grid cells have been reached? | `gridstate` |
+| Which DAG nodes can execute, and how many dependencies remain? | `dagstate` |
+| What is currently in the heap? | `heapstate` |
+| Which intervals overlap or have been merged? | `intervalstate` |
+| Which DP states are known, current, or a dependency? | `dptable` |
 | How does state change from one iteration to the next? | `algorithmtrace` |
 
 Every state-aware primitive shares one vocabulary of nine semantic states, set via `state=`: `current`, `active`, `candidate`, `frontier`, `visited`, `resolved`, `discarded`, `blocked`, `unseen`. Each carries a distinct border weight or line style in addition to its color, so meaning survives grayscale printing -- never the only signal for a state is its fill color.
@@ -213,7 +217,55 @@ Reading order is left to right, then top to bottom. ReportKit produces static do
 \end{diagram}
 ```
 
-Heap, interval, DP-table, and DAG state primitives (`heapstate`, `intervalstate`, `dptable`, `dagstate`) are specified but not yet implemented -- see `docs/superpowers/specs/2026-09-16-reportkit-algorithm-visualization-primitives-spec.md` and TODOS.md for status.
+`intervalstate` and `heapstate`, in `reportkit-algorithm-order.sty`, cover priority and ordering structures. `\interval[state=]{label}{start}{end}` draws a labelled bar on a shared numeric axis, one per declared interval; `\merged[state=]{start}{end}` (default `state=resolved`) draws a summary bar for a combined span:
+
+```latex
+\begin{diagram}[type=interval,caption={Merge intervals.},description={Three intervals on a shared axis, with the first and second overlapping and merged into one resolved span.}]
+\begin{intervalstate}
+  \interval[state=candidate]{A}{1}{4}
+  \interval[state=active]{B}{3}{6}
+  \interval[state=candidate]{C}{8}{10}
+  \merged{1}{6}
+\end{intervalstate}
+\end{diagram}
+```
+
+`heapstate` shows a heap's backing array and its derived binary-tree view together -- authors declare `\values{v1,v2,...}` once and the tree layout is computed automatically from each value's array index (no manual tree coordinates); `\current{index}` marks the array cell and its mirrored tree node.
+
+`dptable`, in `reportkit-algorithm-dp.sty`, represents dynamic-programming state at 1-based `(row, col)` coordinates like a plain grid, plus DP-specific cell markers: `\dpcell{row}{col}[state=]{value}` places a value, and `\currentcell{row}{col}`/`\dependencycell{row}{col}`/`\solvedcell{row}{col}` overlay the current/dependency/solved treatment on an already-placed cell (any call order works -- they draw a background-layer highlight, the same technique `arraystate`'s `\range` uses):
+
+```latex
+\begin{diagram}[type=dp,caption={Edit-distance table.},description={A four-by-four dynamic-programming table with one cell marked current and two of its dependency cells marked.}]
+\begin{dptable}[rows=4,columns=4]
+  \dpcell{1}{1}{0}
+  \dpcell{1}{2}{1}
+  \dpcell{2}{1}{1}
+  \dpcell{2}{2}{0}
+  \currentcell{2}{2}
+  \dependencycell{1}{2}
+  \dependencycell{2}{1}
+\end{dptable}
+\end{diagram}
+```
+
+`dagstate`, appended to `reportkit-algorithm-graph.sty` alongside `graphstate`, extends graph-state visualization for dependency algorithms (topological sort, DAG scheduling, dependency resolution). `\dagnode[indegree=][state=]{id}{label}` places a node with a small indegree badge; `\dependency{a}{b}` draws a dependency edge (reusing the same `rk edge dependency` style `reportnetwork` uses); `\readyqueue{id1,id2,...}` marks already-placed nodes as ready to execute:
+
+```latex
+\begin{diagram}[type=dag,caption={Data-pipeline dependency graph.},description={Three pipeline stages with raw ingest ready to execute and two downstream stages waiting on it.}]
+\begin{dagstate}[columns=3]
+  \dagnode[indegree=0]{raw}{Raw ingest}
+  \dagnode[indegree=1]{clean}{Clean}
+  \dagnode[indegree=1]{features}{Feature engineering}
+  \dependency{raw}{clean}
+  \dependency{clean}{features}
+  \readyqueue{raw}
+\end{dagstate}
+\end{diagram}
+```
+
+Several of these primitives' spec-proposed state names aren't literally part of the shared nine-word vocabulary; each maps onto the closest real state instead of inventing new ones: intervalstate's "overlap"/"merged" become `active`/`resolved`; dptable's "solved"/"dependency"/"uncomputed" become `resolved`/`candidate`/the plain unmarked cell; dagstate's "ready"/"processed" become `frontier`/`resolved` (`blocked` is already shared).
+
+`joinstate`, `unionfindstate`, `linkedliststate`, and recursion-tree support are specified but not yet implemented (P3, lower priority) -- see `docs/superpowers/specs/2026-09-16-reportkit-algorithm-visualization-primitives-spec.md` and TODOS.md for status.
 
 ## Diagram contract
 
@@ -240,7 +292,9 @@ Place every conceptual visual in a `diagram` wrapper. It keeps the visual non-fl
 - `latex_templates/reportkit-diagrams.sty`: wrapper plus low-level `RK...` primitives
 - `latex_templates/reportkit-algorithm-viz.sty`: arraystate, windowstate, and algorithmtrace (see "Algorithm and execution-state visuals" above)
 - `latex_templates/reportkit-algorithm-linear.sty`: stackstate and queuestate
-- `latex_templates/reportkit-algorithm-graph.sty`: graphstate and gridstate
+- `latex_templates/reportkit-algorithm-graph.sty`: graphstate, gridstate, and dagstate
+- `latex_templates/reportkit-algorithm-order.sty`: intervalstate and heapstate
+- `latex_templates/reportkit-algorithm-dp.sty`: dptable
 
 Read only the relevant source file before using a primitive not shown below.
 

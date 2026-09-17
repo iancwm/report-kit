@@ -29,7 +29,7 @@ The PR-time synchronization directive is in
 | [2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md](docs/superpowers/specs/2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md) | Phase A′ and B′ complete; constrained Markdown/typed-IR authoring landed in v1.9.3; standalone render command, budgets, i18n, and neutral second adapter remain | P2 |
 | [2026-09-10-reportkit-fork-port-fixes-spec.md](docs/superpowers/specs/2026-09-10-reportkit-fork-port-fixes-spec.md) | Implemented in v1.9.1 via PR #19; all 11 applicable fixes landed | Complete |
 | [2026-09-12-reportkit-code-quality-and-dependency-remediation-spec.md](docs/superpowers/specs/2026-09-12-reportkit-code-quality-and-dependency-remediation-spec.md) | Implemented — merged via PR #25 (`7c5fafc`); all phases (0-2) landed; all 3 open questions resolved | Complete |
-| [2026-09-16-reportkit-algorithm-visualization-primitives-spec.md](docs/superpowers/specs/2026-09-16-reportkit-algorithm-visualization-primitives-spec.md) | Phases 1-2 implemented 2026-09-17: state vocabulary, `arraystate`, `windowstate`, `algorithmtrace`, `stackstate`, `queuestate`, `graphstate`, `gridstate`; Phases 3-4 (`dagstate`, `heapstate`, `intervalstate`, `dptable`, P3 extensions) outstanding | P2 |
+| [2026-09-16-reportkit-algorithm-visualization-primitives-spec.md](docs/superpowers/specs/2026-09-16-reportkit-algorithm-visualization-primitives-spec.md) | Phases 1-3 implemented 2026-09-17: state vocabulary, `arraystate`, `windowstate`, `algorithmtrace`, `stackstate`, `queuestate`, `graphstate`, `gridstate`, `dagstate`, `heapstate`, `intervalstate`, `dptable`; only the P3 extensions (`joinstate`, `unionfindstate`, linked-list, recursion-tree) remain | P2 |
 
 ## Open work
 
@@ -88,9 +88,40 @@ change record.
   updated. `python -m pytest tests` passes (167 passed, 73 skipped) in this
   environment, which has no LuaLaTeX/pdfLaTeX — every new fixture and
   PDF-inspection test across both phases is unverified by an actual compile
-  and needs to run once somewhere with TeX installed. **Phases 3-4 remain**:
-  `dagstate`/`heapstate`/`intervalstate`/`dptable` (P2), and the P3
-  extensions (`joinstate`/`unionfindstate`/linked-list/recursion-tree). See
+  and needs to run once somewhere with TeX installed. **Phase 3 (additional
+  high-value structures) also implemented 2026-09-17**, again fanned out to
+  two parallel workstreams: `intervalstate`/`heapstate`
+  (`latex_templates/reportkit-algorithm-order.sty` — intervals on a shared
+  axis, one per declared row; heapstate's tree view laid out purely from
+  array index, no manual tree coordinates) and `dptable`/`dagstate`
+  (`dptable` in new `latex_templates/reportkit-algorithm-dp.sty`, reusing
+  `gridstate`'s coordinate math; `dagstate` appended to the existing
+  `latex_templates/reportkit-algorithm-graph.sty`, reusing `graphstate`'s
+  node layout and `reportkit-diagrams.sty`'s existing dependency-edge style
+  outright — no new edge token). 9 new theme tokens total (5 for dagstate's
+  indegree badge, 4 for intervalstate's axis/heapstate's tree edges),
+  populated in all three themes. Several of these primitives' own spec text
+  proposes state names outside the shared nine-word vocabulary
+  (`overlap`/`merged`, `solved`/`dependency`/`uncomputed`,
+  `ready`/`processed`); each was mapped onto the closest existing shared
+  state instead, documented in-file and in SKILL.md, per the spec's own
+  section 2.2 consistency requirement. Merging this phase caught and fixed a
+  real bug from the merge itself: an overly-greedy regex used to resolve
+  three colliding theme-file merge conflicts (`.*` under `re.DOTALL`, with
+  no non-greedy qualifier before the final anchor) silently deleted each
+  file's tail — including `execsummary`'s definition and
+  `\rk@styletokensloadedtrue` — while leaving the file byte-count
+  superficially plausible; caught by a callout-count regression (14 → 13)
+  during the post-merge registry check, not by any test written for this
+  feature, and fixed by rebuilding each file's tail from the pre-merge
+  commit with the new token block re-inserted precisely. Three more
+  fixtures added and wired into `scripts/acceptance_check.sh`; SKILL.md,
+  the generated contract docs, and `tests/test_theme_contract.py` updated.
+  `python -m pytest tests` passes (169 passed, 86 skipped, 0 failed) and
+  `generate_registry(strict=True)` reports zero contract errors — still
+  unverified by an actual LuaLaTeX/pdfLaTeX compile in this environment.
+  **Only the P3 extensions remain** (`joinstate`/`unionfindstate`/linked-list/
+  recursion-tree — lower priority, evaluate before building). See
   [the spec](docs/superpowers/specs/2026-09-16-reportkit-algorithm-visualization-primitives-spec.md)
   section 21 for the intended implementation order.
 

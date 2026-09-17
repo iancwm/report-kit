@@ -30,9 +30,26 @@ Registry/contract/theme-token tests extended accordingly;
 `python -m pytest tests` passes (167 passed) with zero contract errors; two
 more fixtures added and wired into `scripts/acceptance_check.sh`, still
 unverified by an actual LuaLaTeX/pdfLaTeX compile in this environment.
-Phases 3-4 (`intervalstate`, `heapstate`, `dptable`, `dagstate`, and the P3
-extensions `joinstate`/`unionfindstate`/linked-list/recursion-tree support)
-are not yet implemented — see TODOS.md.
+Phase 3 (additional high-value structures) also implemented 2026-09-17:
+`intervalstate`/`heapstate` (`latex_templates/reportkit-algorithm-order.sty`
+— heapstate's tree layout derived purely from array index via
+`floor(ln(i+1)/ln(2))`, per section 11.2's "authors should not manually
+position tree nodes"), `dptable` (`latex_templates/reportkit-algorithm-dp.sty`,
+reusing `gridstate`'s coordinate math), and `dagstate` (appended to
+`latex_templates/reportkit-algorithm-graph.sty`, reusing `graphstate`'s node
+layout and `reportkit-diagrams.sty`'s existing dependency-edge style per
+section 10.2 — no new edge token needed). Several of these primitives' own
+proposed state names (`overlap`/`merged`, `solved`/`dependency`/`uncomputed`,
+`ready`/`processed`) are not literally part of the shared nine-word
+vocabulary from section 4; each was mapped onto the closest existing state
+(documented in-file) rather than growing the vocabulary, per section 2.2's
+consistency requirement — see SKILL.md's "Algorithm and execution-state
+visuals" section for the exact mapping. `python -m pytest tests` passes (169
+passed) with zero contract errors; three more fixtures added and wired into
+`scripts/acceptance_check.sh`, still unverified by an actual LuaLaTeX/
+pdfLaTeX compile in this environment. Only the P3 extensions (`joinstate`,
+`unionfindstate`, linked-list, and recursion-tree support) remain — see
+TODOS.md.
 **Target:** ReportKit vNext.
 **Baseline:** `main` at `4113e8b`, ReportKit class v1.9.3, contract v1.0.0.
 **Scope:** Native semantic visualization primitives for algorithms, data

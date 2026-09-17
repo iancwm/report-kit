@@ -99,6 +99,13 @@ REQUIRED_STYLE_TOKENS = [
     # cells reuse rk algo cell + the shared state overlay; edges get their
     # own small token-driven style built on reportkit-diagrams.sty's rk edge.
     "RKTokAlgorithmGraphNodeWidth", "RKTokAlgorithmGraphEdgeColor", "RKTokAlgorithmGraphEdgeWidth",
+    # dagstate's indegree badge (reportkit-algorithm-graph.sty's Phase 3
+    # extension) and intervalstate/heapstate (reportkit-algorithm-order.sty).
+    # dptable (reportkit-algorithm-dp.sty) needs no tokens of its own.
+    "RKTokAlgorithmDagBadgeDraw", "RKTokAlgorithmDagBadgeFill", "RKTokAlgorithmDagBadgeText",
+    "RKTokAlgorithmDagBadgeFont", "RKTokAlgorithmDagBadgeSize",
+    "RKTokAlgorithmIntervalAxisColor", "RKTokAlgorithmIntervalAxisWidth",
+    "RKTokAlgorithmHeapEdgeColor", "RKTokAlgorithmHeapEdgeWidth",
 ]
 
 # Semantic modules that must not know any theme's name. Phase A4's diagram
@@ -115,6 +122,8 @@ SEMANTIC_MODULES = [
     "reportkit-algorithm-viz.sty",
     "reportkit-algorithm-linear.sty",
     "reportkit-algorithm-graph.sty",
+    "reportkit-algorithm-dp.sty",
+    "reportkit-algorithm-order.sty",
 ]
 
 # Modules in the diagram-chrome family that reportkit-diagrams.sty itself
@@ -135,6 +144,7 @@ MODULES_WITHOUT_OWN_ASSERTION = {
 # instead of joining MODULES_WITHOUT_OWN_ASSERTION above.
 ALGORITHM_MODULES_WITHOUT_OWN_ASSERTION = {
     "reportkit-algorithm-linear.sty", "reportkit-algorithm-graph.sty",
+    "reportkit-algorithm-dp.sty", "reportkit-algorithm-order.sty",
 }
 
 CANONICAL_THEMES = sorted({canonical_theme_name(name) for name in THEMES})

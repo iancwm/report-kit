@@ -284,3 +284,11 @@
 \renewcommand{\RKTokAlgorithmIntervalAxisWidth}{.5pt}
 \renewcommand{\RKTokAlgorithmHeapEdgeColor}{Muted}
 \renewcommand{\RKTokAlgorithmHeapEdgeWidth}{.7pt}
+\rk@styletokensloadedtrue
+
+% Figure/table provenance helper (reportkit-core.sty's contract; every theme
+% defines this). Reused as-is under Beamer -- \RKDiagramSource calls it
+% unchanged (reportkit-slides-core.sty).
+\newcommand{\source}[1]{\par\vspace{1pt}{\sffamily\fontsize{6.6pt}{8pt}\selectfont\color{Muted}\textit{Source:} #1}\par}
+
+\endinput

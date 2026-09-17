@@ -18,6 +18,12 @@ tags on this repository, not a published package registry.
   `stackstate`/`queuestate` (`reportkit-algorithm-linear.sty`, sharing one
   internal linear-container renderer) and `graphstate`/`gridstate`
   (`reportkit-algorithm-graph.sty`).
+- Phase 3 of the algorithm-visualization primitives spec: `intervalstate`/
+  `heapstate` (`reportkit-algorithm-order.sty`, heapstate deriving its tree
+  layout automatically from array index), `dptable`
+  (`reportkit-algorithm-dp.sty`), and `dagstate` (appended to
+  `reportkit-algorithm-graph.sty`, with an indegree badge and dependency
+  edges reusing `reportnetwork`'s existing edge style).
 - A new `algorithmblock` primitive (`reportkit-algorithms.sty`) for
   language-neutral algorithm/pseudocode, built on algorithmicx/algpseudocode
   (never the floating `algorithm` package) with ReportKit's own keyword
