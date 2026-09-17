@@ -205,6 +205,85 @@
 \renewcommand{\RKTokDiagramStructureArrowColor}{Evidence}
 \renewcommand{\RKTokDiagramStructureArrowWidth}{.7pt}
 \renewcommand{\RKTokDiagramStructureArrowTip}{3.6pt}
+% Algorithm-visualization state grammar (reportkit-algorithm-viz.sty family).
+% Reuses this theme's existing semantic colors rather than introducing new
+% ones; LineStyle tokens carry a real tikz fragment (width/dash), not just a
+% color, so state meaning survives grayscale printing.
+\renewcommand{\RKTokAlgorithmCellDraw}{Hairline}
+\renewcommand{\RKTokAlgorithmCellFill}{white}
+\renewcommand{\RKTokAlgorithmCellText}{Ink}
+\renewcommand{\RKTokAlgorithmCellLineStyle}{solid}
+\renewcommand{\RKTokAlgorithmCurrentDraw}{LinkBlue}
+\renewcommand{\RKTokAlgorithmCurrentFill}{LinkBlue!14}
+\renewcommand{\RKTokAlgorithmCurrentText}{Ink}
+\renewcommand{\RKTokAlgorithmCurrentLineStyle}{line width=1.15pt}
+\renewcommand{\RKTokAlgorithmActiveDraw}{LinkBlue}
+\renewcommand{\RKTokAlgorithmActiveFill}{LinkBlue!8}
+\renewcommand{\RKTokAlgorithmActiveText}{Ink}
+\renewcommand{\RKTokAlgorithmActiveLineStyle}{solid}
+\renewcommand{\RKTokAlgorithmCandidateDraw}{Muted}
+\renewcommand{\RKTokAlgorithmCandidateFill}{Surface}
+\renewcommand{\RKTokAlgorithmCandidateText}{Ink}
+\renewcommand{\RKTokAlgorithmCandidateLineStyle}{dash pattern=on 2.4pt off 1.6pt}
+\renewcommand{\RKTokAlgorithmFrontierDraw}{Research}
+\renewcommand{\RKTokAlgorithmFrontierFill}{Research!10}
+\renewcommand{\RKTokAlgorithmFrontierText}{Ink}
+\renewcommand{\RKTokAlgorithmFrontierLineStyle}{solid}
+\renewcommand{\RKTokAlgorithmVisitedDraw}{Muted}
+\renewcommand{\RKTokAlgorithmVisitedFill}{Hairline!55!white}
+\renewcommand{\RKTokAlgorithmVisitedText}{Muted}
+\renewcommand{\RKTokAlgorithmVisitedLineStyle}{solid}
+\renewcommand{\RKTokAlgorithmResolvedDraw}{Deliverable}
+\renewcommand{\RKTokAlgorithmResolvedFill}{Deliverable!12}
+\renewcommand{\RKTokAlgorithmResolvedText}{Ink}
+\renewcommand{\RKTokAlgorithmResolvedLineStyle}{line width=0.9pt}
+\renewcommand{\RKTokAlgorithmDiscardedDraw}{RedFlag}
+\renewcommand{\RKTokAlgorithmDiscardedFill}{RedFlag!8}
+\renewcommand{\RKTokAlgorithmDiscardedText}{Muted}
+\renewcommand{\RKTokAlgorithmDiscardedLineStyle}{dashed}
+\renewcommand{\RKTokAlgorithmBlockedDraw}{RedFlag}
+\renewcommand{\RKTokAlgorithmBlockedFill}{Hairline}
+\renewcommand{\RKTokAlgorithmBlockedText}{Muted}
+\renewcommand{\RKTokAlgorithmBlockedLineStyle}{densely dotted}
+\renewcommand{\RKTokAlgorithmUnseenDraw}{Hairline}
+\renewcommand{\RKTokAlgorithmUnseenFill}{white}
+\renewcommand{\RKTokAlgorithmUnseenText}{Muted}
+\renewcommand{\RKTokAlgorithmUnseenLineStyle}{solid}
+\renewcommand{\RKTokAlgorithmCellFont}{\sffamily\fontsize{8}{9.5}\selectfont}
+\renewcommand{\RKTokAlgorithmCellMinSize}{7mm}
+\renewcommand{\RKTokAlgorithmCellPad}{2pt}
+\renewcommand{\RKTokAlgorithmCellRounding}{1pt}
+\renewcommand{\RKTokAlgorithmIndexFont}{\sffamily\fontsize{6.6}{7.9}\selectfont}
+\renewcommand{\RKTokAlgorithmIndexText}{Muted}
+\renewcommand{\RKTokAlgorithmPointerColor}{LinkBlue}
+\renewcommand{\RKTokAlgorithmPointerFont}{\sffamily\bfseries\fontsize{7}{8.4}\selectfont}
+\renewcommand{\RKTokAlgorithmPointerWidth}{.9pt}
+\renewcommand{\RKTokAlgorithmContainerDraw}{Hairline}
+\renewcommand{\RKTokAlgorithmContainerWidth}{.5pt}
+\renewcommand{\RKTokAlgorithmAnnotationFont}{\sffamily\fontsize{7.6}{9.1}\selectfont}
+\renewcommand{\RKTokAlgorithmAnnotationText}{Muted}
+\renewcommand{\RKTokAlgorithmRowLabelFont}{\sffamily\fontsize{7.2}{8.5}\selectfont}
+\renewcommand{\RKTokAlgorithmRowLabelText}{Muted}
+\renewcommand{\RKTokAlgorithmTraceLabelFont}{\sffamily\bfseries\fontsize{7.4}{8.8}\selectfont}
+\renewcommand{\RKTokAlgorithmTraceLabelText}{Ink}
+\renewcommand{\RKTokAlgorithmTraceSeparatorColor}{Hairline}
+\renewcommand{\RKTokAlgorithmTraceSeparatorWidth}{.5pt}
+\renewcommand{\RKTokAlgorithmGraphNodeWidth}{14mm}
+\renewcommand{\RKTokAlgorithmGraphEdgeColor}{Muted}
+\renewcommand{\RKTokAlgorithmGraphEdgeWidth}{.7pt}
+\renewcommand{\RKTokAlgorithmDagBadgeDraw}{Hairline}
+\renewcommand{\RKTokAlgorithmDagBadgeFill}{white}
+\renewcommand{\RKTokAlgorithmDagBadgeText}{Muted}
+\renewcommand{\RKTokAlgorithmDagBadgeFont}{\sffamily\bfseries\fontsize{5.4}{6.4}\selectfont}
+\renewcommand{\RKTokAlgorithmDagBadgeSize}{3.4mm}
+% intervalstate/heapstate chrome (reportkit-algorithm-order.sty). Reuses
+% this theme's existing named colors: the axis line matches the weight of
+% the existing container/trace-separator hairline, and the tree-edge line
+% matches the existing graph-edge weight.
+\renewcommand{\RKTokAlgorithmIntervalAxisColor}{Hairline}
+\renewcommand{\RKTokAlgorithmIntervalAxisWidth}{.5pt}
+\renewcommand{\RKTokAlgorithmHeapEdgeColor}{Muted}
+\renewcommand{\RKTokAlgorithmHeapEdgeWidth}{.7pt}
 \rk@styletokensloadedtrue
 
 % Figure/table provenance helper (reportkit-core.sty's contract; every theme

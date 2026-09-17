@@ -1,0 +1,59 @@
+\documentclass{reportkit}
+\setreportkitleftheader{REPORTKIT / ALGORITHM P3 TEST}
+\setreportkitfooter{P3 algorithm-state extensions}
+\title{ReportKit -- P3 algorithm-state extensions}
+\author{ReportKit acceptance fixture}
+
+\begin{document}
+\maketitle
+
+\section{Keyed join}
+\begin{diagram}[type=join,caption={Hash join state.},source={Conceptual algorithm visual.},description={Orders and customers feed a central hash index. Customer C42 matches and produces a joined row while customer C99 is discarded as unmatched.}]
+  \begin{joinstate}
+    \joininput{left}{Orders}
+    \joininput{right}{Customers}
+    \hashbucket[state=active]{customer\_id}{C42,C73}
+    \joinmatch{customer\_id}{C42 -> order/customer row}
+    \joinunmatched{right}{C99}
+    \joinoutput{Joined rows}
+  \end{joinstate}
+\end{diagram}
+
+\section{Disjoint sets}
+\begin{diagram}[type=union-find,caption={Union/find state.},source={Conceptual algorithm visual.},description={Four nodes are laid out as a disjoint-set forest. B points to representative A, a union operation joins A and C, and a find path runs from D toward A.}]
+  \begin{unionfindstate}[columns=4]
+    \ufnode{A}{A}
+    \ufnode{B}{B}
+    \ufnode{C}{C}
+    \ufnode[state=current]{D}{D}
+    \parent{B}{A}
+    \union{A}{C}
+    \findpath{D}{A}
+  \end{unionfindstate}
+\end{diagram}
+
+\section{Linked list}
+\begin{diagram}[type=linked-list,caption={Next-pointer traversal.},source={Conceptual algorithm visual.},description={A linked list runs from HEAD through a current middle node to TAIL and then to an explicit NULL terminator.}]
+  \begin{linkedliststate}
+    \listnode{a}{A}
+    \listnode[state=current]{b}{B}
+    \listnode{c}{C}
+    \nextlink{a}{b}
+    \nextlink{b}{c}
+    \head{a}
+    \tail{c}
+  \end{linkedliststate}
+\end{diagram}
+
+\section{Recursion}
+\begin{diagram}[type=recursion,caption={Memoized recursion.},source={Conceptual algorithm visual.},description={A recursive call view shows Fibonacci arguments and return values. One subproblem is marked MEMOIZED and the root call is current.}]
+  \begin{recursiontree}[columns=3]
+    \recursionnode[arguments={n=4},state=current]{f4}{fib}{3}
+    \recursionnode[arguments={n=3}]{f3}{fib}{2}
+    \recursionnode[arguments={n=2},memoized]{f2}{fib}{1}
+    \recursionedge{f4}{f3}
+    \recursionedge{f3}{f2}
+  \end{recursiontree}
+\end{diagram}
+
+\end{document}

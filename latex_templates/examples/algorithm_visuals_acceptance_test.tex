@@ -1,0 +1,122 @@
+\documentclass{reportkit}
+
+\setreportkitleftheader{REPORTKIT / ALGORITHM VISUALIZATION TEST}
+\setreportkitfooter{Algorithm visualization acceptance test}
+\setreportkitversion{v1.10.0}
+
+\title{ReportKit -- algorithm and execution-state visualization primitives}
+\author{Test build}
+\date{17 September 2026}
+
+\begin{document}
+\maketitle
+
+\begin{execsummary}
+This is an acceptance test for reportkit-algorithm-viz.sty's Phase 1
+primitives: the shared algorithm-state vocabulary, \texttt{arraystate},
+\texttt{windowstate}, and \texttt{algorithmtrace}
+(docs/superpowers/specs/2026-09-16-reportkit-algorithm-visualization-primitives-spec.md).
+It is distinct from \texttt{algorithmblock} (control-flow pseudocode, see
+algorithm\_acceptance\_test.tex): this primitive family visualizes the state
+of the data \emph{while} an algorithm executes.
+\end{execsummary}
+
+\section{Two-pointer array scan}
+The motivating \texttt{arraystate} example: indices, left/right cursors, and
+an active-range highlight.
+
+\begin{diagram}[type=array,width=\textwidth,caption={Two-pointer elimination narrows the active range from both ends.},description={A six-element array with a left pointer at index two and a right pointer at index five; the range between them is marked active.}]
+\begin{arraystate}
+  \cell{-4}
+  \cell{-1}
+  \cell{-1}
+  \cell{0}
+  \cell{1}
+  \cell{2}
+  \pointer[below]{L}{2}
+  \pointer[below]{R}{5}
+  \range[state=active]{2}{5}
+\end{arraystate}
+\end{diagram}
+
+\section{Sliding window}
+\texttt{windowstate}, a thin composition over \texttt{arraystate}: the same
+active-range highlight, automatic left/right cursors, and entering/leaving
+annotations.
+
+\begin{diagram}[type=array,width=\textwidth,caption={A three-element sliding window advances by one position.},description={A six-element array with a window spanning indices two to four, an incoming value of five, and an outgoing value of one.}]
+\begin{windowstate}
+  \values{4,2,7,1,3,6}
+  \window{2}{4}
+  \entering{5}
+  \leaving{1}
+\end{windowstate}
+\end{diagram}
+
+\section{Prefix sums: multi-row alignment}
+Multi-row \texttt{arraystate} via \texttt{\string\row}, with a range on the
+named \texttt{values} row and a running-total annotation.
+
+\begin{diagram}[type=array,width=\textwidth,caption={A prefix-sum row aligned under its source values.},description={A four-element values row aligned above a five-element prefix-sum row, with indices one to two of the values row marked active.}]
+\begin{arraystate}
+  \row{values}{3,1,4,2}
+  \row{prefix}{0,3,4,8,10}
+  \range[row=values,state=active]{1}{2}
+  \annotation{$P_3 - P_1 = 5$}
+\end{arraystate}
+\end{diagram}
+
+\section{Full state vocabulary}
+All nine shared algorithm states in one row, so state meaning stays
+distinguishable through border weight and line style, not fill color alone.
+
+\begin{diagram}[type=array,width=\textwidth,caption={Every shared algorithm state applied to one cell each.},description={Nine cells, one per shared algorithm state: current, active, candidate, frontier, visited, resolved, discarded, blocked, and unseen.}]
+\begin{arraystate}[indices=false]
+  \cell[state=current]{cur}
+  \cell[state=active]{act}
+  \cell[state=candidate]{cand}
+  \cell[state=frontier]{front}
+  \cell[state=visited]{vis}
+  \cell[state=resolved]{res}
+  \cell[state=discarded]{disc}
+  \cell[state=blocked]{blk}
+  \cell[state=unseen]{uns}
+\end{arraystate}
+\end{diagram}
+
+\section{Algorithmtrace: ordered snapshots}
+Three ordered snapshots of a sliding-window advance, read left to right.
+
+\begin{diagram}[type=trace,width=\textwidth,caption={A three-element window advances across a six-element array.},description={Three ordered snapshots show a three-element window at positions zero to two, one to three, and two to four.}]
+\begin{algorithmtrace}[columns=3]
+  \snapshot{Initial}{%
+    \begin{arraystate}[cell width=.85,row height=1.0]
+      \cell{4}\cell{2}\cell{7}\cell{1}\cell{3}\cell{6}
+      \range[state=active]{0}{2}
+    \end{arraystate}%
+  }
+  \snapshot{Advance right}{%
+    \begin{arraystate}[cell width=.85,row height=1.0]
+      \cell{4}\cell{2}\cell{7}\cell{1}\cell{3}\cell{6}
+      \range[state=active]{1}{3}
+    \end{arraystate}%
+  }
+  \snapshot{Advance again}{%
+    \begin{arraystate}[cell width=.85,row height=1.0]
+      \cell{4}\cell{2}\cell{7}\cell{1}\cell{3}\cell{6}
+      \range[state=active]{2}{4}
+    \end{arraystate}%
+  }
+\end{algorithmtrace}
+\end{diagram}
+
+\section{Grayscale and semantic check}
+\begin{principle}{State is not just color}
+Every shared algorithm state carries a distinct line-style fragment (bold
+solid for \texttt{current}, dashed for \texttt{candidate} and
+\texttt{discarded}, dotted for \texttt{blocked}) in addition to its
+draw/fill/text colors, so the diagram above should stay legible if printed
+in grayscale.
+\end{principle}
+
+\end{document}

@@ -1,12 +1,66 @@
 # ReportKit Algorithm Visualization Primitives
 
-**Status:** Proposed — not yet implemented. No code in `latex_templates/`,
-`python_scripts/`, or `tests/` has been written against this document.
+**Status:** Phase 1 (core state grammar) implemented 2026-09-17: the shared
+nine-state vocabulary and its theme-owned `RKTokAlgorithm*` tokens (populated
+by all three themes), `arraystate` (with `\cell`/`\row`/`\pointer`/`\range`/
+`\annotation`), `windowstate`, and `algorithmtrace`/`\snapshot` all landed in
+`latex_templates/reportkit-algorithm-viz.sty`, wired into `reportkit.cls`,
+with contract metadata, generated-doc regeneration, `tests/
+test_theme_contract.py` coverage, a new `tests/test_algorithm_viz.py`
+compile-and-inspect suite, a canonical fixture
+(`latex_templates/examples/algorithm_visuals_acceptance_test.tex`, wired into
+`scripts/acceptance_check.sh`), and a new SKILL.md "Algorithm and
+execution-state visuals" section. Verified via `python -m pytest tests` (164
+passed) and `generate_registry(strict=True)` with zero contract errors; no
+LuaLaTeX/pdfLaTeX toolchain was available in this environment, so the new
+fixture and the new PDF-inspection tests are unverified by an actual compile
+and remain to be checked the next time this runs somewhere with TeX
+installed. Phase 2 (core algorithm structures) also implemented 2026-09-17:
+`stackstate`/`queuestate` (`latex_templates/reportkit-algorithm-linear.sty`,
+sharing one internal linear-container renderer per section 7.3, reusing
+`arraystate`'s cell/pointer chrome with no new theme tokens) and
+`graphstate`/`gridstate` (`latex_templates/reportkit-algorithm-graph.sty`,
+three new `RKTokAlgorithmGraph*` tokens for node width and edge color/width,
+populated in all three themes; auto-grid node layout, no dedicated
+BFS/DFS primitive per section 2.3 — pair `graphstate` with
+`queuestate`/`stackstate` by composition instead). Both are
+`\RequirePackage`d from within `reportkit-algorithm-viz.sty` itself, so the
+public import stays `\RequirePackage{reportkit-algorithm-viz}` per section 3.
+Registry/contract/theme-token tests extended accordingly;
+`python -m pytest tests` passes (167 passed) with zero contract errors; two
+more fixtures added and wired into `scripts/acceptance_check.sh`, still
+unverified by an actual LuaLaTeX/pdfLaTeX compile in this environment.
+Phase 3 (additional high-value structures) also implemented 2026-09-17:
+`intervalstate`/`heapstate` (`latex_templates/reportkit-algorithm-order.sty`
+— heapstate's tree layout derived purely from array index via
+`floor(ln(i+1)/ln(2))`, per section 11.2's "authors should not manually
+position tree nodes"), `dptable` (`latex_templates/reportkit-algorithm-dp.sty`,
+reusing `gridstate`'s coordinate math), and `dagstate` (appended to
+`latex_templates/reportkit-algorithm-graph.sty`, reusing `graphstate`'s node
+layout and `reportkit-diagrams.sty`'s existing dependency-edge style per
+section 10.2 — no new edge token needed). Several of these primitives' own
+proposed state names (`overlap`/`merged`, `solved`/`dependency`/`uncomputed`,
+`ready`/`processed`) are not literally part of the shared nine-word
+vocabulary from section 4; each was mapped onto the closest existing state
+(documented in-file) rather than growing the vocabulary, per section 2.2's
+consistency requirement — see SKILL.md's "Algorithm and execution-state
+visuals" section for the exact mapping. `python -m pytest tests` passes (169
+passed) with zero contract errors; three more fixtures added and wired into
+`scripts/acceptance_check.sh`, still unverified by an actual LuaLaTeX/
+pdfLaTeX compile in this environment. P3 extensions also implemented
+2026-09-17 in `latex_templates/reportkit-algorithm-p3.sty`: `joinstate`
+provides a keyed/hash-join composition, `unionfindstate` provides
+disjoint-set parent/union/find state, `linkedliststate` provides explicit
+next/head/tail/NULL semantics, and `recursiontree` provides call arguments,
+return values, and memoization markers. Contract metadata, generated
+references, documentation, and regression coverage are included; the full
+algorithm visualization feature is complete.
 **Target:** ReportKit vNext.
 **Baseline:** `main` at `4113e8b`, ReportKit class v1.9.3, contract v1.0.0.
 **Scope:** Native semantic visualization primitives for algorithms, data
 structures, and execution-state traces.
-**Primary module:** `latex_templates/reportkit-algorithm-viz.sty`.
+**Primary module:** `latex_templates/reportkit-algorithm-viz.sty`, with P3
+extensions in `latex_templates/reportkit-algorithm-p3.sty`.
 
 ---
 

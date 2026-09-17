@@ -29,6 +29,7 @@ The PR-time synchronization directive is in
 | [2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md](docs/superpowers/specs/2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md) | Phase A′ and B′ complete; constrained Markdown/typed-IR authoring landed in v1.9.3; standalone render command, budgets, i18n, and neutral second adapter remain | P2 |
 | [2026-09-10-reportkit-fork-port-fixes-spec.md](docs/superpowers/specs/2026-09-10-reportkit-fork-port-fixes-spec.md) | Implemented in v1.9.1 via PR #19; all 11 applicable fixes landed | Complete |
 | [2026-09-12-reportkit-code-quality-and-dependency-remediation-spec.md](docs/superpowers/specs/2026-09-12-reportkit-code-quality-and-dependency-remediation-spec.md) | Implemented — merged via PR #25 (`7c5fafc`); all phases (0-2) landed; all 3 open questions resolved | Complete |
+| [2026-09-16-reportkit-algorithm-visualization-primitives-spec.md](docs/superpowers/specs/2026-09-16-reportkit-algorithm-visualization-primitives-spec.md) | Phases 1-3 and P3 extensions implemented 2026-09-17: shared state vocabulary plus array/window/trace, linear containers, graph/grid/DAG, heap/interval/DP, keyed join, union/find, linked-list, and recursion-tree primitives | Complete |
 
 ## Open work
 
@@ -46,6 +47,85 @@ are implemented in the current worktree; the spec remains the detailed
 change record.
 
 ### P2
+
+- Algorithm-visualization primitives — **Phase 1 (core state grammar)
+  implemented 2026-09-17**: the shared nine-state vocabulary (`current`,
+  `active`, `candidate`, `frontier`, `visited`, `resolved`, `discarded`,
+  `blocked`, `unseen`) and its `RKTokAlgorithm*` style tokens (declared in
+  `reportkit-core.sty`, populated by all three themes), plus `arraystate`
+  (`\cell`/`\row`/`\pointer`/`\range`/`\annotation`), `windowstate`
+  (`\values`/`\window`/`\entering`/`\leaving`), and `algorithmtrace`/
+  `\snapshot`, all in new `latex_templates/reportkit-algorithm-viz.sty`,
+  required by `reportkit.cls` right after `reportkit-diagrams`. Contract
+  metadata generates cleanly (`generate_registry(strict=True)`: zero
+  errors); `references/primitive-contract.md` and
+  `references/institutional-research-theme.md` regenerated;
+  `tests/test_theme_contract.py` extended to cover the new module and
+  tokens; new `tests/test_algorithm_viz.py` compile-and-inspect suite (skips
+  without a LuaLaTeX toolchain, same as the rest of the PDF-inspection
+  suite); new canonical fixture
+  `latex_templates/examples/algorithm_visuals_acceptance_test.tex`, wired
+  into `scripts/acceptance_check.sh`; new SKILL.md "Algorithm and
+  execution-state visuals" section. **Phase 2 (core algorithm structures)
+  also implemented 2026-09-17**, fanned out to two parallel workstreams
+  built on the Phase 1 foundation: `stackstate`/`queuestate`
+  (`latex_templates/reportkit-algorithm-linear.sty`) share one internal
+  linear-container renderer per spec section 7.3 and reuse `arraystate`'s
+  cell/pointer chrome outright — no new theme tokens needed.
+  `graphstate`/`gridstate` (`latex_templates/reportkit-algorithm-graph.sty`)
+  add three new `RKTokAlgorithmGraph*` tokens (node text width, edge
+  color/width — populated in all three themes) and reuse `rk algo cell`/the
+  shared state overlay for nodes and grid cells; `graphstate` uses
+  `reportnetwork`-style automatic grid layout and builds no dedicated
+  BFS/DFS primitive (composition with `queuestate`/`stackstate` is left to
+  the document author, per spec section 2.3). Both new modules are
+  `\RequirePackage`d from within `reportkit-algorithm-viz.sty` itself (not
+  from `reportkit.cls`), so the public import stays
+  `\RequirePackage{reportkit-algorithm-viz}` per spec section 3. Two more
+  fixtures added (`algorithm_visuals_linear_acceptance_test.tex`,
+  `algorithm_visuals_graph_acceptance_test.tex`) and wired into
+  `scripts/acceptance_check.sh`; SKILL.md and the generated contract docs
+  updated. `python -m pytest tests` passes (167 passed, 73 skipped) in this
+  environment, which has no LuaLaTeX/pdfLaTeX — every new fixture and
+  PDF-inspection test across both phases is unverified by an actual compile
+  and needs to run once somewhere with TeX installed. **Phase 3 (additional
+  high-value structures) also implemented 2026-09-17**, again fanned out to
+  two parallel workstreams: `intervalstate`/`heapstate`
+  (`latex_templates/reportkit-algorithm-order.sty` — intervals on a shared
+  axis, one per declared row; heapstate's tree view laid out purely from
+  array index, no manual tree coordinates) and `dptable`/`dagstate`
+  (`dptable` in new `latex_templates/reportkit-algorithm-dp.sty`, reusing
+  `gridstate`'s coordinate math; `dagstate` appended to the existing
+  `latex_templates/reportkit-algorithm-graph.sty`, reusing `graphstate`'s
+  node layout and `reportkit-diagrams.sty`'s existing dependency-edge style
+  outright — no new edge token). 9 new theme tokens total (5 for dagstate's
+  indegree badge, 4 for intervalstate's axis/heapstate's tree edges),
+  populated in all three themes. Several of these primitives' own spec text
+  proposes state names outside the shared nine-word vocabulary
+  (`overlap`/`merged`, `solved`/`dependency`/`uncomputed`,
+  `ready`/`processed`); each was mapped onto the closest existing shared
+  state instead, documented in-file and in SKILL.md, per the spec's own
+  section 2.2 consistency requirement. Merging this phase caught and fixed a
+  real bug from the merge itself: an overly-greedy regex used to resolve
+  three colliding theme-file merge conflicts (`.*` under `re.DOTALL`, with
+  no non-greedy qualifier before the final anchor) silently deleted each
+  file's tail — including `execsummary`'s definition and
+  `\rk@styletokensloadedtrue` — while leaving the file byte-count
+  superficially plausible; caught by a callout-count regression (14 → 13)
+  during the post-merge registry check, not by any test written for this
+  feature, and fixed by rebuilding each file's tail from the pre-merge
+  commit with the new token block re-inserted precisely. Three more
+  fixtures added and wired into `scripts/acceptance_check.sh`; SKILL.md,
+  the generated contract docs, and `tests/test_theme_contract.py` updated.
+  `python -m pytest tests` passes (169 passed, 86 skipped, 0 failed) and
+  `generate_registry(strict=True)` reports zero contract errors — still
+  unverified by an actual LuaLaTeX/pdfLaTeX compile in this environment.
+  **P3 is now complete**: `reportkit-algorithm-p3.sty` adds `joinstate`,
+  `unionfindstate`, `linkedliststate`, and `recursiontree`, with contract
+  metadata, generated references, documentation, and regression coverage.
+  The complete algorithm-visualization feature now covers the full P0–P3
+  scope in section 21 of the
+  [spec](docs/superpowers/specs/2026-09-16-reportkit-algorithm-visualization-primitives-spec.md).
 
 - Institutional theme + equity-research profile — **Step 1 (theme
   infrastructure) implemented 2026-09-09**: `reportkit.cls` now delegates

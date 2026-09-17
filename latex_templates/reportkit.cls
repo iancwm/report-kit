@@ -103,6 +103,7 @@
 \RequirePackage{reportkit-code}
 \RequirePackage{reportkit-algorithms}
 \RequirePackage{reportkit-diagrams}
+\RequirePackage{reportkit-algorithm-viz}
 \RequirePackage{reportkit-grammar}
 
 \endinput

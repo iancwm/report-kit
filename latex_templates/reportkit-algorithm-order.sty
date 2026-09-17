@@ -1,0 +1,307 @@
+% ReportKit v1.10.0 -- interval/heap algorithm-visualization primitives
+%
+% Implements the interval and heap slice of Phase 3 (spec sections 11-12) of
+% docs/superpowers/specs/2026-09-16-reportkit-algorithm-visualization-primitives-spec.md:
+%   (1) `intervalstate` -- intervals on a shared horizontal axis (merge
+%       intervals, scheduling, sessionization);
+%   (2) `heapstate` -- a heap's backing array paired with its tree view,
+%       whose tree node positions are derived automatically from array index.
+%
+% This module is \RequirePackage'd from inside reportkit-algorithm-viz.sty,
+% after that module has already run \RKAssertStyleTokens and defined the
+% shared `rk algo cell`/`rk algo index`/`rk algo container`/`rk algo trace
+% separator` styles and the \rk@setalgostate state-overlay helper -- exactly
+% the way reportkit-diagrams.sty loads reportkit-structure.sty (see that
+% file's own top-of-file note, and reportkit-algorithm-linear.sty's and
+% reportkit-algorithm-graph.sty's own notes one level down). It therefore
+% does not assert the style-token contract itself and does not
+% \RequirePackage{reportkit-algorithm-viz}; it is never loaded on its own.
+% Every environment here draws into the `diagram` wrapper's already-open
+% TikZ picture, exactly like arraystate/windowstate/graphstate/gridstate.
+%
+% intervalstate's state mapping (spec section 12.2 lists candidate, overlap,
+% merged, discarded as "possible semantic states", but overlap and merged
+% are not part of the shared nine-state vocabulary -- design principle 2.2
+% requires one shared vocabulary across every primitive family). This module
+% maps them onto real shared states instead of inventing new ones:
+%   overlap -> state=active   (this interval currently overlaps / is being
+%                               compared against the running merge)
+%   merged  -> state=resolved (this is the final combined span; \merged's
+%                               default state is resolved, overridable)
+%   candidate and discarded already exist verbatim in the shared vocabulary
+%   and need no mapping.
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{reportkit-algorithm-order}[2026/09/17 v1.0.0 ReportKit interval/heap algorithm-visualization primitives]
+\RequirePackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,calc,backgrounds}
+\RequirePackage{xparse}
+\RequirePackage{pgfkeys}
+\RequirePackage{etoolbox}
+
+\makeatletter
+
+% -----------------------------------------------------------------------------
+% Shared chrome. intervalstate's bars and heapstate's array/tree nodes reuse
+% `rk algo cell` (plus the shared `rk algo state <name>` overlay) outright --
+% a continuous interval bar is structurally the same cell, just given an
+% explicit minimum width instead of the default square size, and a heap node
+% is structurally identical to an arraystate cell placed on a computed
+% coordinate instead of a per-index column. The only genuinely new chrome is
+% an axis line for intervalstate and a tree-edge line for heapstate, so those
+% are the only two token pairs this module adds (RKTokAlgorithmInterval...,
+% RKTokAlgorithmHeap...) -- kept disjoint from a parallel dptable/dagstate
+% workstream's RKTokAlgorithmDp.../RKTokAlgorithmDag... tokens.
+% -----------------------------------------------------------------------------
+\tikzset{
+  rk algo interval axis/.style={draw=\RKTokAlgorithmIntervalAxisColor,line width=\RKTokAlgorithmIntervalAxisWidth},
+  rk algo heap edge/.style={draw=\RKTokAlgorithmHeapEdgeColor,line width=\RKTokAlgorithmHeapEdgeWidth},
+}
+
+% -----------------------------------------------------------------------------
+% intervalstate -- intervals on a shared horizontal axis (spec section 12).
+% Merge intervals, scheduling, sessionization, validity periods, overlap
+% detection.
+%
+% Each \interval/\merged call is placed on its own row, in declaration
+% order, exactly the way arraystate's \cell auto-increments a column counter
+% -- no overlap detection is attempted; a straightforward vertical stack is
+% enough for v1 per the spec's own guidance. \merged renders on its own row
+% below the individually declared intervals, set off by a thin separator
+% that reuses the existing `rk algo trace separator` token rather than
+% inventing a new one.
+% -----------------------------------------------------------------------------
+\newcount\rk@intervalrow
+\newcommand{\rk@intervalunitwidth}{1.05}
+\newcommand{\rk@intervalrowheight}{1.15}
+\newcommand{\rk@intervalitemstate}{}
+\newcommand{\rk@intervalxmin}{0}
+\newcommand{\rk@intervalxmax}{0}
+\newif\ifrk@intervalhasextent
+\pgfkeys{
+  /reportkit/intervalstate/.is family,
+  /reportkit/intervalstate,
+  unit width/.store in=\rk@intervalunitwidth,
+  row height/.store in=\rk@intervalrowheight,
+}
+\pgfkeys{
+  /reportkit/intervalitem/.is family,
+  /reportkit/intervalitem,
+  state/.store in=\rk@intervalitemstate,
+}
+
+% Track the running [min,max] axis extent across every declared interval and
+% merged span, in already-scaled (unit width applied) coordinates, so the
+% closing axis line can span exactly what was drawn without the author
+% supplying explicit axis bounds. #1 start, #2 end (author-facing values,
+% not yet scaled).
+\newcommand{\rk@intervalupdateextent}[2]{%
+  \ifrk@intervalhasextent
+    \pgfmathsetmacro{\rk@intervalxmin}{min(\rk@intervalxmin,#1*\rk@intervalunitwidth)}%
+    \pgfmathsetmacro{\rk@intervalxmax}{max(\rk@intervalxmax,#2*\rk@intervalunitwidth)}%
+  \else
+    \pgfmathsetmacro{\rk@intervalxmin}{#1*\rk@intervalunitwidth}%
+    \pgfmathsetmacro{\rk@intervalxmax}{#2*\rk@intervalunitwidth}%
+    \rk@intervalhasextenttrue
+  \fi
+}
+
+% <reportkit-contract>
+% {"kind":"figure","description":"Intervals on a shared horizontal axis, stacked one per row in declaration order.","arguments":[{"name":"options","type":"options","description":"unit width= and row height= layout keys."}],"constraints":[{"code":"declaration_order_rows","description":"Each \\interval or \\merged call renders on its own row, in declaration order; overlap is not auto-detected."}],"example":"\\begin{diagram}[type=interval,caption={Merge overlapping intervals.},description={Three intervals on a shared axis, two of which overlap, followed by their merged summary span.}]\n\\begin{intervalstate}\n\\interval[state=candidate]{A}{1}{4}\n\\interval[state=active]{B}{3}{6}\n\\interval[state=candidate]{C}{8}{10}\n\\merged{1}{6}\n\\end{intervalstate}\n\\end{diagram}","stability":"experimental","since":"1.10.0"}
+% </reportkit-contract>
+\NewDocumentEnvironment{intervalstate}{O{}}{%
+  \begingroup
+  \pgfkeys{/reportkit/intervalstate,unit width=1.05,row height=1.15,#1}%
+  \rk@intervalrow=0\relax
+  \rk@intervalhasextentfalse
+}{%
+  \ifrk@intervalhasextent
+    \pgfmathsetmacro{\rk@intervalaxisy}{-(\the\rk@intervalrow-1)*\rk@intervalrowheight-0.62*\rk@intervalrowheight}%
+    \draw[rk algo interval axis] (\rk@intervalxmin,\rk@intervalaxisy) -- (\rk@intervalxmax,\rk@intervalaxisy);%
+  \fi
+  \endgroup
+}
+
+% <reportkit-contract>
+% {"kind":"command","description":"Draw one labelled interval bar spanning [start,end] on the shared axis, on its own row.","arguments":[{"name":"options","type":"options","description":"state= one of the nine shared algorithm states (candidate and discarded are used verbatim; overlap maps onto active -- see this file's top-of-file note)."},{"name":"label","type":"text","description":"Interval label, e.g. an identifier or source name."},{"name":"start","type":"text","description":"Interval start, on the shared numeric axis."},{"name":"end","type":"text","description":"Interval end, on the shared numeric axis."}],"constraints":[{"code":"inside_intervalstate","description":"Only valid inside intervalstate."},{"code":"start_before_end","description":"start must not exceed end."}],"example":"\\interval[state=active]{B}{3}{6}","stability":"experimental","since":"1.10.0","parent":"intervalstate"}
+% </reportkit-contract>
+\NewDocumentCommand{\interval}{O{} m m m}{%
+  \pgfkeys{/reportkit/intervalitem,state={},#1}%
+  \rk@setalgostate{\rk@intervalitemstate}%
+  \ifdim#4pt<#3pt
+    \PackageError{reportkit-algorithm-order}{\string\interval\space start #3 exceeds end #4}{Swap the start and end values.}%
+  \fi
+  \rk@intervalupdateextent{#3}{#4}%
+  \pgfmathsetmacro{\rk@intervalxa}{#3*\rk@intervalunitwidth}%
+  \pgfmathsetmacro{\rk@intervalxb}{#4*\rk@intervalunitwidth}%
+  \pgfmathsetmacro{\rk@intervalwidth}{\rk@intervalxb-\rk@intervalxa}%
+  \pgfmathsetmacro{\rk@intervaly}{-\the\rk@intervalrow*\rk@intervalrowheight}%
+  \edef\rk@intervalbarname{rkalgointerval-\the\rk@intervalrow}%
+  \node[rk algo cell,\rk@algostateoverlay,minimum width=\rk@intervalwidth cm]
+    (\rk@intervalbarname) at ({(\rk@intervalxa+\rk@intervalxb)/2},\rk@intervaly) {\strut #2};%
+  \node[rk algo index] at (\rk@intervalxa,{\rk@intervaly-0.62*\rk@intervalrowheight}) {#3};%
+  \node[rk algo index] at (\rk@intervalxb,{\rk@intervaly-0.62*\rk@intervalrowheight}) {#4};%
+  \advance\rk@intervalrow by 1\relax
+}
+
+% <reportkit-contract>
+% {"kind":"command","description":"Draw a summary bar spanning [start,end] on its own row below the individually declared intervals, marking a resolved/combined span. Defaults to state=resolved (see this file's top-of-file note on the merged->resolved mapping).","arguments":[{"name":"options","type":"options","description":"state= one of the nine shared algorithm states; defaults to resolved."},{"name":"start","type":"text","description":"Merged span start, on the shared numeric axis."},{"name":"end","type":"text","description":"Merged span end, on the shared numeric axis."}],"constraints":[{"code":"inside_intervalstate","description":"Only valid inside intervalstate."},{"code":"start_before_end","description":"start must not exceed end."}],"example":"\\merged{1}{6}","stability":"experimental","since":"1.10.0","parent":"intervalstate"}
+% </reportkit-contract>
+\NewDocumentCommand{\merged}{O{} m m}{%
+  \pgfkeys{/reportkit/intervalitem,state=resolved,#1}%
+  \rk@setalgostate{\rk@intervalitemstate}%
+  \ifdim#3pt<#2pt
+    \PackageError{reportkit-algorithm-order}{\string\merged\space start #2 exceeds end #3}{Swap the start and end values.}%
+  \fi
+  \rk@intervalupdateextent{#2}{#3}%
+  \pgfmathsetmacro{\rk@intervalxa}{#2*\rk@intervalunitwidth}%
+  \pgfmathsetmacro{\rk@intervalxb}{#3*\rk@intervalunitwidth}%
+  \pgfmathsetmacro{\rk@intervalwidth}{\rk@intervalxb-\rk@intervalxa}%
+  \pgfmathsetmacro{\rk@intervaly}{-\the\rk@intervalrow*\rk@intervalrowheight}%
+  \pgfmathsetmacro{\rk@intervalsepy}{\rk@intervaly+0.5*\rk@intervalrowheight}%
+  \draw[rk algo trace separator] ({\rk@intervalxmin-0.15},\rk@intervalsepy) -- ({\rk@intervalxmax+0.15},\rk@intervalsepy);%
+  \edef\rk@intervalbarname{rkalgointerval-merged-\the\rk@intervalrow}%
+  \node[rk algo cell,\rk@algostateoverlay,minimum width=\rk@intervalwidth cm]
+    (\rk@intervalbarname) at ({(\rk@intervalxa+\rk@intervalxb)/2},\rk@intervaly) {};%
+  \node[rk algo index] at (\rk@intervalxa,{\rk@intervaly-0.62*\rk@intervalrowheight}) {#2};%
+  \node[rk algo index] at (\rk@intervalxb,{\rk@intervaly-0.62*\rk@intervalrowheight}) {#3};%
+  \advance\rk@intervalrow by 1\relax
+}
+
+% -----------------------------------------------------------------------------
+% heapstate -- heap tree plus its backing array (spec section 11). Top-K,
+% priority queues, kth-largest/smallest, merging sorted inputs.
+%
+% Tree node positions are derived automatically from array index, per the
+% spec's explicit requirement that authors never place tree coordinates by
+% hand: index i (0-based) has children at 2i+1/2i+2 and parent at
+% floor((i-1)/2), its level is floor(ln(i+1)/ln(2)), and its position within
+% that level is i+1-2^level, placed horizontally as
+% (position+0.5)*(totalwidth/itemsInLevel) so every level is centered within
+% the same total width -- an approximate, evenly-spaced-per-level layout,
+% acceptable for v1 per the spec, good for roughly 4-5 levels (~15-30
+% elements). \values reuses the exact same \@for-based iteration windowstate
+% already uses for its own \values, but heapstate needs that name to draw
+% *both* an array cell and a mirrored tree node per value where windowstate
+% only draws an array cell. Since \values is already a public command
+% (declared once, in reportkit-algorithm-viz.sty, for windowstate), this
+% environment does not re-declare it -- \NewDocumentCommand would error on a
+% name already in use, and \renewcommand of a public identifier for the
+% whole document would silently change windowstate's behaviour too. Instead
+% heapstate locally \renewcommand{\values}{\rk@heapvalues} for the duration
+% of its own \begingroup/\endgroup block (exactly the scoping arraystate
+% already relies on for its own internal state), which TeX restores to
+% windowstate's original meaning the moment \end{heapstate} runs.
+% \rk@heapvalues itself is declared at file scope (not nested inside any
+% environment body) so its own #1 is an ordinary macro parameter, with no
+% doubled-# nesting concerns.
+% -----------------------------------------------------------------------------
+\newcount\rk@heapindex
+\newcount\rk@heapcount
+\newcommand{\rk@heapcellwidth}{1.05}
+\newcommand{\rk@heapnodespacing}{1.05}
+\newcommand{\rk@heaplevelheight}{0.95}
+\newcommand{\rk@heaptreegap}{0.55}
+\pgfkeys{
+  /reportkit/heapstate/.is family,
+  /reportkit/heapstate,
+  cell width/.store in=\rk@heapcellwidth,
+  node spacing/.store in=\rk@heapnodespacing,
+  level height/.store in=\rk@heaplevelheight,
+  tree gap/.store in=\rk@heaptreegap,
+}
+
+% Once the backing-array element count is known, compute the deepest level
+% (relative to the last declared index) and the total tree width every
+% level is centered within.
+\newcommand{\rk@heapcomputewidth}{%
+  \pgfmathsetmacro{\rk@heapmaxlevel}{floor(ln(\the\rk@heapcount)/ln(2))}%
+  \pgfmathsetmacro{\rk@heapitemsatmaxlevel}{2^\rk@heapmaxlevel}%
+  \pgfmathsetmacro{\rk@heaptotalwidth}{\rk@heapitemsatmaxlevel*\rk@heapnodespacing}%
+}
+
+% Resolve 0-based array index #1 to a tree coordinate, stored in
+% \rk@heapcoordx/\rk@heapcoordy. Shared by the initial placement loop, the
+% parent-edge lookup, and \current's redraw, so the layout formula lives in
+% exactly one place.
+\newcommand{\rk@heaptreecoords}[1]{%
+  \pgfmathsetmacro{\rk@heaplevel}{floor(ln(#1+1)/ln(2))}%
+  \pgfmathsetmacro{\rk@heapitemsinlevel}{2^\rk@heaplevel}%
+  \pgfmathsetmacro{\rk@heapposinlevel}{#1+1-\rk@heapitemsinlevel}%
+  \pgfmathsetmacro{\rk@heapcoordx}{(\rk@heapposinlevel+0.5)*(\rk@heaptotalwidth/\rk@heapitemsinlevel)}%
+  \pgfmathsetmacro{\rk@heapcoordy}{\rk@heaptreegap+(\rk@heapmaxlevel-\rk@heaplevel)*\rk@heaplevelheight}%
+}
+
+% Place one backing-array cell (row y=0, like arraystate's row 0) and its
+% mirrored tree node, plus the edge to its parent (skipped for the root),
+% and remember its value text (locally, via plain \def so it stays scoped to
+% the enclosing heapstate group) so \current can redraw it later without the
+% author repeating the value. #1 value text; uses \rk@heapindex as the
+% current 0-based index.
+\newcommand{\rk@heapplacevalue}[1]{%
+  \pgfmathsetmacro{\rk@heapx}{\the\rk@heapindex*\rk@heapcellwidth}%
+  \edef\rk@heapcellname{rkheaparray-\the\rk@heapindex}%
+  \node[rk algo cell] (\rk@heapcellname) at (\rk@heapx,0) {\strut #1};%
+  \node[rk algo index] at (\rk@heapx,-0.72) {\the\rk@heapindex};%
+  \rk@heaptreecoords{\the\rk@heapindex}%
+  \pgfmathsetmacro{\rk@heapnodex}{\rk@heapcoordx}%
+  \pgfmathsetmacro{\rk@heapnodey}{\rk@heapcoordy}%
+  \edef\rk@heaptreename{rkheaptree-\the\rk@heapindex}%
+  \node[rk algo cell] (\rk@heaptreename) at (\rk@heapnodex,\rk@heapnodey) {\strut #1};%
+  \ifnum\rk@heapindex>0\relax
+    \pgfmathsetmacro{\rk@heapparentidx}{floor((\the\rk@heapindex-1)/2)}%
+    \rk@heaptreecoords{\rk@heapparentidx}%
+    \begin{pgfonlayer}{background}
+      \draw[rk algo heap edge] (\rk@heapnodex,\rk@heapnodey) -- (\rk@heapcoordx,\rk@heapcoordy);
+    \end{pgfonlayer}
+  \fi
+  \expandafter\def\csname rk@heapval@\the\rk@heapindex\endcsname{#1}%
+  \advance\rk@heapindex by 1\relax
+}
+
+% Declared at file scope (see this section's top-of-file note): counts the
+% comma-separated value list, computes the tree width from that count, then
+% places every value's array cell and mirrored tree node.
+\newcommand{\rk@heapvalues}[1]{%
+  \rk@heapcount=0\relax
+  \@for\rk@heaptmpvalue:=#1\do{\advance\rk@heapcount by 1\relax}%
+  \rk@heapcomputewidth%
+  \rk@heapindex=0\relax
+  \@for\rk@heapvalue:=#1\do{\rk@heapplacevalue{\rk@heapvalue}}%
+}
+
+% <reportkit-contract>
+% {"kind":"figure","description":"A heap's backing array paired with its tree view, with tree node positions derived automatically from array index.","arguments":[{"name":"options","type":"options","description":"cell width=, node spacing=, level height=, and tree gap= layout keys."}],"constraints":[],"example":"\\begin{diagram}[type=heap,caption={A small max-heap.},description={A backing array of five values paired with its binary-tree view; the root is marked current.}]\n\\begin{heapstate}\n\\values{10,9,8,5,3}\n\\current{0}\n\\end{heapstate}\n\\end{diagram}","stability":"experimental","since":"1.10.0"}
+% </reportkit-contract>
+\NewDocumentEnvironment{heapstate}{O{}}{%
+  \begingroup
+  \pgfkeys{/reportkit/heapstate,cell width=1.05,node spacing=1.05,level height=0.95,tree gap=0.55,#1}%
+  \rk@heapindex=0\relax\rk@heapcount=0\relax
+  \renewcommand{\values}{\rk@heapvalues}%
+}{%
+  \endgroup
+}
+
+% <reportkit-contract>
+% {"kind":"command","description":"Mark the backing-array cell and its mirrored tree node at a 0-based index with state=current.","arguments":[{"name":"index","type":"text","description":"Zero-based index into the values already declared with \\values."}],"constraints":[{"code":"inside_heapstate","description":"Only valid inside heapstate."},{"code":"declared_index","description":"index must be within the values already declared with \\values."}],"example":"\\current{0}","stability":"experimental","since":"1.10.0","parent":"heapstate"}
+% </reportkit-contract>
+\NewDocumentCommand{\current}{m}{%
+  \ifnum#1<0\relax
+    \PackageError{reportkit-algorithm-order}{heapstate \string\current\space index #1 is out of range}{Use a zero-based index between 0 and the declared value count minus 1.}%
+  \else
+    \ifnum#1<\rk@heapcount\relax\else
+      \PackageError{reportkit-algorithm-order}{heapstate \string\current\space index #1 exceeds the declared value count}{Declare more values with \string\values, or use a smaller index.}%
+    \fi
+  \fi
+  % Fall back to an empty label instead of an undefined-control-sequence
+  % crash if the index was invalid -- the \PackageError above already told
+  % the author what to fix.
+  \@ifundefined{rk@heapval@#1}{\def\rk@heapvaltext{}}{\edef\rk@heapvaltext{\csname rk@heapval@#1\endcsname}}%
+  \rk@setalgostate{current}%
+  \pgfmathsetmacro{\rk@heapx}{#1*\rk@heapcellwidth}%
+  \node[rk algo cell,\rk@algostateoverlay] at (\rk@heapx,0) {\strut \rk@heapvaltext};%
+  \rk@heaptreecoords{#1}%
+  \node[rk algo cell,\rk@algostateoverlay] at (\rk@heapcoordx,\rk@heapcoordy) {\strut \rk@heapvaltext};%
+}
+
+\makeatother
+\endinput

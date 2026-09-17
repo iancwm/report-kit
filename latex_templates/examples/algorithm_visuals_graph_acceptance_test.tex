@@ -1,0 +1,144 @@
+\documentclass{reportkit}
+
+\setreportkitleftheader{REPORTKIT / ALGORITHM GRAPH VISUALIZATION TEST}
+\setreportkitfooter{Algorithm graph/grid visualization acceptance test}
+\setreportkitversion{v1.10.0}
+
+\title{ReportKit -- graphstate and gridstate algorithm-visualization primitives}
+\author{Test build}
+\date{17 September 2026}
+
+\begin{document}
+\maketitle
+
+\begin{execsummary}
+This is an acceptance test for reportkit-algorithm-graph.sty's Phase 2 pair:
+\texttt{graphstate} and \texttt{gridstate}
+(docs/superpowers/specs/2026-09-16-reportkit-algorithm-visualization-primitives-spec.md,
+sections 8-9). Both reuse the shared nine-state algorithm vocabulary
+introduced in Phase 1 (see algorithm\_visuals\_acceptance\_test.tex) --
+\texttt{graphstate} for traversal state over an explicit node/edge graph,
+\texttt{gridstate} for traversal state over a 2D grid. Neither builds a
+BFS-specific or DFS-specific primitive: a full traversal walkthrough is left
+to the document author composing \texttt{graphstate} (or \texttt{gridstate})
+with \texttt{algorithmtrace}, as the last section here demonstrates.
+\end{execsummary}
+
+\section{Graph traversal: BFS frontier (algorithm-interview scenario)}
+A course-prerequisite graph mid-traversal: the start course has been
+visited, its immediate neighbor is the node currently being processed, one
+neighbor is queued on the frontier, and one course has not been reached yet.
+
+\begin{diagram}[type=graph,width=\textwidth,caption={A breadth-first search frontier over a small prerequisite graph.},description={Four courses connected by prerequisite edges. Course A is visited, course B is the current node, course C is on the frontier, and course D is unseen.}]
+\begin{graphstate}[columns=2]
+  \graphnode[state=visited]{A}{Intro CS}
+  \graphnode[state=current]{B}{Data Structures}
+  \graphnode[state=frontier]{C}{Algorithms}
+  \graphnode[state=unseen]{D}{Systems}
+  \graphedge{A}{B}
+  \graphedge{B}{C}
+  \graphedge{B}{D}
+\end{graphstate}
+\end{diagram}
+
+\section{Grid traversal: flood fill (algorithm-interview scenario)}
+A flood fill expanding outward from a starting cell: visited cells have
+already been colored in, the frontier is queued for the next expansion
+step, and a wall cell blocks the fill from spreading further.
+
+\begin{diagram}[type=grid,width=\textwidth,caption={A flood fill spreading from the top-left cell of a four by five grid.},description={A four row by five column grid. The top-left region is visited, its neighbors are on the frontier, one interior cell is currently being processed, and one cell is blocked by a wall.}]
+\begin{gridstate}[rows=4,columns=5]
+  \gridcell{1}{1}[state=visited]
+  \gridcell{1}{2}[state=visited]
+  \gridcell{2}{1}[state=visited]
+  \gridcell{2}{2}[state=current]
+  \gridcell{1}{3}[state=frontier]
+  \gridcell{3}{2}[state=frontier]
+  \gridcell{2}{3}[state=blocked]
+  \gridcell{4}{5}[state=unseen]
+\end{gridstate}
+\end{diagram}
+
+\section{Grid traversal: pipeline partition scan (data-engineering scenario)}
+The same primitive applied outside interview algorithms: a partitioned
+batch job scanning a data lake's row-group/column-chunk matrix for the
+partitions that satisfy a filter predicate, with a corrupt chunk marked
+blocked so it is skipped rather than silently dropped.
+
+\begin{diagram}[type=grid,width=\textwidth,caption={A predicate scan across a partitioned dataset's row groups and column chunks.},description={A three row by six column grid representing row groups by column chunks. Scanned partitions are visited, the partition currently being read is current, the next two partitions are queued as frontier, and one chunk is blocked because it failed a checksum.}]
+\begin{gridstate}[rows=3,columns=6]
+  \gridcell{1}{1}[state=visited]
+  \gridcell{1}{2}[state=visited]
+  \gridcell{1}{3}[state=visited]
+  \gridcell{2}{1}[state=visited]
+  \gridcell{2}{2}[state=current]
+  \gridcell{2}{3}[state=frontier]
+  \gridcell{2}{4}[state=frontier]
+  \gridcell{3}{2}[state=blocked]
+\end{gridstate}
+\end{diagram}
+
+\section{Full node-state vocabulary}
+All nine shared algorithm states applied to graph nodes, so state meaning
+stays distinguishable through border weight and line style, not fill color
+alone.
+
+\begin{diagram}[type=graph,width=\textwidth,caption={Every shared algorithm state applied to one graph node each.},description={Nine graph nodes arranged on a grid, one per shared algorithm state: current, active, candidate, frontier, visited, resolved, discarded, blocked, and unseen.}]
+\begin{graphstate}[columns=3]
+  \graphnode[state=current]{n1}{current}
+  \graphnode[state=active]{n2}{active}
+  \graphnode[state=candidate]{n3}{candidate}
+  \graphnode[state=frontier]{n4}{frontier}
+  \graphnode[state=visited]{n5}{visited}
+  \graphnode[state=resolved]{n6}{resolved}
+  \graphnode[state=discarded]{n7}{discarded}
+  \graphnode[state=blocked]{n8}{blocked}
+  \graphnode[state=unseen]{n9}{unseen}
+\end{graphstate}
+\end{diagram}
+
+\section{Composition: graphstate + algorithmtrace}
+Per the spec's composition-before-specialization principle, a full BFS
+walkthrough is expressed as ordered \texttt{graphstate} snapshots inside
+\texttt{algorithmtrace}, not a dedicated BFS primitive.
+
+\begin{diagram}[type=trace,width=\textwidth,caption={Three ordered snapshots of a breadth-first search expanding one level at a time.},description={Three ordered snapshots show a breadth-first search: the start node visited alone, then its two neighbors added to the frontier, then the first neighbor becoming current.}]
+\begin{algorithmtrace}[columns=3]
+  \snapshot{Start}{%
+    \begin{graphstate}[columns=2,x spacing=2.2,y spacing=1.7]
+      \graphnode[state=current]{a}{A}
+      \graphnode[state=unseen]{b}{B}
+      \graphnode[state=unseen]{c}{C}
+      \graphedge{a}{b}
+      \graphedge{a}{c}
+    \end{graphstate}%
+  }
+  \snapshot{Discover}{%
+    \begin{graphstate}[columns=2,x spacing=2.2,y spacing=1.7]
+      \graphnode[state=visited]{a}{A}
+      \graphnode[state=frontier]{b}{B}
+      \graphnode[state=frontier]{c}{C}
+      \graphedge{a}{b}
+      \graphedge{a}{c}
+    \end{graphstate}%
+  }
+  \snapshot{Advance}{%
+    \begin{graphstate}[columns=2,x spacing=2.2,y spacing=1.7]
+      \graphnode[state=visited]{a}{A}
+      \graphnode[state=current]{b}{B}
+      \graphnode[state=frontier]{c}{C}
+      \graphedge{a}{b}
+      \graphedge{a}{c}
+    \end{graphstate}%
+  }
+\end{algorithmtrace}
+\end{diagram}
+
+\section{Grayscale and semantic check}
+\begin{principle}{State is not just color}
+Every shared algorithm state carries a distinct line-style fragment in
+addition to its draw/fill/text colors, so the full-vocabulary diagram above
+should stay legible if printed in grayscale.
+\end{principle}
+
+\end{document}

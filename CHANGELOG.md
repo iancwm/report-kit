@@ -7,6 +7,27 @@ tags on this repository, not a published package registry.
 ## [Unreleased]
 
 ### Added
+- A new `reportkit-algorithm-viz.sty` module (Phase 1 of the
+  algorithm-visualization primitives spec): a shared nine-state algorithm
+  vocabulary (`current`/`active`/`candidate`/`frontier`/`visited`/
+  `resolved`/`discarded`/`blocked`/`unseen`) with theme-owned style tokens,
+  plus `arraystate`, `windowstate`, and `algorithmtrace` for visualizing a
+  data structure's state while an algorithm executes -- distinct from
+  `algorithmblock`'s control-flow pseudocode.
+- Phase 2 of the algorithm-visualization primitives spec, built on the above:
+  `stackstate`/`queuestate` (`reportkit-algorithm-linear.sty`, sharing one
+  internal linear-container renderer) and `graphstate`/`gridstate`
+  (`reportkit-algorithm-graph.sty`).
+- Phase 3 of the algorithm-visualization primitives spec: `intervalstate`/
+  `heapstate` (`reportkit-algorithm-order.sty`, heapstate deriving its tree
+  layout automatically from array index), `dptable`
+  (`reportkit-algorithm-dp.sty`), and `dagstate` (appended to
+  `reportkit-algorithm-graph.sty`, with an indegree badge and dependency
+  edges reusing `reportnetwork`'s existing edge style).
+- P3 algorithm-visualization extensions in `reportkit-algorithm-p3.sty`:
+  `joinstate` for keyed/hash joins, `unionfindstate` for disjoint-set
+  operations, `linkedliststate` for next-pointer traversal, and
+  `recursiontree` for argument/return/memoization state.
 - A new `algorithmblock` primitive (`reportkit-algorithms.sty`) for
   language-neutral algorithm/pseudocode, built on algorithmicx/algpseudocode
   (never the floating `algorithm` package) with ReportKit's own keyword

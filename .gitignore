@@ -238,3 +238,7 @@ __marimo__/
 /publication.yaml
 /reportkit.lock
 /publication_pipeline/example_publication/reportkit.lock
+
+# Claude Code agent worktrees/session scratch state -- transient, never a
+# deliverable, and can contain in-progress subagent checkouts of this repo.
+/.claude/
