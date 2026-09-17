@@ -1,0 +1,161 @@
+% ReportKit v1.10.0 -- dynamic-programming table algorithm-visualization
+% primitive
+%
+% Implements the dptable slice of Phase 3 (primitive family I) of
+% docs/superpowers/specs/2026-09-16-reportkit-algorithm-visualization-primitives-spec.md
+% (section 13): dynamic-programming table state for 1D DP, grid DP, edit
+% distance, knapsack, and longest-common-subsequence explanations.
+%
+% This module is \RequirePackage'd from inside reportkit-algorithm-viz.sty,
+% after that module has already run \RKAssertStyleTokens and defined the
+% shared `rk algo cell`/`rk algo container` styles and the \rk@setalgostate
+% state-overlay helper -- exactly the way reportkit-algorithm-linear.sty and
+% reportkit-algorithm-graph.sty are loaded from within
+% reportkit-algorithm-viz.sty itself (see that file's own top-of-file note).
+% It therefore does not assert the style-token contract itself and does not
+% \RequirePackage{reportkit-algorithm-viz}; it is never loaded on its own.
+% Every environment here draws into the `diagram` wrapper's already-open TikZ
+% picture, exactly like gridstate.
+%
+% State mapping (spec section 13.2 lists `solved`, `current`, `dependency`,
+% `uncomputed` -- only `current` is part of the shared nine-state vocabulary
+% (design principle 2.2: one shared vocabulary, no primitive-local states)):
+%   * `current`     -> state=current   (the cell being computed right now)
+%   * `dependency`  -> state=candidate (a cell under consideration that feeds
+%                      the current computation -- "candidate" is the closest
+%                      shared-vocabulary fit for "this cell is currently
+%                      informing a decision")
+%   * `solved`      -> state=resolved  (final value is known) via the
+%                      optional \solvedcell convenience command
+%   * `uncomputed`  -> the plain unmarked \dpcell (no state= override) is
+%                      already a reasonable default for "not yet computed";
+%                      no dedicated marker command is needed for it.
+%
+% Cells reuse `rk algo cell` and the shared state overlay outright, and the
+% optional bordering rectangle reuses `rk algo container` -- structurally a
+% dptable cell is the same as a gridstate cell, just carrying a value, so
+% this module needs no chrome tokens of its own (see reportkit-core.sty's
+% "Algorithm-visualization state grammar" comment).
+%
+% \currentcell/\dependencycell/\solvedcell take only a row and a column
+% (matching the spec's own 2-argument API exactly) and mark an existing grid
+% position with a state overlay drawn as a background-layer highlight, the
+% same technique reportkit-algorithm-viz.sty's \range uses to highlight an
+% arraystate range without redefining the cells already placed there: value
+% content is placed once with \dpcell, and \currentcell/\dependencycell/
+% \solvedcell may be called before or after it in either order, since the
+% background layer always draws behind the main-layer cell content.
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{reportkit-algorithm-dp}[2026/09/17 v1.0.0 ReportKit dptable algorithm-visualization primitive]
+\RequirePackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,calc,backgrounds}
+\RequirePackage{xparse}
+\RequirePackage{pgfkeys}
+\RequirePackage{etoolbox}
+
+\makeatletter
+
+% -----------------------------------------------------------------------------
+% dptable -- dynamic-programming table state (spec section 13). 1-based
+% row/column placement, mirroring gridstate's coordinate math and bounds
+% checking exactly.
+% -----------------------------------------------------------------------------
+\newcommand{\rk@dprowsvalue}{}
+\newcommand{\rk@dpcolumnsvalue}{}
+\newcommand{\rk@dpcellsize}{1.05}
+\pgfkeys{
+  /reportkit/dptable/.is family,
+  /reportkit/dptable,
+  rows/.store in=\rk@dprowsvalue,
+  columns/.store in=\rk@dpcolumnsvalue,
+  cell size/.store in=\rk@dpcellsize,
+}
+
+% #1 the 1-based index being checked, #2 the declared row/column count, #3
+% the axis name used in the error message -- identical pattern to
+% reportkit-algorithm-graph.sty's \rk@gridcheckindex.
+\newcommand{\rk@dpcheckindex}[3]{%
+  \ifnum#1<1\relax
+    \PackageError{reportkit-algorithm-dp}{dptable #3 index #1 is out of range}{Use a 1-based #3 between 1 and #2.}%
+  \fi
+  \ifnum#1>#2\relax
+    \PackageError{reportkit-algorithm-dp}{dptable #3 index #1 exceeds the declared #3 count #2}{Increase #3= in dptable's options, or use a smaller index.}%
+  \fi
+}
+
+% <reportkit-contract>
+% {"kind":"figure","description":"Dynamic-programming table state for 1D DP, grid DP, edit distance, knapsack, and longest-common-subsequence explanations, with deterministic 1-based row/column placement.","arguments":[{"name":"options","type":"options","description":"rows= and columns= (required) plus cell size= layout keys."}],"constraints":[{"code":"requires_rows_columns","description":"rows= and columns= must be provided."}],"example":"\\begin{diagram}[type=dp,caption={Edit distance.},description={A four by five dynamic-programming table with the current cell and its two dependency cells marked.}]\n\\begin{dptable}[rows=4,columns=5]\n\\dpcell{1}{1}{0}\n\\dpcell{3}{4}{2}\n\\currentcell{3}{4}\n\\dependencycell{2}{4}\n\\dependencycell{3}{3}\n\\end{dptable}\n\\end{diagram}","stability":"experimental","since":"1.10.0"}
+% </reportkit-contract>
+\NewDocumentEnvironment{dptable}{O{}}{%
+  \begingroup
+  \pgfkeys{/reportkit/dptable,rows={},columns={},cell size=1.05,#1}%
+  \ifstrempty{\rk@dprowsvalue}{%
+    \PackageError{reportkit-algorithm-dp}{dptable requires rows=}{Provide rows=<n>, the number of DP table rows.}%
+    \def\rk@dprowsvalue{1}%
+  }{}%
+  \ifstrempty{\rk@dpcolumnsvalue}{%
+    \PackageError{reportkit-algorithm-dp}{dptable requires columns=}{Provide columns=<n>, the number of DP table columns.}%
+    \def\rk@dpcolumnsvalue{1}%
+  }{}%
+  \pgfmathsetmacro{\rk@dpxmin}{-0.5*\rk@dpcellsize}%
+  \pgfmathsetmacro{\rk@dpxmax}{(\rk@dpcolumnsvalue-1)*\rk@dpcellsize+0.5*\rk@dpcellsize}%
+  \pgfmathsetmacro{\rk@dpymin}{-(\rk@dprowsvalue-1)*\rk@dpcellsize-0.5*\rk@dpcellsize}%
+  \pgfmathsetmacro{\rk@dpymax}{0.5*\rk@dpcellsize}%
+  \begin{pgfonlayer}{background}
+    \draw[rk algo container] (\rk@dpxmin,\rk@dpymin) rectangle (\rk@dpxmax,\rk@dpymax);
+  \end{pgfonlayer}
+}{%
+  \endgroup
+}
+
+% <reportkit-contract>
+% {"kind":"command","description":"Place one DP table cell at a 1-based row/column position with a value and an optional shared algorithm state.","arguments":[{"name":"row","type":"text","description":"1-based row index."},{"name":"column","type":"text","description":"1-based column index."},{"name":"options","type":"options","description":"state= one of the nine shared algorithm states."},{"name":"value","type":"text","description":"Cell content, typically the computed DP value."}],"constraints":[{"code":"inside_dptable","description":"Only valid inside dptable."},{"code":"index_within_bounds","description":"row and column must fall within the declared rows= and columns=."}],"example":"\\dpcell{3}{4}[state=current]{7}","stability":"experimental","since":"1.10.0","parent":"dptable"}
+% </reportkit-contract>
+\NewDocumentCommand{\dpcell}{m m O{} m}{%
+  \pgfkeys{/reportkit/algocell,state={},#3}%
+  \rk@setalgostate{\rk@algocellstate}%
+  \rk@dpcheckindex{#1}{\rk@dprowsvalue}{row}%
+  \rk@dpcheckindex{#2}{\rk@dpcolumnsvalue}{column}%
+  \pgfmathsetmacro{\rk@dpx}{(#2-1)*\rk@dpcellsize}%
+  \pgfmathsetmacro{\rk@dpy}{-(#1-1)*\rk@dpcellsize}%
+  \edef\rk@dpcellname{rkdpcell-#1-#2}%
+  \node[rk algo cell\rk@algostateoverlay] (\rk@dpcellname) at (\rk@dpx,\rk@dpy) {\strut #4};%
+}
+
+% Shared background-layer highlight used by \currentcell/\dependencycell/
+% \solvedcell (spec section 13.2's 2-argument marker commands). #1 the
+% shared state name, #2 row, #3 column -- draws a state-colored rectangle
+% behind whatever \dpcell content already occupies that position, the same
+% "overlay behind existing content" technique reportkit-algorithm-viz.sty's
+% \range uses for arraystate ranges. Internal helper: plain \newcommand, not
+% part of the public contract.
+\newcommand{\rk@dpstatecell}[3]{%
+  \rk@dpcheckindex{#2}{\rk@dprowsvalue}{row}%
+  \rk@dpcheckindex{#3}{\rk@dpcolumnsvalue}{column}%
+  \rk@setalgostate{#1}%
+  \pgfmathsetmacro{\rk@dpsx}{(#3-1)*\rk@dpcellsize}%
+  \pgfmathsetmacro{\rk@dpsy}{-(#2-1)*\rk@dpcellsize}%
+  \begin{pgfonlayer}{background}
+    \node[rk algo cell\rk@algostateoverlay,rounded corners=2.6pt,fill opacity=.9,
+          minimum width=\rk@dpcellsize cm,minimum height=\rk@dpcellsize cm,inner sep=0pt]
+      at (\rk@dpsx,\rk@dpsy) {};%
+  \end{pgfonlayer}
+}
+
+% <reportkit-contract>
+% {"kind":"command","description":"Mark the DP table cell currently being computed.","arguments":[{"name":"row","type":"text","description":"1-based row index."},{"name":"column","type":"text","description":"1-based column index."}],"constraints":[{"code":"inside_dptable","description":"Only valid inside dptable."},{"code":"index_within_bounds","description":"row and column must fall within the declared rows= and columns=."}],"example":"\\currentcell{3}{4}","stability":"experimental","since":"1.10.0","parent":"dptable"}
+% </reportkit-contract>
+\NewDocumentCommand{\currentcell}{m m}{\rk@dpstatecell{current}{#1}{#2}}
+
+% <reportkit-contract>
+% {"kind":"command","description":"Mark a DP table cell that the current computation depends on.","arguments":[{"name":"row","type":"text","description":"1-based row index."},{"name":"column","type":"text","description":"1-based column index."}],"constraints":[{"code":"inside_dptable","description":"Only valid inside dptable."},{"code":"index_within_bounds","description":"row and column must fall within the declared rows= and columns=."}],"example":"\\dependencycell{2}{4}","stability":"experimental","since":"1.10.0","parent":"dptable"}
+% </reportkit-contract>
+\NewDocumentCommand{\dependencycell}{m m}{\rk@dpstatecell{candidate}{#1}{#2}}
+
+% <reportkit-contract>
+% {"kind":"command","description":"Mark a DP table cell whose final value is already known.","arguments":[{"name":"row","type":"text","description":"1-based row index."},{"name":"column","type":"text","description":"1-based column index."}],"constraints":[{"code":"inside_dptable","description":"Only valid inside dptable."},{"code":"index_within_bounds","description":"row and column must fall within the declared rows= and columns=."}],"example":"\\solvedcell{1}{1}","stability":"experimental","since":"1.10.0","parent":"dptable"}
+% </reportkit-contract>
+\NewDocumentCommand{\solvedcell}{m m}{\rk@dpstatecell{resolved}{#1}{#2}}
+
+\makeatother
+\endinput

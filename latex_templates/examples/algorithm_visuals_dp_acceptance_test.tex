@@ -1,0 +1,144 @@
+\documentclass{reportkit}
+
+\setreportkitleftheader{REPORTKIT / ALGORITHM DP+DAG VISUALIZATION TEST}
+\setreportkitfooter{Algorithm dptable/dagstate visualization acceptance test}
+\setreportkitversion{v1.10.0}
+
+\title{ReportKit -- dptable and dagstate algorithm-visualization primitives}
+\author{Test build}
+\date{17 September 2026}
+
+\begin{document}
+\maketitle
+
+\begin{execsummary}
+This is an acceptance test for reportkit-algorithm-dp.sty's \texttt{dptable}
+(spec section 13) and reportkit-algorithm-graph.sty's Phase 3 extension
+\texttt{dagstate} (spec section 10)
+(docs/superpowers/specs/2026-09-16-reportkit-algorithm-visualization-primitives-spec.md).
+Both reuse the shared nine-state algorithm vocabulary introduced in Phase 1
+(see algorithm\_visuals\_acceptance\_test.tex) -- \texttt{dptable} for
+dynamic-programming table state, \texttt{dagstate} for dependency-graph
+state built directly on \texttt{graphstate}'s automatic grid layout.
+\end{execsummary}
+
+\section{DP table: edit distance (algorithm-interview scenario)}
+A partially filled edit-distance table. Uncomputed cells are left plain, the
+cell currently being computed is marked current, and the two cells it reads
+(the left and top neighbors) are marked as dependencies.
+
+\begin{diagram}[type=dp,width=\textwidth,caption={Edit distance between ``cat'' and ``cut'' -- the cell for the third row/column reads its left and top neighbors.},description={A four by four dynamic-programming table for edit distance. Most cells hold their computed values. The cell at row three, column three is marked current, and the cells directly above and to its left are marked as dependencies.}]
+\begin{dptable}[rows=4,columns=4]
+  \dpcell{1}{1}{0}
+  \dpcell{1}{2}{1}
+  \dpcell{1}{3}{2}
+  \dpcell{1}{4}{3}
+  \dpcell{2}{1}{1}
+  \dpcell{2}{2}{0}
+  \dpcell{2}{3}{1}
+  \dpcell{2}{4}{2}
+  \dpcell{3}{1}{2}
+  \dpcell{3}{2}{1}
+  \dpcell{3}{3}{1}
+  \dpcell{4}{1}{3}
+  \currentcell{3}{3}
+  \dependencycell{2}{3}
+  \dependencycell{3}{2}
+\end{dptable}
+\end{diagram}
+
+\section{DP table: 0/1 knapsack (algorithm-interview scenario)}
+A knapsack DP table with a solved row (capacity built up from item one
+alone) shown alongside a cell still being computed.
+
+\begin{diagram}[type=dp,width=\textwidth,caption={A 0/1 knapsack table with the first item row solved and the second item's third cell currently being computed.},description={A three by five knapsack dynamic-programming table. The first item row is marked resolved. The cell at row two, column four is marked current and depends on two cells from the row above.}]
+\begin{dptable}[rows=3,columns=5]
+  \dpcell{1}{1}{0}
+  \dpcell{1}{2}{0}
+  \dpcell{1}{3}{3}
+  \dpcell{1}{4}{3}
+  \dpcell{1}{5}{3}
+  \solvedcell{1}{1}
+  \solvedcell{1}{2}
+  \solvedcell{1}{3}
+  \solvedcell{1}{4}
+  \solvedcell{1}{5}
+  \dpcell{2}{1}{0}
+  \dpcell{2}{2}{0}
+  \dpcell{2}{3}{3}
+  \dpcell{2}{4}{4}
+  \currentcell{2}{4}
+  \dependencycell{1}{4}
+  \dependencycell{1}{1}
+\end{dptable}
+\end{diagram}
+
+\section{DAG: data-pipeline execution order (data-engineering scenario)}
+A small data-pipeline dependency graph. The raw-ingest stage has indegree
+zero and is ready to run; the two downstream stages each depend on the stage
+before them and are not yet ready.
+
+\begin{diagram}[type=dag,width=\textwidth,caption={A three-stage data pipeline with the raw-ingest stage ready to execute.},description={Three pipeline stages connected by dependency edges. The raw-ingest stage has indegree zero and is marked ready. The clean and feature-engineering stages each carry an indegree badge of one and are not yet ready.}]
+\begin{dagstate}[columns=3]
+  \dagnode[indegree=0]{raw}{Raw ingest}
+  \dagnode[indegree=1]{clean}{Clean}
+  \dagnode[indegree=1]{features}{Feature engineering}
+  \dependency{raw}{clean}
+  \dependency{clean}{features}
+  \readyqueue{raw}
+\end{dagstate}
+\end{diagram}
+
+\section{DAG: topological sort with a blocked stage (algorithm-interview scenario)}
+The same primitive applied to a course-prerequisite topological sort, with
+one course blocked because a corequisite was dropped.
+
+\begin{diagram}[type=dag,width=\textwidth,caption={A topological sort over four courses, with one course blocked.},description={Four courses connected by prerequisite edges. Two starting courses have indegree zero and are marked ready. A downstream course depends on both and is blocked because a corequisite was dropped. A fourth course carries an indegree badge of one.}]
+\begin{dagstate}[columns=2]
+  \dagnode[indegree=0]{a}{Intro CS}
+  \dagnode[indegree=0]{b}{Intro Math}
+  \dagnode[indegree=2,state=blocked]{c}{Algorithms}
+  \dagnode[indegree=1]{d}{Data Structures}
+  \dependency{a}{c}
+  \dependency{b}{c}
+  \dependency{a}{d}
+  \readyqueue{a,b}
+\end{dagstate}
+\end{diagram}
+
+\section{Composition: dagstate + algorithmtrace}
+Per the spec's composition-before-specialization principle, Kahn's
+algorithm unfolding over time is expressed as ordered \texttt{dagstate}
+snapshots inside \texttt{algorithmtrace}, not a dedicated Kahn's-algorithm
+primitive.
+
+\begin{diagram}[type=trace,width=\textwidth,caption={Two ordered snapshots of Kahn's algorithm processing a two-stage pipeline.},description={Two ordered snapshots show a dependency graph: the first has the upstream stage ready and the downstream stage blocked; the second has the upstream stage resolved and the downstream stage ready.}]
+\begin{algorithmtrace}[columns=2]
+  \snapshot{Start}{%
+    \begin{dagstate}[columns=1,x spacing=2.2,y spacing=1.5]
+      \dagnode[indegree=0]{x}{Extract}
+      \dagnode[indegree=1]{y}{Load}
+      \dependency{x}{y}
+      \readyqueue{x}
+    \end{dagstate}%
+  }
+  \snapshot{Advance}{%
+    \begin{dagstate}[columns=1,x spacing=2.2,y spacing=1.5]
+      \dagnode[indegree=0,state=resolved]{x}{Extract}
+      \dagnode[indegree=1]{y}{Load}
+      \dependency{x}{y}
+      \readyqueue{y}
+    \end{dagstate}%
+  }
+\end{algorithmtrace}
+\end{diagram}
+
+\section{Grayscale and semantic check}
+\begin{principle}{State is not just color}
+Every shared algorithm state carries a distinct line-style fragment in
+addition to its draw/fill/text colors, so the current/dependency/solved
+markers above and the ready/blocked DAG nodes should stay legible if
+printed in grayscale.
+\end{principle}
+
+\end{document}

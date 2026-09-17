@@ -1,12 +1,18 @@
-% ReportKit v1.10.0 -- graphstate/gridstate algorithm-visualization primitives
+% ReportKit v1.10.0 -- graphstate/gridstate/dagstate algorithm-visualization
+% primitives
 %
-% Implements Phase 2's graph/grid pair (spec sections 8-9) of
+% Implements Phase 2's graph/grid pair (spec sections 8-9) and Phase 3's
+% dagstate (spec section 10) of
 % docs/superpowers/specs/2026-09-16-reportkit-algorithm-visualization-primitives-spec.md:
 %   (1) `graphstate` -- graph TRAVERSAL state (node visitation status plus
 %       directed edges), distinct from reportkit-process.sty's `reportnetwork`
 %       which is relationship-centric, not algorithm-state-centric;
 %   (2) `gridstate` -- 2D grid algorithms (flood fill, maze traversal, matrix
-%       DP, connected cells), with deterministic 1-based row/column placement.
+%       DP, connected cells), with deterministic 1-based row/column placement;
+%   (3) `dagstate` -- dependency-graph state for topological sorting, DAG
+%       scheduling, and data-pipeline execution, built directly on
+%       graphstate's automatic grid layout (see that section's own note,
+%       below, for why it is a thin extension rather than a new renderer).
 %
 % This module is \RequirePackage'd by reportkit-algorithm-viz.sty itself,
 % right before that file's own \endinput, exactly as reportkit-diagrams.sty
@@ -166,6 +172,112 @@
   \pgfmathsetmacro{\rk@gridy}{-(#1-1)*\rk@gridcellsize}%
   \edef\rk@gridcellname{rkgridcell-#1-#2}%
   \node[rk algo cell\rk@algostateoverlay] (\rk@gridcellname) at (\rk@gridx,\rk@gridy) {\strut};%
+}
+
+% -----------------------------------------------------------------------------
+% dagstate -- dependency-graph state for topological sorting, DAG scheduling,
+% and data-pipeline execution (spec section 10). Reuses graphstate's own
+% pgfkeys family (/reportkit/graphstate) and its \rk@graphindex/
+% \rk@graphcolumns/\rk@graphxstep/\rk@graphystep automatic-grid-layout
+% counters and macros directly -- a dagstate node is placed exactly like a
+% graphstate node, just with an added indegree badge -- rather than declaring
+% a parallel set of layout state for what is structurally the same grid.
+%
+% State mapping (spec section 10.2 lists `ready`, `processed`, and `blocked`
+% -- only `blocked` is part of the shared nine-state vocabulary; design
+% principle 2.2 rules out inventing primitive-local states):
+%   * `ready`     -> state=frontier (discovered, indegree satisfied, can
+%                    execute -- "frontier" is the shared word for "known and
+%                    actionable but not yet processed")
+%   * `processed` -> state=resolved (the node's dependency chain is complete)
+%   * `blocked`   -> state=blocked  (already a shared state; used as-is)
+%
+% `\dependency` reuses reportkit-diagrams.sty's existing `rk edge dependency`
+% style directly, so dagstate needs no edge token of its own, mirroring how
+% graphstate above needed its own edge token only because "edge" itself is
+% not part of the shared state vocabulary -- dependency-edge semantics
+% already exist upstream.
+%
+% `\readyqueue{id1,id2,...}` marks already-placed nodes as ready by redrawing
+% them with the frontier overlay at their original position. To do that
+% without the author repeating coordinates, `\dagnode` records each node's
+% grid position and label in a lookup keyed by its id (via `\@namedef`/
+% `\@nameuse`, LaTeX's kernel-provided named-macro-table primitives) rather
+% than a linear id-list scan like arraystate's \rk@findalgorow: dagstate
+% looks a node up by id, not by position in a declared sequence, so a direct
+% keyed lookup is both simpler and robust to any declaration order.
+% -----------------------------------------------------------------------------
+\newcommand{\rk@dagindegreevalue}{}
+\pgfkeys{
+  /reportkit/dagnode/.is family,
+  /reportkit/dagnode,
+  state/.store in=\rk@algocellstate,
+  indegree/.store in=\rk@dagindegreevalue,
+}
+
+\tikzset{
+  rk algo dag indegree badge/.style={
+    circle,draw=\RKTokAlgorithmDagBadgeDraw,fill=\RKTokAlgorithmDagBadgeFill,
+    text=\RKTokAlgorithmDagBadgeText,font=\RKTokAlgorithmDagBadgeFont,
+    minimum size=\RKTokAlgorithmDagBadgeSize,inner sep=0pt,line width=.5pt
+  },
+}
+
+% Remember a placed dagnode's grid position and label, keyed by its id, so
+% \readyqueue can redraw the same node later without the author repeating
+% coordinates. #1 id, #2 x, #3 y, #4 label. Internal helper: plain
+% \newcommand, not part of the public contract.
+\newcommand{\rk@dagrecordnode}[4]{%
+  \@namedef{rk@dagx@#1}{#2}%
+  \@namedef{rk@dagy@#1}{#3}%
+  \@namedef{rk@daglabel@#1}{#4}%
+}
+
+% <reportkit-contract>
+% {"kind":"figure","description":"Dependency-graph state for topological sorting, DAG scheduling, and data-pipeline execution -- graphstate's automatic grid layout plus an indegree badge per node.","arguments":[{"name":"options","type":"options","description":"columns=, x spacing=, and y spacing= automatic grid-layout keys, as graphstate."}],"constraints":[],"example":"\\begin{diagram}[type=dag,caption={Data-pipeline dependencies.},description={Three pipeline stages: the raw stage is ready with indegree zero, the clean stage depends on raw, and the features stage depends on clean.}]\n\\begin{dagstate}\n\\dagnode[indegree=0]{raw}{Raw}\n\\dagnode[indegree=1]{clean}{Clean}\n\\dagnode[indegree=1]{features}{Features}\n\\dependency{raw}{clean}\n\\dependency{clean}{features}\n\\readyqueue{raw}\n\\end{dagstate}\n\\end{diagram}","stability":"experimental","since":"1.10.0"}
+% </reportkit-contract>
+\NewDocumentEnvironment{dagstate}{O{}}{%
+  \begingroup
+  \pgfkeys{/reportkit/graphstate,columns=4,x spacing=3.3,y spacing=2.1,#1}%
+  \rk@graphindex=0\relax
+}{%
+  \endgroup
+}
+
+% <reportkit-contract>
+% {"kind":"command","description":"Place one DAG node on the automatic layout grid with an optional indegree badge and shared algorithm state.","arguments":[{"name":"options","type":"options","description":"indegree= (a small integer badge drawn at the node's corner) and state= one of the nine shared algorithm states."},{"name":"id","type":"text","description":"Node id, referenced later by dependency and readyqueue."},{"name":"label","type":"text","description":"Node label."}],"constraints":[{"code":"inside_dagstate","description":"Only valid inside dagstate."}],"example":"\\dagnode[indegree=0,state=frontier]{raw}{Raw}","stability":"experimental","since":"1.10.0","parent":"dagstate"}
+% </reportkit-contract>
+\NewDocumentCommand{\dagnode}{O{} m m}{%
+  \pgfkeys{/reportkit/dagnode,state={},indegree={},#1}%
+  \rk@setalgostate{\rk@algocellstate}%
+  \pgfmathsetmacro{\rk@dagx}{mod(\the\rk@graphindex,\rk@graphcolumns)*\rk@graphxstep}%
+  \pgfmathsetmacro{\rk@dagy}{-floor(\the\rk@graphindex/\rk@graphcolumns)*\rk@graphystep}%
+  \node[rk algo graph node\rk@algostateoverlay] (#2) at (\rk@dagx,\rk@dagy) {\strut #3};%
+  \ifstrempty{\rk@dagindegreevalue}{}{%
+    \node[rk algo dag indegree badge] at (#2.north east) {\rk@dagindegreevalue};%
+  }%
+  \rk@dagrecordnode{#2}{\rk@dagx}{\rk@dagy}{#3}%
+  \advance\rk@graphindex by 1\relax
+}
+
+% <reportkit-contract>
+% {"kind":"command","description":"Draw a dependency edge from one previously declared DAG node id to another, reusing ReportKit's existing dependency-edge style unchanged.","arguments":[{"name":"source","type":"text","description":"Upstream node id (the dependency)."},{"name":"target","type":"text","description":"Downstream node id (the dependent)."}],"constraints":[{"code":"inside_dagstate","description":"Only valid inside dagstate."},{"code":"known_node_ids","description":"Both ids must already be declared with dagnode."}],"example":"\\dependency{raw}{clean}","stability":"experimental","since":"1.10.0","parent":"dagstate"}
+% </reportkit-contract>
+\NewDocumentCommand{\dependency}{m m}{%
+  \draw[rk edge dependency] (#1) -- (#2);%
+}
+
+% <reportkit-contract>
+% {"kind":"command","description":"Mark previously placed DAG nodes as ready to execute by redrawing them with the frontier overlay at their recorded position.","arguments":[{"name":"ids","type":"text","description":"Comma-separated list of node ids already declared with dagnode."}],"constraints":[{"code":"inside_dagstate","description":"Only valid inside dagstate."},{"code":"known_node_ids","description":"Every id must already be declared with dagnode."}],"example":"\\readyqueue{raw,clean}","stability":"experimental","since":"1.10.0","parent":"dagstate"}
+% </reportkit-contract>
+\NewDocumentCommand{\readyqueue}{m}{%
+  \@for\rk@dagreadyid:=#1\do{%
+    \expandafter\ifx\csname rk@dagx@\rk@dagreadyid\endcsname\relax
+      \PackageError{reportkit-algorithm-graph}{\string\readyqueue\space references unknown DAG node id '\rk@dagreadyid'}{Declare it first with \string\dagnode{\rk@dagreadyid}{...}.}%
+    \else
+      \node[rk algo graph node,rk algo state frontier] at (\@nameuse{rk@dagx@\rk@dagreadyid},\@nameuse{rk@dagy@\rk@dagreadyid}) {\strut \@nameuse{rk@daglabel@\rk@dagreadyid}};%
+    \fi
+  }%
 }
 
 \makeatother

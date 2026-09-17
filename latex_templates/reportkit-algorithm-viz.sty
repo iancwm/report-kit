@@ -347,11 +347,17 @@
 % reportkit-structure.sty. See reportkit-algorithm-linear.sty's own
 % top-of-file note.
 \RequirePackage{reportkit-algorithm-linear}
-% Phase 2: graphstate/gridstate (spec sections 8-9). Loaded from within this
-% already-asserting entry point, exactly as reportkit-diagrams.sty loads
-% reportkit-structure.sty from within itself -- see that file's own note and
-% reportkit-algorithm-graph.sty's top-of-file comment.
+% Phase 2: graphstate/gridstate (spec sections 8-9), and Phase 3's dagstate
+% (spec section 10, appended to that same file -- see its top-of-file
+% comment). Loaded from within this already-asserting entry point, exactly
+% as reportkit-diagrams.sty loads reportkit-structure.sty from within
+% itself.
 \RequirePackage{reportkit-algorithm-graph}
+% Phase 3: dptable (spec section 13). Loaded from within this already-
+% asserting entry point, exactly as reportkit-algorithm-linear.sty and
+% reportkit-algorithm-graph.sty are -- see reportkit-algorithm-dp.sty's own
+% top-of-file note.
+\RequirePackage{reportkit-algorithm-dp}
 
 \makeatother
 \endinput

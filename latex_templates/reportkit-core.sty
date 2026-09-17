@@ -382,6 +382,21 @@
 \newcommand{\RKTokAlgorithmGraphNodeWidth}{\rk@styletokenerror{\RKTokAlgorithmGraphNodeWidth}}
 \newcommand{\RKTokAlgorithmGraphEdgeColor}{\rk@styletokenerror{\RKTokAlgorithmGraphEdgeColor}}
 \newcommand{\RKTokAlgorithmGraphEdgeWidth}{\rk@styletokenerror{\RKTokAlgorithmGraphEdgeWidth}}
+% dagstate chrome (reportkit-algorithm-graph.sty's Phase 3 extension, spec
+% section 10). dagstate nodes reuse graphstate's node/edge tokens above
+% unchanged (a DAG node is a graph node; \dependency reuses
+% reportkit-diagrams.sty's existing rk edge dependency style outright, so it
+% needs no token here either). The only genuinely new chrome is the small
+% indegree badge drawn at a node's corner -- font/fill/text/draw/size, kept
+% deliberately unobtrusive. dptable (reportkit-algorithm-dp.sty, spec
+% section 13) needs no tokens of its own: its cells reuse rk algo cell + the
+% shared state overlay and its border reuses rk algo container outright,
+% exactly like gridstate.
+\newcommand{\RKTokAlgorithmDagBadgeDraw}{\rk@styletokenerror{\RKTokAlgorithmDagBadgeDraw}}
+\newcommand{\RKTokAlgorithmDagBadgeFill}{\rk@styletokenerror{\RKTokAlgorithmDagBadgeFill}}
+\newcommand{\RKTokAlgorithmDagBadgeText}{\rk@styletokenerror{\RKTokAlgorithmDagBadgeText}}
+\newcommand{\RKTokAlgorithmDagBadgeFont}{\rk@styletokenerror{\RKTokAlgorithmDagBadgeFont}}
+\newcommand{\RKTokAlgorithmDagBadgeSize}{\rk@styletokenerror{\RKTokAlgorithmDagBadgeSize}}
 \newif\ifrk@styletokensloaded
 \rk@styletokensloadedfalse
 % Called by reportkit-boxes.sty (or any future style-token consumer)
