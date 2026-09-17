@@ -372,6 +372,16 @@
 \newcommand{\RKTokAlgorithmTraceLabelText}{\rk@styletokenerror{\RKTokAlgorithmTraceLabelText}}
 \newcommand{\RKTokAlgorithmTraceSeparatorColor}{\rk@styletokenerror{\RKTokAlgorithmTraceSeparatorColor}}
 \newcommand{\RKTokAlgorithmTraceSeparatorWidth}{\rk@styletokenerror{\RKTokAlgorithmTraceSeparatorWidth}}
+% graphstate/gridstate chrome (reportkit-algorithm-graph.sty). graphstate
+% nodes reuse the shared rk algo cell base plus the rk algo state overlay
+% for coloring (see \rk@setalgostate), so the only new node chrome needed
+% is a text width; edges are not part of the shared state vocabulary, so
+% they get their own small color/width pair rather than a hard-coded color.
+% gridstate reuses rk algo cell and rk algo container outright and needs no
+% tokens of its own.
+\newcommand{\RKTokAlgorithmGraphNodeWidth}{\rk@styletokenerror{\RKTokAlgorithmGraphNodeWidth}}
+\newcommand{\RKTokAlgorithmGraphEdgeColor}{\rk@styletokenerror{\RKTokAlgorithmGraphEdgeColor}}
+\newcommand{\RKTokAlgorithmGraphEdgeWidth}{\rk@styletokenerror{\RKTokAlgorithmGraphEdgeWidth}}
 \newif\ifrk@styletokensloaded
 \rk@styletokensloadedfalse
 % Called by reportkit-boxes.sty (or any future style-token consumer)

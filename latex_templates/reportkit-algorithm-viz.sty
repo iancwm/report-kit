@@ -347,6 +347,11 @@
 % reportkit-structure.sty. See reportkit-algorithm-linear.sty's own
 % top-of-file note.
 \RequirePackage{reportkit-algorithm-linear}
+% Phase 2: graphstate/gridstate (spec sections 8-9). Loaded from within this
+% already-asserting entry point, exactly as reportkit-diagrams.sty loads
+% reportkit-structure.sty from within itself -- see that file's own note and
+% reportkit-algorithm-graph.sty's top-of-file comment.
+\RequirePackage{reportkit-algorithm-graph}
 
 \makeatother
 \endinput
