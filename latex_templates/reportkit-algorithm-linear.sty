@@ -1,0 +1,142 @@
+% ReportKit v1.10.0 -- linear-container algorithm-state primitives
+%
+% Implements the linear-container slice of Phase 2 (primitive family C) of
+% docs/superpowers/specs/2026-09-16-reportkit-algorithm-visualization-primitives-spec.md
+% (section 7): `stackstate` (LIFO) and `queuestate` (FIFO).
+%
+% This module is \RequirePackage'd from inside reportkit-algorithm-viz.sty,
+% after that module has already run \RKAssertStyleTokens and defined the
+% shared `rk algo cell`/`rk algo pointer`/`rk algo pointer label` styles and
+% the \rk@setalgostate state-overlay helper -- exactly the way
+% reportkit-diagrams.sty loads reportkit-structure.sty (see that file's own
+% top-of-file note). It therefore does not assert the style-token contract
+% itself and does not \RequirePackage{reportkit-algorithm-viz}; it is never
+% loaded on its own. Every environment here draws into the `diagram`
+% wrapper's already-open TikZ picture, exactly like arraystate/windowstate.
+%
+% Per section 7.3, stackstate and queuestate share one internal
+% linear-container renderer (\rk@linearplace, parameterized by
+% \rk@linearorientation) rather than duplicating the item-placement logic,
+% and share one boundary-marker helper (\rk@linearboundarymark) for their
+% TOP / DEQUEUE / ENQUEUE chrome. Both markers reuse the existing
+% `rk algo pointer` / `rk algo pointer label` styles used by arraystate's
+% \pointer -- no new theme tokens were needed for this module.
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{reportkit-algorithm-linear}[2026/09/17 v1.0.0 ReportKit linear-container algorithm-state primitives]
+\RequirePackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,calc}
+\RequirePackage{xparse}
+\RequirePackage{pgfkeys}
+\RequirePackage{etoolbox}
+
+\makeatletter
+
+% -----------------------------------------------------------------------------
+% Shared linear-container renderer (section 7.3)
+% -----------------------------------------------------------------------------
+\newcount\rk@linearindex
+\newcommand{\rk@linearspacing}{1.05}
+\newcommand{\rk@linearitemstate}{}
+% "vertical" (stackstate, growing upward in push order so the most recently
+% pushed item lands physically on top) or "horizontal" (queuestate, growing
+% rightward in enqueue order so the most recently enqueued item lands at the
+% rear/right). Set by the enclosing environment, never by the author.
+\newcommand{\rk@linearorientation}{horizontal}
+\pgfkeys{
+  /reportkit/linearstate/.is family,
+  /reportkit/linearstate,
+  spacing/.store in=\rk@linearspacing,
+}
+\pgfkeys{
+  /reportkit/linearitem/.is family,
+  /reportkit/linearitem,
+  state/.store in=\rk@linearitemstate,
+}
+
+% Place one item at the current index and advance it. Shared by \push and
+% \enqueue; only \rk@linearorientation (and hence the coordinate axis it
+% grows along) differs between the two callers.
+\newcommand{\rk@linearplace}[2]{%
+  \pgfkeys{/reportkit/linearitem,state={},#1}%
+  \rk@setalgostate{\rk@linearitemstate}%
+  \ifstrequal{\rk@linearorientation}{vertical}{%
+    \pgfmathsetmacro{\rk@linearx}{0}%
+    \pgfmathsetmacro{\rk@lineary}{\the\rk@linearindex*\rk@linearspacing}%
+  }{%
+    \pgfmathsetmacro{\rk@linearx}{\the\rk@linearindex*\rk@linearspacing}%
+    \pgfmathsetmacro{\rk@lineary}{0}%
+  }%
+  \edef\rk@linearcellname{rkalgolinear-\the\rk@linearindex}%
+  \node[rk algo cell\rk@algostateoverlay] (\rk@linearcellname) at (\rk@linearx,\rk@lineary) {\strut #2};%
+  \advance\rk@linearindex by 1\relax
+}
+
+% Draw one boundary marker: an arrow (rk algo pointer style) whose head lands
+% just outside the referenced cell's edge at (#3,#4), and a text label
+% (rk algo pointer label style, anchor #5) at the arrow's tail (#1,#2),
+% further out -- the same "arrow points at the referenced cell, label sits
+% beyond the tail" convention arraystate's \pointer already uses for L/R
+% cursors. #6 is the label text. Shared by stackstate's single TOP marker
+% and queuestate's DEQUEUE/ENQUEUE pair.
+\newcommand{\rk@linearboundarymark}[6]{%
+  \draw[rk algo pointer] (#1,#2) -- (#3,#4);%
+  \node[rk algo pointer label,anchor=#5] at (#1,#2) {#6};%
+}
+
+% -----------------------------------------------------------------------------
+% stackstate -- LIFO container (spec section 7.1). Bracket matching, DFS,
+% monotonic stack, expression evaluation.
+% -----------------------------------------------------------------------------
+% <reportkit-contract>
+% {"kind":"figure","description":"LIFO container. Items render vertically in push order with the most recently pushed item at the visual top, marked with an explicit TOP arrow.","arguments":[{"name":"options","type":"options","description":"spacing= layout key (vertical pitch between items)."}],"constraints":[{"code":"declaration_order","description":"Items are declared in push order, oldest first; the last \\push call is the stack top."}],"example":"\\begin{diagram}[type=stack,caption={Bracket matching.},description={A stack holding three unmatched opening brackets, with the most recently pushed bracket marked current and the stack top labelled.}]\n\\begin{stackstate}\n\\push{(}\n\\push{[}\n\\push[state=current]{<}\n\\end{stackstate}\n\\end{diagram}","stability":"experimental","since":"1.10.0"}
+% </reportkit-contract>
+\NewDocumentEnvironment{stackstate}{O{}}{%
+  \begingroup
+  \def\rk@linearorientation{vertical}%
+  \pgfkeys{/reportkit/linearstate,spacing=1.15,#1}%
+  \rk@linearindex=0\relax
+}{%
+  \ifnum\rk@linearindex>0\relax
+    \pgfmathsetmacro{\rk@lineartopy}{(\the\rk@linearindex-1)*\rk@linearspacing}%
+    \pgfmathsetmacro{\rk@linearlabelx}{0.95*\rk@linearspacing}%
+    \pgfmathsetmacro{\rk@linearheadx}{0.35*\rk@linearspacing}%
+    \rk@linearboundarymark{\rk@linearlabelx}{\rk@lineartopy}{\rk@linearheadx}{\rk@lineartopy}{west}{TOP}%
+  \fi
+  \endgroup
+}
+% <reportkit-contract>
+% {"kind":"command","description":"Push a value onto the stack. The most recently pushed item renders at the visual top.","arguments":[{"name":"options","type":"options","description":"state= one of the nine shared algorithm states."},{"name":"value","type":"text","description":"Item content."}],"constraints":[{"code":"inside_stackstate","description":"Only valid inside stackstate."}],"example":"\\push[state=current]{X}","stability":"experimental","since":"1.10.0","parent":"stackstate"}
+% </reportkit-contract>
+\NewDocumentCommand{\push}{O{} m}{\rk@linearplace{#1}{#2}}
+
+% -----------------------------------------------------------------------------
+% queuestate -- FIFO container (spec section 7.2). BFS, work queues,
+% streaming buffers, Kahn's algorithm.
+% -----------------------------------------------------------------------------
+% <reportkit-contract>
+% {"kind":"figure","description":"FIFO container. Items render horizontally in enqueue order, with explicit DEQUEUE (front, left) and ENQUEUE (rear, right) markers.","arguments":[{"name":"options","type":"options","description":"spacing= layout key (horizontal pitch between items)."}],"constraints":[{"code":"declaration_order","description":"Items are declared in enqueue order; the first \\enqueue call is the front (dequeue end) and the last is the rear (enqueue end)."}],"example":"\\begin{diagram}[type=queue,caption={BFS work queue.},description={A three-element FIFO work queue with the front node marked current, the dequeue end labelled on the left, and the enqueue end labelled on the right.}]\n\\begin{queuestate}\n\\enqueue[state=current]{A}\n\\enqueue{B}\n\\enqueue{C}\n\\end{queuestate}\n\\end{diagram}","stability":"experimental","since":"1.10.0"}
+% </reportkit-contract>
+\NewDocumentEnvironment{queuestate}{O{}}{%
+  \begingroup
+  \def\rk@linearorientation{horizontal}%
+  \pgfkeys{/reportkit/linearstate,spacing=1.05,#1}%
+  \rk@linearindex=0\relax
+}{%
+  \ifnum\rk@linearindex>0\relax
+    \pgfmathsetmacro{\rk@linearfrontlabelx}{-0.95*\rk@linearspacing}%
+    \pgfmathsetmacro{\rk@linearfrontheadx}{-0.35*\rk@linearspacing}%
+    \rk@linearboundarymark{\rk@linearfrontlabelx}{0}{\rk@linearfrontheadx}{0}{east}{DEQUEUE}%
+    \pgfmathsetmacro{\rk@linearrearx}{(\the\rk@linearindex-1)*\rk@linearspacing}%
+    \pgfmathsetmacro{\rk@linearrearlabelx}{\rk@linearrearx+0.95*\rk@linearspacing}%
+    \pgfmathsetmacro{\rk@linearrearheadx}{\rk@linearrearx+0.35*\rk@linearspacing}%
+    \rk@linearboundarymark{\rk@linearrearlabelx}{0}{\rk@linearrearheadx}{0}{west}{ENQUEUE}%
+  \fi
+  \endgroup
+}
+% <reportkit-contract>
+% {"kind":"command","description":"Enqueue a value into the queue. The first enqueued item is the front (dequeue end); the most recently enqueued item is the rear (enqueue end).","arguments":[{"name":"options","type":"options","description":"state= one of the nine shared algorithm states."},{"name":"value","type":"text","description":"Item content."}],"constraints":[{"code":"inside_queuestate","description":"Only valid inside queuestate."}],"example":"\\enqueue[state=current]{X}","stability":"experimental","since":"1.10.0","parent":"queuestate"}
+% </reportkit-contract>
+\NewDocumentCommand{\enqueue}{O{} m}{\rk@linearplace{#1}{#2}}
+
+\makeatother
+\endinput

@@ -1,0 +1,96 @@
+\documentclass{reportkit}
+
+\setreportkitleftheader{REPORTKIT / ALGORITHM VISUALIZATION TEST}
+\setreportkitfooter{Algorithm visualization -- linear containers acceptance test}
+\setreportkitversion{v1.10.0}
+
+\title{ReportKit -- linear-container algorithm-state primitives}
+\author{Test build}
+\date{17 September 2026}
+
+\begin{document}
+\maketitle
+
+\begin{execsummary}
+This is an acceptance test for reportkit-algorithm-linear.sty's linear
+container primitives: \texttt{stackstate} (LIFO) and \texttt{queuestate}
+(FIFO), the first two members of primitive family C
+(docs/superpowers/specs/2026-09-16-reportkit-algorithm-visualization-primitives-spec.md,
+section 7). Both share one internal linear-container renderer and reuse the
+existing \texttt{arraystate} cell and pointer chrome; neither introduces new
+theme tokens.
+\end{execsummary}
+
+\section{Stack: bracket matching}
+A \texttt{stackstate} tracks unmatched opening brackets while scanning a
+string left to right. The most recently pushed bracket renders at the
+visual top, explicitly marked with a TOP arrow, so the reader can see which
+bracket the next closing character must match without relying on color
+alone.
+
+\begin{diagram}[type=stack,width=.5\textwidth,caption={Unmatched opening brackets while scanning \texttt{"([<)"}.},description={A stack holding three unmatched opening brackets -- round, square, and angle -- with the most recently pushed angle bracket marked current and the stack top labelled.}]
+\begin{stackstate}
+  \push{(}
+  \push{[}
+  \push[state=current]{<}
+\end{stackstate}
+\end{diagram}
+
+\section{Stack: full state vocabulary}
+All nine shared algorithm states applied to stack entries, so state meaning
+stays distinguishable through border weight and line style, not fill color
+alone.
+
+\begin{diagram}[type=stack,width=.6\textwidth,caption={Every shared algorithm state applied to one stack entry each.},description={Nine stacked cells, one per shared algorithm state: unseen at the bottom through current at the top.}]
+\begin{stackstate}
+  \push[state=unseen]{uns}
+  \push[state=blocked]{blk}
+  \push[state=discarded]{disc}
+  \push[state=resolved]{res}
+  \push[state=visited]{vis}
+  \push[state=frontier]{front}
+  \push[state=candidate]{cand}
+  \push[state=active]{act}
+  \push[state=current]{cur}
+\end{stackstate}
+\end{diagram}
+
+\section{Queue: BFS work queue}
+A \texttt{queuestate} models the frontier of a breadth-first search. Items
+render left to right in enqueue order, with the front (dequeue end, next
+node to visit) marked on the left and the rear (enqueue end, where newly
+discovered neighbours join) marked on the right.
+
+\begin{diagram}[type=queue,width=\textwidth,caption={BFS frontier after visiting the start node's neighbours.},description={A three-element FIFO work queue with the front node marked current, the dequeue end labelled on the left, and the enqueue end labelled on the right.}]
+\begin{queuestate}
+  \enqueue[state=current]{B}
+  \enqueue[state=frontier]{C}
+  \enqueue[state=frontier]{D}
+\end{queuestate}
+\end{diagram}
+
+\section{Queue: Kahn's algorithm}
+The same primitive models a topological-sort work queue: nodes whose
+in-degree has just reached zero are enqueued (frontier), while the node
+currently being removed and processed sits at the dequeue end.
+
+\begin{diagram}[type=queue,width=\textwidth,caption={Nodes with zero remaining in-degree, ready to process.},description={A four-element FIFO work queue for Kahn's algorithm, with the next node to process marked current on the left and newly ready nodes marked frontier on the right.}]
+\begin{queuestate}
+  \enqueue[state=current]{A}
+  \enqueue[state=frontier]{E}
+  \enqueue[state=frontier]{F}
+  \enqueue[state=frontier]{G}
+\end{queuestate}
+\end{diagram}
+
+\section{Grayscale and semantic check}
+\begin{principle}{State is not just color}
+Both primitives reuse \texttt{arraystate}'s shared \texttt{rk algo cell}
+styling, so every state carries the same distinct line-style fragment (bold
+solid for \texttt{current}, dashed for \texttt{candidate}, dotted for
+\texttt{blocked}, and so on) as the array and window primitives. The TOP,
+DEQUEUE, and ENQUEUE markers reuse the existing arraystate pointer chrome
+rather than introducing a new visual language.
+\end{principle}
+
+\end{document}

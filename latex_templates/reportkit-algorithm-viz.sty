@@ -341,5 +341,12 @@
   \fi
 }
 
+% Linear-container primitives (stackstate, queuestate; spec section 7) are
+% loaded from here so the public import stays \RequirePackage{reportkit-
+% algorithm-viz}, exactly the way reportkit-diagrams.sty loads
+% reportkit-structure.sty. See reportkit-algorithm-linear.sty's own
+% top-of-file note.
+\RequirePackage{reportkit-algorithm-linear}
+
 \makeatother
 \endinput
