@@ -124,6 +124,10 @@ def resolved_toolchain(repo_root: Path) -> dict[str, Any]:
         "libertinus.sty": _tex_file("libertinus.sty"),
         "libertinust1math.sty": _tex_file("libertinust1math.sty"),
     }
+    required_tex_packages = {
+        "algorithmicx.sty": _tex_file("algorithmicx.sty"),
+        "algpseudocode.sty": _tex_file("algpseudocode.sty"),
+    }
     version_matches = {
         "python": sys.version.split()[0] == lock.get("python_version"),
         **{f"apt:{name}": apt_packages[name] == expected for name, expected in expected_apt_packages.items()},
@@ -137,7 +141,12 @@ def resolved_toolchain(repo_root: Path) -> dict[str, Any]:
             integrity[relative] = False
             continue
         integrity[relative] = hashlib.sha256(path.read_bytes()).hexdigest() == expected
-    required_available = all(commands.values()) and all(packages.values()) and all(runtime_fonts.values())
+    required_available = (
+        all(commands.values())
+        and all(packages.values())
+        and all(runtime_fonts.values())
+        and all(required_tex_packages.values())
+    )
     versions_match = all(version_matches.values())
     if not all(integrity.values()):
         status = "mismatch"
@@ -155,6 +164,7 @@ def resolved_toolchain(repo_root: Path) -> dict[str, Any]:
         "commands": commands,
         "apt_packages": apt_packages,
         "runtime_fonts": runtime_fonts,
+        "required_tex_packages": required_tex_packages,
         "python_packages": packages,
         "version_matches": version_matches,
         "integrity": integrity,

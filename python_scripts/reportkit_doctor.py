@@ -151,6 +151,8 @@ def main() -> int:
         print()
     fonts_ok = record("libertinus.sty", check_kpse("libertinus.sty"))
     fonts_ok &= record("libertinust1math.sty", check_kpse("libertinust1math.sty"))
+    algorithms_ok = record("algorithmicx.sty", check_kpse("algorithmicx.sty"))
+    algorithms_ok &= record("algpseudocode.sty", check_kpse("algpseudocode.sty"))
 
     if not args.json:
         print()
@@ -158,7 +160,7 @@ def main() -> int:
     pymupdf_ok = record("PyMuPDF (publication pipeline renderer)", check_pymupdf())
 
     tex_ok = pdflatex_ok or lualatex_ok
-    full_ok = py_ok and viz_ok and tex_ok and fonts_ok and pandoc_ok and pymupdf_ok
+    full_ok = py_ok and viz_ok and tex_ok and fonts_ok and algorithms_ok and pandoc_ok and pymupdf_ok
     toolchain = resolved_toolchain(REPO_ROOT)
     pinned_ok = toolchain["status"] == "pinned"
     mode = "FULL BUILD" if full_ok else ("SOURCE BUILD + FIGURES" if py_ok and viz_ok else "SOURCE BUILD")
@@ -186,6 +188,7 @@ def main() -> int:
                 "integrity": toolchain.get("integrity"),
                 "commands": toolchain.get("commands"),
                 "runtime_fonts": toolchain.get("runtime_fonts"),
+                "required_tex_packages": toolchain.get("required_tex_packages"),
             },
         ))
     requirement_ok = full_ok if args.require == "full-build" else pinned_ok if args.require == "pinned-toolchain" else True
@@ -206,10 +209,14 @@ def main() -> int:
         print("MODE: FULL BUILD")
         if not (bibtex_ok or biber_ok):
             print("NOTE: bibliography tool not found; reports without external bibliography can still compile.")
-    elif py_ok and viz_ok and tex_ok and not fonts_ok:
+    elif py_ok and viz_ok and tex_ok and not (fonts_ok and algorithms_ok):
         print("MODE: SOURCE BUILD + FIGURES")
-        print("TeX is installed but the Libertinus fonts reportkit.cls requires are missing.")
-        print("On Debian/Ubuntu: apt-get install -y texlive-fonts-extra")
+        if not fonts_ok:
+            print("TeX is installed but the Libertinus fonts reportkit.cls requires are missing.")
+            print("On Debian/Ubuntu: apt-get install -y texlive-fonts-extra")
+        if not algorithms_ok:
+            print("TeX is installed but the algorithmicx/algpseudocode packages reportkit.cls requires are missing.")
+            print("On Debian/Ubuntu: apt-get install -y texlive-science")
     elif py_ok and viz_ok:
         print("MODE: SOURCE BUILD + FIGURES")
         print("TeX compilation is unavailable, but ReportKit analytical figures can be generated.")
