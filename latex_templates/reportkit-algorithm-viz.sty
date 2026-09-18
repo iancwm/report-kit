@@ -102,6 +102,7 @@
 \newcommand{\rk@algopointerrow}{}
 \newcommand{\rk@algorangestate}{active}
 \newcommand{\rk@algorangerow}{}
+\newcommand{\rk@algoannotationrow}{}
 \pgfkeys{
   /reportkit/arraystate/.is family,
   /reportkit/arraystate,
@@ -128,13 +129,18 @@
   state/.store in=\rk@algorangestate,
   row/.store in=\rk@algorangerow,
 }
+\pgfkeys{
+  /reportkit/algoannotation/.is family,
+  /reportkit/algoannotation,
+  row/.store in=\rk@algoannotationrow,
+}
 
 % Resolve a row= key (a \row name, or empty for the default row used by bare
 % \cell calls) to a zero-based row index, stored in \rk@algorowquery.
 \newcommand{\rk@findalgorow}[1]{%
-  \ifstrempty{#1}{\rk@algorowquery=0\relax}{%
+  \edef\rk@algorowtarget{#1}%
+  \expandafter\ifstrempty\expandafter{\rk@algorowtarget}{\rk@algorowquery=0\relax}{%
     \rk@algorow@index=0\relax\rk@algorowquery=-1\relax
-    \def\rk@algorowtarget{#1}%
     \expandafter\@for\expandafter\rk@algorowname\expandafter:=\rk@algorownames\do{%
       \edef\rk@algorowcandidate{\rk@algorowname}%
       \ifx\rk@algorowcandidate\rk@algorowtarget
@@ -143,7 +149,7 @@
       \advance\rk@algorow@index by 1\relax
     }%
     \ifnum\rk@algorowquery<0
-      \PackageError{reportkit-algorithm-viz}{Unknown arraystate row '#1'}{Declare it with \string\row{#1}{...} before referencing it.}%
+      \PackageError{reportkit-algorithm-viz}{Unknown arraystate row '\rk@algorowtarget'}{Declare it with \string\row{\rk@algorowtarget}{...} before referencing it.}%
       \rk@algorowquery=0\relax
     \fi
   }%
@@ -151,7 +157,7 @@
 \newcount\rk@algorow@index
 
 % <reportkit-contract>
-% {"kind":"figure","description":"Indexed linear data with values, indices, pointers, active ranges, and optional aligned rows.","arguments":[{"name":"options","type":"options","description":"Cell width, row height, and indices= layout keys."}],"constraints":[{"code": "zero_based_indices", "description": "Column and row indices are zero-based."}],"example":"\\begin{diagram}[type=array,caption={Two-pointer scan.},description={A sorted array with left and right pointers bounding the active range.}]\n\\begin{arraystate}\n\\cell{-4}\n\\cell{-1}\n\\cell{-1}\n\\cell{0}\n\\cell{1}\n\\cell{2}\n\\pointer[below]{L}{2}\n\\pointer[below]{R}{6}\n\\range[state=active]{2}{6}\n\\end{arraystate}\n\\end{diagram}","stability":"experimental","since":"1.10.0"}
+% {"kind":"figure","description":"Indexed linear data with values, indices, pointers, active ranges, and optional aligned rows.","arguments":[{"name":"options","type":"options","description":"Cell width, row height, and indices= layout keys."}],"constraints":[{"code": "zero_based_indices", "description": "Column and row indices are zero-based."}],"example":"\\begin{diagram}[type=array,caption={Two-pointer scan.},description={A sorted array with left and right pointers bounding the active range.}]\n\\begin{arraystate}\n\\cell{-4}\n\\cell{-1}\n\\cell{-1}\n\\cell{0}\n\\cell{1}\n\\cell{2}\n\\pointer[below]{L}{2}\n\\pointer[below]{R}{5}\n\\range[state=active]{2}{5}\n\\end{arraystate}\n\\end{diagram}","stability":"experimental","since":"1.10.0"}
 % </reportkit-contract>
 \NewDocumentEnvironment{arraystate}{O{}}{%
   \begingroup
@@ -205,7 +211,8 @@
 % {"kind":"command","description":"Place a labelled cursor arrow under (or over) a cell index.","arguments":[{"name":"options","type":"options","description":"above, below (default), or row= to target a named arraystate row."},{"name":"label","type":"text","description":"Cursor label, e.g. L, R, or mid."},{"name":"index","type":"text","description":"Zero-based cell index the cursor targets."}],"constraints":[{"code": "inside_arraystate", "description": "Only valid inside arraystate."}],"example":"\\pointer[below]{L}{2}","stability":"experimental","since":"1.10.0","parent":"arraystate"}
 % </reportkit-contract>
 \NewDocumentCommand{\pointer}{O{} m m}{%
-  \pgfkeys{/reportkit/algopointer,position=below,row={},#1}%
+  \def\rk@algopointerrow{}%
+  \pgfkeys{/reportkit/algopointer,position=below,#1}%
   \rk@findalgorow{\rk@algopointerrow}%
   \pgfmathsetmacro{\rk@algox}{#3*\rk@algocellwidth}%
   \pgfmathsetmacro{\rk@algoy}{-\the\rk@algorowquery*\rk@algorowheight}%
@@ -222,7 +229,8 @@
 % {"kind":"command","description":"Highlight an inclusive index range behind a row of cells.","arguments":[{"name":"options","type":"options","description":"state= (default active) and row= to target a named arraystate row."},{"name":"start","type":"text","description":"Zero-based start index, inclusive."},{"name":"end","type":"text","description":"Zero-based end index, inclusive."}],"constraints":[{"code": "inside_arraystate", "description": "Only valid inside arraystate."}, {"code": "start_before_end", "description": "start must not exceed end."}],"example":"\\range[state=active]{2}{6}","stability":"experimental","since":"1.10.0","parent":"arraystate"}
 % </reportkit-contract>
 \NewDocumentCommand{\range}{O{} m m}{%
-  \pgfkeys{/reportkit/algorange,state=active,row={},#1}%
+  \def\rk@algorangerow{}%
+  \pgfkeys{/reportkit/algorange,state=active,#1}%
   \rk@findalgorow{\rk@algorangerow}%
   \edef\rk@algorangeend{#3}%
   \ifdim#3pt<#2pt
@@ -242,11 +250,19 @@
 }
 
 % <reportkit-contract>
-% {"kind":"command","description":"Place a caption-style annotation line beneath the arraystate.","arguments":[{"name":"text","type":"text","description":"Annotation text, typically an invariant or running computation."}],"constraints":[{"code": "inside_arraystate", "description": "Only valid inside arraystate."}],"example":"\\annotation{P_4 - P_1 = 7}","stability":"experimental","since":"1.10.0","parent":"arraystate"}
+% {"kind":"command","description":"Place a caption-style annotation line beneath an arraystate row.","arguments":[{"name":"options","type":"options","description":"row= to target a named arraystate row."},{"name":"text","type":"text","description":"Annotation text, typically an invariant or running computation."}],"constraints":[{"code": "inside_arraystate", "description": "Only valid inside arraystate."}],"example":"\\annotation[row=prefix]{P_4 - P_1 = 7}","stability":"experimental","since":"1.10.0","parent":"arraystate"}
 % </reportkit-contract>
-\NewDocumentCommand{\annotation}{m}{%
-  \pgfmathsetmacro{\rk@algoy}{-(\the\rk@algorow)*\rk@algorowheight-0.95*\rk@algorowheight-\the\rk@algoannocount*0.46}%
-  \node[rk algo annotation] at (0,\rk@algoy) {#1};%
+\NewDocumentCommand{\annotation}{O{} m}{%
+  \def\rk@algoannotationrow{}%
+  \pgfkeys{/reportkit/algoannotation,#1}%
+  \edef\rk@annotationrowvalue{\rk@algoannotationrow}%
+  \expandafter\ifstrempty\expandafter{\rk@annotationrowvalue}{%
+    \pgfmathsetmacro{\rk@algoy}{-(\the\rk@algorow)*\rk@algorowheight-0.95*\rk@algorowheight-\the\rk@algoannocount*0.46}%
+  }{%
+    \rk@findalgorow{\rk@annotationrowvalue}%
+    \pgfmathsetmacro{\rk@algoy}{-(\the\rk@algorowquery)*\rk@algorowheight-0.95*\rk@algorowheight-\the\rk@algoannocount*0.46}%
+  }%
+  \node[rk algo annotation] at (0,\rk@algoy) {#2};%
   \advance\rk@algoannocount by 1\relax
 }
 
@@ -330,9 +346,11 @@
     \begin{minipage}[t]{\rk@tracewidth cm}
       \centering
       {\RKTokAlgorithmTraceLabelFont #1}\par\vspace{3pt}
-      \begin{tikzpicture}[x=1cm,y=1cm,baseline]
-        #2
-      \end{tikzpicture}
+      \resizebox{\rk@tracewidth cm}{!}{%
+        \begin{tikzpicture}[x=1cm,y=1cm,baseline]
+          #2
+        \end{tikzpicture}%
+      }%
     \end{minipage}%
   };%
   \advance\rk@tracecol by 1\relax

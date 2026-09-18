@@ -5,7 +5,7 @@ Phase 1: shared state vocabulary, arraystate, windowstate, algorithmtrace).
 
 import pytest
 
-from geometry import word_boxes
+from geometry import node_rects, word_boxes
 
 
 def test_arraystate_renders_values_indices_and_pointer_labels(compile_doc):
@@ -43,15 +43,20 @@ def test_arraystate_multi_row_declares_named_aligned_rows(compile_doc):
             \row{values}{3,1,4,2}
             \row{prefix}{0,3,4,8,10}
             \range[row=values,state=active]{1}{2}
-            \annotation{$P_4 - P_1 = 7$}
+            \annotation{allrowsnote}
+            \annotation[row=prefix]{prefixnote}
           \end{arraystate}
         \end{diagram}
         """
     )[0]
-    boxes = word_boxes(page, {"values", "prefix", "3", "4", "8", "10"})
-    assert {"values", "prefix", "8", "10"} <= set(boxes)
+    boxes = word_boxes(page, {"values", "prefix", "3", "4", "8", "10", "allrowsnote", "prefixnote"})
+    assert {"values", "prefix", "8", "10", "allrowsnote", "prefixnote"} <= set(boxes)
     # The prefix row renders below the values row.
     assert boxes["prefix"][1] > boxes["values"][1]
+    # A row-targeted annotation renders beneath the row it describes.
+    assert boxes["prefixnote"][1] > boxes["prefix"][1]
+    # A bare annotation retains its original behavior of following all rows.
+    assert boxes["allrowsnote"][1] > boxes["prefix"][1]
 
 
 def test_windowstate_marks_active_window_and_entering_leaving(compile_doc):
@@ -79,15 +84,17 @@ def test_algorithmtrace_orders_snapshots_left_to_right(compile_doc):
         r"""
         \begin{diagram}[type=trace,width=\textwidth,caption={Window advance.},description={Two ordered snapshots show the window advancing by one element.}]
           \begin{algorithmtrace}[columns=2]
-            \snapshot{Initial}{\begin{arraystate}[indices=false]\cell{4}\cell{2}\cell{7}\end{arraystate}}
-            \snapshot{Advance}{\begin{arraystate}[indices=false]\cell{2}\cell{7}\cell{1}\end{arraystate}}
+            \snapshot{Initial}{\begin{arraystate}[indices=false,cell width=.85]\cell{4}\cell{2}\cell{7}\cell{1}\cell{3}\cell{6}\end{arraystate}}
+            \snapshot{Advance}{\begin{arraystate}[indices=false,cell width=.85]\cell{2}\cell{7}\cell{1}\cell{3}\cell{6}\cell{8}\end{arraystate}}
           \end{algorithmtrace}
         \end{diagram}
         """
     )[0]
-    boxes = word_boxes(page, {"Initial", "Advance"})
-    assert {"Initial", "Advance"} <= set(boxes)
-    assert boxes["Initial"][0] < boxes["Advance"][0]
+    rects = node_rects(page, min_width=20.0)
+    assert len(rects) >= 12
+    # The first six cells belong to Initial and the next six to Advance.
+    # Their normalized snapshot boxes must remain separate horizontally.
+    assert rects[5].x1 < rects[6].x0
 
 
 def test_unknown_algorithm_state_raises_a_package_error(compile_doc):
