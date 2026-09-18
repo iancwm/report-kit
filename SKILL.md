@@ -179,6 +179,9 @@ Every state-aware primitive shares one vocabulary of nine semantic states, set v
 
 `algorithmtrace` composes ordered snapshots to show state evolving across steps -- the second highest-priority primitive after `arraystate`. Each `\snapshot{title}{content}` is a self-contained algorithm-state primitive (typically `arraystate` or `windowstate`), wrapping into a grid controlled by `columns=` (default 3):
 
+Snapshot contents are normalized to the configured snapshot width so a wide
+array or graph cannot overlap its neighboring step.
+
 ```latex
 \begin{diagram}[type=trace,caption={Sliding-window advance.},description={Three ordered snapshots show the window advancing by one element.}]
 \begin{algorithmtrace}[columns=3]
@@ -263,7 +266,7 @@ Reading order is left to right, then top to bottom. ReportKit produces static do
 \end{diagram}
 ```
 
-Several of these primitives' spec-proposed state names aren't literally part of the shared nine-word vocabulary; each maps onto the closest real state instead of inventing new ones: intervalstate's "overlap"/"merged" become `active`/`resolved`; dptable's "solved"/"dependency"/"uncomputed" become `resolved`/`candidate`/the plain unmarked cell; dagstate's "ready"/"processed" become `frontier`/`resolved` (`blocked` is already shared).
+Several of these primitives' spec-proposed state names aren't literally part of the shared nine-word vocabulary; each maps onto the closest real state instead of inventing new ones: intervalstate's "overlap"/"merged" become `active`/`resolved`; dptable's "solved"/"dependency"/"uncomputed" become `resolved`/`candidate`/the plain unmarked cell; dagstate's "ready"/"processed" become `frontier`/`resolved` (`blocked` is already shared). Gridstate likewise uses the shared vocabulary; a domain concept such as a pathfinding target should be conveyed with the closest state plus an explicit label or description.
 
 P3 adds domain-specific extensions for the cases where the general state
 grammar needs one more semantic relationship:

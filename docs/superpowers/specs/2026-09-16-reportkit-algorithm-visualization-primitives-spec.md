@@ -11,11 +11,11 @@ compile-and-inspect suite, a canonical fixture
 (`latex_templates/examples/algorithm_visuals_acceptance_test.tex`, wired into
 `scripts/acceptance_check.sh`), and a new SKILL.md "Algorithm and
 execution-state visuals" section. Verified via `python -m pytest tests` (164
-passed) and `generate_registry(strict=True)` with zero contract errors; no
-LuaLaTeX/pdfLaTeX toolchain was available in this environment, so the new
-fixture and the new PDF-inspection tests are unverified by an actual compile
-and remain to be checked the next time this runs somewhere with TeX
-installed. Phase 2 (core algorithm structures) also implemented 2026-09-17:
+passed) and `generate_registry(strict=True)` with zero contract errors. The
+host TinyTeX installation lacks `algorithmicx`; the pinned
+`reportkit:toolchain` image is the authoritative compile path for the new
+fixtures and PDF-inspection tests. Phase 2 (core algorithm structures) also
+implemented 2026-09-17:
 `stackstate`/`queuestate` (`latex_templates/reportkit-algorithm-linear.sty`,
 sharing one internal linear-container renderer per section 7.3, reusing
 `arraystate`'s cell/pointer chrome with no new theme tokens) and
@@ -28,8 +28,9 @@ BFS/DFS primitive per section 2.3 — pair `graphstate` with
 public import stays `\RequirePackage{reportkit-algorithm-viz}` per section 3.
 Registry/contract/theme-token tests extended accordingly;
 `python -m pytest tests` passes (167 passed) with zero contract errors; two
-more fixtures added and wired into `scripts/acceptance_check.sh`, still
-unverified by an actual LuaLaTeX/pdfLaTeX compile in this environment.
+more fixtures added and wired into `scripts/acceptance_check.sh`. Compile
+verification uses the pinned `reportkit:toolchain` image because host TinyTeX
+lacks `algorithmicx`.
 Phase 3 (additional high-value structures) also implemented 2026-09-17:
 `intervalstate`/`heapstate` (`latex_templates/reportkit-algorithm-order.sty`
 — heapstate's tree layout derived purely from array index via
@@ -46,8 +47,9 @@ vocabulary from section 4; each was mapped onto the closest existing state
 consistency requirement — see SKILL.md's "Algorithm and execution-state
 visuals" section for the exact mapping. `python -m pytest tests` passes (169
 passed) with zero contract errors; three more fixtures added and wired into
-`scripts/acceptance_check.sh`, still unverified by an actual LuaLaTeX/
-pdfLaTeX compile in this environment. P3 extensions also implemented
+`scripts/acceptance_check.sh`. Compile verification uses the pinned
+`reportkit:toolchain` image because host TinyTeX lacks `algorithmicx`. P3
+extensions also implemented
 2026-09-17 in `latex_templates/reportkit-algorithm-p3.sty`: `joinstate`
 provides a keyed/hash-join composition, `unionfindstate` provides
 disjoint-set parent/union/find state, `linkedliststate` provides explicit
@@ -320,8 +322,8 @@ This should become the foundational algorithm visualization primitive.
   \cell{1}
   \cell{2}
   \pointer[below]{L}{2}
-  \pointer[below]{R}{6}
-  \range[state=active]{2}{6}
+  \pointer[below]{R}{5}
+  \range[state=active]{2}{5}
 \end{arraystate}
 \end{diagram}
 ```
@@ -335,7 +337,9 @@ This should become the foundational algorithm visualization primitive.
 \annotation[<options>]{text}
 ```
 
-Possible options: `state=`, `label=`, `index=`, `above`, `below`, `style=`.
+Supported options are `state=` and `row=` for `\range`, `above`/`below` and
+`row=` for `\pointer`, and `row=` for `\annotation`. Indices and ranges are
+zero-based and inclusive.
 
 ### 5.5 Multi-row mode
 
@@ -346,8 +350,8 @@ vs unsorted values.
 \begin{arraystate}[rows=2]
   \row{values}{3,1,4,2}
   \row{prefix}{0,3,4,8,10}
-  \range[row=values,state=active]{2}{4}
-  \annotation{P_4 - P_1 = 7}
+  \range[row=values,state=active]{1}{2}
+  \annotation[row=prefix]{P_4 - P_1 = 7}
 \end{arraystate}
 ```
 
@@ -393,9 +397,9 @@ expression evaluation.
 
 ```latex
 \begin{stackstate}
-  \item{(}
-  \item{[}
-  \item[state=current]{\{}
+  \push{(}
+  \push{[}
+  \push[state=current]{\{}
 \end{stackstate}
 ```
 
@@ -408,9 +412,9 @@ Kahn's algorithm.
 
 ```latex
 \begin{queuestate}
-  \item[state=current]{A}
-  \item{B}
-  \item{C}
+  \enqueue[state=current]{A}
+  \enqueue{B}
+  \enqueue{C}
 \end{queuestate}
 ```
 
@@ -475,8 +479,11 @@ traversal, shortest paths, matrix DP, connected cells.
 
 ### 9.2 Required semantics
 
-Each cell should support: `unseen`, `current`, `frontier`, `visited`,
-`blocked`, `target`.
+Each cell uses the shared nine-state vocabulary: `unseen`, `current`,
+`frontier`, `visited`, `resolved`, `candidate`, `active`, `discarded`, or
+`blocked`. A domain concept such as a pathfinding target should be expressed
+with the closest shared state and an explicit label or description, rather than
+introducing a grid-only state.
 
 ```latex
 \begin{gridstate}[rows=4,columns=5]
@@ -501,12 +508,14 @@ execution. This is especially relevant to data-engineering publications.
 
 ### 10.2 Features
 
-Nodes should support an indegree badge, and `ready`, `processed`, and
-`blocked` states.
+Nodes support an indegree badge and the shared state vocabulary. The proposed
+domain names map as follows: `ready` becomes `frontier`, `processed` becomes
+`resolved`, and `blocked` remains `blocked`. `\readyqueue` applies the
+`frontier` treatment to already-declared ready nodes.
 
 ```latex
 \begin{dagstate}
-  \dagnode[indegree=0,state=ready]{raw}{Raw}
+  \dagnode[indegree=0,state=frontier]{raw}{Raw}
   \dagnode[indegree=2]{clean}{Clean}
   \dagnode[indegree=1]{features}{Features}
   \dependency{raw}{clean}
@@ -576,7 +585,9 @@ distance, knapsack, longest common subsequence.
 
 ### 13.2 Required semantics
 
-Cells should support: `solved`, `current`, `dependency`, `uncomputed`.
+Cells use the shared state vocabulary. The proposed domain names map as
+follows: `solved` becomes `resolved`, `dependency` becomes `candidate`, and
+`uncomputed` is represented by the plain unmarked cell.
 
 ```latex
 \begin{dptable}[rows=4,columns=5]
@@ -621,8 +632,9 @@ Each snapshot can contain `arraystate`, `graphstate`, `gridstate`,
 
 The trace should:
 
-* normalize snapshot widths,
-* support 2–4 columns,
+* normalize snapshot widths so embedded state primitives cannot overlap their
+  neighboring snapshots,
+* support configurable columns, with 2–4 as the normal range,
 * allow wrapping to multiple rows,
 * provide an explicit ordered reading direction,
 * optionally show transition arrows,
@@ -649,21 +661,21 @@ Input A -> hash/index structure <- Input B
                  Output
 ```
 
-This may be implemented after the general algorithm-state primitives.
+This is implemented in `reportkit-algorithm-p3.sty` as `joinstate`.
 
 ---
 
 ## 16. Lower-priority primitives
 
-The following should not be included in the first implementation milestone.
+The following are implemented in `reportkit-algorithm-p3.sty` as the P3
+extension layer.
 
 * **`linkedliststate`** — useful for SWE interview preparation, but less
   broadly reusable in analytical and DE documents.
 * **`unionfindstate`** — useful for connectivity and component merging, but
   relatively specialized.
-* **`recursiontree`** — prefer extending `reporttree` with algorithm-specific
-  labels such as arguments, return value, and memoized, rather than building
-  a completely independent tree renderer.
+* **`recursiontree`** — carries algorithm-specific arguments, return values,
+  and memoization markers without replacing `reporttree`.
 * **`hashmapstate`** — potentially useful, but care is needed not to imply
   implementation-specific bucket structure where logical key-value state is
   sufficient.

@@ -84,6 +84,9 @@ tags on this repository, not a published package registry.
   the doctor includes actionable Python dependency remediation.
 
 ### Fixed
+- Algorithm visualization annotations now support the documented `row=` target,
+  and wide `algorithmtrace` snapshots are normalized to their allocated width;
+  P3 primitives also have rendered-PDF regression coverage.
 - `--mode sections` build IDs no longer collide when two sections resolve
   inside the same wall-clock second (always possible under the new
   `--workers` concurrency, and in principle even serially at sub-second
