@@ -125,7 +125,7 @@ primitive.
   \snapshot{Advance}{%
     \begin{dagstate}[columns=1,x spacing=2.2,y spacing=1.5]
       \dagnode[indegree=0,state=resolved]{x}{Extract}
-      \dagnode[indegree=1]{y}{Load}
+      \dagnode[indegree=0]{y}{Load}
       \dependency{x}{y}
       \readyqueue{y}
     \end{dagstate}%
