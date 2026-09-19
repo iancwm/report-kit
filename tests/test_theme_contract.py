@@ -104,6 +104,7 @@ REQUIRED_STYLE_TOKENS = [
     # dptable (reportkit-algorithm-dp.sty) needs no tokens of its own.
     "RKTokAlgorithmDagBadgeDraw", "RKTokAlgorithmDagBadgeFill", "RKTokAlgorithmDagBadgeText",
     "RKTokAlgorithmDagBadgeFont", "RKTokAlgorithmDagBadgeSize",
+    "RKTokAlgorithmReadyQueueLabelFont", "RKTokAlgorithmReadyQueueLabelText",
     "RKTokAlgorithmIntervalAxisColor", "RKTokAlgorithmIntervalAxisWidth",
     "RKTokAlgorithmHeapEdgeColor", "RKTokAlgorithmHeapEdgeWidth",
 ]

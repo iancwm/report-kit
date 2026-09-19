@@ -134,6 +134,27 @@ walkthrough is expressed as ordered \texttt{graphstate} snapshots inside
 \end{algorithmtrace}
 \end{diagram}
 
+\section{Dependency layout and ready queue (data-pipeline scenario)}
+The algorithm-visuals fix sprint
+(docs/superpowers/specs/2026-09-18-algorithm-visuals-fix-sprint-spec.md,
+section 4) extends \texttt{dagstate} with \texttt{layout=dependency}: each
+node's column becomes its longest-prerequisite distance (topological
+level) instead of an arbitrary automatic-grid index, so a pipeline reads
+left to right in execution order. \texttt{readyqueue} now renders an
+actual FIFO queue box, labelled ``ready,'' rather than redrawing a node in
+place -- and validates that every id it is given has indegree zero.
+
+\begin{diagram}[type=dag,width=\textwidth,caption={A three-stage data pipeline mid-execution under Kahn's algorithm.},description={Three pipeline stages laid out by topological level: raw orders is resolved (already run), clean orders has no remaining unresolved dependency and is ready to run next, and daily sales still has one unresolved dependency. A ready queue box below the pipeline shows clean orders as the next node to execute.}]
+\begin{dagstate}[layout=dependency]
+  \dagnode[indegree=0,state=resolved]{raw}{Raw orders}
+  \dagnode[indegree=0,state=frontier]{clean}{Clean orders}
+  \dagnode[indegree=1,state=unseen]{sales}{Daily sales}
+  \dependency{raw}{clean}
+  \dependency{clean}{sales}
+  \readyqueue{clean}
+\end{dagstate}
+\end{diagram}
+
 \section{Grayscale and semantic check}
 \begin{principle}{State is not just color}
 Every shared algorithm state carries a distinct line-style fragment in

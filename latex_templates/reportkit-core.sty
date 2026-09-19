@@ -397,6 +397,12 @@
 \newcommand{\RKTokAlgorithmDagBadgeText}{\rk@styletokenerror{\RKTokAlgorithmDagBadgeText}}
 \newcommand{\RKTokAlgorithmDagBadgeFont}{\rk@styletokenerror{\RKTokAlgorithmDagBadgeFont}}
 \newcommand{\RKTokAlgorithmDagBadgeSize}{\rk@styletokenerror{\RKTokAlgorithmDagBadgeSize}}
+% dagstate's ready-queue box (2026-09-18 sprint, spec section 4/C2): the
+% queue border reuses RKTokAlgorithmContainerDraw/Width outright (the same
+% generic bordering-rectangle tokens gridstate already uses), so the only
+% genuinely new chrome is the small "READY" label above the box.
+\newcommand{\RKTokAlgorithmReadyQueueLabelFont}{\rk@styletokenerror{\RKTokAlgorithmReadyQueueLabelFont}}
+\newcommand{\RKTokAlgorithmReadyQueueLabelText}{\rk@styletokenerror{\RKTokAlgorithmReadyQueueLabelText}}
 % intervalstate/heapstate chrome (reportkit-algorithm-order.sty, spec
 % sections 11-12). Both families reuse `rk algo cell` and the shared
 % `rk algo state <name>` overlay outright for their bars/nodes (an interval
