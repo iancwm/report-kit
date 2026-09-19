@@ -514,6 +514,75 @@ def _run_inspect(args: argparse.Namespace) -> int:
     return EXIT_ENVIRONMENT if inspector_exit == EXIT_ENVIRONMENT else EXIT_VALIDATION
 
 
+def _run_render(args: argparse.Namespace) -> int:
+    """Render selected PDF pages for the agent visual feedback loop."""
+    source_root = _source_root(args)
+    pdf = Path(args.pdf).resolve() if args.pdf else _find_pdf(_output_root(args, source_root) / "combined")
+    if not pdf or not pdf.is_file():
+        payload = _failure("configuration_error", "no PDF found; pass a PDF path or build first", code="RK_RENDER_PDF_MISSING")
+        if args.json:
+            _json_or_print(payload, True)
+        else:
+            print("FAIL: no PDF found; pass a PDF path or build first", file=sys.stderr)
+        return EXIT_CONFIG
+    out_dir = Path(args.out).resolve() if args.out else _output_root(args, source_root) / "render"
+    renderer = PIPELINE_ROOT / "scripts" / "render_pdf_pages.py"
+    configured_python = os.environ.get("REPORTKIT_PDF_PYTHON")
+    candidate = Path(configured_python).expanduser() if configured_python else _output_root(args, source_root) / ".venv" / "bin" / "python"
+    if not candidate.is_absolute():
+        candidate = (Path.cwd() / candidate).absolute()
+    render_exit = EXIT_OK
+    if candidate.is_file() and (configured_python or candidate != Path(sys.executable)):
+        command = [str(candidate), str(renderer), str(pdf), str(out_dir), "--dpi", str(args.dpi)]
+        if args.pages is not None:
+            command += ["--pages", args.pages]
+        if args.json:
+            with tempfile.TemporaryDirectory(prefix="reportkit-render-") as temp_dir:
+                json_path = Path(temp_dir) / "render.json"
+                proc = subprocess.run([*command, "--json", str(json_path)], capture_output=True, text=True)
+                render_exit = proc.returncode
+                if proc.stderr:
+                    print(proc.stderr, end="", file=sys.stderr)
+                if not json_path.is_file():
+                    payload = _failure(
+                        "environment_error" if "requires PyMuPDF" in proc.stderr else "internal_error",
+                        proc.stderr.strip() or "render helper produced no structured output",
+                        code="RK_PYMUPDF_MISSING" if "requires PyMuPDF" in proc.stderr else "RK_RENDER_OUTPUT",
+                    )
+                    _json_or_print(payload, True)
+                    return EXIT_ENVIRONMENT if "requires PyMuPDF" in proc.stderr else EXIT_INTERNAL
+                result = json.loads(json_path.read_text(encoding="utf-8"))
+        else:
+            return subprocess.run(command).returncode
+    else:
+        try:
+            from publication_pipeline.scripts.render_pdf_pages import render as render_pages
+            manifest = render_pages(pdf, out_dir, dpi=args.dpi, pages=args.pages)
+            result = diagnostic_envelope([], passed=True, out_dir=str(out_dir), **manifest)
+        except ModuleNotFoundError as exc:
+            message = f"PDF rendering requires PyMuPDF; run publication_pipeline/scripts/setup.sh or set REPORTKIT_PDF_PYTHON ({exc})"
+            payload = _failure("environment_error", message, code="RK_PYMUPDF_MISSING")
+            if args.json:
+                _json_or_print(payload, True)
+            else:
+                print(f"FAIL: {message}", file=sys.stderr)
+            return EXIT_ENVIRONMENT
+        except ValueError as exc:
+            payload = _failure("configuration_error", str(exc), code="RK_RENDER_PAGES_INVALID")
+            if args.json:
+                _json_or_print(payload, True)
+            else:
+                print(f"FAIL: {exc}", file=sys.stderr)
+            return EXIT_CONFIG
+    if args.json:
+        _json_or_print(result, True)
+    elif result["passed"]:
+        print(f"PASS: rendered {len(result['files'])} of {result['page_count']} page(s) to {out_dir} (dpi={args.dpi})")
+    if result["passed"]:
+        return EXIT_OK
+    return EXIT_ENVIRONMENT if render_exit == EXIT_ENVIRONMENT else EXIT_VALIDATION
+
+
 def _run_package(args: argparse.Namespace) -> int:
     source_root = _source_root(args)
     build_dir = Path(args.build_dir).resolve() if args.build_dir else _output_root(args, source_root) / "combined"
@@ -643,6 +712,15 @@ def build_parser() -> argparse.ArgumentParser:
     inspect.add_argument("pdf", nargs="?")
     inspect.add_argument("--json", action="store_true")
     inspect.set_defaults(handler=_run_inspect)
+
+    render = sub.add_parser("render", help=COMMAND_CONTRACT["render"]["summary"], description=COMMAND_CONTRACT["render"]["summary"])
+    _add_publication_paths(render)
+    render.add_argument("pdf", nargs="?")
+    render.add_argument("--out", help="page-image output directory (default: <output-root>/render)")
+    render.add_argument("--pages", help="page selection, e.g. '1,3,5-7' (default: every page)")
+    render.add_argument("--dpi", type=_positive_int, default=150)
+    render.add_argument("--json", action="store_true")
+    render.set_defaults(handler=_run_render)
 
     package = sub.add_parser("package", help=COMMAND_CONTRACT["package"]["summary"], description=COMMAND_CONTRACT["package"]["summary"])
     _add_publication_paths(package)
