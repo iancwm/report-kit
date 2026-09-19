@@ -1,6 +1,7 @@
 # ReportKit Algorithm Visualization Primitives
 
-**Status:** Phase 1 (core state grammar) implemented 2026-09-17: the shared
+**Status:** Complete — Phases 1–3 and the P3 extensions were implemented
+2026-09-17. The shared
 nine-state vocabulary and its theme-owned `RKTokAlgorithm*` tokens (populated
 by all three themes), `arraystate` (with `\cell`/`\row`/`\pointer`/`\range`/
 `\annotation`), `windowstate`, and `algorithmtrace`/`\snapshot` all landed in
@@ -57,6 +58,7 @@ next/head/tail/NULL semantics, and `recursiontree` provides call arguments,
 return values, and memoization markers. Contract metadata, generated
 references, documentation, and regression coverage are included; the full
 algorithm visualization feature is complete.
+**Last updated:** 2026-09-19
 **Target:** ReportKit vNext.
 **Baseline:** `main` at `4113e8b`, ReportKit class v1.9.3, contract v1.0.0.
 **Scope:** Native semantic visualization primitives for algorithms, data

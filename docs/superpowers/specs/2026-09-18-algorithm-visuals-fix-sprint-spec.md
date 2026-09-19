@@ -133,10 +133,12 @@ silently reduce labels below the configured guide minimum.
 
 ### B2. Add transition text
 
-Add `\transition{...}` between adjacent snapshots. The transition renders a
-directional arrow and short text such as "sum too small; advance L." It
-belongs to the edge, not to either static state. In grid and vertical modes,
-the arrow includes a step number to preserve reading order.
+Add `\tracetransition{...}` between adjacent snapshots. The transition renders
+a directional arrow and short text such as "sum too small; advance L." It
+belongs to the edge, not to either static state. The `tracetransition` name is
+intentional: `\transition` is already the stable three-argument edge command
+for `reportstate`. In grid and vertical modes, the arrow includes a step
+number to preserve reading order.
 
 ### B3. Legend and contrast
 

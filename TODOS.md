@@ -2,444 +2,134 @@
 
 **Last updated:** 2026-09-19
 
-This is an index, not an audit. Each spec/plan under `docs/superpowers/`
-carries its own `**Status:**` line, updated at the workflow checkpoint that
-changed it (approval, execution start, merge). This file is a one-line
-pointer per document plus a rollup of what's still open — edited
-incrementally when a status changes, never rebuilt from scratch. See
+This is the current-work index, not an audit. The front of the document contains
+only work that is still actionable. Completed implementation records and dated
+history are kept at the back. Each spec/plan remains the authoritative execution
+record for its own scope; this file is the rollup. See
 [docs/superpowers/specs/2026-09-07-documentation-and-status-tracking-cleanup-design.md](docs/superpowers/specs/2026-09-07-documentation-and-status-tracking-cleanup-design.md)
-for why.
-The PR-time synchronization directive is in
-[references/documentation-status.md](references/documentation-status.md).
+and [references/documentation-status.md](references/documentation-status.md).
 
-## Documents
+## Outstanding documents
 
-| Document | Status | Priority |
+| Document | Current status | Priority |
 |---|---|---|
-| [2026-09-06-reportkit-tooling-hardening-design.md](docs/superpowers/specs/2026-09-06-reportkit-tooling-hardening-design.md) | Approved — implementation slice, original C2 primitives, additive algorithmblock, B4 audit, and F2 measurement + bounded parallelism all landed. Nothing outstanding. | Complete |
-| [2026-09-06-reportkit-vnext-ai-publication-system-spec.md](docs/superpowers/specs/2026-09-06-reportkit-vnext-ai-publication-system-spec.md) | Draft / roadmap — reconciled; implementation phases complete; use the plan, not this | P3 |
-| [2026-09-07-reportkit-vnext-implementation-plan.md](docs/superpowers/plans/2026-09-07-reportkit-vnext-implementation-plan.md) | Complete — Phase 1 merged via PR #10; additive Phases 2–4 merged via PR #9 | P3 |
-| [2026-09-07-documentation-and-status-tracking-cleanup-design.md](docs/superpowers/specs/2026-09-07-documentation-and-status-tracking-cleanup-design.md) | Approved | Process |
-| [2026-09-07-documentation-and-status-tracking-cleanup.md](docs/superpowers/plans/2026-09-07-documentation-and-status-tracking-cleanup.md) | Done — merged via PR #7 (`965443b`) | Process |
-| [2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md](docs/superpowers/specs/2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md) | Implemented (Steps 1–5); open questions resolved in the plan below | P2 |
-| [2026-09-09-reportkit-institutional-theme-implementation-plan.md](docs/superpowers/plans/2026-09-09-reportkit-institutional-theme-implementation-plan.md) | Complete — Steps 1–5 implemented; local LuaLaTeX verification passes; pinned visual QA remains | P2 |
-| [2026-09-09-reportkit-fix-post-implementation-findings.md](docs/superpowers/plans/2026-09-09-reportkit-fix-post-implementation-findings.md) | Complete — all 8 tasks done and reviewed clean; fixture verification complete | Complete |
-| [2026-09-09-reportkit-multi-format-publication-architecture-spec.md](docs/superpowers/specs/2026-09-09-reportkit-multi-format-publication-architecture-spec.md) | Phase A implementation complete in the working tree: A1–A5, D7 entrypoints, constrained Markdown directives, brand override materialization, and selection-marker inspection landed; A0 is verified against the available pinned image, while pinned-toolchain/runtime gates remain | P2 |
-| [2026-09-10-reportkit-multi-format-publication-implementation-plan.md](docs/superpowers/plans/2026-09-10-reportkit-multi-format-publication-implementation-plan.md) | Phase A implementation complete in the working tree; A0 is verified against the available pinned image and A3/A4 pinned/runtime verification remains; Phase B renderer/accessibility work is complete, with executive design promotion and tagging still review-gated | P2 |
-| [2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md](docs/superpowers/specs/2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md) | Phase A′ and B′ complete; constrained Markdown/typed-IR authoring landed in v1.9.3; standalone render command, budgets, i18n, and neutral second adapter remain | P2 |
-| [2026-09-10-reportkit-fork-port-fixes-spec.md](docs/superpowers/specs/2026-09-10-reportkit-fork-port-fixes-spec.md) | Implemented in v1.9.1 via PR #19; all 11 applicable fixes landed | Complete |
-| [2026-09-12-reportkit-code-quality-and-dependency-remediation-spec.md](docs/superpowers/specs/2026-09-12-reportkit-code-quality-and-dependency-remediation-spec.md) | Implemented — merged via PR #25 (`7c5fafc`); all phases (0-2) landed; all 3 open questions resolved | Complete |
-| [2026-09-16-reportkit-algorithm-visualization-primitives-spec.md](docs/superpowers/specs/2026-09-16-reportkit-algorithm-visualization-primitives-spec.md) | Phases 1-3 and P3 extensions implemented 2026-09-17: shared state vocabulary plus array/window/trace, linear containers, graph/grid/DAG, heap/interval/DP, keyed join, union/find, linked-list, and recursion-tree primitives | Complete |
-| [2026-09-18-algorithm-visuals-fix-sprint-spec.md](docs/superpowers/specs/2026-09-18-algorithm-visuals-fix-sprint-spec.md) | Complete with concerns — Tasks 1–4 implemented; dedicated gate passes; full acceptance retains pre-existing out-of-scope failures. | Complete |
+| [2026-09-06-reportkit-vnext-ai-publication-system-spec.md](docs/superpowers/specs/2026-09-06-reportkit-vnext-ai-publication-system-spec.md) | Reconciled roadmap; implementation phases are complete in the companion plan. Only the deferred consumer-project template remains. | P3 |
+| [2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md](docs/superpowers/specs/2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md) | Steps 1–5 implemented; pinned visual baseline comparison and human §25 review remain. | P2 |
+| [2026-09-09-reportkit-institutional-theme-implementation-plan.md](docs/superpowers/plans/2026-09-09-reportkit-institutional-theme-implementation-plan.md) | Implementation complete; the same pinned visual release gate remains. | P2 |
+| [2026-09-09-reportkit-multi-format-publication-architecture-spec.md](docs/superpowers/specs/2026-09-09-reportkit-multi-format-publication-architecture-spec.md) | A0–A5, Phase B, and constrained-authoring item C′1 are implemented; pinned A3/A4 runtime gates and future visual phases remain. | P2 |
+| [2026-09-10-reportkit-multi-format-publication-implementation-plan.md](docs/superpowers/plans/2026-09-10-reportkit-multi-format-publication-implementation-plan.md) | Same implementation state as the spec; remaining work is release verification and later visual phases. | P2 |
+| [2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md](docs/superpowers/specs/2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md) | A′/B′ and constrained authoring are implemented; render, budget, neutrality, i18n, and tagging work remain deferred. | P2 |
 
 ## Open work
 
-### P0
-
-- **P0-1 — delete `tooling`, don't re-cut it. Done.** As of 2026-09-15,
-  `origin/tooling` no longer exists (`git fetch origin --prune` lists no
-  `tooling` branch, local or remote) — it has already been deleted, matching
-  [references/migrating-content-branches.md](references/migrating-content-branches.md)'s
-  disposition. Nothing further to do; `backup/pre-split` was never confirmed
-  present either and is likewise gone.
-
-The documented quick-start remediation and the associated Phase 0 findings
-are implemented in the current worktree; the spec remains the detailed
-change record.
-
 ### P2
 
-- Algorithm-visualization primitives — **Phase 1 (core state grammar)
-  implemented 2026-09-17**: the shared nine-state vocabulary (`current`,
-  `active`, `candidate`, `frontier`, `visited`, `resolved`, `discarded`,
-  `blocked`, `unseen`) and its `RKTokAlgorithm*` style tokens (declared in
-  `reportkit-core.sty`, populated by all three themes), plus `arraystate`
-  (`\cell`/`\row`/`\pointer`/`\range`/`\annotation`), `windowstate`
-  (`\values`/`\window`/`\entering`/`\leaving`), and `algorithmtrace`/
-  `\snapshot`, all in new `latex_templates/reportkit-algorithm-viz.sty`,
-  required by `reportkit.cls` right after `reportkit-diagrams`. Contract
-  metadata generates cleanly (`generate_registry(strict=True)`: zero
-  errors); `references/primitive-contract.md` and
-  `references/institutional-research-theme.md` regenerated;
-  `tests/test_theme_contract.py` extended to cover the new module and
-  tokens; new `tests/test_algorithm_viz.py` compile-and-inspect suite (skips
-  without a LuaLaTeX toolchain, same as the rest of the PDF-inspection
-  suite); new canonical fixture
-  `latex_templates/examples/algorithm_visuals_acceptance_test.tex`, wired
-  into `scripts/acceptance_check.sh`; new SKILL.md "Algorithm and
-  execution-state visuals" section. **Phase 2 (core algorithm structures)
-  also implemented 2026-09-17**, fanned out to two parallel workstreams
-  built on the Phase 1 foundation: `stackstate`/`queuestate`
-  (`latex_templates/reportkit-algorithm-linear.sty`) share one internal
-  linear-container renderer per spec section 7.3 and reuse `arraystate`'s
-  cell/pointer chrome outright — no new theme tokens needed.
-  `graphstate`/`gridstate` (`latex_templates/reportkit-algorithm-graph.sty`)
-  add three new `RKTokAlgorithmGraph*` tokens (node text width, edge
-  color/width — populated in all three themes) and reuse `rk algo cell`/the
-  shared state overlay for nodes and grid cells; `graphstate` uses
-  `reportnetwork`-style automatic grid layout and builds no dedicated
-  BFS/DFS primitive (composition with `queuestate`/`stackstate` is left to
-  the document author, per spec section 2.3). Both new modules are
-  `\RequirePackage`d from within `reportkit-algorithm-viz.sty` itself (not
-  from `reportkit.cls`), so the public import stays
-  `\RequirePackage{reportkit-algorithm-viz}` per spec section 3. Two more
-  fixtures added (`algorithm_visuals_linear_acceptance_test.tex`,
-  `algorithm_visuals_graph_acceptance_test.tex`) and wired into
-  `scripts/acceptance_check.sh`; SKILL.md and the generated contract docs
-  updated. `python -m pytest tests` passes (167 passed, 73 skipped) in this
-  environment, which has no LuaLaTeX/pdfLaTeX — every new fixture and
-  PDF-inspection test across both phases is unverified by an actual compile
-  and needs to run once somewhere with TeX installed. **Phase 3 (additional
-  high-value structures) also implemented 2026-09-17**, again fanned out to
-  two parallel workstreams: `intervalstate`/`heapstate`
-  (`latex_templates/reportkit-algorithm-order.sty` — intervals on a shared
-  axis, one per declared row; heapstate's tree view laid out purely from
-  array index, no manual tree coordinates) and `dptable`/`dagstate`
-  (`dptable` in new `latex_templates/reportkit-algorithm-dp.sty`, reusing
-  `gridstate`'s coordinate math; `dagstate` appended to the existing
-  `latex_templates/reportkit-algorithm-graph.sty`, reusing `graphstate`'s
-  node layout and `reportkit-diagrams.sty`'s existing dependency-edge style
-  outright — no new edge token). 9 new theme tokens total (5 for dagstate's
-  indegree badge, 4 for intervalstate's axis/heapstate's tree edges),
-  populated in all three themes. Several of these primitives' own spec text
-  proposes state names outside the shared nine-word vocabulary
-  (`overlap`/`merged`, `solved`/`dependency`/`uncomputed`,
-  `ready`/`processed`); each was mapped onto the closest existing shared
-  state instead, documented in-file and in SKILL.md, per the spec's own
-  section 2.2 consistency requirement. Merging this phase caught and fixed a
-  real bug from the merge itself: an overly-greedy regex used to resolve
-  three colliding theme-file merge conflicts (`.*` under `re.DOTALL`, with
-  no non-greedy qualifier before the final anchor) silently deleted each
-  file's tail — including `execsummary`'s definition and
-  `\rk@styletokensloadedtrue` — while leaving the file byte-count
-  superficially plausible; caught by a callout-count regression (14 → 13)
-  during the post-merge registry check, not by any test written for this
-  feature, and fixed by rebuilding each file's tail from the pre-merge
-  commit with the new token block re-inserted precisely. Three more
-  fixtures added and wired into `scripts/acceptance_check.sh`; SKILL.md,
-  the generated contract docs, and `tests/test_theme_contract.py` updated.
-  `python -m pytest tests` passes (169 passed, 86 skipped, 0 failed) and
-  `generate_registry(strict=True)` reports zero contract errors — still
-  unverified by an actual LuaLaTeX/pdfLaTeX compile in this environment.
-  **P3 is now complete**: `reportkit-algorithm-p3.sty` adds `joinstate`,
-  `unionfindstate`, `linkedliststate`, and `recursiontree`, with contract
-  metadata, generated references, documentation, and regression coverage.
-  The complete algorithm-visualization feature now covers the full P0–P3
-  scope in section 21 of the
-  [spec](docs/superpowers/specs/2026-09-16-reportkit-algorithm-visualization-primitives-spec.md).
+- **Institutional theme — pinned visual release gate.** Run the four-page
+  equity fixture and checked-in baseline through the pinned OCI toolchain, then
+  complete the spec §25 human visual review. Do not update expected pixels from
+  a non-pinned host.
 
-- **Algorithm visuals and cheat-sheet fix sprint — COMPLETE WITH CONCERNS (2026-09-19).**
-  Tasks 1–3 are merged and Task 4 is complete: the four-page guide fixture,
-  acceptance-list wiring, mechanical release gate, and 140-DPI colour,
-  grayscale, and institutional-research visual review are all landed. The
-  dedicated integration gate passes (`4 passed`); the full acceptance command
-  still reports only the pre-existing out-of-scope heap, PDF-extraction,
-  contract-drift, and publication-pipeline failures documented in
-  `.superpowers/sdd/2026-09-18-algorithm-visuals-fix-sprint/task-4-report.md`.
-  The implementation plan and specification are now tracked alongside the
-  fixture and test. The merged Task 1 report is preserved at
-  `.superpowers/sdd/2026-09-18-algorithm-visuals-fix-sprint/task-1-report.md`.
+- **Multi-format A3/A4 — pinned/runtime verification.** Run the authoritative
+  pinned CI/toolchain coverage for the shared/paged split, theme-contract
+  runtime checks, Matplotlib-dependent checks, and the existing A3/A4
+  acceptance matrix. Update both the spec and implementation-plan status
+  records with the result.
 
-  Landed interfaces used by the reference fixture include
-  \tracetransition (the non-conflicting trace-transition name),
-  \begin{codeblock}[title][keep=auto]{lang},
-  \RKCompactContents{comma-separated labels}, and
-  \readyqueue{clean} with a zero-indegree badge. The longform
-  \section page-break contract remains unchanged; the fixture uses
-  \RKSectionOpener so stack and queue share one reading unit.
+- **Multi-format Phase C — promote the executive theme.** Complete the
+  consulting/strategy visual system, 8–10 slide fixture, and visual approval
+  required to move `executive` from experimental to stable. Keep the existing
+  presentation composition API unchanged.
 
-  The release decision is explicit in the Task 4 report: the pointer trace
-  shows `L` advancing, the window labels the entering/leaving item and index,
-  and the dependency figure places `clean_orders` in READY with indegree 0.
-
-- Institutional theme + equity-research profile — **Step 1 (theme
-  infrastructure) implemented 2026-09-09**: `reportkit.cls` now delegates
-  typography/geometry/palette/furniture to a selected theme file under
-  `latex_templates/themes/`; `publication.yaml` gains `document.theme`,
-  `.publication_type`, `.paper`; `reportkit check`/`build` refuse to build a
-  theme against an engine that can't render it. **Step 2 (institutional
-  theme) implemented 2026-09-09**: new
-  `themes/reportkit-theme-institutional-research.sty` — Letter geometry,
-  Google Sans via fontspec with `font_policy: strict`/`fallback`, the
-  spec's full §5 type scale, and quieter semantic callouts
-  (`reportkit-boxes.sty` now branches its box chrome on `\rk@theme`).
-  `publication.yaml` gains an optional top-level `theme:` section
-  (`font_family`/`font_path`/`font_policy`). **Step 3 (equity publication
-  profile) implemented 2026-09-09**: new
-  `publication_types/reportkit-equity-research.sty`, loaded via
-  `publication-type=equity-research` — front page
-  (`researchfrontpage`/`researchkicker`/`researchheadline`/`researchdeck`),
-  rating strip, sidebar blocks, what's-changed, the exhibit system
-  (`exhibit`/`fullwidthexhibit`/`exhibitgrid`/`exhibitpair`), table grammar,
-  a dense financial-model-page mode, and bull/base/bear risk-reward
-  primitives. **Step 4 (visualization integration) implemented
-  2026-09-09**: new `python_scripts/reportkit/themes/` package
-  (`default.py`/`institutional_research.py`); `reportkit_viz.apply_theme
-  (name)` now genuinely switches theme (colors, `TEXT_WIDTH_IN`,
-  `FIGURE_SIZES`, fonts, mathtext) at runtime; `check-theme` is now
-  correctly theme-aware end-to-end (`--theme institutional-research`
-  passes); new `risk_reward_chart()`; fixed a latent theme-switching bug in
-  `annotate_point`/`shade_period`. **Step 4's Python code was actually
-  executed and tested** (matplotlib/numpy/pandas installed) — not just
-  statically checked. **Step 5 (fixtures, QA, skill guidance) implemented
-  2026-09-09**: the four-page fictional `latex_templates/examples/
-  equity-research/` publication (front page, analysis exhibits,
-  risk/reward, financial model), with its financial figures reconciled to
-  one internally-consistent model (open question 6) and its four
-  `figures.py` charts actually rendered and visually inspected this step
-  (which caught and fixed a real `risk_reward_chart()` label-overlap bug);
-  a compact `institutional_equity_acceptance_test.tex` smoke fixture,
-  compiled by a new `lualatex` block in `scripts/acceptance_check.sh`;
-  `scripts/visual_qa_equity_research.py` (compile + `reportkit.diagnostics`
-  log check + PNG render + pixel-diff against a checked-in baseline,
-  spec §25), whose pure pixel-diff function is unit-tested with synthetic
-  images; two new `lualatex`-compile pytest tests; and a new
-  `references/institutional-research-theme.md` linked from `SKILL.md`
-  covering the primitive reference, the `researchmain`/`researchsidebar`
-  adjacency requirement, the `exhibitgrid` column-count limit, and
-  `apply_theme`/`risk_reward_chart` usage. **Local verification on
-  2026-09-10:** `bash scripts/acceptance_check.sh --require-tex` and a full
-  four-page equity fixture compile both pass under the available LuaLaTeX
-  toolchain. The checked-in visual baseline still requires the pinned OCI
-  toolchain and a human §25 review; the current host reports
-  `RK_VISUAL_TOOLCHAIN_MISMATCH`, so do not update expected pixels from this
-  environment. See
-  [the implementation plan](docs/superpowers/plans/2026-09-09-reportkit-institutional-theme-implementation-plan.md).
-
-- **Multi-format publication architecture — Phase A1 implemented in v1.9.2
-  (commits `db19e78`, `8efc601`); Phase A2 implemented in v1.9.3.**
-  `publications.py` is now the canonical
-  publication/renderer/theme registry: it resolves one immutable build target,
-  preserves the `technical` alias, validates engine and compatibility choices,
-  and supplies shared structured diagnostics to context, check, and build.
-  The current tree also implements Phase A2: a generated LaTeX compatibility
-  registry, shared hard-failing class-option parser, pair/renderer validation,
-  drift coverage, and staging for the new `.def`/`.tex` infrastructure. The
-  shipped capability matrix also now contains the `slides` renderer and the
-  experimental `presentation` publication type (Phase B, below); there is
-  still no HTML, DOCX, PPTX, or EPUB renderer in the current tree.
-  **A3 (split shared/paged mechanics) is now
-  implemented**: `reportkit-core.sty` is engine-neutral (no more
-  geometry/fancyhdr/titlesec/needspace/caption), a new
-  `reportkit-paged-core.sty` owns those plus hyperref (see the plan's A3
-  section for why hyperref's require moved there, not to core — a
-  measured, not stylistic, byte-hash constraint), and every semantic module's
-  direct `\Needspace`/`\begin{center}`/`\captionof`/`\source` call went
-  through the new renderer hooks (`RKReserveSpace`,
-  `RKDiagramPlacementBegin`/`End`, `RKDiagramCaption`, `RKDiagramSource`) a
-  `reportkit-slides-core.sty` implements differently. Verified byte-identical
-  against the default, institutional/equity, and longform fixtures in a
-  local (non-pinned) toolchain — see the plan's A3 section for the full
-  verification record; the pinned-toolchain CI gate is still authoritative
-  and has not run against it yet. **A4 (move component appearance behind
-  theme tokens) is partially implemented**: both existing themes are now
-  split per decision D11 into a renderer-neutral common package
-  (`reportkit-theme-default.sty`, `reportkit-theme-institutional-research.sty`
-  — fonts, palette, style tokens) and a paged adapter package
-  (`reportkit-theme-default-paged.sty`,
-  `reportkit-theme-institutional-research-paged.sty` — geometry, running
-  furniture, section-heading placement, `\maketitle`), both loaded by
-  `reportkit.cls` and resolved from the publication registry
-  (`publications.py`'s `_theme()` gained a real `renderer_adapters`
-  parameter). `reportkit-core.sty` gained the style-token contract decision
-  D2 describes (~30 `RKTok...` sentinels plus `\RKAssertStyleTokens`), and
-  `reportkit-boxes.sty`'s `\ifdefstring{\rk@theme}{institutional-research}`
-  branch is gone — callout and metric chrome now read theme-populated
-  tokens, with no semantic-module theme-name branch left (new
-  `tests/test_theme_contract.py` enforces this statically). Verified in a
-  local (non-pinned) toolchain: the default fixture is PDF-hash-identical
-  before/after (with `SOURCE_DATE_EPOCH=1 TZ=UTC`, required for
-  reproducibility even at baseline on this toolchain); the institutional/
-  equity fixture's raw bytes are not hash-reproducible even baseline-to-
-  baseline on this particular LuaLaTeX build (a toolchain quirk, confirmed
-  independent of this change), so it was verified by identical extracted
-  text and identical rendered-page pixel hashes instead, plus a visual check
-  that the quiet vs. boxed chrome difference the migration must preserve is
-  actually still there — see the plan's A4 section for the full record.
-  **Diagram work implemented 2026-09-15**: the ~90 remaining hardcoded
-  appearance values across `reportkit-diagrams.sty`/`-structure.sty`/
-  `-process.sty`/`-spatial.sty` (node/edge/edge-label/layer/matrix-axis/
-  timeline chrome, plus `reportkit-structure.sty`'s own `rk structure
-  card`/`title`/`muted`/`arrow` tikzset, needed because `reportarchitecture`
-  and `reportroadmap` — the plan's own motivating examples for touching
-  that file — are built on it) now read theme-owned `RKTokDiagram...`
-  tokens instead of hardcoding color/weight/font/rounding/padding; both
-  canonical themes (plus the experimental `executive` slides theme, which
-  already had to satisfy the same contract) populate them with the exact
-  pre-migration values, so appearance is unchanged. `tests/
-  test_theme_contract.py`'s `SEMANTIC_MODULES` now lists all four modules.
-  Verified in a local (non-pinned) toolchain: `python -m pytest tests
-  publication_pipeline/tests` — 225 passed, 2 failed (the same two
-  pre-existing, environment-specific `pdflatex`/`microtype` font-expansion
-  failures, confirmed identical via a `git stash` before/after diff of
-  `scripts/acceptance_check.sh --require-tex`'s FAIL/WARN lines); and a
-  direct visual-identity check — `career_guide_en` (default theme),
-  `equity-research` (institutional-research theme) and
-  `presentation_acceptance_test` (executive theme) compiled with `lualatex`
-  at the pre-change and post-change commit are text-identical and
-  pixel-identical on every page (career_guide_en is additionally raw-PDF-
-  byte-identical). See the plan's A4 section for the full record, including
-  the resolved risk of whether a TikZ color option macro-expands correctly
-  (confirmed empirically with a standalone probe before writing the tokens).
-  **Python/theme-contract work implemented 2026-09-15**: `Theme` now carries
-  explicit typography, geometry, spacing, rule, table, chart, diagram and
-  script-coverage records while preserving its existing compatibility views.
-  `check-theme` validates those records, palette synchronization,
-  semantic-module token declarations/population, and registered common/
-  renderer-adapter packages. Focused pure-Python validation and bytecode
-  compilation pass; this host lacks pytest, Matplotlib, and pandas, so runtime
-  and pinned-toolchain verification remain outstanding. The remaining Phase A
-  work is ordered in the plan: A0's pinned compatibility baseline is now
-  captured and verified against the available image. A5's
-  equity-research pipeline acceptance, the D7 paged-template split,
-  theme/brand override plumbing, selection-marker inspection, and the
-  constrained directive/fragment-based composition path are now implemented
-  and verified in the worktree.
-  See [the spec](docs/superpowers/specs/2026-09-09-reportkit-multi-format-publication-architecture-spec.md)
-  and [the implementation plan](docs/superpowers/plans/2026-09-10-reportkit-multi-format-publication-implementation-plan.md).
-
-- **Multi-format publication architecture — Phase B (slide renderer and
-  presentation semantics) started out of the plan's own recommended order**
-  (§13 puts A5 before B; Phase B was done first here at explicit request, and
-  A5 followed). **B1 and B2 are essentially complete** via
-  direct-TeX authoring: `reportkit-slides.cls` (mirrors `reportkit.cls`
-  over `\LoadClass[aspectratio=169]{beamer}` — Beamer's own 16:9 table
-  already produces the declared 160mm x 90mm canvas natively, no dimension
-  override needed), `reportkit-slides-core.sty` (implements all five
-  renderer hooks; `\RKReserveSpace` is a documented no-op, `\RKDiagramCaption`
-  reimplements Beamer's own figure counter instead of loading the external
-  `caption` package), and `reportkit-presentation.sty` (all thirteen named
-  B2 compositions, plus three thin aliases, delegating to a new,
-  separately-gated presentation-token contract in `reportkit-core.sty` so
-  paged themes are never forced to populate slide-only tokens). An
-  experimental `executive` theme (`reportkit-theme-executive(-slides).sty`,
-  `python_scripts/reportkit/themes/executive.py`) exists so the renderer
-  and composition API have something real to compile against — LuaLaTeX,
-  Libertinus (a documented placeholder, not the eventual Google Sans),
-  marked `stability: "experimental"` throughout, per D8. **B3 implemented
-  for executive only**: `slide-main`/`slide-half`/`slide-hero` figure
-  sizes, derived from the canvas and the slides adapter's safe margin, with
-  regression coverage that no paged theme gained slide keys. **B4 now has an
-  automated PDF-inspection gate** on the compiled smoke fixture (title/author/
-  subject/keywords metadata, catalog language, PDF outline/bookmarks,
-  meaningful link annotation, diagram ActualText, and the truthful tagged-PDF
-  status). Two real bugs were found
-  and fixed along the way, not just new code written: (1) A3's own semantic-
-  module migration had missed `reportkit-code.sty`, which still called
-  `\Needspace` directly — harmless under paged, fatal under slides, no
-  fixture had ever exercised `codeblock`/`outputblock` before; fixed and
-  covered. (2) An initial composition design opened Beamer's
-  `\begin{frame}...\end{frame}` from inside each composition's own
-  start/end code, which fails outright (`Runaway argument?`) because
-  Beamer's frame environment scans the raw input stream for a literal
-  `\end{frame}`, not a macro-expanded one — the shipped design makes every
-  composition content-only, wrapped in an explicit frame by the author.
-  (3) Beamer's own metadata setup silently locked out
-  `\setreportkitsubject`/`\setreportkitkeywords` under this renderer; fixed
-  via the LaTeX2e kernel's `begindocument/before` hook. A real, narrower
-  correctness fix also landed in the shared config layer (not slides-only):
-  `config.py` previously defaulted `document.paper` to `"a4"`
-  unconditionally for every publication type, which would have silently
-  broken decision D5's "an omitted paper key stays omitted" the moment a
-  canvas-renderer publication type existed to default against; now
-  conditional on the renderer's geometry kind, and `resolve_build_target()`
-  now actually rejects an explicit paper for a canvas renderer instead of
-  silently dropping it. **Update 2026-09-16: `reportkit build` can now
-  produce a presentation** — see the A5 entry below; that was this entry's
-  main "not done" item. B4's findings now have an automated PDF-inspection
-  gate; `executive` stays experimental pending Phase C's
-  design review; the constrained directive/fragment-based composition path
-  is now proven through the pipeline with source-line validation and explicit
-  trusted-fragment handling. See the plan's Phase B section for the full
-  verification record.
-
-- **Multi-format publication architecture — Phase A5 (make the pipeline
-  target-aware) is essentially complete**, done after Phase B at explicit
-  request (the plan's own recommended order puts A5 first). `publication_
-  build.py`'s `build()` now resolves and keeps a real `BuildTarget`
-  (`resolve_build_target(...)`, previously called only for validation, its
-  result discarded) instead of a hardcoded module-level `TEMPLATE`
-  constant: the entrypoint file, the Pandoc writer (`latex` vs. `beamer`),
-  and the resolved engine all come from it. The staged/compiled entrypoint
-  is always named `publication.tex`/`publication.pdf` now, independent of
-  which entrypoint file was selected (`cli.py`'s one dependent fallback
-  filter was updated to match). `build-report.json` gained a `"selection"`
-  key (the full resolved target: theme/alias/renderer/class/template/
-  writer/engine/paper-or-canvas/accessibility — schema-safe since
-  `reportkit-build-report.schema.json` is `additionalProperties: true`),
-  and a machine-readable, log-visible `REPORTKIT-SELECTED ...` marker is
-  both printed and appended to `publication.log` after a successful
-  compile. Class options are now staged from the resolved target through
-  explicit entrypoint placeholders, so non-default theme/publication pairs
-  reach LaTeX. **`reportkit build` can now build a presentation end to end** —
-  verified with a real build (`publication_type: presentation, theme:
-  executive, engine: lualatex`, plain Markdown manuscript): resolves
-  `renderer=slides`/`class=reportkit-slides`/`template=presentation.tex`/
-  `writer=beamer`, and Pandoc's Beamer writer (now invoked with
-  `--slide-level=1` for the beamer writer specifically, resolving an
-  otherwise content-dependent ambiguity in which heading level becomes a
-  frame) converts Markdown headings straight into `\begin{frame}{...}...
-  \end{frame}` blocks that compile cleanly via `\input{body.tex}` — `\input`
-  is file inclusion, not macro expansion, so Phase B's "Beamer frames can't
-  be opened across a macro boundary" finding doesn't apply to it (confirmed
-  by it compiling, not just argued). `slides-base.tex` gained
-  `\RequirePackage{reportkit-pandoc}` (the same compatibility layer the
-  paged pipeline already needs; confirmed renderer-neutral). New
-  `publication_pipeline/tests/test_build_target_selection.py` (every
-  registered publication type has an existing entrypoint; a real paged
-  build's `selection`/marker/stable-naming; a real presentation build's
-  canvas/page-count; the D5 paper-rejection happens at the pipeline
-  entrypoint, exit 2, before any manuscript is read). The equity-research
-  pipeline-acceptance sub-item is now implemented with Markdown source and
-  trusted figure fragments; static validation passes and a local LuaLaTeX
-  body compile succeeds. The host's normal build stops before body
-  compilation because `algorithmicx.sty` is absent; the pinned
-  `texlive-science` toolchain supplies it. **Follow-up implemented
-  2026-09-16:** the D7 paged split now provides `paged-base.tex`,
-  `technical-report.tex`, and `equity-research.tex`; the constrained
-  Markdown directive/typed-IR path supports presentation compositions with
-  source-line diagnostics and explicit trusted fragments; D6/A5 now has
-  registry-gated brand parsing plus deterministic TeX/chart effective-theme
-  materialization and build-report hashes; and PDF inspection consumes the
-  adjacent `REPORTKIT-SELECTED` marker to detect missing, malformed,
-  mismatched, or default-theme-leaking selections.
-
-  **Remaining:** pinned/runtime verification for the new slices, and promotion
-  of a reviewed venture/editorial visual system.
-
-  **Post-rebase focused verification on 2026-09-16:** slide accessibility,
-  slide-renderer, and non-compiling target-selection checks report 23 passed
-  and 5 skipped; three toolchain-dependent target-selection build tests were
-  deselected because this host lacks `algorithmicx.sty` (the pinned
-  `texlive-science` toolchain supplies it). `reportkit docs --check --json`,
-  static equity `reportkit check`, shell syntax, Ruff, and `git diff --check`
-  pass. The full pinned build/test gate remains authoritative.
-  See the plan's A5 section for the full record.
-
-- **Agent interface & platform contract — Phase A′ and B′ are complete for
-  the shipped non-tagged accessibility contract; constrained authoring is
-  also implemented in v1.9.3.** The canonical contract is now in
-  [references/agent-contract.md](references/agent-contract.md), and the
-  spec's eight open questions are resolved. Remaining work is the standalone
-  `reportkit render` command and visual feedback loop, then
-  progressive-disclosure context budgets, a neutral non-Claude adapter, and
-  i18n extensions. Tagged PDF remains explicitly unsupported pending the
-  separate toolchain-gated tagging spike.
-  See
-  [the spec](docs/superpowers/specs/2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md).
+- **Agent contract — standalone render command.** Add `reportkit render` with
+  page/range selection, DPI control, atomic output, a JSON manifest, and a
+  structured missing-PyMuPDF failure. Cover the authoring loop with tests and
+  update the contract spec.
 
 ### P3
 
-- vNext — **Phase 1 merged 2026-09-08 via PR #10; additive Phases 2–4 merged
-  via PR #9**. PR #9 intentionally inherits the Phase 1 package,
-  config, diagnostics, registry, CLI, manifest, and test-wiring work from PR
-  #10 rather than duplicating it. Its additive capabilities are deeper PDF QA,
-  source/manuscript and link-registry validation, `\RKLink` rendering, and
-  `reportkit analyse-history`.
-- Plan record — **reconciled 2026-09-07**; the overlap with the tooling spec is
-  audited section by section in
-  [the implementation plan](docs/superpowers/plans/2026-09-07-reportkit-vnext-implementation-plan.md).
-- Backlog: a Copier template for consumer projects — deliberately deferred until vNext §4 settles `publication.yaml`'s schema and there's more than one content repo to keep in sync.
+- **Multi-format Phase D — venture theme and controlled branding.** Add the
+  venture theme and strict four-key brand override path, including hashed logo
+  staging, cross-renderer effective-theme materialization, and a reviewed
+  10–12 slide fixture.
+
+- **Multi-format Phase E — editorial feature article.** Add the editorial theme,
+  feature-article publication type, semantic feature primitives, and the
+  required 6–8 page fixture without introducing feature-specific positioning
+  APIs.
+
+- **Multi-format Phase F — executive brief, book, and combination coverage.**
+  Add only the publication details and fixtures named in the implementation
+  plan, then derive minimal compatibility coverage from the publication
+  registry.
+
+- **Agent contract — progressive disclosure budgets.** Add compact context
+  slices with deterministic token-cost reporting while preserving the
+  unfiltered compatibility output and the 2,000-token host-neutral quickstart
+  ceiling.
+
+- **Agent contract — neutral adapter.** Generate the OpenAI-style tool bundle
+  from the stable CLI contract and prove it can author and validate a minimal
+  publication without reading `SKILL.md`.
+
+- **Agent contract — language and script truthfulness.** Add per-script font
+  stacks and renderer/theme language compatibility; keep RTL unsupported and
+  Vietnamese metadata-only until a real typography fixture proves otherwise.
+
+- **Agent contract — tagged-PDF spike.** Revisit tagged PDF only through the
+  separate toolchain-gated `\DocumentMetadata` investigation; the current
+  contract must continue to state that tagging is unsupported.
+
+- **vNext consumer-project template.** Add a Copier template only after
+  `publication.yaml` settles and there is more than one consumer content
+  repository to keep synchronized.
+
+## Completed work
+
+The following records are complete. Their implementation details and dated
+verification notes are retained in `History` below.
+
+### Completed specifications and plans
+
+| Document | Status |
+|---|---|
+| [2026-09-06-reportkit-tooling-hardening-design.md](docs/superpowers/specs/2026-09-06-reportkit-tooling-hardening-design.md) | Implementation slice, `algorithmblock`, B4 contrast/grayscale audit, and F2 bounded parallel workers complete. |
+| [2026-09-07-reportkit-vnext-implementation-plan.md](docs/superpowers/plans/2026-09-07-reportkit-vnext-implementation-plan.md) | Phase 1 and additive Phases 2–4 complete. |
+| [2026-09-07-documentation-and-status-tracking-cleanup-design.md](docs/superpowers/specs/2026-09-07-documentation-and-status-tracking-cleanup-design.md) | Approved design implemented by the companion plan. |
+| [2026-09-07-documentation-and-status-tracking-cleanup.md](docs/superpowers/plans/2026-09-07-documentation-and-status-tracking-cleanup.md) | Done and merged to `main`. |
+| [2026-09-09-reportkit-fix-post-implementation-findings.md](docs/superpowers/plans/2026-09-09-reportkit-fix-post-implementation-findings.md) | All eight tasks complete and reviewed clean. |
+| [2026-09-10-reportkit-fork-port-fixes-spec.md](docs/superpowers/specs/2026-09-10-reportkit-fork-port-fixes-spec.md) | All 11 applicable fixes landed and covered. |
+| [2026-09-12-reportkit-code-quality-and-dependency-remediation-spec.md](docs/superpowers/specs/2026-09-12-reportkit-code-quality-and-dependency-remediation-spec.md) | Phases 0–2 and all three open questions complete. |
+| [2026-09-16-reportkit-algorithm-visualization-primitives-spec.md](docs/superpowers/specs/2026-09-16-reportkit-algorithm-visualization-primitives-spec.md) | Full P0–P3 algorithm-visualization scope complete. |
+| [2026-09-18-algorithm-visuals-fix-sprint-spec.md](docs/superpowers/specs/2026-09-18-algorithm-visuals-fix-sprint-spec.md) | Tasks 1–4 complete; dedicated gate passes, with only documented pre-existing acceptance failures. |
+| [2026-09-18-algorithm-visuals-fix-sprint.md](docs/superpowers/plans/2026-09-18-algorithm-visuals-fix-sprint.md) | Tasks 1–4 complete and synchronized with the sprint spec. |
+
+### Completed implementation slices
+
+- Tooling hardening, the vNext CLI/diagnostics/registry phases, source/link
+  validation, PDF inspection, `\RKLink`, history analysis, `algorithmblock`,
+  and bounded parallel section builds are shipped.
+- The documentation/status-tracking cleanup is shipped; specs and plans are
+  tracked, status headers exist, and `TODOS.md` is an index rather than an
+  audit.
+- Institutional theme and equity-research Steps 1–5 are implemented and the
+  local LuaLaTeX fixtures compile. The pinned visual gate is listed above.
+- The fork-port fixes, code-quality/dependency remediation, and all applicable
+  structural follow-up are shipped.
+- Algorithm visualization primitives P0–P3 are implemented, documented, and
+  covered by generated-contract and regression tests.
+- The algorithm visuals fix sprint is implemented: repaired linear-state
+  geometry, readable traces, dependency-layout/ready-queue rendering,
+  code-unit pagination protection, the four-page guide fixture, acceptance
+  wiring, and default/grayscale/institutional-research visual review are
+  complete. The dedicated gate passes; the full acceptance command retains
+  only the pre-existing out-of-scope failures recorded by the sprint plan.
+- Multi-format A0–A5, Phase B, and constrained-authoring C′1 are implemented
+  for the currently registered targets. The remaining pinned/runtime gates
+  and future visual phases are listed above.
+- The agent-facing A′/B′ contract and constrained Markdown/typed-IR authoring
+  path are implemented. The deferred render, budget, neutrality, i18n, and
+  tagging slices are listed above.
+
 
 ## Environment notes
 
@@ -485,6 +175,8 @@ comparison against a checked-in baseline as informative, not authoritative,
 from a session provisioned this way.
 
 ## History
+
+- 2026-09-19: reorganized this index so only active, scoped work appears before the completed implementation record; synchronized the document rows with the current spec and plan status lines.
 
 - 2026-09-19: completed the algorithm visuals and cheat-sheet fix sprint.
   Merged Task 1's nine-commit implementation, added the four-page integration
