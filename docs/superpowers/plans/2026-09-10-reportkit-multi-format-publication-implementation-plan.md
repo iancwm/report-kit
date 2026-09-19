@@ -1636,6 +1636,13 @@ size.
 - Ensure publication type selection criteria and theme compatibility come only
   from publications.py.
 
+**Implemented 2026-09-19:** `reportkit context --slice NAME` now exposes the
+compact `quickstart`, `selection`, `primitives`, `authoring`, `commands`, and
+`toolchain` slices. The full context remains the compatibility surface apart
+from additive `context_budget` metadata. Slice costs use deterministic
+UTF-8-bytes/4 accounting, and the always-loaded quickstart is enforced below
+the 2,000-token ceiling.
+
 ### D-prime 2 — non-Claude adapter
 
 Generate an OpenAI-style tool-definition bundle from the existing CLI command
@@ -1644,6 +1651,12 @@ the published schemas. It must author and validate a minimal publication
 without reading SKILL.md.
 
 The adapter is proof of neutrality, not a second manually maintained API.
+
+**Implemented 2026-09-19:** `adapters/openai/reportkit_tools.py` generates the
+Responses-style bundle from the live argparse parser and `COMMAND_CONTRACT`;
+`tools.json` is checked in as the generated artifact. Its minimal-publication
+proof uses only stable JSON CLI commands and the published schemas, without
+reading `SKILL.md`.
 
 ### D-prime 3 — language and script truthfulness
 

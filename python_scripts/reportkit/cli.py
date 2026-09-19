@@ -23,6 +23,7 @@ from .config import (
     theme_font_policy_conflict,
 )
 from .context import build_context
+from .context_budget import CONTEXT_SLICE_NAMES, build_context_slice
 from .diagnostics import diagnostic_envelope, inspect_log, load_allowlist, load_maps, make_diagnostic, suggest
 from .documentation import check_documentation, write_documentation
 from .initialization import initialize, install_fonts
@@ -225,7 +226,11 @@ def _run_init(args: argparse.Namespace) -> int:
 
 def _run_context(args: argparse.Namespace) -> int:
     if args.schema:
-        schema_name = "reportkit-context.schema.json" if args.schema == "context" else "reportkit-diagnostic.schema.json"
+        schema_name = {
+            "context": "reportkit-context.schema.json",
+            "context-slice": "reportkit-context-slice.schema.json",
+            "diagnostic": "reportkit-diagnostic.schema.json",
+        }[args.schema]
         print((REPO_ROOT / "schemas" / schema_name).read_text(encoding="utf-8"), end="")
         return EXIT_OK
     try:
@@ -265,6 +270,8 @@ def _run_context(args: argparse.Namespace) -> int:
         )
         _json_or_print(diagnostic_envelope([diagnostic], passed=False), True)
         return EXIT_CONFIG
+    if args.context_slice:
+        payload = build_context_slice(payload, args.context_slice)
     _json_or_print(payload, True)
     return EXIT_OK
 
@@ -671,7 +678,8 @@ def build_parser() -> argparse.ArgumentParser:
     context.add_argument("--publication-type")
     context.add_argument("--theme")
     context.add_argument("--kind", action="append", help="repeat to request multiple primitive kinds")
-    context.add_argument("--schema", nargs="?", const="context", choices=("context", "diagnostic"))
+    context.add_argument("--slice", dest="context_slice", choices=CONTEXT_SLICE_NAMES, help="return one compact contract slice")
+    context.add_argument("--schema", nargs="?", const="context", choices=("context", "context-slice", "diagnostic"))
     context.add_argument("--json", action="store_true")
     context.set_defaults(handler=_run_context)
 

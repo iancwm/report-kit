@@ -9,6 +9,7 @@ import subprocess
 from typing import Any, Iterable
 
 from .config import load_publication_config, resolve_document, resolve_theme
+from .context_budget import build_budget_metadata
 from .diagnostics import make_diagnostic
 from .publications import (
     PUBLICATION_TYPES,
@@ -219,6 +220,7 @@ def build_context(
         "command_contract": deepcopy(registry["command_contract"]),
         "schemas": {
             "context": {"version": CONTEXT_SCHEMA_VERSION, "id": "urn:reportkit:schema:context:1.0.0"},
+            "context-slice": {"version": "1.0.0", "id": "urn:reportkit:schema:context-slice:1.0.0"},
             "diagnostic": {"version": DIAGNOSTIC_SCHEMA_VERSION, "id": "urn:reportkit:schema:diagnostic:1.0.0"},
         },
         "toolchain": toolchain_context(repo_root),
@@ -245,4 +247,5 @@ def build_context(
     }
     if diagnostics:
         result["version_warning"] = f"git ref {revision} does not end with class version {class_version}"
+    result["context_budget"] = build_budget_metadata(result)
     return result

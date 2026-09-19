@@ -3,7 +3,7 @@
   "$id": "urn:reportkit:schema:context:1.0.0",
   "title": "ReportKit capability context",
   "type": "object",
-  "required": ["schema_version", "passed", "diagnostics", "contract_version", "reportkit_version", "revision", "selection", "capabilities", "commands", "command_contract", "schemas", "toolchain"],
+  "required": ["schema_version", "passed", "diagnostics", "contract_version", "reportkit_version", "revision", "selection", "capabilities", "commands", "command_contract", "schemas", "toolchain", "context_budget"],
   "$defs": {
     "diagnostic": {
       "type": "object",
@@ -88,7 +88,31 @@
       "additionalProperties": false
     },
     "commands": {"type": "object", "additionalProperties": {"type": "string"}},
-    "command_contract": {"type": "object"}, "schemas": {"type": "object"}, "toolchain": {"type": "object"}
+    "command_contract": {"type": "object"}, "schemas": {"type": "object"}, "toolchain": {"type": "object"},
+    "context_budget": {
+      "type": "object",
+      "required": ["accounting", "always_loaded", "always_loaded_ceiling", "slices"],
+      "properties": {
+        "accounting": {"const": "ceil(utf8_bytes / 4)"},
+        "always_loaded": {"const": "quickstart"},
+        "always_loaded_ceiling": {"const": 2000},
+        "slices": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": {
+            "type": "object",
+            "required": ["description", "estimated_tokens", "loading"],
+            "properties": {
+              "description": {"type": "string"},
+              "estimated_tokens": {"type": "integer", "minimum": 1},
+              "loading": {"enum": ["always", "on-demand"]}
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    }
   },
   "additionalProperties": true
 }

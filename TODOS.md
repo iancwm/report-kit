@@ -18,7 +18,7 @@ and [references/documentation-status.md](references/documentation-status.md).
 | [2026-09-09-reportkit-institutional-theme-implementation-plan.md](docs/superpowers/plans/2026-09-09-reportkit-institutional-theme-implementation-plan.md) | Same state: pinned baseline passed; human §25 visual release review remains. | P2 |
 | [2026-09-09-reportkit-multi-format-publication-architecture-spec.md](docs/superpowers/specs/2026-09-09-reportkit-multi-format-publication-architecture-spec.md) | A0–A5, Phase B, and constrained-authoring item C′1 are implemented; focused pinned A3/A4 checks passed, full acceptance and future visual phases remain. | P2 |
 | [2026-09-10-reportkit-multi-format-publication-implementation-plan.md](docs/superpowers/plans/2026-09-10-reportkit-multi-format-publication-implementation-plan.md) | Same implementation state as the spec; remaining work is release verification and later visual phases. | P2 |
-| [2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md](docs/superpowers/specs/2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md) | A′/B′, constrained authoring, and standalone render are implemented; budget, neutrality, i18n, and tagging work remain deferred. | P2 |
+| [2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md](docs/superpowers/specs/2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md) | A′/B′, constrained authoring, standalone render, progressive-disclosure budgets, and the generated OpenAI adapter are implemented; i18n and tagging remain deferred. | P2 |
 
 ## Open work
 
@@ -56,15 +56,6 @@ and [references/documentation-status.md](references/documentation-status.md).
   Add only the publication details and fixtures named in the implementation
   plan, then derive minimal compatibility coverage from the publication
   registry.
-
-- **Agent contract — progressive disclosure budgets.** Add compact context
-  slices with deterministic token-cost reporting while preserving the
-  unfiltered compatibility output and the 2,000-token host-neutral quickstart
-  ceiling.
-
-- **Agent contract — neutral adapter.** Generate the OpenAI-style tool bundle
-  from the stable CLI contract and prove it can author and validate a minimal
-  publication without reading `SKILL.md`.
 
 - **Agent contract — language and script truthfulness.** Add per-script font
   stacks and renderer/theme language compatibility; keep RTL unsupported and
@@ -122,8 +113,9 @@ verification notes are retained in `History` below.
   for the currently registered targets. The remaining pinned/runtime gates
   and future visual phases are listed above.
 - The agent-facing A′/B′ contract, constrained Markdown/typed-IR authoring
-  path, and standalone render loop are implemented. The deferred budget,
-  neutrality, i18n, and tagging slices are listed above.
+  path, standalone render loop, progressive-disclosure budget slices, and
+  generated OpenAI adapter are implemented. The deferred i18n and tagging
+  slices remain listed above.
 - The standalone `reportkit render` authoring-loop command is implemented with
   page/range selection, DPI control, atomic output, a JSON manifest, a
   toolchain fingerprint, structured missing-PyMuPDF failure, focused tests,
@@ -185,6 +177,16 @@ from a session provisioned this way.
   retains documented pre-existing failures and was not treated as a release
   pass. Phase C remains intentionally open because no reviewed executive deck
   fixture exists yet.
+
+- 2026-09-19: implemented the agent-contract progressive-disclosure and
+  neutrality slices. `reportkit context --slice` now serves a compact
+  quickstart plus on-demand selection, primitive, authoring, command, and
+  toolchain slices with deterministic UTF-8-bytes/4 costs and an enforced
+  2,000-token always-loaded ceiling. Added the generated OpenAI-style adapter
+  under `adapters/openai/`; its smoke proof authors and validates a minimal
+  publication using only stable CLI JSON and published schemas, without
+  reading `SKILL.md`. The remaining agent-contract work is i18n, tagged-PDF,
+  and the explicitly deferred consumer template.
 
 - 2026-09-19: reorganized this index so only active, scoped work appears before the completed implementation record; synchronized the document rows with the current spec and plan status lines.
 

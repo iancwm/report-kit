@@ -38,7 +38,7 @@ COMMANDS = {
 COMMAND_CONTRACT: dict[str, dict[str, Any]] = {
     "init": {"summary": "Scaffold a consumer publication project outside the ReportKit clone.", "arguments": ["target", "--target", "--install-fonts", "--json"], "exit_codes": [0, 2, 5, 70]},
     "doctor": {"summary": "Inspect build dependencies and pinned-toolchain drift.", "arguments": ["--require", "--json"], "exit_codes": [0, 5, 70]},
-    "context": {"summary": "Print the versioned ReportKit capability contract.", "arguments": ["--source-root", "--output-root", "--profile", "--publication-type", "--theme", "--kind", "--schema", "--json"], "exit_codes": [0, 2, 70]},
+    "context": {"summary": "Print the versioned ReportKit capability contract.", "arguments": ["--source-root", "--output-root", "--profile", "--publication-type", "--theme", "--kind", "--slice", "--schema", "--json"], "exit_codes": [0, 2, 70]},
     "check": {"summary": "Validate publication structure without invoking TeX.", "arguments": ["--source-root", "--output-root", "--profile", "--engine", "--contract-version", "--json"], "exit_codes": [0, 2, 3, 70]},
     "build": {"summary": "Validate, convert, compile, diagnose, render, and inspect a publication.", "arguments": ["--source-root", "--output-root", "--profile", "--mode", "--section", "--chapter", "--workers", "--engine", "--title", "--author", "--version", "--cover", "--contract-version", "--compile-timeout-seconds", "--memory-limit-mb", "--json"], "exit_codes": [0, 2, 3, 4, 5, 70]},
     "diagnose": {"summary": "Parse a TeX log into source-aware diagnostics.", "arguments": ["log", "--source-root", "--output-root", "--profile", "--allowlist", "--underfull-badness", "--json"], "exit_codes": [0, 2, 3, 70]},

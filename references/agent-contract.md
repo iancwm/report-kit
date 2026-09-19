@@ -11,9 +11,11 @@ signatures.
 
 ```bash
 reportkit context --json
+reportkit context --slice quickstart --json
 reportkit context --publication-type equity-research \
   --theme institutional-research --kind callout --kind chart --json
 reportkit context --schema context
+reportkit context --schema context-slice
 reportkit context --schema diagnostic
 reportkit docs --check --json
 ```
@@ -25,6 +27,14 @@ Contract version `1.1.0` describes the combinations registered today:
 capability names, not visual values; `technical` resolves to the same
 implementation as `default`. English with Latin script is verified;
 Vietnamese is metadata-only pending the i18n phase, and RTL is unsupported.
+
+Hosts with a small context window can request one progressive-disclosure slice
+with `context --slice NAME`. The unfiltered payload remains available for
+compatibility. `quickstart` is the always-loaded host-neutral slice and is
+limited to 2,000 estimated tokens; costs use deterministic
+`ceil(utf8_bytes / 4)` accounting. `selection`, `primitives`, `authoring`,
+`commands`, and `toolchain` are on-demand slices, and the full payload exposes
+their estimated costs under `context_budget`.
 
 Fenced `reportkit` blocks in ordinary Markdown are an additive constrained
 authoring surface. `reportkit check` validates them into the 1.0.0 authoring
@@ -102,13 +112,15 @@ trusted `REPORTKIT_COMPILE_TIMEOUT_SECONDS` /
 limits; publication YAML cannot. If the host cannot enforce the memory limit,
 the build exits as an environment failure instead of silently weakening it.
 
-Validated Markdown/IR authoring, slide accessibility parity, and the
-standalone visual feedback loop are implemented in the current tree.
+Validated Markdown/IR authoring, slide accessibility parity, the standalone
+visual feedback loop, progressive-disclosure context slices, and the OpenAI-
+style CLI adapter are implemented in the current tree.
 `reportkit render` supports page/range and DPI controls, atomically writes
 selected page images, emits `pages.json` with the rendered-page list and
 toolchain fingerprint, and returns `RK_PYMUPDF_MISSING` when the environment
-cannot render. Context-token budgets, broader i18n, and a second host adapter
-remain deferred. The slide parity claim is non-tagged: metadata, catalog
+cannot render. Broader i18n and tagged-PDF work remain deferred; the OpenAI
+adapter is generated from the stable CLI contract and does not read this file.
+The slide parity claim is non-tagged: metadata, catalog
 language, outline/bookmarks, meaningful links, and diagram `/ActualText` are
 gated, while tagged PDF remains unsupported pending the separate
 `DocumentMetadata` tagging spike.
