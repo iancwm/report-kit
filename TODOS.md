@@ -14,36 +14,31 @@ and [references/documentation-status.md](references/documentation-status.md).
 | Document | Current status | Priority |
 |---|---|---|
 | [2026-09-06-reportkit-vnext-ai-publication-system-spec.md](docs/superpowers/specs/2026-09-06-reportkit-vnext-ai-publication-system-spec.md) | Reconciled roadmap; implementation phases are complete in the companion plan. Only the deferred consumer-project template remains. | P3 |
-| [2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md](docs/superpowers/specs/2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md) | Steps 1–5 implemented; pinned visual baseline comparison and human §25 review remain. | P2 |
-| [2026-09-09-reportkit-institutional-theme-implementation-plan.md](docs/superpowers/plans/2026-09-09-reportkit-institutional-theme-implementation-plan.md) | Implementation complete; the same pinned visual release gate remains. | P2 |
-| [2026-09-09-reportkit-multi-format-publication-architecture-spec.md](docs/superpowers/specs/2026-09-09-reportkit-multi-format-publication-architecture-spec.md) | A0–A5, Phase B, and constrained-authoring item C′1 are implemented; pinned A3/A4 runtime gates and future visual phases remain. | P2 |
+| [2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md](docs/superpowers/specs/2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md) | Steps 1–5 and pinned visual baseline comparison passed; human §25 review remains. | P2 |
+| [2026-09-09-reportkit-institutional-theme-implementation-plan.md](docs/superpowers/plans/2026-09-09-reportkit-institutional-theme-implementation-plan.md) | Same state: pinned baseline passed; human §25 visual release review remains. | P2 |
+| [2026-09-09-reportkit-multi-format-publication-architecture-spec.md](docs/superpowers/specs/2026-09-09-reportkit-multi-format-publication-architecture-spec.md) | A0–A5, Phase B, and constrained-authoring item C′1 are implemented; focused pinned A3/A4 checks passed, full acceptance and future visual phases remain. | P2 |
 | [2026-09-10-reportkit-multi-format-publication-implementation-plan.md](docs/superpowers/plans/2026-09-10-reportkit-multi-format-publication-implementation-plan.md) | Same implementation state as the spec; remaining work is release verification and later visual phases. | P2 |
-| [2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md](docs/superpowers/specs/2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md) | A′/B′ and constrained authoring are implemented; render, budget, neutrality, i18n, and tagging work remain deferred. | P2 |
+| [2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md](docs/superpowers/specs/2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md) | A′/B′, constrained authoring, and standalone render are implemented; budget, neutrality, i18n, and tagging work remain deferred. | P2 |
 
 ## Open work
 
 ### P2
 
-- **Institutional theme — pinned visual release gate.** Run the four-page
-  equity fixture and checked-in baseline through the pinned OCI toolchain, then
-  complete the spec §25 human visual review. Do not update expected pixels from
-  a non-pinned host.
+- **Institutional theme — human visual release review.** The four-page equity
+  fixture and checked-in baseline passed the pinned OCI comparison on
+  2026-09-19 with zero diagnostics. Complete the spec §25 human visual review;
+  do not update expected pixels from a non-pinned host.
 
-- **Multi-format A3/A4 — pinned/runtime verification.** Run the authoritative
-  pinned CI/toolchain coverage for the shared/paged split, theme-contract
-  runtime checks, Matplotlib-dependent checks, and the existing A3/A4
-  acceptance matrix. Update both the spec and implementation-plan status
-  records with the result.
+- **Multi-format A3/A4 — complete the acceptance matrix.** The pinned OCI
+  image/doctor and 53 focused A3/A4 checks passed on 2026-09-19. Finish the
+  interrupted full acceptance matrix and record its result; focused status
+  records are synchronized.
 
 - **Multi-format Phase C — promote the executive theme.** Complete the
   consulting/strategy visual system, 8–10 slide fixture, and visual approval
   required to move `executive` from experimental to stable. Keep the existing
   presentation composition API unchanged.
 
-- **Agent contract — standalone render command.** Add `reportkit render` with
-  page/range selection, DPI control, atomic output, a JSON manifest, and a
-  structured missing-PyMuPDF failure. Cover the authoring loop with tests and
-  update the contract spec.
 
 ### P3
 
@@ -126,9 +121,13 @@ verification notes are retained in `History` below.
 - Multi-format A0–A5, Phase B, and constrained-authoring C′1 are implemented
   for the currently registered targets. The remaining pinned/runtime gates
   and future visual phases are listed above.
-- The agent-facing A′/B′ contract and constrained Markdown/typed-IR authoring
-  path are implemented. The deferred render, budget, neutrality, i18n, and
-  tagging slices are listed above.
+- The agent-facing A′/B′ contract, constrained Markdown/typed-IR authoring
+  path, and standalone render loop are implemented. The deferred budget,
+  neutrality, i18n, and tagging slices are listed above.
+- The standalone `reportkit render` authoring-loop command is implemented with
+  page/range selection, DPI control, atomic output, a JSON manifest, a
+  toolchain fingerprint, structured missing-PyMuPDF failure, focused tests,
+  and contract/skill documentation.
 
 
 ## Environment notes
@@ -175,6 +174,17 @@ comparison against a checked-in baseline as informative, not authoritative,
 from a session provisioned this way.
 
 ## History
+
+- 2026-09-19: split the active P2 work across four parallel implementation
+  tracks. The standalone `reportkit render` command is now implemented with
+  selected-page/DPI rendering, atomic output, a JSON manifest, a toolchain
+  fingerprint, and structured missing-PyMuPDF handling; its focused tests pass
+  in both the host and pinned environments. The institutional four-page visual
+  baseline comparison passed in the pinned OCI toolchain (human §25 review is
+  still open). Focused pinned A3/A4 checks passed; the broader acceptance suite
+  retains documented pre-existing failures and was not treated as a release
+  pass. Phase C remains intentionally open because no reviewed executive deck
+  fixture exists yet.
 
 - 2026-09-19: reorganized this index so only active, scoped work appears before the completed implementation record; synchronized the document rows with the current spec and plan status lines.
 

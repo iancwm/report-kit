@@ -1,13 +1,16 @@
 # ReportKit Institutional Theme + Equity Profile — Implementation Plan
 
-**Status:** Complete. Step 1 (theme infrastructure) implemented on
+**Status:** Steps 1–5 and the pinned visual baseline comparison are complete;
+the human §25 visual review remains open. Step 1 (theme infrastructure) implemented on
 `claude/vnext-spec-execution-wppmkl`. Steps 2–4 (institutional theme, equity
 publication profile, visualization integration) implemented on
 `claude/institutional-template-spec-m6imf7`. Step 5 (fixtures, QA, skill
 guidance) implemented on `claude/institutional-theme-step-5-gi0ptf`.
-Subsequent equity verification work closed the compile gap; pinned visual
-review remains a release-gate concern.
-**Last updated:** 2026-09-13
+Subsequent equity verification work closed the compile gap. On 2026-09-19 the
+pinned OCI gate built successfully, the four-page 150-DPI render matched the
+checked-in baseline with zero diagnostics, and 30 focused pinned checks passed;
+expected pixels were not changed. Human §25 review remains the release gate.
+**Last updated:** 2026-09-19
 
 **Spec:** [2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md](../specs/2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md)
 

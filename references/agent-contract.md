@@ -102,11 +102,13 @@ trusted `REPORTKIT_COMPILE_TIMEOUT_SECONDS` /
 limits; publication YAML cannot. If the host cannot enforce the memory limit,
 the build exits as an environment failure instead of silently weakening it.
 
-Validated Markdown/IR authoring and slide accessibility parity are implemented
-in the current tree. `reportkit inspect` and build-time full rendering are
-available; a separate `reportkit render` command with page/range and DPI
-controls remains deferred, as do context-token budgets, broader i18n, and a
-second host adapter. The slide parity claim is non-tagged: metadata, catalog
+Validated Markdown/IR authoring, slide accessibility parity, and the
+standalone visual feedback loop are implemented in the current tree.
+`reportkit render` supports page/range and DPI controls, atomically writes
+selected page images, emits `pages.json` with the rendered-page list and
+toolchain fingerprint, and returns `RK_PYMUPDF_MISSING` when the environment
+cannot render. Context-token budgets, broader i18n, and a second host adapter
+remain deferred. The slide parity claim is non-tagged: metadata, catalog
 language, outline/bookmarks, meaningful links, and diagram `/ActualText` are
 gated, while tagged PDF remains unsupported pending the separate
 `DocumentMetadata` tagging spike.

@@ -3,14 +3,14 @@
 **Status:** Phase A′ is complete in ReportKit v1.9.0. Phase B′ diagnostics and
 security are complete in v1.9.0, and its slide-renderer accessibility item 7
 is implemented in the current v1.9.3 tree. The constrained Markdown/typed-IR
-authoring slice (Phase C′ item 8) is also implemented in v1.9.3; the standalone
-render command (item 9), progressive-disclosure budgets, i18n extensions and a
-second host adapter remain deferred. An additive `algorithmblock` primitive is
-included in the generated contract.
+authoring slice (Phase C′ item 8) and the standalone `reportkit render`
+feedback command (item 9) are implemented in the working tree; progressive-
+disclosure budgets, i18n extensions and a second host adapter remain deferred.
+An additive `algorithmblock` primitive is included in the generated contract.
 Companion to
 [2026-09-09-reportkit-multi-format-publication-architecture-spec.md](2026-09-09-reportkit-multi-format-publication-architecture-spec.md)
 (the "renderer spec"), which it amends in [§18](#18-amendments-to-the-renderer-spec).
-**Last updated:** 2026-09-16
+**Last updated:** 2026-09-19
 **Current-state claims:** the historical baseline below is verified against the
 working tree at `2587e03`; the additive checkpoint is verified against `main`
 at `74197e6`; the current authoring checkpoint is verified against `a7e83f9`.
@@ -48,9 +48,12 @@ boundary required by Beamer. `tests/test_authoring_ir.py` and
 records one effective theme and the PDF inspector consumes the adjacent
 `REPORTKIT-SELECTED` marker; those cross-cutting selection checks are covered
 by `tests/test_brand_overrides.py` and
-`tests/test_selection_marker_inspection.py`. The separate `reportkit render`
-command with page/range and DPI controls is not implemented yet; `reportkit
-inspect` and build-time full rendering remain available.
+`tests/test_selection_marker_inspection.py`. The standalone `reportkit render`
+command now wraps `render_pdf_pages.py` with page/range selection, DPI
+control, atomic output replacement, a JSON manifest and toolchain fingerprint;
+missing PyMuPDF is reported as the structured `RK_PYMUPDF_MISSING` environment
+diagnostic. Focused coverage is in
+`publication_pipeline/tests/test_render_command.py`.
 
 ---
 
@@ -500,10 +503,12 @@ institutional plan, actually rendering the charts is what caught a real
   never claim a visual check it did not perform.
 
 **Current status:** `reportkit build` performs the existing full-page render and
-PDF inspection, and `reportkit inspect` is available as a first-class PDF
-inspection command. A separate `reportkit render` command with page/range and
-DPI controls remains deferred; the build path does not yet expose that
-selection surface.
+PDF inspection, `reportkit inspect` is available as a first-class PDF
+inspection command, and `reportkit render` exposes a predictable authoring
+surface for selected pages. Its output is staged into a temporary directory
+and atomically installed only after rendering succeeds. The command preserves
+the build's full-render path while allowing an agent to inspect one slide or
+page without rasterizing the rest of a document.
 
 ---
 
@@ -706,15 +711,17 @@ remediation; security properties are asserted by tests.
 
 ### Phase C′ — Authoring contract (after renderer Phase B)
 
-**Status (updated 2026-09-16):** the selected constrained Markdown/typed-IR
-authoring surface is implemented in v1.9.3. The standalone render command and
-the remaining context-budget, i18n, and second-adapter work remain deferred.
+**Status (updated 2026-09-19):** the selected constrained Markdown/typed-IR
+authoring surface and standalone render command are implemented in the working
+tree. The remaining context-budget, i18n, and second-adapter work remains
+deferred.
 
 8. Authoring IR or constrained dialect ([§6](#6-the-authoring-contract)).
 9. Agent visual feedback loop ([§12](#12-agent-visual-feedback-loop)).
 
 **Done when:** an agent authoring three deliberate errors gets all three
-structurally, sub-second, with no TeX invoked.
+structurally, sub-second, with no TeX invoked, and can render a selected page
+with a machine-readable manifest or a structured environment failure.
 
 The original sequencing rationale is retained as history: the IR was deferred
 until both renderers existed so it could target both rather than coupling to

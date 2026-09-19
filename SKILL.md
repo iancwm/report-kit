@@ -523,10 +523,16 @@ gate, page rendering, and build manifest are applied consistently:
 
 ```bash
 ./reportkit build --source-root <publication-project>
+./reportkit render --source-root <publication-project> --pages 1,3-4 --dpi 150
 ./reportkit inspect --source-root <publication-project>
 ```
 
-Read the `.log` before retrying a failed compile. Inspect every rendered page for clipped text, overlapping labels, broken arrows, bad page breaks, missing figures, and meanings conveyed only by colour. A successful TeX exit code alone is not completion.
+Read the `.log` before retrying a failed compile. Use `reportkit render` to
+inspect only the pages or slides relevant to the change; its output includes
+an atomic page directory and `pages.json` manifest. Inspect every rendered
+page for clipped text, overlapping labels, broken arrows, bad page breaks,
+missing figures, and meanings conveyed only by colour. A successful TeX exit
+code alone is not completion.
 
 When modifying ReportKit itself, run its regression suite:
 
