@@ -153,3 +153,61 @@ def test_bare_pointer_targets_direct_cell_row_not_a_named_row(compile_doc):
     # (9,8,7) instead: its label sits below that row, past the named row's
     # band entirely.
     assert boxes["Lo"][1] > direct_row_bottom
+
+
+def test_index_label_is_horizontally_centered_under_its_cell(compile_doc):
+    # No description= (see note above -- ActualText masks real diagram
+    # text when it is set). Letter values keep the index digits ("0".."4")
+    # from colliding with a cell's own displayed value.
+    page = compile_doc(
+        r"""
+        \begin{diagram}[type=array,width=\textwidth,caption={Index centering.}]
+          \begin{arraystate}
+            \cell{aa}\cell{bb}\cell{cc}\cell{dd}\cell{ee}
+          \end{arraystate}
+        \end{diagram}
+        """
+    )[0]
+    cells = node_rects(page, min_width=10.0)
+    boxes = word_boxes(page, {"0", "1", "2", "3", "4"})
+    assert len(cells) >= 5
+    assert {"0", "1", "2", "3", "4"} <= set(boxes)
+    for i, cell in enumerate(cells[:5]):
+        cell_center_x = (cell.x0 + cell.x1) / 2
+        index_box = boxes[str(i)]
+        index_center_x = (index_box[0] + index_box[2]) / 2
+        assert abs(index_center_x - cell_center_x) < 0.25, (
+            f"index {i} center {index_center_x} not within 0.25pt of cell center {cell_center_x}"
+        )
+
+
+def test_index_label_clears_cell_border_and_survives_range_and_pointer(compile_doc):
+    # Index 2 sits under a cell that also carries an active \range and a
+    # \pointer -- the index must still render, stay centered, and keep a
+    # readable vertical gap from the cell's own border (spec sec 2.1: "top
+    # of an index glyph is separated from the cell border by at least
+    # 1.5pt").
+    page = compile_doc(
+        r"""
+        \begin{diagram}[type=array,width=\textwidth,caption={Index with range and pointer.}]
+          \begin{arraystate}
+            \cell{aa}\cell{bb}\cell[state=active]{cc}\cell{dd}\cell{ee}
+            \range[state=active]{1}{3}
+            \pointer[below]{M}{2}
+          \end{arraystate}
+        \end{diagram}
+        """
+    )[0]
+    # Exclude the wider \range background rectangle (spans cells 1-3) so
+    # positional indexing lines up with individual cells only.
+    cells = [r for r in node_rects(page, min_width=10.0) if r.width < 100]
+    boxes = word_boxes(page, {"0", "1", "2", "3", "4"})
+    assert {"2"} <= set(boxes)
+    assert len(cells) >= 5
+    cell_two = cells[2]
+    index_two = boxes["2"]
+    index_center_x = (index_two[0] + index_two[2]) / 2
+    cell_center_x = (cell_two.x0 + cell_two.x1) / 2
+    assert abs(index_center_x - cell_center_x) < 0.25
+    # The index's top edge must clear the cell's bottom edge by >=1.5pt.
+    assert index_two[1] - cell_two.y1 >= 1.5

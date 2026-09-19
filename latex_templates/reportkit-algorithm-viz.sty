@@ -94,7 +94,31 @@
 \newcount\rk@algoannocount
 \newcommand{\rk@algocellwidth}{1.05}
 \newcommand{\rk@algorowheight}{1.15}
-\newif\ifrk@algoindices
+% Unique per-instance id so the "did this row/column actually render an
+% index label" flag \cell sets (see \rk@algocheckindexvisible below) can
+% never collide across separate arraystate/windowstate instances in the
+% same document -- row 0 is not reliably "the direct-cell row" once a
+% named \row can occupy it (A2's row-lookup fix), so \pointer must check
+% whether an index was really drawn rather than re-guessing from the row
+% number alone.
+\newcount\rk@algoinstancecounter
+\rk@algoinstancecounter=0\relax
+\newcommand{\rk@algoinstanceid}{0}
+% indices= is a tri-state key: true (always show), false (never show), or
+% auto (show on the first algorithmtrace snapshot, or whenever the current
+% cell width would still keep the index label at/above the themed minimum
+% cell size -- spec sec 2.1 A1's "Compact traces" row). \rk@tracesnapshotindex
+% is declared later, alongside algorithmtrace, and defaults to 0 outside any
+% trace, so plain (non-trace) arraystate/windowstate always show indices
+% under indices=auto.
+\newcommand{\rk@algoindicesmode}{true}
+\newif\ifrk@algoindexvisible
+% Which algorithmtrace snapshot (0-based) is currently rendering, if any;
+% stays 0 outside a trace so indices=auto behaves like indices=true for a
+% standalone arraystate/windowstate. algorithmtrace's \snapshot advances
+% this once per snapshot (see that section below).
+\newcount\rk@tracesnapshotindex
+\rk@tracesnapshotindex=0\relax
 \newcommand{\rk@algorownames}{}
 \newcount\rk@algorowquery
 \newcommand{\rk@algocellstate}{}
@@ -108,7 +132,7 @@
   /reportkit/arraystate,
   cell width/.store in=\rk@algocellwidth,
   row height/.store in=\rk@algorowheight,
-  indices/.is if=rk@algoindices,
+  indices/.store in=\rk@algoindicesmode,
 }
 \pgfkeys{
   /reportkit/algocell/.is family,
@@ -162,12 +186,36 @@
 }
 \newcount\rk@algorow@index
 
+% Decide whether row #1's column #2 should show its index label, per the
+% indices= tri-state contract (true/false/auto) documented above. Indices
+% only ever apply to row 0 (the row built from direct \cell declarations),
+% matching this primitive's existing single-indexed-row design.
+\newcommand{\rk@algocheckindexvisible}[2]{%
+  \rk@algoindexvisiblefalse
+  \ifnum#1=0\relax
+    \ifdefstring{\rk@algoindicesmode}{false}{}{%
+    \ifdefstring{\rk@algoindicesmode}{auto}{%
+      \ifnum\rk@tracesnapshotindex=0\relax
+        \rk@algoindexvisibletrue
+      \else
+        \pgfmathparse{\rk@algocellwidth cm>\RKTokAlgorithmCellMinSize ? 1 : 0}%
+        \ifdim\pgfmathresult pt>0.5pt\relax\rk@algoindexvisibletrue\fi
+      \fi
+    }{%
+      \rk@algoindexvisibletrue
+    }}%
+  \fi
+}
+
 % <reportkit-contract>
 % {"kind":"figure","description":"Indexed linear data with values, indices, pointers, active ranges, and optional aligned rows.","arguments":[{"name":"options","type":"options","description":"Cell width, row height, and indices= layout keys."}],"constraints":[{"code": "zero_based_indices", "description": "Column and row indices are zero-based."}],"example":"\\begin{diagram}[type=array,caption={Two-pointer scan.},description={A sorted array with left and right pointers bounding the active range.}]\n\\begin{arraystate}\n\\cell{-4}\n\\cell{-1}\n\\cell{-1}\n\\cell{0}\n\\cell{1}\n\\cell{2}\n\\pointer[below]{L}{2}\n\\pointer[below]{R}{5}\n\\range[state=active]{2}{5}\n\\end{arraystate}\n\\end{diagram}","stability":"experimental","since":"1.10.0"}
 % </reportkit-contract>
 \NewDocumentEnvironment{arraystate}{O{}}{%
   \begingroup
-  \pgfkeys{/reportkit/arraystate,cell width=1.05,row height=1.15,indices=true,#1}%
+  \global\advance\rk@algoinstancecounter by 1\relax
+  \edef\rk@algoinstanceid{\the\rk@algoinstancecounter}%
+  \def\rk@algoindicesmode{true}%
+  \pgfkeys{/reportkit/arraystate,cell width=1.05,row height=1.15,#1}%
   \rk@algocol=0\relax\rk@algorow=0\relax\rk@algoannocount=0\relax
   \def\rk@algorownames{}%
 }{%
@@ -184,10 +232,30 @@
   \pgfmathsetmacro{\rk@algoy}{-\the\rk@algorow*\rk@algorowheight}%
   \edef\rk@algocellname{rkalgocell-\the\rk@algorow-\the\rk@algocol}%
   \node[rk algo cell,\rk@algostateoverlay] (\rk@algocellname) at (\rk@algox,\rk@algoy) {\strut #2};%
-  \ifnum\rk@algorow=0\relax
-    \ifrk@algoindices
-      \node[rk algo index] at (\rk@algox,{\rk@algoy-0.62*\rk@algorowheight}) {\the\rk@algocol};%
-    \fi
+  \rk@algocheckindexvisible{\the\rk@algorow}{\the\rk@algocol}%
+  \ifrk@algoindexvisible
+    % Anchor the index directly to the cell node via tikz's "below=<gap> of"
+    % positioning rather than recomputing x/y by hand: this guarantees
+    % index_x is exactly the cell's own horizontal center (spec sec 2.1's
+    % coordinate contract) with no drift from font metrics or rounding, and
+    % index_y is a themed gap below the cell's *real* rendered edge instead
+    % of a fixed fraction of row height (the old formula placed the index at
+    % the same offset a "below" \pointer's arrow tail used, so the two
+    % silently collided whenever both were present on row 0).
+    \edef\rk@algoindexname{rkalgoindex-\the\rk@algorow-\the\rk@algocol}%
+    % "below=" must appear literally in the options list rather than
+    % hidden inside one macro: pgfkeys locates the "=" and the
+    % positioning library's own "<dist> of <node>" lookahead scans the
+    % surrounding token stream directly, so pre-expanding the whole
+    % "below=...of..." string into a single opaque token breaks both
+    % (it gets treated as one unrecognized style name instead).
+    \node[rk algo index,below=\RKTokAlgorithmIndexGap\space of \rk@algocellname]
+      (\rk@algoindexname) {\the\rk@algocol};%
+    % Record that this exact instance/row/column really drew an index, so
+    % \pointer can anchor to it without re-guessing from the row number
+    % alone (a named \row can also occupy row 0, and never draws an
+    % index -- see \rk@algoinstanceid's declaration above).
+    \expandafter\gdef\csname rk@algoindexdrawn@\rk@algoinstanceid @\the\rk@algorow @\the\rk@algocol\endcsname{1}%
   \fi
   \advance\rk@algocol by 1\relax
 }
@@ -211,8 +279,21 @@
     \advance\rk@algocol by 1\relax
   }%
   \advance\rk@algorow by 1\relax
+  % Reset the running column counter for whatever comes next (another
+  % \row, which would reset it itself anyway, or a bare \cell building
+  % the "direct-cell row" A2 refers to): without this, a bare \cell
+  % right after a \row silently continued from \row's own column count
+  % instead of starting a fresh row at column 0.
+  \rk@algocol=0\relax
 }
 
+% Fixed structural gaps for the pointer arrow (primitive geometry, not a
+% themed spacing value -- see reportkit-core.sty's "Theme ownership" note:
+% only the RKTokAlgorithmIndex* family owns a gap token; a pointer's own
+% internal arrow proportions are the primitive's geometry to own).
+\newcommand{\rk@algopointerheadgap}{1.6pt}
+\newcommand{\rk@algopointerarrowlen}{7pt}
+\newcommand{\rk@algopointerlabelgap}{2pt}
 % <reportkit-contract>
 % {"kind":"command","description":"Place a labelled cursor arrow under (or over) a cell index.","arguments":[{"name":"options","type":"options","description":"above, below (default), or row= to target a named arraystate row."},{"name":"label","type":"text","description":"Cursor label, e.g. L, R, or mid."},{"name":"index","type":"text","description":"Zero-based cell index the cursor targets."}],"constraints":[{"code": "inside_arraystate", "description": "Only valid inside arraystate."}],"example":"\\pointer[below]{L}{2}","stability":"experimental","since":"1.10.0","parent":"arraystate"}
 % </reportkit-contract>
@@ -220,14 +301,35 @@
   \def\rk@algopointerrow{}%
   \pgfkeys{/reportkit/algopointer,position=below,#1}%
   \rk@findalgorow{\rk@algopointerrow}%
-  \pgfmathsetmacro{\rk@algox}{#3*\rk@algocellwidth}%
-  \pgfmathsetmacro{\rk@algoy}{-\the\rk@algorowquery*\rk@algorowheight}%
+  \edef\rk@algotargetcell{rkalgocell-\the\rk@algorowquery-#3}%
   \ifstrequal{\rk@algopointerposition}{above}{%
-    \draw[rk algo pointer] (\rk@algox,{\rk@algoy+0.62*\rk@algorowheight}) -- (\rk@algox,{\rk@algoy+0.30*\rk@algorowheight});%
-    \node[rk algo pointer label,anchor=south] at (\rk@algox,{\rk@algoy+0.66*\rk@algorowheight}) {#2};%
+    % Indices only ever render below row 0, so "above" always anchors
+    % directly to the cell -- there is never an index to clear up here.
+    \draw[rk algo pointer]
+      ($(\rk@algotargetcell.north)+(0,\rk@algopointerheadgap+\rk@algopointerarrowlen)$) --
+      ($(\rk@algotargetcell.north)+(0,\rk@algopointerheadgap)$);%
+    \node[rk algo pointer label,anchor=south] at
+      ($(\rk@algotargetcell.north)+(0,\rk@algopointerheadgap+\rk@algopointerarrowlen+\rk@algopointerlabelgap)$) {#2};%
   }{%
-    \draw[rk algo pointer] (\rk@algox,{\rk@algoy-0.62*\rk@algorowheight}) -- (\rk@algox,{\rk@algoy-0.30*\rk@algorowheight});%
-    \node[rk algo pointer label,anchor=north] at (\rk@algox,{\rk@algoy-0.66*\rk@algorowheight}) {#2};%
+    % Anchor a "below" pointer under the rendered index label when this
+    % exact row/column really drew one, so the arrow and its label never
+    % collide with the index the way a fixed row-height fraction used to
+    % (spec sec 2.1's "no readable L/R markers" defect): otherwise anchor
+    % directly to the cell. Check whether \cell actually drew an index
+    % (\rk@algoindexdrawn@<instance>@<row>@<col>) rather than re-deriving
+    % the "row 0" heuristic here -- a named \row can also occupy row 0
+    % and never draws an index, so re-guessing would wrongly anchor to a
+    % nonexistent index node.
+    \@ifundefined{rk@algoindexdrawn@\rk@algoinstanceid @\the\rk@algorowquery @#3}{%
+      \let\rk@algopointeranchor\rk@algotargetcell
+    }{%
+      \edef\rk@algopointeranchor{rkalgoindex-\the\rk@algorowquery-#3}%
+    }%
+    \draw[rk algo pointer]
+      ($(\rk@algopointeranchor.south)-(0,\rk@algopointerheadgap+\rk@algopointerarrowlen)$) --
+      ($(\rk@algopointeranchor.south)-(0,\rk@algopointerheadgap)$);%
+    \node[rk algo pointer label,anchor=north] at
+      ($(\rk@algopointeranchor.south)-(0,\rk@algopointerheadgap+\rk@algopointerarrowlen+\rk@algopointerlabelgap)$) {#2};%
   }%
 }
 
@@ -280,7 +382,10 @@
 % </reportkit-contract>
 \NewDocumentEnvironment{windowstate}{O{}}{%
   \begingroup
-  \pgfkeys{/reportkit/arraystate,cell width=1.05,row height=1.15,indices=true,#1}%
+  \global\advance\rk@algoinstancecounter by 1\relax
+  \edef\rk@algoinstanceid{\the\rk@algoinstancecounter}%
+  \def\rk@algoindicesmode{true}%
+  \pgfkeys{/reportkit/arraystate,cell width=1.05,row height=1.15,#1}%
   \rk@algocol=0\relax\rk@algorow=0\relax\rk@algoannocount=0\relax
   \def\rk@algorownames{}%
 }{%
