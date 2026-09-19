@@ -65,9 +65,65 @@
 % downstream algorithm-state modules (stackstate, queuestate, graphstate,
 % ...) via \rk@setalgostate so every primitive family understands the same
 % nine words -- see the spec's section 2.2.
+% legend=auto bookkeeping (spec sec 3.3, B3): which states/roles have
+% actually been used in the current legend-owning scope (a standalone
+% arraystate/windowstate, or a whole algorithmtrace aggregating across
+% all of its nested snapshots). \ifrk@insidetrace suppresses a nested
+% snapshot's own arraystate from resetting the accumulator out from
+% under the enclosing trace. Global because \cell/\pointer often run
+% inside \begingroup'd sub-scopes (arraystate's own, or a snapshot's).
+\newcommand{\rk@algousedstates}{}
+\newcommand{\rk@algousedroles}{}
+\newif\ifrk@insidetrace
+\newcommand{\rk@algorecordusedstate}[1]{%
+  \ifinlist{#1}{\rk@algousedstates}{}{%
+    \ifdefempty{\rk@algousedstates}{\gdef\rk@algousedstates{#1}}{\g@addto@macro\rk@algousedstates{,#1}}%
+  }%
+}
+\newcommand{\rk@algorecordusedrole}[1]{%
+  \ifinlist{#1}{\rk@algousedroles}{}{%
+    \ifdefempty{\rk@algousedroles}{\gdef\rk@algousedroles{#1}}{\g@addto@macro\rk@algousedroles{,#1}}%
+  }%
+}
+% Render a compact legend row at tikz y-coordinate #1: one small swatch
+% per used state (reusing \rk@setalgostate so the swatch's border/fill/
+% line-style exactly matches the real cells -- state meaning stays
+% distinguishable by border/line-style in the legend too, not fill color
+% alone), followed by one small arrow per used pointer role.
+\newcommand{\rk@algorenderlegend}[1]{%
+  \begingroup
+  \ifdefempty{\rk@algousedstates}{}{%
+    \pgfmathsetmacro{\rk@legendx}{0}%
+    \@for\rk@legendstate:=\rk@algousedstates\do{%
+      \rk@setalgostate{\rk@legendstate}%
+      \node[rk algo cell,\rk@algostateoverlay,minimum size=3mm,inner sep=0pt] at (\rk@legendx,#1) {};%
+      \node[rk algo annotation,anchor=west] at ({\rk@legendx+0.26},#1) {\rk@legendstate};%
+      \pgfmathsetmacro{\rk@legendx}{\rk@legendx+1.5}%
+    }%
+  }%
+  \ifdefempty{\rk@algousedroles}{}{%
+    \ifdefempty{\rk@algousedstates}{\pgfmathsetmacro{\rk@legendx}{0}}{}%
+    \@for\rk@legendrole:=\rk@algousedroles\do{%
+      % \expandafter: \rk@algosetpointerrole compares its argument
+      % directly via \ifstrequal (no internal \edef, unlike
+      % \rk@setalgostate above), so it needs the loop variable's plain
+      % text, not the unexpanded \rk@legendrole token.
+      \expandafter\rk@algosetpointerrole\expandafter{\rk@legendrole}%
+      \draw[rk algo pointer,-{\rk@algopointerrolearrow[length=4.2pt,width=3.2pt]}]
+        ({\rk@legendx+0.15},{#1-0.22}) -- ({\rk@legendx+0.15},{#1+0.05});%
+      \node[rk algo annotation,anchor=west] at ({\rk@legendx+0.34},#1) {\rk@legendrole};%
+      \pgfmathsetmacro{\rk@legendx}{\rk@legendx+1.5}%
+    }%
+  }%
+  \endgroup
+}
 \newcommand{\rk@algostateoverlay}{}
 \newcommand{\rk@setalgostate}[1]{%
   \edef\rk@algostatevalue{#1}%
+  % \expandafter (not a bare macro argument): \rk@algorecordusedstate
+  % must receive the plain text "current"/"active"/... to compare and
+  % store, not the unexpanded \rk@algostatevalue token itself.
+  \expandafter\ifstrempty\expandafter{\rk@algostatevalue}{}{\expandafter\rk@algorecordusedstate\expandafter{\rk@algostatevalue}}%
   \expandafter\ifstrempty\expandafter{\rk@algostatevalue}{\def\rk@algostateoverlay{}}{%
   \ifdefstring{\rk@algostatevalue}{current}{\def\rk@algostateoverlay{rk algo state current}}{%
   \ifdefstring{\rk@algostatevalue}{active}{\def\rk@algostateoverlay{rk algo state active}}{%
@@ -94,21 +150,79 @@
 \newcount\rk@algoannocount
 \newcommand{\rk@algocellwidth}{1.05}
 \newcommand{\rk@algorowheight}{1.15}
-\newif\ifrk@algoindices
+% Unique per-instance id so the "did this row/column actually render an
+% index label" flag \cell sets (see \rk@algocheckindexvisible below) can
+% never collide across separate arraystate/windowstate instances in the
+% same document -- row 0 is not reliably "the direct-cell row" once a
+% named \row can occupy it (A2's row-lookup fix), so \pointer must check
+% whether an index was really drawn rather than re-guessing from the row
+% number alone.
+\newcount\rk@algoinstancecounter
+\rk@algoinstancecounter=0\relax
+\newcommand{\rk@algoinstanceid}{0}
+% Declared backing-array length for the current windowstate (set by
+% \values, reset by windowstate's own begin code), used to bounds-check
+% \entering/\leaving indices (spec sec 2.4 / A4).
+\newcount\rk@windowcellcount
+\rk@windowcellcount=0\relax
+% indices= is a tri-state key: true (always show), false (never show), or
+% auto (show on the first algorithmtrace snapshot, or whenever the current
+% cell width would still keep the index label at/above the themed minimum
+% cell size -- spec sec 2.1 A1's "Compact traces" row). \rk@tracesnapshotindex
+% is declared later, alongside algorithmtrace, and defaults to 0 outside any
+% trace, so plain (non-trace) arraystate/windowstate always show indices
+% under indices=auto.
+\newcommand{\rk@algoindicesmode}{true}
+\newif\ifrk@algoindexvisible
+% Which algorithmtrace snapshot (0-based) is currently rendering, if any;
+% stays 0 outside a trace so indices=auto behaves like indices=true for a
+% standalone arraystate/windowstate. algorithmtrace's \snapshot advances
+% this once per snapshot (see that section below).
+\newcount\rk@tracesnapshotindex
+\rk@tracesnapshotindex=0\relax
 \newcommand{\rk@algorownames}{}
 \newcount\rk@algorowquery
 \newcommand{\rk@algocellstate}{}
 \newcommand{\rk@algopointerposition}{below}
 \newcommand{\rk@algopointerrow}{}
+% role= chrome (spec sec 2.3, A3): opt-in, adds a marker shape and does
+% not replace or affect the cell's own state=. \rk@algopointerrolearrow
+% is the tip name from tikz's arrows.meta library (Stealth/Triangle/
+% Diamond/Circle/Kite/Straight Barb/Latex are all real, distinctly-
+% shaped tips, so role meaning survives grayscale by shape, not color).
+% \rk@algopointerroleslant leans the arrow stem left or right for the
+% left/right roles specifically -- an "opposing arrow direction" per the
+% spec, distinct from color alone, and 0pt (a plain vertical stem) for
+% every other role and for no role at all (fully backward compatible).
+\newcommand{\rk@algopointerrolearrow}{Stealth}
+\newcommand{\rk@algopointerroleslant}{0pt}
+\newcommand{\rk@algosetpointerrole}[1]{%
+  \def\rk@algopointerrolearrow{Stealth}%
+  \def\rk@algopointerroleslant{0pt}%
+  \ifstrequal{#1}{}{}{\rk@algorecordusedrole{#1}}%
+  \ifstrequal{#1}{}{}{%
+  \ifstrequal{#1}{left}{\def\rk@algopointerrolearrow{Triangle}\def\rk@algopointerroleslant{-3pt}}{%
+  \ifstrequal{#1}{right}{\def\rk@algopointerrolearrow{Triangle}\def\rk@algopointerroleslant{3pt}}{%
+  \ifstrequal{#1}{mid}{\def\rk@algopointerrolearrow{Diamond}}{%
+  \ifstrequal{#1}{head}{\def\rk@algopointerrolearrow{Circle}}{%
+  \ifstrequal{#1}{tail}{\def\rk@algopointerrolearrow{Kite}}{%
+  \ifstrequal{#1}{top}{\def\rk@algopointerrolearrow{Straight Barb}}{%
+  \ifstrequal{#1}{root}{\def\rk@algopointerrolearrow{Latex}}{%
+    \PackageError{reportkit-algorithm-viz}{Unknown pointer role '#1'}%
+      {Use one of left, right, mid, head, tail, top, root, or omit role= for the plain cursor.}%
+  }}}}}}}}%
+}
 \newcommand{\rk@algorangestate}{active}
 \newcommand{\rk@algorangerow}{}
 \newcommand{\rk@algoannotationrow}{}
+\newcommand{\rk@algolegendmode}{}
 \pgfkeys{
   /reportkit/arraystate/.is family,
   /reportkit/arraystate,
   cell width/.store in=\rk@algocellwidth,
   row height/.store in=\rk@algorowheight,
-  indices/.is if=rk@algoindices,
+  indices/.store in=\rk@algoindicesmode,
+  legend/.store in=\rk@algolegendmode,
 }
 \pgfkeys{
   /reportkit/algocell/.is family,
@@ -122,6 +236,7 @@
   below/.style={position=below},
   position/.store in=\rk@algopointerposition,
   row/.store in=\rk@algopointerrow,
+  role/.code=\rk@algosetpointerrole{#1},
 }
 \pgfkeys{
   /reportkit/algorange/.is family,
@@ -139,7 +254,13 @@
 % \cell calls) to a zero-based row index, stored in \rk@algorowquery.
 \newcommand{\rk@findalgorow}[1]{%
   \edef\rk@algorowtarget{#1}%
-  \expandafter\ifstrempty\expandafter{\rk@algorowtarget}{\rk@algorowquery=0\relax}{%
+  % An empty target (no row= given) must resolve to the row direct \cell
+  % calls are currently building -- \rk@algorow -- not a hardcoded row 0.
+  % A named \row declared earlier already advanced \rk@algorow past 0, so
+  % hardcoding 0 here silently stole a bare \pointer/\range onto whatever
+  % row happens to be named first instead of the direct-cell row (spec
+  % sec 2.2 / A2's "Unknown arraystate row" family of bugs).
+  \expandafter\ifstrempty\expandafter{\rk@algorowtarget}{\rk@algorowquery=\rk@algorow\relax}{%
     \rk@algorow@index=0\relax\rk@algorowquery=-1\relax
     \expandafter\@for\expandafter\rk@algorowname\expandafter:=\rk@algorownames\do{%
       \edef\rk@algorowcandidate{\rk@algorowname}%
@@ -156,15 +277,51 @@
 }
 \newcount\rk@algorow@index
 
+% Decide whether row #1's column #2 should show its index label, per the
+% indices= tri-state contract (true/false/auto) documented above. Indices
+% only ever apply to row 0 (the row built from direct \cell declarations),
+% matching this primitive's existing single-indexed-row design.
+\newcommand{\rk@algocheckindexvisible}[2]{%
+  \rk@algoindexvisiblefalse
+  \ifnum#1=0\relax
+    \ifdefstring{\rk@algoindicesmode}{false}{}{%
+    \ifdefstring{\rk@algoindicesmode}{auto}{%
+      \ifnum\rk@tracesnapshotindex=0\relax
+        \rk@algoindexvisibletrue
+      \else
+        \pgfmathparse{\rk@algocellwidth cm>\RKTokAlgorithmCellMinSize ? 1 : 0}%
+        \ifdim\pgfmathresult pt>0.5pt\relax\rk@algoindexvisibletrue\fi
+      \fi
+    }{%
+      \rk@algoindexvisibletrue
+    }}%
+  \fi
+}
+
 % <reportkit-contract>
 % {"kind":"figure","description":"Indexed linear data with values, indices, pointers, active ranges, and optional aligned rows.","arguments":[{"name":"options","type":"options","description":"Cell width, row height, and indices= layout keys."}],"constraints":[{"code": "zero_based_indices", "description": "Column and row indices are zero-based."}],"example":"\\begin{diagram}[type=array,caption={Two-pointer scan.},description={A sorted array with left and right pointers bounding the active range.}]\n\\begin{arraystate}\n\\cell{-4}\n\\cell{-1}\n\\cell{-1}\n\\cell{0}\n\\cell{1}\n\\cell{2}\n\\pointer[below]{L}{2}\n\\pointer[below]{R}{5}\n\\range[state=active]{2}{5}\n\\end{arraystate}\n\\end{diagram}","stability":"experimental","since":"1.10.0"}
 % </reportkit-contract>
 \NewDocumentEnvironment{arraystate}{O{}}{%
   \begingroup
-  \pgfkeys{/reportkit/arraystate,cell width=1.05,row height=1.15,indices=true,#1}%
+  \global\advance\rk@algoinstancecounter by 1\relax
+  \edef\rk@algoinstanceid{\the\rk@algoinstancecounter}%
+  \def\rk@algoindicesmode{true}%
+  \def\rk@algolegendmode{}%
+  % A nested arraystate inside an algorithmtrace snapshot must not reset
+  % the trace's own accumulated used-states/roles out from under it --
+  % only reset here when this arraystate owns its own legend.
+  \ifrk@insidetrace\else\global\let\rk@algousedstates\@empty\global\let\rk@algousedroles\@empty\fi
+  \pgfkeys{/reportkit/arraystate,cell width=1.05,row height=1.15,#1}%
   \rk@algocol=0\relax\rk@algorow=0\relax\rk@algoannocount=0\relax
   \def\rk@algorownames{}%
 }{%
+  \ifdefstring{\rk@algolegendmode}{auto}{%
+    % Clearance below the last row accounts for the row's own cell height,
+    % its index, and (if any \pointer landed there) the pointer's arrow
+    % and label, plus one row per annotation already placed.
+    \pgfmathsetmacro{\rk@legendy}{-(\the\rk@algorow)*\rk@algorowheight-1.55*\rk@algorowheight-\the\rk@algoannocount*0.46-0.4}%
+    \rk@algorenderlegend{\rk@legendy}%
+  }{}%
   \endgroup
 }
 
@@ -178,10 +335,30 @@
   \pgfmathsetmacro{\rk@algoy}{-\the\rk@algorow*\rk@algorowheight}%
   \edef\rk@algocellname{rkalgocell-\the\rk@algorow-\the\rk@algocol}%
   \node[rk algo cell,\rk@algostateoverlay] (\rk@algocellname) at (\rk@algox,\rk@algoy) {\strut #2};%
-  \ifnum\rk@algorow=0\relax
-    \ifrk@algoindices
-      \node[rk algo index] at (\rk@algox,{\rk@algoy-0.62*\rk@algorowheight}) {\the\rk@algocol};%
-    \fi
+  \rk@algocheckindexvisible{\the\rk@algorow}{\the\rk@algocol}%
+  \ifrk@algoindexvisible
+    % Anchor the index directly to the cell node via tikz's "below=<gap> of"
+    % positioning rather than recomputing x/y by hand: this guarantees
+    % index_x is exactly the cell's own horizontal center (spec sec 2.1's
+    % coordinate contract) with no drift from font metrics or rounding, and
+    % index_y is a themed gap below the cell's *real* rendered edge instead
+    % of a fixed fraction of row height (the old formula placed the index at
+    % the same offset a "below" \pointer's arrow tail used, so the two
+    % silently collided whenever both were present on row 0).
+    \edef\rk@algoindexname{rkalgoindex-\the\rk@algorow-\the\rk@algocol}%
+    % "below=" must appear literally in the options list rather than
+    % hidden inside one macro: pgfkeys locates the "=" and the
+    % positioning library's own "<dist> of <node>" lookahead scans the
+    % surrounding token stream directly, so pre-expanding the whole
+    % "below=...of..." string into a single opaque token breaks both
+    % (it gets treated as one unrecognized style name instead).
+    \node[rk algo index,below=\RKTokAlgorithmIndexGap\space of \rk@algocellname]
+      (\rk@algoindexname) {\the\rk@algocol};%
+    % Record that this exact instance/row/column really drew an index, so
+    % \pointer can anchor to it without re-guessing from the row number
+    % alone (a named \row can also occupy row 0, and never draws an
+    % index -- see \rk@algoinstanceid's declaration above).
+    \expandafter\gdef\csname rk@algoindexdrawn@\rk@algoinstanceid @\the\rk@algorow @\the\rk@algocol\endcsname{1}%
   \fi
   \advance\rk@algocol by 1\relax
 }
@@ -205,23 +382,66 @@
     \advance\rk@algocol by 1\relax
   }%
   \advance\rk@algorow by 1\relax
+  % Reset the running column counter for whatever comes next (another
+  % \row, which would reset it itself anyway, or a bare \cell building
+  % the "direct-cell row" A2 refers to): without this, a bare \cell
+  % right after a \row silently continued from \row's own column count
+  % instead of starting a fresh row at column 0.
+  \rk@algocol=0\relax
 }
 
+% Fixed structural gaps for the pointer arrow (primitive geometry, not a
+% themed spacing value -- see reportkit-core.sty's "Theme ownership" note:
+% only the RKTokAlgorithmIndex* family owns a gap token; a pointer's own
+% internal arrow proportions are the primitive's geometry to own).
+\newcommand{\rk@algopointerheadgap}{1.6pt}
+\newcommand{\rk@algopointerarrowlen}{7pt}
+\newcommand{\rk@algopointerlabelgap}{2pt}
 % <reportkit-contract>
 % {"kind":"command","description":"Place a labelled cursor arrow under (or over) a cell index.","arguments":[{"name":"options","type":"options","description":"above, below (default), or row= to target a named arraystate row."},{"name":"label","type":"text","description":"Cursor label, e.g. L, R, or mid."},{"name":"index","type":"text","description":"Zero-based cell index the cursor targets."}],"constraints":[{"code": "inside_arraystate", "description": "Only valid inside arraystate."}],"example":"\\pointer[below]{L}{2}","stability":"experimental","since":"1.10.0","parent":"arraystate"}
 % </reportkit-contract>
 \NewDocumentCommand{\pointer}{O{} m m}{%
   \def\rk@algopointerrow{}%
+  \rk@algosetpointerrole{}%
   \pgfkeys{/reportkit/algopointer,position=below,#1}%
   \rk@findalgorow{\rk@algopointerrow}%
-  \pgfmathsetmacro{\rk@algox}{#3*\rk@algocellwidth}%
-  \pgfmathsetmacro{\rk@algoy}{-\the\rk@algorowquery*\rk@algorowheight}%
-  \ifstrequal{\rk@algopointerposition}{above}{%
-    \draw[rk algo pointer] (\rk@algox,{\rk@algoy+0.62*\rk@algorowheight}) -- (\rk@algox,{\rk@algoy+0.30*\rk@algorowheight});%
-    \node[rk algo pointer label,anchor=south] at (\rk@algox,{\rk@algoy+0.66*\rk@algorowheight}) {#2};%
+  \edef\rk@algotargetcell{rkalgocell-\the\rk@algorowquery-#3}%
+  % \ifdefstring (not \ifstrequal): \rk@algopointerposition is a stored
+  % macro, and \ifstrequal compares its *unexpanded* argument tokens, so
+  % it silently never matched "above" here -- a pre-existing bug that
+  % made every \pointer[above] render as if it were "below" regardless
+  % of the position= key. \ifdefstring expands the macro's current value
+  % before comparing, which is the fix.
+  \ifdefstring{\rk@algopointerposition}{above}{%
+    % Indices only ever render below row 0, so "above" always anchors
+    % directly to the cell -- there is never an index to clear up here.
+    % The head end stays on the cell's centerline; only the tail leans
+    % sideways for role=left/right's "opposing arrow direction."
+    \draw[rk algo pointer,-{\rk@algopointerrolearrow[length=4.2pt,width=3.2pt]}]
+      ($(\rk@algotargetcell.north)+(\rk@algopointerroleslant,\rk@algopointerheadgap+\rk@algopointerarrowlen)$) --
+      ($(\rk@algotargetcell.north)+(0,\rk@algopointerheadgap)$);%
+    \node[rk algo pointer label,anchor=south] at
+      ($(\rk@algotargetcell.north)+(0,\rk@algopointerheadgap+\rk@algopointerarrowlen+\rk@algopointerlabelgap)$) {#2};%
   }{%
-    \draw[rk algo pointer] (\rk@algox,{\rk@algoy-0.62*\rk@algorowheight}) -- (\rk@algox,{\rk@algoy-0.30*\rk@algorowheight});%
-    \node[rk algo pointer label,anchor=north] at (\rk@algox,{\rk@algoy-0.66*\rk@algorowheight}) {#2};%
+    % Anchor a "below" pointer under the rendered index label when this
+    % exact row/column really drew one, so the arrow and its label never
+    % collide with the index the way a fixed row-height fraction used to
+    % (spec sec 2.1's "no readable L/R markers" defect): otherwise anchor
+    % directly to the cell. Check whether \cell actually drew an index
+    % (\rk@algoindexdrawn@<instance>@<row>@<col>) rather than re-deriving
+    % the "row 0" heuristic here -- a named \row can also occupy row 0
+    % and never draws an index, so re-guessing would wrongly anchor to a
+    % nonexistent index node.
+    \@ifundefined{rk@algoindexdrawn@\rk@algoinstanceid @\the\rk@algorowquery @#3}{%
+      \let\rk@algopointeranchor\rk@algotargetcell
+    }{%
+      \edef\rk@algopointeranchor{rkalgoindex-\the\rk@algorowquery-#3}%
+    }%
+    \draw[rk algo pointer,-{\rk@algopointerrolearrow[length=4.2pt,width=3.2pt]}]
+      ($(\rk@algopointeranchor.south)+(\rk@algopointerroleslant,0)-(0,\rk@algopointerheadgap+\rk@algopointerarrowlen)$) --
+      ($(\rk@algopointeranchor.south)-(0,\rk@algopointerheadgap)$);%
+    \node[rk algo pointer label,anchor=north] at
+      ($(\rk@algopointeranchor.south)-(0,\rk@algopointerheadgap+\rk@algopointerarrowlen+\rk@algopointerlabelgap)$) {#2};%
   }%
 }
 
@@ -270,14 +490,27 @@
 % windowstate -- sliding/moving contiguous region, built on arraystate.
 % -----------------------------------------------------------------------------
 % <reportkit-contract>
-% {"kind":"figure","description":"Sliding or moving contiguous window over linear data, with entering/leaving markers.","arguments":[{"name":"options","type":"options","description":"Cell width and row height layout keys, as arraystate."}],"constraints":[],"example":"\\begin{diagram}[type=array,caption={Sliding window.},description={A six-element array with a window from index two to four.}]\n\\begin{windowstate}\n\\values{4,2,7,1,3,6}\n\\window{2}{4}\n\\entering{5}\n\\leaving{1}\n\\end{windowstate}\n\\end{diagram}","stability":"experimental","since":"1.10.0"}
+% {"kind":"figure","description":"Sliding or moving contiguous window over linear data, with entering/leaving markers.","arguments":[{"name":"options","type":"options","description":"Cell width and row height layout keys, as arraystate."}],"constraints":[],"example":"\\begin{diagram}[type=array,caption={Sliding window.},description={A six-element array with a window from index two to four.}]\n\\begin{windowstate}\n\\values{4,2,7,1,3,6}\n\\window{2}{4}\n\\entering{5}{6}\n\\leaving{2}{7}\n\\end{windowstate}\n\\end{diagram}","stability":"experimental","since":"1.10.0"}
 % </reportkit-contract>
 \NewDocumentEnvironment{windowstate}{O{}}{%
   \begingroup
-  \pgfkeys{/reportkit/arraystate,cell width=1.05,row height=1.15,indices=true,#1}%
+  \global\advance\rk@algoinstancecounter by 1\relax
+  \edef\rk@algoinstanceid{\the\rk@algoinstancecounter}%
+  \def\rk@algoindicesmode{true}%
+  \def\rk@algolegendmode{}%
+  \ifrk@insidetrace\else\global\let\rk@algousedstates\@empty\global\let\rk@algousedroles\@empty\fi
+  \rk@windowcellcount=0\relax
+  \pgfkeys{/reportkit/arraystate,cell width=1.05,row height=1.15,#1}%
   \rk@algocol=0\relax\rk@algorow=0\relax\rk@algoannocount=0\relax
   \def\rk@algorownames{}%
 }{%
+  \ifdefstring{\rk@algolegendmode}{auto}{%
+    % Clearance below the last row accounts for the row's own cell height,
+    % its index, and (if any \pointer landed there) the pointer's arrow
+    % and label, plus one row per annotation already placed.
+    \pgfmathsetmacro{\rk@legendy}{-(\the\rk@algorow)*\rk@algorowheight-1.55*\rk@algorowheight-\the\rk@algoannocount*0.46-0.4}%
+    \rk@algorenderlegend{\rk@legendy}%
+  }{}%
   \endgroup
 }
 % <reportkit-contract>
@@ -287,26 +520,62 @@
   \@for\rk@algorowvalue:=#1\do{%
     \cell{\rk@algorowvalue}%
   }%
+  % Record the declared backing-array length so \entering/\leaving can
+  % reject an out-of-bounds index (spec sec 2.4 / A4).
+  \rk@windowcellcount=\rk@algocol\relax
 }
 % <reportkit-contract>
 % {"kind":"command","description":"Mark the active window's inclusive index bounds and left/right cursors.","arguments":[{"name":"start","type":"text","description":"Zero-based window start index, inclusive."},{"name":"end","type":"text","description":"Zero-based window end index, inclusive."}],"constraints":[{"code": "inside_windowstate", "description": "Only valid inside windowstate."}],"example":"\\window{2}{4}","stability":"experimental","since":"1.10.0","parent":"windowstate"}
 % </reportkit-contract>
 \NewDocumentCommand{\window}{m m}{%
   \range[state=active]{#1}{#2}%
-  \pointer[below]{L}{#1}%
-  \pointer[below]{R}{#2}%
+  \pointer[role=left,below]{L}{#1}%
+  \pointer[role=right,below]{R}{#2}%
+}
+% Bounds-check an \entering/\leaving index against the declared backing
+% array (\values{...}) and raise a primitive-specific error if it falls
+% outside 0..count-1 (spec sec 2.4 / A4).
+\newcommand{\rk@windowcheckindex}[2]{%
+  \ifnum#1<0\relax
+    \PackageError{reportkit-algorithm-viz}{#2 index #1 is out of bounds}{Declare it within \string\values{...}'s range (0 to \the\numexpr\rk@windowcellcount-1\relax).}%
+  \else
+    \ifnum#1>\numexpr\rk@windowcellcount-1\relax\relax
+      \PackageError{reportkit-algorithm-viz}{#2 index #1 is out of bounds}{Declare it within \string\values{...}'s range (0 to \the\numexpr\rk@windowcellcount-1\relax).}%
+    \fi
+  \fi
+}
+% Draw a short labelled arrow at the given cell, distinguishing entering
+% (arrowhead points down, into the cell) from leaving (arrowhead points
+% up, away from the cell) purely by direction -- readable in grayscale,
+% and unambiguous even when \entering/\leaving share a duplicate value
+% with another cell, since the arrow targets a specific index.
+\newcommand{\rk@windowmarker}[3]{% #1=index #2=draw color #3=into|away
+  \edef\rk@windowtargetcell{rkalgocell-0-#1}%
+  \ifstrequal{#3}{into}{%
+    \draw[-{Stealth[length=4.2pt,width=3.2pt]},draw=#2,line width=\RKTokAlgorithmPointerWidth]
+      ($(\rk@windowtargetcell.north)+(0,\rk@algopointerheadgap+\rk@algopointerarrowlen)$) --
+      ($(\rk@windowtargetcell.north)+(0,\rk@algopointerheadgap)$);%
+  }{%
+    \draw[-{Stealth[length=4.2pt,width=3.2pt]},draw=#2,line width=\RKTokAlgorithmPointerWidth]
+      ($(\rk@windowtargetcell.north)+(0,\rk@algopointerheadgap)$) --
+      ($(\rk@windowtargetcell.north)+(0,\rk@algopointerheadgap+\rk@algopointerarrowlen)$);%
+  }%
 }
 % <reportkit-contract>
-% {"kind":"command","description":"Annotate the value about to enter the window.","arguments":[{"name":"value","type":"text","description":"Incoming value."}],"constraints":[{"code": "inside_windowstate", "description": "Only valid inside windowstate."}],"example":"\\entering{5}","stability":"experimental","since":"1.10.0","parent":"windowstate"}
+% {"kind":"command","description":"Mark the value about to enter the window at a specific index, with a labelled arrow into that cell.","arguments":[{"name":"index","type":"text","description":"Zero-based index (within the declared \\values) the incoming value targets."},{"name":"value","type":"text","description":"Incoming value."}],"constraints":[{"code": "inside_windowstate", "description": "Only valid inside windowstate."}, {"code": "index_in_bounds", "description": "index must be within the declared \\values range."}],"example":"\\entering{5}{6}","stability":"experimental","since":"1.10.0","parent":"windowstate"}
 % </reportkit-contract>
-\NewDocumentCommand{\entering}{m}{%
-  \annotation{\textcolor{\RKTokAlgorithmCandidateDraw}{$\rightarrow$ entering: #1}}%
+\NewDocumentCommand{\entering}{m m}{%
+  \rk@windowcheckindex{#1}{\string\entering}%
+  \rk@windowmarker{#1}{\RKTokAlgorithmCandidateDraw}{into}%
+  \annotation{\textcolor{\RKTokAlgorithmCandidateDraw}{$\rightarrow$ entering: #2}}%
 }
 % <reportkit-contract>
-% {"kind":"command","description":"Annotate the value about to leave the window.","arguments":[{"name":"value","type":"text","description":"Outgoing value."}],"constraints":[{"code": "inside_windowstate", "description": "Only valid inside windowstate."}],"example":"\\leaving{1}","stability":"experimental","since":"1.10.0","parent":"windowstate"}
+% {"kind":"command","description":"Mark the value about to leave the window at a specific index, with a labelled arrow away from that cell.","arguments":[{"name":"index","type":"text","description":"Zero-based index (within the declared \\values) the outgoing value targets."},{"name":"value","type":"text","description":"Outgoing value."}],"constraints":[{"code": "inside_windowstate", "description": "Only valid inside windowstate."}, {"code": "index_in_bounds", "description": "index must be within the declared \\values range."}],"example":"\\leaving{2}{7}","stability":"experimental","since":"1.10.0","parent":"windowstate"}
 % </reportkit-contract>
-\NewDocumentCommand{\leaving}{m}{%
-  \annotation{\textcolor{\RKTokAlgorithmDiscardedDraw}{$\leftarrow$ leaving: #1}}%
+\NewDocumentCommand{\leaving}{m m}{%
+  \rk@windowcheckindex{#1}{\string\leaving}%
+  \rk@windowmarker{#1}{\RKTokAlgorithmDiscardedDraw}{away}%
+  \annotation{\textcolor{\RKTokAlgorithmDiscardedDraw}{$\leftarrow$ leaving: #2}}%
 }
 
 % -----------------------------------------------------------------------------
@@ -314,10 +583,21 @@
 % -----------------------------------------------------------------------------
 \newcount\rk@tracecol
 \newcount\rk@tracerow
+\newcount\rk@transprevrow
+\newcount\rk@tracetransitioncount
+\rk@tracetransitioncount=0\relax
 \newcommand{\rk@tracecolumns}{3}
 \newcommand{\rk@tracewidth}{3.6}
 \newcommand{\rk@traceheight}{3.5}
 \newcommand{\rk@tracegap}{.55}
+% mode= (spec sec 3.1, B1): strip keeps the requested columns= exactly (the
+% pre-existing, backward-compatible fixed-grid behaviour); grid and
+% vertical are explicit escape hatches forcing 2 or 1 columns; auto picks
+% the widest of strip/grid/vertical that keeps every snapshot at or above
+% its configured width by measuring against \linewidth at
+% \begin{algorithmtrace} time (see \rk@traceresolveauto below).
+\newcommand{\rk@tracemode}{strip}
+\newcommand{\rk@tracelegendmode}{}
 \pgfkeys{
   /reportkit/algorithmtrace/.is family,
   /reportkit/algorithmtrace,
@@ -325,15 +605,52 @@
   snapshot width/.store in=\rk@tracewidth,
   snapshot height/.store in=\rk@traceheight,
   gap/.store in=\rk@tracegap,
+  mode/.store in=\rk@tracemode,
+  legend/.store in=\rk@tracelegendmode,
+}
+% Resolve mode= into a concrete \rk@tracecolumns at \begin{algorithmtrace}
+% time (before any \snapshot is placed, since column count must be fixed
+% up front). "auto" reduces the requested columns= (never increases it)
+% to whatever fits \linewidth at the configured snapshot width and gap,
+% down to a floor of 1 (vertical) -- reflowing rather than silently
+% shrinking snapshots below their configured size (spec sec 3.1).
+\newcommand{\rk@traceresolveauto}{%
+  \ifdefstring{\rk@tracemode}{grid}{%
+    \renewcommand{\rk@tracecolumns}{2}%
+  }{}%
+  \ifdefstring{\rk@tracemode}{vertical}{%
+    \renewcommand{\rk@tracecolumns}{1}%
+  }{}%
+  \ifdefstring{\rk@tracemode}{auto}{%
+    \pgfmathtruncatemacro{\rk@tracefitcolumnsint}{max(1,floor((\linewidth/28.45274pt+\rk@tracegap)/(\rk@tracewidth+\rk@tracegap)))}%
+    \ifnum\rk@tracefitcolumnsint<\rk@tracecolumns\relax
+      \renewcommand{\rk@tracecolumns}{\rk@tracefitcolumnsint}%
+    \fi
+  }{}%
 }
 % <reportkit-contract>
 % {"kind":"figure","description":"Ordered snapshots of algorithm state across execution steps, wrapping into a grid.","arguments":[{"name":"options","type":"options","description":"columns=, snapshot width=, snapshot height=, and gap= layout keys."}],"constraints":[{"code": "snapshot_count", "description": "Declare two to eight snapshots."}],"example":"\\begin{diagram}[type=trace,caption={Sliding-window advance.},description={Three ordered snapshots show the window advancing by one element.}]\n\\begin{algorithmtrace}[columns=3]\n\\snapshot{Initial}{\\begin{arraystate}\\cell{4}\\cell{2}\\cell{7}\\end{arraystate}}\n\\snapshot{Advance}{\\begin{arraystate}\\cell{4}\\cell{2}\\cell{7}\\end{arraystate}}\n\\snapshot{Shrink}{\\begin{arraystate}\\cell{4}\\cell{2}\\cell{7}\\end{arraystate}}\n\\end{algorithmtrace}\n\\end{diagram}","stability":"experimental","since":"1.10.0"}
 % </reportkit-contract>
 \NewDocumentEnvironment{algorithmtrace}{O{}}{%
   \begingroup
+  \renewcommand{\rk@tracemode}{strip}%
+  \renewcommand{\rk@tracelegendmode}{}%
+  \global\rk@insidetracetrue
+  \global\let\rk@algousedstates\@empty\global\let\rk@algousedroles\@empty
   \pgfkeys{/reportkit/algorithmtrace,columns=3,snapshot width=3.6,snapshot height=3.5,gap=.55,#1}%
-  \rk@tracecol=0\relax\rk@tracerow=0\relax
+  \rk@traceresolveauto
+  \rk@tracecol=0\relax\rk@tracerow=0\relax\global\rk@tracesnapshotindex=0\relax
+  \global\rk@tracetransitioncount=0\relax
 }{%
+  \global\rk@insidetracefalse
+  \ifdefstring{\rk@tracelegendmode}{auto}{%
+    \ifnum\rk@tracecol=0\relax
+      \pgfmathsetmacro{\rk@legendy}{-\the\rk@tracerow*(\rk@traceheight+\rk@tracegap+.75)-\rk@traceheight-.5}%
+    \else
+      \pgfmathsetmacro{\rk@legendy}{-(\the\rk@tracerow+1)*(\rk@traceheight+\rk@tracegap+.75)-\rk@traceheight+.25}%
+    \fi
+    \rk@algorenderlegend{\rk@legendy}%
+  }{}%
   \endgroup
 }
 % <reportkit-contract>
@@ -357,6 +674,59 @@
   \ifnum\rk@tracecol=\rk@tracecolumns\relax
     \rk@tracecol=0\relax
     \advance\rk@tracerow by 1\relax
+  \fi
+  \global\advance\rk@tracesnapshotindex by 1\relax
+}
+% Compute the previously-placed snapshot's grid position (column-major:
+% one step back from the *upcoming* slot \rk@tracecol/\rk@tracerow
+% already point at) into \rk@transprevx/\rk@transprevy/\rk@transprevrow.
+\newcommand{\rk@algotracecomputeprevpos}{%
+  \ifnum\rk@tracecol=0\relax
+    \pgfmathsetmacro{\rk@transprevx}{(\rk@tracecolumns-1)*(\rk@tracewidth+\rk@tracegap)}%
+    \rk@transprevrow=\rk@tracerow\relax\advance\rk@transprevrow by -1\relax
+  \else
+    \pgfmathsetmacro{\rk@transprevx}{(\the\rk@tracecol-1)*(\rk@tracewidth+\rk@tracegap)}%
+    \rk@transprevrow=\rk@tracerow\relax
+  \fi
+  \pgfmathsetmacro{\rk@transprevy}{-\the\rk@transprevrow*(\rk@traceheight+\rk@tracegap+.75)}%
+}
+% Named \tracetransition, not the spec text's literal \transition: that
+% name is already a stable, public 3-argument command in
+% reportkit-grammar.sty (reportstate's {from}{to}{label} edge label,
+% since v1.0.0), loaded into the same document. Redefining it would
+% break every existing reportstate diagram; \tracetransition avoids the
+% collision while keeping the algorithmtrace-family naming convention
+% (\snapshot, \tracetransition).
+% <reportkit-contract>
+% {"kind":"command","description":"Place a directional transition label on the edge between the two adjacent snapshots it sits between.","arguments":[{"name":"text","type":"text","description":"Short transition text, e.g. the condition or action that produced the next snapshot."}],"constraints":[{"code": "inside_algorithmtrace", "description": "Only valid between two \\snapshot calls inside algorithmtrace."}],"example":"\\tracetransition{sum too small; advance L}","stability":"experimental","since":"1.10.0","parent":"algorithmtrace"}
+% </reportkit-contract>
+\NewDocumentCommand{\tracetransition}{m}{%
+  \rk@algotracecomputeprevpos
+  \pgfmathsetmacro{\rk@transnextx}{\the\rk@tracecol*(\rk@tracewidth+\rk@tracegap)}%
+  \pgfmathsetmacro{\rk@transnexty}{-\the\rk@tracerow*(\rk@traceheight+\rk@tracegap+.75)}%
+  \global\advance\rk@tracetransitioncount by 1\relax
+  \ifnum\rk@transprevrow=\rk@tracerow\relax
+    % Same row: a plain horizontal arrow at the snapshots' vertical
+    % mid-height reads left to right on its own, no step number needed.
+    \draw[-{Stealth[length=4pt,width=3pt]},draw=\RKTokAlgorithmTraceSeparatorColor,line width=.8pt]
+      ({\rk@transprevx+\rk@tracewidth+.05},{\rk@transprevy-0.5*\rk@traceheight-.3}) --
+      ({\rk@transnextx-.05},{\rk@transnexty-0.5*\rk@traceheight-.3});%
+    % text width is capped to the configured gap= (not the full snapshot
+    % width): a wider label would visually extend under the next
+    % snapshot's own opaque cell box, which is drawn afterwards and would
+    % silently paint over -- not just visually crowd -- the overlapping
+    % half of the label. A caption note below the fixture recommends a
+    % wider gap= when using longer transition text.
+    \node[rk algo trace label,anchor=south,align=center,text width=\rk@tracegap cm] at
+      ({(\rk@transprevx+\rk@tracewidth+\rk@transnextx)/2},{\rk@transprevy-0.5*\rk@traceheight-.28}) {#1};%
+  \else
+    % Wrapped to a new row: reading order is no longer purely left to
+    % right, so prepend a step number (spec sec 3.2).
+    \draw[-{Stealth[length=4pt,width=3pt]},draw=\RKTokAlgorithmTraceSeparatorColor,line width=.8pt]
+      ({\rk@transprevx+0.5*\rk@tracewidth},{\rk@transprevy-\rk@traceheight-.1}) --
+      ({\rk@transnextx+0.5*\rk@tracewidth},{\rk@transnexty+.1});%
+    \node[rk algo trace label,anchor=north,align=center,text width=\rk@tracewidth cm] at
+      ({\rk@transprevx+0.5*\rk@tracewidth},{\rk@transprevy-\rk@traceheight-.28}) {\the\rk@tracetransitioncount. #1};%
   \fi
 }
 

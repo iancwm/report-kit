@@ -359,6 +359,13 @@
 \newcommand{\RKTokAlgorithmCellRounding}{\rk@styletokenerror{\RKTokAlgorithmCellRounding}}
 \newcommand{\RKTokAlgorithmIndexFont}{\rk@styletokenerror{\RKTokAlgorithmIndexFont}}
 \newcommand{\RKTokAlgorithmIndexText}{\rk@styletokenerror{\RKTokAlgorithmIndexText}}
+% Vertical clearance between a cell's own bottom border and its index
+% label, anchored via tikz's "below=<gap> of <cell node>" positioning so
+% index_x is always exactly the cell's horizontal center (spec sec 2.1,
+% A1's coordinate contract) and index_y is a themed, guide-scale-minimum
+% gap below the cell's real rendered edge rather than a hardcoded fraction
+% of row height.
+\newcommand{\RKTokAlgorithmIndexGap}{\rk@styletokenerror{\RKTokAlgorithmIndexGap}}
 \newcommand{\RKTokAlgorithmPointerColor}{\rk@styletokenerror{\RKTokAlgorithmPointerColor}}
 \newcommand{\RKTokAlgorithmPointerFont}{\rk@styletokenerror{\RKTokAlgorithmPointerFont}}
 \newcommand{\RKTokAlgorithmPointerWidth}{\rk@styletokenerror{\RKTokAlgorithmPointerWidth}}
