@@ -22,10 +22,11 @@ publication to build on.
 <report-kit-clone>/reportkit check --source-root <publication-project>
 <report-kit-clone>/reportkit build --mode section --section manuscript/01-introduction.md --source-root <publication-project>
 <report-kit-clone>/reportkit build --source-root <publication-project> --output-root <publication-project>/build
+<report-kit-clone>/reportkit render --source-root <publication-project> --pages 1,3-4 --dpi 150
 ```
 
 The `reportkit` facade also exposes `doctor`, `init`, `context`, `diagnose`, `inspect`,
-`docs`, `analyse-history`, and `package`. Add `--profile release` to resolve a release
+`render`, `docs`, `analyse-history`, and `package`. Add `--profile release` to resolve a release
 profile from a nested `publication.yaml`; `--engine` is an explicit TeX-engine
 override. Optional `sources.yaml` and `links.yaml` files are validated during
 `check` and `build`; the latter renders named `\RKLink{key}` links into the
@@ -34,6 +35,12 @@ pages, and near-margin content. Direct `publication_build.py` invocation
 remains supported. Set `REPORTKIT_PDF_PYTHON` to override the consumer
 project's default `<output-root>/.venv/bin/python` for page rendering and PDF
 inspection.
+
+`render` is the standalone authoring-feedback loop for an existing build PDF. It
+can select individual pages or ranges, controls rasterization DPI, writes the
+selected PNGs atomically, and emits a `pages.json` manifest containing the page
+list and renderer fingerprint. Pass the PDF path explicitly when it is outside
+the latest build output.
 
 `build` resolves the publication type, theme, renderer, entrypoint, Pandoc
 writer, TeX engine, and paper/canvas from `publication.yaml`. It stages the

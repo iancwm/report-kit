@@ -62,7 +62,7 @@ Migrating an existing content branch out of this repo is covered in
 
 ## 2. python_scripts/
 - `reportkit` (from the repository root) — stdlib CLI facade for doctor,
-  init, context, check, build, diagnose, inspect, docs, analyse-history, and package; its importable
+  init, context, check, build, diagnose, inspect, render, docs, analyse-history, and package; its importable
   implementation lives under `python_scripts/reportkit/`, including
   `reportkit/themes/` — per-theme Python tokens (`default`,
   `institutional-research`) plus the `technical` compatibility alias for
