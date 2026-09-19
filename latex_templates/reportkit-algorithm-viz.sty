@@ -690,9 +690,6 @@
   \fi
   \pgfmathsetmacro{\rk@transprevy}{-\the\rk@transprevrow*(\rk@traceheight+\rk@tracegap+.75)}%
 }
-% <reportkit-contract>
-% {"kind":"command","description":"Place a directional transition label on the edge between the two adjacent snapshots it sits between.","arguments":[{"name":"text","type":"text","description":"Short transition text, e.g. the condition or action that produced the next snapshot."}],"constraints":[{"code": "inside_algorithmtrace", "description": "Only valid between two \\snapshot calls inside algorithmtrace."}],"example":"\\tracetransition{sum too small; advance L}","stability":"experimental","since":"1.10.0","parent":"algorithmtrace"}
-% </reportkit-contract>
 % Named \tracetransition, not the spec text's literal \transition: that
 % name is already a stable, public 3-argument command in
 % reportkit-grammar.sty (reportstate's {from}{to}{label} edge label,
@@ -700,6 +697,9 @@
 % break every existing reportstate diagram; \tracetransition avoids the
 % collision while keeping the algorithmtrace-family naming convention
 % (\snapshot, \tracetransition).
+% <reportkit-contract>
+% {"kind":"command","description":"Place a directional transition label on the edge between the two adjacent snapshots it sits between.","arguments":[{"name":"text","type":"text","description":"Short transition text, e.g. the condition or action that produced the next snapshot."}],"constraints":[{"code": "inside_algorithmtrace", "description": "Only valid between two \\snapshot calls inside algorithmtrace."}],"example":"\\tracetransition{sum too small; advance L}","stability":"experimental","since":"1.10.0","parent":"algorithmtrace"}
+% </reportkit-contract>
 \NewDocumentCommand{\tracetransition}{m}{%
   \rk@algotracecomputeprevpos
   \pgfmathsetmacro{\rk@transnextx}{\the\rk@tracecol*(\rk@tracewidth+\rk@tracegap)}%
