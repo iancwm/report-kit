@@ -1,9 +1,12 @@
 # ReportKit Multi-Format Publication Architecture — Implementation Plan
 
-**Status:** Phase A implementation complete in the working tree; Phase B started out of the plan's own
+**Status:** Phase A implementation complete in the working tree; its pinned
+OCI verification passed the focused A3/A4 checks on 2026-09-19, while the full
+acceptance matrix remains outstanding. Phase B started out of the plan's own
 recommended order (see below), then A5 followed it. Architecture decisions
-are resolved; A1, A2 and A3 are complete (A3 pending the pinned-toolchain
-CI gate); **A4's diagram work (the last item the plan's own A4 section
+are resolved; A1, A2, A3 and A4 are implemented, with focused pinned
+verification passed and the full acceptance matrix still outstanding;
+**A4's diagram work (the last item the plan's own A4 section
 named as "not started") is now implemented** -- theme/adapter split,
 callout/metric token work, and diagram chrome tokens are all in the tree;
 the Python/theme-contract extension is now implemented in the working tree.
@@ -26,7 +29,7 @@ implemented first here at explicit request, and A5 followed once B's own
 status notes kept naming it as the biggest remaining gap. Task sizing and
 visual design details should receive engineering/design review before
 execution.
-**Last updated:** 2026-09-17
+**Last updated:** 2026-09-19
 **Plans:** [2026-09-09-reportkit-multi-format-publication-architecture-spec.md](../specs/2026-09-09-reportkit-multi-format-publication-architecture-spec.md)
 **Amended by:** [2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md](../specs/2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md)
 **Baseline:** planning baseline `main` at `4f2b27f`, ReportKit v1.9.1.
@@ -1053,8 +1056,15 @@ materialize through one effective-theme record and are recorded in the build
 report; and PDF inspection consumes the resolved-selection marker to flag
 missing, malformed, mismatched, or default-theme-leaking targets.
 
-**Remaining:** pinned/runtime verification for the new A3/A4 slices and the
-future visual design/review phases.
+**Pinned verification 2026-09-19:** the pinned OCI image built successfully;
+the pinned doctor reported fingerprint `6e0fc8…408e5`; and 53 focused A3/A4
+static/runtime checks passed, including theme-contract and Matplotlib-dependent
+coverage. The full acceptance matrix was interrupted before completion, so it
+remains the release follow-up. Phase C's executive visual design/review also
+remains open.
+
+**Remaining:** complete the full pinned acceptance matrix and the future visual
+design/review phases.
 
 ### Phase A definition of done
 
@@ -1489,9 +1499,9 @@ editorial work.
 
 ## 8. Phase C-prime — constrained authoring and visual feedback
 
-The paged and slide renderers now exist. C-prime 1 is implemented in the
-working tree; C-prime 2 remains the separate first-class visual-feedback
-command work.
+The paged and slide renderers now exist. C-prime 1 and C-prime 2 are
+implemented in the working tree; the remaining agent-contract work is the
+separate budget, neutrality, i18n, and tagging backlog.
 
 ### C-prime 1 — constrained Markdown directives and typed IR
 
@@ -1533,7 +1543,7 @@ literal-frame boundary required by Beamer. Coverage is in
 
 ### C-prime 2 — first-class render command
 
-Add reportkit render over render_pdf_pages.py with:
+Implemented 2026-09-19 over `render_pdf_pages.py` with:
 
 - page/range selection;
 - DPI control;
@@ -1542,8 +1552,9 @@ Add reportkit render over render_pdf_pages.py with:
 - structured environment failure when PyMuPDF is unavailable.
 
 Keep reportkit build's automatic full render, but document the authoring loop as
-check → build → render selected pages → inspect → revise. Tests verify that a
-single slide can be rendered without rasterizing the rest of a deck.
+check → build → render selected pages → inspect → revise. Focused tests verify
+page selection, atomic preservation of a previous output, the JSON manifest,
+and the structured missing-PyMuPDF failure.
 
 ## 9. Phase E — editorial theme and feature article
 

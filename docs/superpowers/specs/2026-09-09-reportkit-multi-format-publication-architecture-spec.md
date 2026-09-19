@@ -2,23 +2,22 @@
 
 **Status:** Phase A implementation is complete in the working tree for the
 currently registered targets. A1 landed in v1.9.2 and A2 in v1.9.3; A3
-(shared/paged core split and renderer hooks) is implemented, pending the
-pinned-toolchain CI gate. A4's diagram work (theme-populated TikZ styles
-across the diagram, structure, process, and spatial modules) landed
-2026-09-15; the Python/theme-contract extension is implemented, with focused
-pure-Python validation complete and the Matplotlib/pinned runtime gate still
-outstanding. A5's target-aware pipeline, D7 entrypoint split, constrained
-authoring path, effective-theme materialization, and selection-marker gate are
-implemented. Phase B (slide renderer and presentation semantics) is also
-implemented out of this spec's original phase order, with its automated B4
-slide-accessibility gate retained in the working branch. A0 and the pinned
-runtime gates remain. Phases C–F have not started.
+(shared/paged core split and renderer hooks) and A4's diagram/theme-contract
+work are implemented and their pinned OCI image, doctor, and focused runtime
+checks passed on 2026-09-19. The full acceptance matrix was not completed in
+that run and remains the release follow-up. A5's target-aware pipeline, D7
+entrypoint split, constrained authoring path, effective-theme materialization,
+and selection-marker gate are implemented. Phase B (slide renderer and
+presentation semantics) is also implemented out of this spec's original phase
+order, with its automated B4 slide-accessibility gate retained in the working
+branch. Phase C remains experimental and Phases D–F have not started.
 Supersedes nothing; extends the architecture introduced by
 [2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md](2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md)
 (Steps 1–5 implemented, `reportkit.cls` v1.9.3).
-**Last updated:** 2026-09-16
-**Current-state claims:** verified against `origin/main` at `f45ab86` plus the
-implementation checkpoint at `a7e83f9` (see [Current state](#1-current-state-verified-2026-09-16)).
+**Last updated:** 2026-09-19
+**Current-state claims:** historical baseline verified against `origin/main` at
+`f45ab86` plus the implementation checkpoint at `a7e83f9`; the pinned
+verification update is recorded on 2026-09-19 below.
 Every premise below carries a `file:line` anchor so the implementer does not
 re-derive it.
 **Priority:** P2 — architectural hardening, ahead of any new theme.
@@ -316,8 +315,9 @@ implemented in the current tree. `reportkit-core.sty` declares the
 style-token contract; the default, institutional-research, and executive
 themes populate it; and `reportkit-boxes.sty` plus the diagram, structure,
 process, and spatial modules consume it without theme-name branching. The
-Python/theme-contract extension is implemented in the working tree; its
-runtime and pinned-toolchain verification remains part of the A0 gate.
+Python/theme-contract extension is implemented in the working tree. Pinned
+verification on 2026-09-19 passed the focused A3/A4 checks; the complete
+acceptance matrix remains outstanding.
 
 ### 3.3 Diagram styling is embedded in semantic primitives
 
@@ -393,9 +393,9 @@ line is a backward-compatibility risk against [§19](#19-backward-compatibility)
 
 **A3 status:** the shared/paged split and renderer hooks are implemented in
 `reportkit-core.sty`, `reportkit-paged-core.sty` and
-`reportkit-slides-core.sty`. The paged fixtures were verified locally for
-backward-compatible output; the pinned-toolchain CI gate remains authoritative
-and has not yet run against the split.
+`reportkit-slides-core.sty`. The pinned OCI image and doctor passed on
+2026-09-19, and the focused A3/A4 runtime checks passed; the full acceptance
+matrix was interrupted before completion and remains authoritative follow-up.
 
 ---
 

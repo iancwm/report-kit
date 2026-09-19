@@ -45,6 +45,9 @@ tags on this repository, not a published package registry.
   tooling-hardening spec's F2 entry). `--workers 1` (the default) is
   unchanged serial behavior; `--workers 0` or negative is now a structured
   error instead of being silently accepted.
+- `reportkit render` now supports selected page/range rendering with DPI
+  control, atomic output replacement, a JSON manifest, toolchain fingerprint,
+  and structured missing-PyMuPDF diagnostics for the authoring feedback loop.
 
 ### Changed
 - Pinned compatibility baselines for the career-guide and equity-research

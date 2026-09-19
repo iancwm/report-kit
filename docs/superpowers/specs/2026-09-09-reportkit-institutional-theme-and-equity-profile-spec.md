@@ -1,23 +1,25 @@
 # ReportKit — Institutional Research Theme + Equity Research Profile
 
-**Status:** Implemented (Steps 1–5). Implementation status verified against
+**Status:** Implemented (Steps 1–5). Pinned visual release verification is
+complete; the human §25 visual review remains open. Implementation status verified against
 `main` at `bb15d05` on 2026-09-13. The §1 table remains the historical
 pre-implementation baseline verified on 2026-09-09. The eight open questions
 below are resolved — see
 [2026-09-09-reportkit-institutional-theme-implementation-plan.md](../plans/2026-09-09-reportkit-institutional-theme-implementation-plan.md),
 which also tracks execution. That plan's Step 1 (theme infrastructure),
 Step 2 (the institutional theme itself), Step 3 (the equity-research
-publication profile), Step 4 (visualization integration), and Step 5
+ publication profile), Step 4 (visualization integration), and Step 5
 (fixtures, QA, and skill guidance) are all implemented. The institutional
  acceptance fixture and the full four-page equity fixture now compile with
- LuaLaTeX. The checked-in visual baseline still requires the pinned OCI
- toolchain and human review; do not update pixels from this host.
+LuaLaTeX. The checked-in visual baseline was compared successfully through
+the pinned OCI toolchain on 2026-09-19; the human §25 review remains open.
+Do not update pixels from a non-pinned host.
 **The original compile gap was not hypothetical:** the first real compile
 against this spec
 (the ACN initiation-of-coverage report, 9 September 2026) surfaced three
 defects that only show up when `lualatex` actually runs the templates —
 see [§29, Post-implementation findings](#29-post-implementation-findings-first-production-report-2026-09-09).
-**Last updated:** 2026-09-13
+**Last updated:** 2026-09-19
 **Visual reference:** Appendix A — the `meridian_equity_research_mockup_v3`
 prototype, embedded verbatim. The prototype is a hand-coded proof of the target
 visual language; it is **not** the target implementation (see §28, Definition of
