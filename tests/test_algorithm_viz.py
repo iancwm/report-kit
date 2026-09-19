@@ -337,3 +337,49 @@ def test_leaving_out_of_range_index_raises_a_package_error(compile_doc):
             \end{diagram}
             """
         )
+
+
+def test_algorithmtrace_mode_auto_wraps_when_strip_would_not_fit(compile_doc):
+    # Requesting 8 columns at 3cm each (plus gaps) vastly exceeds any
+    # reasonable \linewidth; mode=auto must reflow to fewer columns
+    # instead of cramming all 8 onto one row (spec sec 3.1, B1).
+    snapshots = "".join(
+        rf"\snapshot{{S{i}}}{{\begin{{arraystate}}[indices=false]\cell{{{i}}}\end{{arraystate}}}}"
+        for i in range(8)
+    )
+    page = compile_doc(
+        r"""
+        \begin{diagram}[type=trace,width=\textwidth,caption={Auto reflow.}]
+          \begin{algorithmtrace}[mode=auto,columns=8,snapshot width=3,gap=.2]
+            """
+        + snapshots
+        + r"""
+          \end{algorithmtrace}
+        \end{diagram}
+        """
+    )[0]
+    rects = node_rects(page, min_width=10.0)
+    assert len(rects) >= 8
+    row_ys = {round(r.y0, 0) for r in rects}
+    assert len(row_ys) > 1, "all snapshots rendered on a single row despite mode=auto"
+
+
+def test_algorithmtrace_mode_strip_keeps_requested_columns(compile_doc):
+    # mode=strip (or omitting mode=) is the pre-existing, backward-
+    # compatible fixed-column behavior: it must NOT reflow even when the
+    # requested columns would be tight.
+    page = compile_doc(
+        r"""
+        \begin{diagram}[type=trace,width=\textwidth,caption={Strip mode.}]
+          \begin{algorithmtrace}[columns=3]
+            \snapshot{A}{\begin{arraystate}[indices=false]\cell{1}\end{arraystate}}
+            \snapshot{B}{\begin{arraystate}[indices=false]\cell{2}\end{arraystate}}
+            \snapshot{C}{\begin{arraystate}[indices=false]\cell{3}\end{arraystate}}
+          \end{algorithmtrace}
+        \end{diagram}
+        """
+    )[0]
+    rects = node_rects(page, min_width=10.0)
+    assert len(rects) >= 3
+    row_ys = {round(r.y0, 0) for r in rects}
+    assert len(row_ys) == 1, "strip mode must keep all snapshots on one row"

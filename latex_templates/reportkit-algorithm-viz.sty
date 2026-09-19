@@ -335,7 +335,13 @@
   \pgfkeys{/reportkit/algopointer,position=below,#1}%
   \rk@findalgorow{\rk@algopointerrow}%
   \edef\rk@algotargetcell{rkalgocell-\the\rk@algorowquery-#3}%
-  \ifstrequal{\rk@algopointerposition}{above}{%
+  % \ifdefstring (not \ifstrequal): \rk@algopointerposition is a stored
+  % macro, and \ifstrequal compares its *unexpanded* argument tokens, so
+  % it silently never matched "above" here -- a pre-existing bug that
+  % made every \pointer[above] render as if it were "below" regardless
+  % of the position= key. \ifdefstring expands the macro's current value
+  % before comparing, which is the fix.
+  \ifdefstring{\rk@algopointerposition}{above}{%
     % Indices only ever render below row 0, so "above" always anchors
     % directly to the cell -- there is never an index to clear up here.
     % The head end stays on the cell's centerline; only the tail leans
@@ -501,6 +507,13 @@
 \newcommand{\rk@tracewidth}{3.6}
 \newcommand{\rk@traceheight}{3.5}
 \newcommand{\rk@tracegap}{.55}
+% mode= (spec sec 3.1, B1): strip keeps the requested columns= exactly (the
+% pre-existing, backward-compatible fixed-grid behaviour); grid and
+% vertical are explicit escape hatches forcing 2 or 1 columns; auto picks
+% the widest of strip/grid/vertical that keeps every snapshot at or above
+% its configured width by measuring against \linewidth at
+% \begin{algorithmtrace} time (see \rk@traceresolveauto below).
+\newcommand{\rk@tracemode}{strip}
 \pgfkeys{
   /reportkit/algorithmtrace/.is family,
   /reportkit/algorithmtrace,
@@ -508,14 +521,37 @@
   snapshot width/.store in=\rk@tracewidth,
   snapshot height/.store in=\rk@traceheight,
   gap/.store in=\rk@tracegap,
+  mode/.store in=\rk@tracemode,
+}
+% Resolve mode= into a concrete \rk@tracecolumns at \begin{algorithmtrace}
+% time (before any \snapshot is placed, since column count must be fixed
+% up front). "auto" reduces the requested columns= (never increases it)
+% to whatever fits \linewidth at the configured snapshot width and gap,
+% down to a floor of 1 (vertical) -- reflowing rather than silently
+% shrinking snapshots below their configured size (spec sec 3.1).
+\newcommand{\rk@traceresolveauto}{%
+  \ifdefstring{\rk@tracemode}{grid}{%
+    \renewcommand{\rk@tracecolumns}{2}%
+  }{}%
+  \ifdefstring{\rk@tracemode}{vertical}{%
+    \renewcommand{\rk@tracecolumns}{1}%
+  }{}%
+  \ifdefstring{\rk@tracemode}{auto}{%
+    \pgfmathtruncatemacro{\rk@tracefitcolumnsint}{max(1,floor((\linewidth/28.45274pt+\rk@tracegap)/(\rk@tracewidth+\rk@tracegap)))}%
+    \ifnum\rk@tracefitcolumnsint<\rk@tracecolumns\relax
+      \renewcommand{\rk@tracecolumns}{\rk@tracefitcolumnsint}%
+    \fi
+  }{}%
 }
 % <reportkit-contract>
 % {"kind":"figure","description":"Ordered snapshots of algorithm state across execution steps, wrapping into a grid.","arguments":[{"name":"options","type":"options","description":"columns=, snapshot width=, snapshot height=, and gap= layout keys."}],"constraints":[{"code": "snapshot_count", "description": "Declare two to eight snapshots."}],"example":"\\begin{diagram}[type=trace,caption={Sliding-window advance.},description={Three ordered snapshots show the window advancing by one element.}]\n\\begin{algorithmtrace}[columns=3]\n\\snapshot{Initial}{\\begin{arraystate}\\cell{4}\\cell{2}\\cell{7}\\end{arraystate}}\n\\snapshot{Advance}{\\begin{arraystate}\\cell{4}\\cell{2}\\cell{7}\\end{arraystate}}\n\\snapshot{Shrink}{\\begin{arraystate}\\cell{4}\\cell{2}\\cell{7}\\end{arraystate}}\n\\end{algorithmtrace}\n\\end{diagram}","stability":"experimental","since":"1.10.0"}
 % </reportkit-contract>
 \NewDocumentEnvironment{algorithmtrace}{O{}}{%
   \begingroup
+  \renewcommand{\rk@tracemode}{strip}%
   \pgfkeys{/reportkit/algorithmtrace,columns=3,snapshot width=3.6,snapshot height=3.5,gap=.55,#1}%
-  \rk@tracecol=0\relax\rk@tracerow=0\relax
+  \rk@traceresolveauto
+  \rk@tracecol=0\relax\rk@tracerow=0\relax\global\rk@tracesnapshotindex=0\relax
 }{%
   \endgroup
 }
@@ -541,6 +577,7 @@
     \rk@tracecol=0\relax
     \advance\rk@tracerow by 1\relax
   \fi
+  \global\advance\rk@tracesnapshotindex by 1\relax
 }
 
 % Linear-container primitives (stackstate, queuestate; spec section 7) are
