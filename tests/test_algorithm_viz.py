@@ -406,3 +406,42 @@ def test_transition_renders_between_its_two_snapshots(compile_doc):
     # Each transition sits strictly between its two snapshots' x-ranges.
     assert boxes["Initial"][2] < boxes["small;"][0] < boxes["Advance"][0]
     assert boxes["Advance"][2] < boxes["big;"][0] < boxes["Shrink"][0]
+
+
+def test_legend_auto_lists_only_used_states(compile_doc):
+    # Spec sec 3.3 (B3): legend=auto lists only states actually used --
+    # current and active here, never e.g. unseen or blocked.
+    page = compile_doc(
+        r"""
+        \begin{diagram}[type=array,width=\textwidth,caption={Legend.}]
+          \begin{arraystate}[legend=auto]
+            \cell[state=current]{1}
+            \cell[state=active]{2}
+            \cell{3}
+          \end{arraystate}
+        \end{diagram}
+        """
+    )[0]
+    text = page.get_text()
+    assert "current" in text
+    assert "active" in text
+    assert "unseen" not in text
+    assert "blocked" not in text
+
+
+def test_legend_auto_lists_used_roles(compile_doc):
+    page = compile_doc(
+        r"""
+        \begin{diagram}[type=array,width=\textwidth,caption={Legend roles.}]
+          \begin{arraystate}[legend=auto]
+            \cell{1}\cell{2}\cell{3}
+            \pointer[role=left,below]{L}{0}
+            \pointer[role=right,below]{R}{2}
+          \end{arraystate}
+        \end{diagram}
+        """
+    )[0]
+    text = page.get_text()
+    assert "left" in text
+    assert "right" in text
+    assert "mid" not in text

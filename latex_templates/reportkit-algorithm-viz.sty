@@ -65,9 +65,65 @@
 % downstream algorithm-state modules (stackstate, queuestate, graphstate,
 % ...) via \rk@setalgostate so every primitive family understands the same
 % nine words -- see the spec's section 2.2.
+% legend=auto bookkeeping (spec sec 3.3, B3): which states/roles have
+% actually been used in the current legend-owning scope (a standalone
+% arraystate/windowstate, or a whole algorithmtrace aggregating across
+% all of its nested snapshots). \ifrk@insidetrace suppresses a nested
+% snapshot's own arraystate from resetting the accumulator out from
+% under the enclosing trace. Global because \cell/\pointer often run
+% inside \begingroup'd sub-scopes (arraystate's own, or a snapshot's).
+\newcommand{\rk@algousedstates}{}
+\newcommand{\rk@algousedroles}{}
+\newif\ifrk@insidetrace
+\newcommand{\rk@algorecordusedstate}[1]{%
+  \ifinlist{#1}{\rk@algousedstates}{}{%
+    \ifdefempty{\rk@algousedstates}{\gdef\rk@algousedstates{#1}}{\g@addto@macro\rk@algousedstates{,#1}}%
+  }%
+}
+\newcommand{\rk@algorecordusedrole}[1]{%
+  \ifinlist{#1}{\rk@algousedroles}{}{%
+    \ifdefempty{\rk@algousedroles}{\gdef\rk@algousedroles{#1}}{\g@addto@macro\rk@algousedroles{,#1}}%
+  }%
+}
+% Render a compact legend row at tikz y-coordinate #1: one small swatch
+% per used state (reusing \rk@setalgostate so the swatch's border/fill/
+% line-style exactly matches the real cells -- state meaning stays
+% distinguishable by border/line-style in the legend too, not fill color
+% alone), followed by one small arrow per used pointer role.
+\newcommand{\rk@algorenderlegend}[1]{%
+  \begingroup
+  \ifdefempty{\rk@algousedstates}{}{%
+    \pgfmathsetmacro{\rk@legendx}{0}%
+    \@for\rk@legendstate:=\rk@algousedstates\do{%
+      \rk@setalgostate{\rk@legendstate}%
+      \node[rk algo cell,\rk@algostateoverlay,minimum size=3mm,inner sep=0pt] at (\rk@legendx,#1) {};%
+      \node[rk algo annotation,anchor=west] at ({\rk@legendx+0.26},#1) {\rk@legendstate};%
+      \pgfmathsetmacro{\rk@legendx}{\rk@legendx+1.5}%
+    }%
+  }%
+  \ifdefempty{\rk@algousedroles}{}{%
+    \ifdefempty{\rk@algousedstates}{\pgfmathsetmacro{\rk@legendx}{0}}{}%
+    \@for\rk@legendrole:=\rk@algousedroles\do{%
+      % \expandafter: \rk@algosetpointerrole compares its argument
+      % directly via \ifstrequal (no internal \edef, unlike
+      % \rk@setalgostate above), so it needs the loop variable's plain
+      % text, not the unexpanded \rk@legendrole token.
+      \expandafter\rk@algosetpointerrole\expandafter{\rk@legendrole}%
+      \draw[rk algo pointer,-{\rk@algopointerrolearrow[length=4.2pt,width=3.2pt]}]
+        ({\rk@legendx+0.15},{#1-0.22}) -- ({\rk@legendx+0.15},{#1+0.05});%
+      \node[rk algo annotation,anchor=west] at ({\rk@legendx+0.34},#1) {\rk@legendrole};%
+      \pgfmathsetmacro{\rk@legendx}{\rk@legendx+1.5}%
+    }%
+  }%
+  \endgroup
+}
 \newcommand{\rk@algostateoverlay}{}
 \newcommand{\rk@setalgostate}[1]{%
   \edef\rk@algostatevalue{#1}%
+  % \expandafter (not a bare macro argument): \rk@algorecordusedstate
+  % must receive the plain text "current"/"active"/... to compare and
+  % store, not the unexpanded \rk@algostatevalue token itself.
+  \expandafter\ifstrempty\expandafter{\rk@algostatevalue}{}{\expandafter\rk@algorecordusedstate\expandafter{\rk@algostatevalue}}%
   \expandafter\ifstrempty\expandafter{\rk@algostatevalue}{\def\rk@algostateoverlay{}}{%
   \ifdefstring{\rk@algostatevalue}{current}{\def\rk@algostateoverlay{rk algo state current}}{%
   \ifdefstring{\rk@algostatevalue}{active}{\def\rk@algostateoverlay{rk algo state active}}{%
@@ -143,6 +199,7 @@
 \newcommand{\rk@algosetpointerrole}[1]{%
   \def\rk@algopointerrolearrow{Stealth}%
   \def\rk@algopointerroleslant{0pt}%
+  \ifstrequal{#1}{}{}{\rk@algorecordusedrole{#1}}%
   \ifstrequal{#1}{}{}{%
   \ifstrequal{#1}{left}{\def\rk@algopointerrolearrow{Triangle}\def\rk@algopointerroleslant{-3pt}}{%
   \ifstrequal{#1}{right}{\def\rk@algopointerrolearrow{Triangle}\def\rk@algopointerroleslant{3pt}}{%
@@ -158,12 +215,14 @@
 \newcommand{\rk@algorangestate}{active}
 \newcommand{\rk@algorangerow}{}
 \newcommand{\rk@algoannotationrow}{}
+\newcommand{\rk@algolegendmode}{}
 \pgfkeys{
   /reportkit/arraystate/.is family,
   /reportkit/arraystate,
   cell width/.store in=\rk@algocellwidth,
   row height/.store in=\rk@algorowheight,
   indices/.store in=\rk@algoindicesmode,
+  legend/.store in=\rk@algolegendmode,
 }
 \pgfkeys{
   /reportkit/algocell/.is family,
@@ -247,10 +306,22 @@
   \global\advance\rk@algoinstancecounter by 1\relax
   \edef\rk@algoinstanceid{\the\rk@algoinstancecounter}%
   \def\rk@algoindicesmode{true}%
+  \def\rk@algolegendmode{}%
+  % A nested arraystate inside an algorithmtrace snapshot must not reset
+  % the trace's own accumulated used-states/roles out from under it --
+  % only reset here when this arraystate owns its own legend.
+  \ifrk@insidetrace\else\global\let\rk@algousedstates\@empty\global\let\rk@algousedroles\@empty\fi
   \pgfkeys{/reportkit/arraystate,cell width=1.05,row height=1.15,#1}%
   \rk@algocol=0\relax\rk@algorow=0\relax\rk@algoannocount=0\relax
   \def\rk@algorownames{}%
 }{%
+  \ifdefstring{\rk@algolegendmode}{auto}{%
+    % Clearance below the last row accounts for the row's own cell height,
+    % its index, and (if any \pointer landed there) the pointer's arrow
+    % and label, plus one row per annotation already placed.
+    \pgfmathsetmacro{\rk@legendy}{-(\the\rk@algorow)*\rk@algorowheight-1.55*\rk@algorowheight-\the\rk@algoannocount*0.46-0.4}%
+    \rk@algorenderlegend{\rk@legendy}%
+  }{}%
   \endgroup
 }
 
@@ -426,11 +497,20 @@
   \global\advance\rk@algoinstancecounter by 1\relax
   \edef\rk@algoinstanceid{\the\rk@algoinstancecounter}%
   \def\rk@algoindicesmode{true}%
+  \def\rk@algolegendmode{}%
+  \ifrk@insidetrace\else\global\let\rk@algousedstates\@empty\global\let\rk@algousedroles\@empty\fi
   \rk@windowcellcount=0\relax
   \pgfkeys{/reportkit/arraystate,cell width=1.05,row height=1.15,#1}%
   \rk@algocol=0\relax\rk@algorow=0\relax\rk@algoannocount=0\relax
   \def\rk@algorownames{}%
 }{%
+  \ifdefstring{\rk@algolegendmode}{auto}{%
+    % Clearance below the last row accounts for the row's own cell height,
+    % its index, and (if any \pointer landed there) the pointer's arrow
+    % and label, plus one row per annotation already placed.
+    \pgfmathsetmacro{\rk@legendy}{-(\the\rk@algorow)*\rk@algorowheight-1.55*\rk@algorowheight-\the\rk@algoannocount*0.46-0.4}%
+    \rk@algorenderlegend{\rk@legendy}%
+  }{}%
   \endgroup
 }
 % <reportkit-contract>
@@ -517,6 +597,7 @@
 % its configured width by measuring against \linewidth at
 % \begin{algorithmtrace} time (see \rk@traceresolveauto below).
 \newcommand{\rk@tracemode}{strip}
+\newcommand{\rk@tracelegendmode}{}
 \pgfkeys{
   /reportkit/algorithmtrace/.is family,
   /reportkit/algorithmtrace,
@@ -525,6 +606,7 @@
   snapshot height/.store in=\rk@traceheight,
   gap/.store in=\rk@tracegap,
   mode/.store in=\rk@tracemode,
+  legend/.store in=\rk@tracelegendmode,
 }
 % Resolve mode= into a concrete \rk@tracecolumns at \begin{algorithmtrace}
 % time (before any \snapshot is placed, since column count must be fixed
@@ -552,11 +634,23 @@
 \NewDocumentEnvironment{algorithmtrace}{O{}}{%
   \begingroup
   \renewcommand{\rk@tracemode}{strip}%
+  \renewcommand{\rk@tracelegendmode}{}%
+  \global\rk@insidetracetrue
+  \global\let\rk@algousedstates\@empty\global\let\rk@algousedroles\@empty
   \pgfkeys{/reportkit/algorithmtrace,columns=3,snapshot width=3.6,snapshot height=3.5,gap=.55,#1}%
   \rk@traceresolveauto
   \rk@tracecol=0\relax\rk@tracerow=0\relax\global\rk@tracesnapshotindex=0\relax
   \global\rk@tracetransitioncount=0\relax
 }{%
+  \global\rk@insidetracefalse
+  \ifdefstring{\rk@tracelegendmode}{auto}{%
+    \ifnum\rk@tracecol=0\relax
+      \pgfmathsetmacro{\rk@legendy}{-\the\rk@tracerow*(\rk@traceheight+\rk@tracegap+.75)-\rk@traceheight-.5}%
+    \else
+      \pgfmathsetmacro{\rk@legendy}{-(\the\rk@tracerow+1)*(\rk@traceheight+\rk@tracegap+.75)-\rk@traceheight+.25}%
+    \fi
+    \rk@algorenderlegend{\rk@legendy}%
+  }{}%
   \endgroup
 }
 % <reportkit-contract>

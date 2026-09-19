@@ -107,6 +107,21 @@ cursor's role survives grayscale without depending on color.
 \end{arraystate}
 \end{diagram}
 
+\section{Legends}
+\texttt{legend=auto} lists only the states and roles a figure actually
+uses, each swatch reusing the real cell/pointer styling so state and role
+meaning stay legible in grayscale straight from the legend itself.
+
+\begin{diagram}[type=array,width=\textwidth,caption={Two-pointer scan with an automatic legend.},description={A three-element array with left and right pointers and a discarded cell, followed by a legend listing current, discarded, left, and right.}]
+\begin{arraystate}[legend=auto]
+  \cell[state=current]{4}
+  \cell[state=active]{9}
+  \cell[state=discarded]{-1}
+  \pointer[role=left,below]{L}{0}
+  \pointer[role=right,below]{R}{1}
+\end{arraystate}
+\end{diagram}
+
 \section{Algorithmtrace: ordered snapshots and transitions}
 Three ordered snapshots of a sliding-window advance, read left to right,
 with \texttt{\string\tracetransition} labelling why each step happened.
