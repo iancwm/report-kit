@@ -124,6 +124,32 @@
 \newcommand{\rk@algocellstate}{}
 \newcommand{\rk@algopointerposition}{below}
 \newcommand{\rk@algopointerrow}{}
+% role= chrome (spec sec 2.3, A3): opt-in, adds a marker shape and does
+% not replace or affect the cell's own state=. \rk@algopointerrolearrow
+% is the tip name from tikz's arrows.meta library (Stealth/Triangle/
+% Diamond/Circle/Kite/Straight Barb/Latex are all real, distinctly-
+% shaped tips, so role meaning survives grayscale by shape, not color).
+% \rk@algopointerroleslant leans the arrow stem left or right for the
+% left/right roles specifically -- an "opposing arrow direction" per the
+% spec, distinct from color alone, and 0pt (a plain vertical stem) for
+% every other role and for no role at all (fully backward compatible).
+\newcommand{\rk@algopointerrolearrow}{Stealth}
+\newcommand{\rk@algopointerroleslant}{0pt}
+\newcommand{\rk@algosetpointerrole}[1]{%
+  \def\rk@algopointerrolearrow{Stealth}%
+  \def\rk@algopointerroleslant{0pt}%
+  \ifstrequal{#1}{}{}{%
+  \ifstrequal{#1}{left}{\def\rk@algopointerrolearrow{Triangle}\def\rk@algopointerroleslant{-3pt}}{%
+  \ifstrequal{#1}{right}{\def\rk@algopointerrolearrow{Triangle}\def\rk@algopointerroleslant{3pt}}{%
+  \ifstrequal{#1}{mid}{\def\rk@algopointerrolearrow{Diamond}}{%
+  \ifstrequal{#1}{head}{\def\rk@algopointerrolearrow{Circle}}{%
+  \ifstrequal{#1}{tail}{\def\rk@algopointerrolearrow{Kite}}{%
+  \ifstrequal{#1}{top}{\def\rk@algopointerrolearrow{Straight Barb}}{%
+  \ifstrequal{#1}{root}{\def\rk@algopointerrolearrow{Latex}}{%
+    \PackageError{reportkit-algorithm-viz}{Unknown pointer role '#1'}%
+      {Use one of left, right, mid, head, tail, top, root, or omit role= for the plain cursor.}%
+  }}}}}}}}%
+}
 \newcommand{\rk@algorangestate}{active}
 \newcommand{\rk@algorangerow}{}
 \newcommand{\rk@algoannotationrow}{}
@@ -146,6 +172,7 @@
   below/.style={position=below},
   position/.store in=\rk@algopointerposition,
   row/.store in=\rk@algopointerrow,
+  role/.code=\rk@algosetpointerrole{#1},
 }
 \pgfkeys{
   /reportkit/algorange/.is family,
@@ -299,14 +326,17 @@
 % </reportkit-contract>
 \NewDocumentCommand{\pointer}{O{} m m}{%
   \def\rk@algopointerrow{}%
+  \rk@algosetpointerrole{}%
   \pgfkeys{/reportkit/algopointer,position=below,#1}%
   \rk@findalgorow{\rk@algopointerrow}%
   \edef\rk@algotargetcell{rkalgocell-\the\rk@algorowquery-#3}%
   \ifstrequal{\rk@algopointerposition}{above}{%
     % Indices only ever render below row 0, so "above" always anchors
     % directly to the cell -- there is never an index to clear up here.
-    \draw[rk algo pointer]
-      ($(\rk@algotargetcell.north)+(0,\rk@algopointerheadgap+\rk@algopointerarrowlen)$) --
+    % The head end stays on the cell's centerline; only the tail leans
+    % sideways for role=left/right's "opposing arrow direction."
+    \draw[rk algo pointer,-{\rk@algopointerrolearrow[length=4.2pt,width=3.2pt]}]
+      ($(\rk@algotargetcell.north)+(\rk@algopointerroleslant,\rk@algopointerheadgap+\rk@algopointerarrowlen)$) --
       ($(\rk@algotargetcell.north)+(0,\rk@algopointerheadgap)$);%
     \node[rk algo pointer label,anchor=south] at
       ($(\rk@algotargetcell.north)+(0,\rk@algopointerheadgap+\rk@algopointerarrowlen+\rk@algopointerlabelgap)$) {#2};%
@@ -325,8 +355,8 @@
     }{%
       \edef\rk@algopointeranchor{rkalgoindex-\the\rk@algorowquery-#3}%
     }%
-    \draw[rk algo pointer]
-      ($(\rk@algopointeranchor.south)-(0,\rk@algopointerheadgap+\rk@algopointerarrowlen)$) --
+    \draw[rk algo pointer,-{\rk@algopointerrolearrow[length=4.2pt,width=3.2pt]}]
+      ($(\rk@algopointeranchor.south)+(\rk@algopointerroleslant,0)-(0,\rk@algopointerheadgap+\rk@algopointerarrowlen)$) --
       ($(\rk@algopointeranchor.south)-(0,\rk@algopointerheadgap)$);%
     \node[rk algo pointer label,anchor=north] at
       ($(\rk@algopointeranchor.south)-(0,\rk@algopointerheadgap+\rk@algopointerarrowlen+\rk@algopointerlabelgap)$) {#2};%
@@ -404,8 +434,8 @@
 % </reportkit-contract>
 \NewDocumentCommand{\window}{m m}{%
   \range[state=active]{#1}{#2}%
-  \pointer[below]{L}{#1}%
-  \pointer[below]{R}{#2}%
+  \pointer[role=left,below]{L}{#1}%
+  \pointer[role=right,below]{R}{#2}%
 }
 % <reportkit-contract>
 % {"kind":"command","description":"Annotate the value about to enter the window.","arguments":[{"name":"value","type":"text","description":"Incoming value."}],"constraints":[{"code": "inside_windowstate", "description": "Only valid inside windowstate."}],"example":"\\entering{5}","stability":"experimental","since":"1.10.0","parent":"windowstate"}

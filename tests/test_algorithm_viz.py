@@ -211,3 +211,68 @@ def test_index_label_clears_cell_border_and_survives_range_and_pointer(compile_d
     assert abs(index_center_x - cell_center_x) < 0.25
     # The index's top edge must clear the cell's bottom edge by >=1.5pt.
     assert index_two[1] - cell_two.y1 >= 1.5
+
+
+def test_pointer_role_left_right_renders_spec_example(compile_doc):
+    # Spec sec 2.3's target authoring form, verbatim, must compile and show
+    # both role labels plus the active range they bound.
+    page = compile_doc(
+        r"""
+        \begin{diagram}[type=array,width=\textwidth,caption={Pointer roles.}]
+          \begin{arraystate}[indices=auto]
+            \cell[state=current]{1}\cell[state=active]{3}
+            \cell[state=active]{5}\cell[state=current]{9}
+            \pointer[role=left,below]{L}{0}
+            \pointer[role=right,below]{R}{3}
+            \range[state=active]{0}{3}
+          \end{arraystate}
+        \end{diagram}
+        """
+    )[0]
+    boxes = word_boxes(page, {"1", "3", "5", "9", "L", "R"})
+    assert {"L", "R"} <= set(boxes)
+    assert boxes["L"][0] < boxes["R"][0]
+
+
+def test_pointer_role_left_and_right_slant_in_opposite_directions(compile_doc):
+    # Spec sec 2.3: "The left/right distinction uses a label plus opposing
+    # arrow direction; it cannot be expressed by blue versus grey borders
+    # alone." Assert the two role arrows' stroke paths actually lean in
+    # opposite horizontal directions (grayscale-safe), not just that they
+    # render in different colors.
+    page = compile_doc(
+        r"""
+        \begin{diagram}[type=array,width=\textwidth,caption={Pointer role slant.}]
+          \begin{arraystate}
+            \cell{1}\cell{2}\cell{3}\cell{4}
+            \pointer[role=left,below]{L}{1}
+            \pointer[role=right,below]{R}{2}
+          \end{arraystate}
+        \end{diagram}
+        """
+    )[0]
+    drawings = page.get_drawings()
+    slants = []
+    for d in drawings:
+        for item in d.get("items", []):
+            if item[0] == "l":
+                p0, p1 = item[1], item[2]
+                if abs(p0.y - p1.y) > 3:  # a near-vertical pointer stem
+                    slants.append(p1.x - p0.x)
+    assert slants, "no pointer stem line segments found"
+    assert any(s < -0.5 for s in slants), "no left-leaning stem found"
+    assert any(s > 0.5 for s in slants), "no right-leaning stem found"
+
+
+def test_unknown_pointer_role_raises_a_package_error(compile_doc):
+    with pytest.raises(Exception):
+        compile_doc(
+            r"""
+            \begin{diagram}[type=array,width=\textwidth,caption={Bad role.}]
+              \begin{arraystate}
+                \cell{1}
+                \pointer[role=nonsense,below]{X}{0}
+              \end{arraystate}
+            \end{diagram}
+            """
+        )

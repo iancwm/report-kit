@@ -33,8 +33,8 @@ an active-range highlight.
   \cell{0}
   \cell{1}
   \cell{2}
-  \pointer[below]{L}{2}
-  \pointer[below]{R}{5}
+  \pointer[role=left,below]{L}{2}
+  \pointer[role=right,below]{R}{5}
   \range[state=active]{2}{5}
 \end{arraystate}
 \end{diagram}
@@ -81,6 +81,29 @@ distinguishable through border weight and line style, not fill color alone.
   \cell[state=discarded]{disc}
   \cell[state=blocked]{blk}
   \cell[state=unseen]{uns}
+\end{arraystate}
+\end{diagram}
+
+\section{Pointer roles}
+The seven opt-in \texttt{role=} markers: each selects a distinct arrow-tip
+shape (and, for \texttt{left}/\texttt{right}, an opposing slant), so a
+cursor's role survives grayscale without depending on color.
+
+\begin{diagram}[type=array,width=\textwidth,caption={Binary search: mid pointer between the left and right bounds.},description={A five-element array with left, mid, and right cursors marking a binary search step.}]
+\begin{arraystate}
+  \cell{1}\cell{3}\cell{5}\cell{7}\cell{9}
+  \pointer[role=left,below]{L}{0}
+  \pointer[role=mid,below]{M}{2}
+  \pointer[role=right,below]{R}{4}
+\end{arraystate}
+\end{diagram}
+
+\begin{diagram}[type=array,width=\textwidth,caption={Queue head/tail and stack top cursors.},description={A four-element array with a head cursor at the front, a tail cursor at the back, and a top cursor marking the most recently pushed element.}]
+\begin{arraystate}
+  \cell{A}\cell{B}\cell{C}\cell{D}
+  \pointer[role=head,below]{H}{0}
+  \pointer[role=tail,below]{T}{3}
+  \pointer[role=top,above]{TOP}{3}
 \end{arraystate}
 \end{diagram}
 
