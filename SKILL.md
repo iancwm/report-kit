@@ -16,6 +16,8 @@ authoritative primitive and command contract. Use `reportkit docs --check
 --json` as the drift gate; the version policy, exit classes, pinned toolchain,
 and trust boundary are in
 [references/agent-contract.md](references/agent-contract.md).
+For a small context window, load `reportkit context --slice quickstart --json`
+first, then request only the on-demand slice needed for the selected target.
 
 ## Set up the report
 

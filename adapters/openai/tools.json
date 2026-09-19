@@ -1,0 +1,402 @@
+{
+  "contract_version": "1.1.0",
+  "schema_version": "1.0.0",
+  "source": "reportkit CLI argparse + COMMAND_CONTRACT",
+  "tools": [
+    {
+      "description": "Scaffold a consumer publication project outside the ReportKit clone.",
+      "name": "reportkit_init",
+      "parameters": {
+        "additionalProperties": false,
+        "properties": {
+          "install_fonts": {
+            "description": "install the bundled Libertinus fonts into TEXMFLOCAL",
+            "type": "boolean"
+          },
+          "target": {
+            "description": "consumer publication project to scaffold",
+            "type": "string"
+          },
+          "target_option": {
+            "description": "consumer publication project to scaffold",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "strict": true,
+      "type": "function"
+    },
+    {
+      "description": "Inspect build dependencies and pinned-toolchain drift.",
+      "name": "reportkit_doctor",
+      "parameters": {
+        "additionalProperties": false,
+        "properties": {
+          "require": {
+            "description": "require",
+            "enum": [
+              "full-build",
+              "pinned-toolchain"
+            ],
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "strict": true,
+      "type": "function"
+    },
+    {
+      "description": "Print the versioned ReportKit capability contract.",
+      "name": "reportkit_context",
+      "parameters": {
+        "additionalProperties": false,
+        "properties": {
+          "context_slice": {
+            "description": "return one compact contract slice",
+            "enum": [
+              "quickstart",
+              "selection",
+              "primitives",
+              "authoring",
+              "commands",
+              "toolchain"
+            ],
+            "type": "string"
+          },
+          "kind": {
+            "description": "repeat to request multiple primitive kinds",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "output_root": {
+            "description": "where publication build artefacts live",
+            "type": "string"
+          },
+          "profile": {
+            "description": "publication config profile (for example, release)",
+            "type": "string"
+          },
+          "publication_type": {
+            "description": "publication_type",
+            "type": "string"
+          },
+          "schema": {
+            "description": "schema",
+            "enum": [
+              "context",
+              "context-slice",
+              "diagnostic"
+            ],
+            "type": "string"
+          },
+          "source_root": {
+            "description": "consumer publication project",
+            "type": "string"
+          },
+          "theme": {
+            "description": "theme",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "strict": true,
+      "type": "function"
+    },
+    {
+      "description": "Validate publication structure without invoking TeX.",
+      "name": "reportkit_check",
+      "parameters": {
+        "additionalProperties": false,
+        "properties": {
+          "contract_version": {
+            "description": "contract_version",
+            "type": "string"
+          },
+          "engine": {
+            "description": "engine",
+            "type": "string"
+          },
+          "output_root": {
+            "description": "where publication build artefacts live",
+            "type": "string"
+          },
+          "profile": {
+            "description": "publication config profile (for example, release)",
+            "type": "string"
+          },
+          "source_root": {
+            "description": "consumer publication project",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "strict": true,
+      "type": "function"
+    },
+    {
+      "description": "Validate, convert, compile, diagnose, render, and inspect a publication.",
+      "name": "reportkit_build",
+      "parameters": {
+        "additionalProperties": false,
+        "properties": {
+          "author": {
+            "description": "author",
+            "type": "string"
+          },
+          "chapter": {
+            "description": "compatibility alias for --section",
+            "type": "string"
+          },
+          "compile_timeout_seconds": {
+            "default": "120",
+            "description": "compile_timeout_seconds",
+            "type": "integer"
+          },
+          "contract_version": {
+            "description": "contract_version",
+            "type": "string"
+          },
+          "cover": {
+            "description": "cover",
+            "type": "string"
+          },
+          "engine": {
+            "description": "engine",
+            "type": "string"
+          },
+          "memory_limit_mb": {
+            "default": "2048",
+            "description": "memory_limit_mb",
+            "type": "integer"
+          },
+          "mode": {
+            "default": "combined",
+            "description": "mode",
+            "enum": [
+              "combined",
+              "section",
+              "sections"
+            ],
+            "type": "string"
+          },
+          "output_root": {
+            "description": "where publication build artefacts live",
+            "type": "string"
+          },
+          "profile": {
+            "description": "publication config profile (for example, release)",
+            "type": "string"
+          },
+          "section": {
+            "description": "section",
+            "type": "string"
+          },
+          "source_root": {
+            "description": "consumer publication project",
+            "type": "string"
+          },
+          "title": {
+            "description": "title",
+            "type": "string"
+          },
+          "version": {
+            "description": "version",
+            "type": "string"
+          },
+          "workers": {
+            "default": 1,
+            "description": "bounded parallel section builds in --mode sections (F2)",
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "strict": true,
+      "type": "function"
+    },
+    {
+      "description": "Parse a TeX log into source-aware diagnostics.",
+      "name": "reportkit_diagnose",
+      "parameters": {
+        "additionalProperties": false,
+        "properties": {
+          "allowlist": {
+            "description": "allowlist",
+            "type": "string"
+          },
+          "log": {
+            "description": "log",
+            "type": "string"
+          },
+          "output_root": {
+            "description": "where publication build artefacts live",
+            "type": "string"
+          },
+          "profile": {
+            "description": "publication config profile (for example, release)",
+            "type": "string"
+          },
+          "source_root": {
+            "description": "consumer publication project",
+            "type": "string"
+          },
+          "underfull_badness": {
+            "default": 4000,
+            "description": "underfull_badness",
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "strict": true,
+      "type": "function"
+    },
+    {
+      "description": "Inspect PDF geometry, metadata, fonts, links, and bookmarks.",
+      "name": "reportkit_inspect",
+      "parameters": {
+        "additionalProperties": false,
+        "properties": {
+          "output_root": {
+            "description": "where publication build artefacts live",
+            "type": "string"
+          },
+          "pdf": {
+            "description": "pdf",
+            "type": "string"
+          },
+          "profile": {
+            "description": "publication config profile (for example, release)",
+            "type": "string"
+          },
+          "source_root": {
+            "description": "consumer publication project",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "strict": true,
+      "type": "function"
+    },
+    {
+      "description": "Render selected PDF pages to PNGs for agent visual inspection.",
+      "name": "reportkit_render",
+      "parameters": {
+        "additionalProperties": false,
+        "properties": {
+          "dpi": {
+            "default": 150,
+            "description": "dpi",
+            "type": "integer"
+          },
+          "out": {
+            "description": "page-image output directory (default: <output-root>/render)",
+            "type": "string"
+          },
+          "output_root": {
+            "description": "where publication build artefacts live",
+            "type": "string"
+          },
+          "pages": {
+            "description": "page selection, e.g. '1,3,5-7' (default: every page)",
+            "type": "string"
+          },
+          "pdf": {
+            "description": "pdf",
+            "type": "string"
+          },
+          "profile": {
+            "description": "publication config profile (for example, release)",
+            "type": "string"
+          },
+          "source_root": {
+            "description": "consumer publication project",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "strict": true,
+      "type": "function"
+    },
+    {
+      "description": "Package a passing combined build.",
+      "name": "reportkit_package",
+      "parameters": {
+        "additionalProperties": false,
+        "properties": {
+          "build_dir": {
+            "description": "build_dir",
+            "type": "string"
+          },
+          "destination": {
+            "description": "destination",
+            "type": "string"
+          },
+          "output_root": {
+            "description": "where publication build artefacts live",
+            "type": "string"
+          },
+          "profile": {
+            "description": "publication config profile (for example, release)",
+            "type": "string"
+          },
+          "source_root": {
+            "description": "consumer publication project",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "strict": true,
+      "type": "function"
+    },
+    {
+      "description": "Summarize recurring diagnostics in build history.",
+      "name": "reportkit_analyse_history",
+      "parameters": {
+        "additionalProperties": false,
+        "properties": {
+          "history_dir": {
+            "description": "build history directory",
+            "type": "string"
+          },
+          "source_root": {
+            "description": "consumer publication project",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "strict": true,
+      "type": "function"
+    },
+    {
+      "description": "Write or check contract-derived reference sections.",
+      "name": "reportkit_docs",
+      "parameters": {
+        "additionalProperties": false,
+        "properties": {
+          "check": {
+            "description": "check",
+            "type": "boolean"
+          },
+          "write": {
+            "description": "write",
+            "type": "boolean"
+          }
+        },
+        "type": "object"
+      },
+      "strict": true,
+      "type": "function"
+    }
+  ]
+}

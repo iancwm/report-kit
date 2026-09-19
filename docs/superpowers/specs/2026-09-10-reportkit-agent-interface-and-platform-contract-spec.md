@@ -4,8 +4,9 @@
 security are complete in v1.9.0, and its slide-renderer accessibility item 7
 is implemented in the current v1.9.3 tree. The constrained Markdown/typed-IR
 authoring slice (Phase C′ item 8) and the standalone `reportkit render`
-feedback command (item 9) are implemented in the working tree; progressive-
-disclosure budgets, i18n extensions and a second host adapter remain deferred.
+feedback command (item 9), progressive-disclosure budgets (item 10), and the
+OpenAI reference adapter (item 11) are implemented in the working tree;
+i18n extensions and tagging remain deferred.
 An additive `algorithmblock` primitive is included in the generated contract.
 Companion to
 [2026-09-09-reportkit-multi-format-publication-architecture-spec.md](2026-09-09-reportkit-multi-format-publication-architecture-spec.md)
@@ -713,8 +714,8 @@ remediation; security properties are asserted by tests.
 
 **Status (updated 2026-09-19):** the selected constrained Markdown/typed-IR
 authoring surface and standalone render command are implemented in the working
-tree. The remaining context-budget, i18n, and second-adapter work remains
-deferred.
+tree. Progressive-disclosure slices and the generated OpenAI adapter are now
+implemented; i18n and tagging remain deferred.
 
 8. Authoring IR or constrained dialect ([§6](#6-the-authoring-contract)).
 9. Agent visual feedback loop ([§12](#12-agent-visual-feedback-loop)).
@@ -769,10 +770,12 @@ All questions affecting v1.9.0 are resolved:
 3. Themes expose semantic capability and token names, not styling values.
 4. A different contract major is rejected. Same-major older callers continue
    with a structured stale-contract warning.
-5. The always-loaded budget and progressive-disclosure accounting are deferred
-   with the expanded renderer catalog; no unsupported budget is invented now.
-6. The later neutrality proof will be an OpenAI tool-definition adapter over
-   this same CLI contract.
+5. The always-loaded host-neutral quickstart ceiling is 2,000 estimated tokens,
+   measured by deterministic `ceil(utf8_bytes / 4)` accounting. The full
+   context remains compatible and exposes on-demand slice costs.
+6. The neutrality proof is the generated OpenAI tool-definition adapter under
+   `adapters/openai/`, which invokes only stable JSON CLI commands and checks
+   their published schemas.
 7. The repository boundary holds: schemas and generators are engine assets;
    authored IR instances will remain in consumer projects.
 8. v1.9 normalizes known volatile PDF metadata and gates visual releases on
