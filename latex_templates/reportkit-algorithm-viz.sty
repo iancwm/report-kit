@@ -503,6 +503,9 @@
 % -----------------------------------------------------------------------------
 \newcount\rk@tracecol
 \newcount\rk@tracerow
+\newcount\rk@transprevrow
+\newcount\rk@tracetransitioncount
+\rk@tracetransitioncount=0\relax
 \newcommand{\rk@tracecolumns}{3}
 \newcommand{\rk@tracewidth}{3.6}
 \newcommand{\rk@traceheight}{3.5}
@@ -552,6 +555,7 @@
   \pgfkeys{/reportkit/algorithmtrace,columns=3,snapshot width=3.6,snapshot height=3.5,gap=.55,#1}%
   \rk@traceresolveauto
   \rk@tracecol=0\relax\rk@tracerow=0\relax\global\rk@tracesnapshotindex=0\relax
+  \global\rk@tracetransitioncount=0\relax
 }{%
   \endgroup
 }
@@ -578,6 +582,58 @@
     \advance\rk@tracerow by 1\relax
   \fi
   \global\advance\rk@tracesnapshotindex by 1\relax
+}
+% Compute the previously-placed snapshot's grid position (column-major:
+% one step back from the *upcoming* slot \rk@tracecol/\rk@tracerow
+% already point at) into \rk@transprevx/\rk@transprevy/\rk@transprevrow.
+\newcommand{\rk@algotracecomputeprevpos}{%
+  \ifnum\rk@tracecol=0\relax
+    \pgfmathsetmacro{\rk@transprevx}{(\rk@tracecolumns-1)*(\rk@tracewidth+\rk@tracegap)}%
+    \rk@transprevrow=\rk@tracerow\relax\advance\rk@transprevrow by -1\relax
+  \else
+    \pgfmathsetmacro{\rk@transprevx}{(\the\rk@tracecol-1)*(\rk@tracewidth+\rk@tracegap)}%
+    \rk@transprevrow=\rk@tracerow\relax
+  \fi
+  \pgfmathsetmacro{\rk@transprevy}{-\the\rk@transprevrow*(\rk@traceheight+\rk@tracegap+.75)}%
+}
+% <reportkit-contract>
+% {"kind":"command","description":"Place a directional transition label on the edge between the two adjacent snapshots it sits between.","arguments":[{"name":"text","type":"text","description":"Short transition text, e.g. the condition or action that produced the next snapshot."}],"constraints":[{"code": "inside_algorithmtrace", "description": "Only valid between two \\snapshot calls inside algorithmtrace."}],"example":"\\tracetransition{sum too small; advance L}","stability":"experimental","since":"1.10.0","parent":"algorithmtrace"}
+% </reportkit-contract>
+% Named \tracetransition, not the spec text's literal \transition: that
+% name is already a stable, public 3-argument command in
+% reportkit-grammar.sty (reportstate's {from}{to}{label} edge label,
+% since v1.0.0), loaded into the same document. Redefining it would
+% break every existing reportstate diagram; \tracetransition avoids the
+% collision while keeping the algorithmtrace-family naming convention
+% (\snapshot, \tracetransition).
+\NewDocumentCommand{\tracetransition}{m}{%
+  \rk@algotracecomputeprevpos
+  \pgfmathsetmacro{\rk@transnextx}{\the\rk@tracecol*(\rk@tracewidth+\rk@tracegap)}%
+  \pgfmathsetmacro{\rk@transnexty}{-\the\rk@tracerow*(\rk@traceheight+\rk@tracegap+.75)}%
+  \global\advance\rk@tracetransitioncount by 1\relax
+  \ifnum\rk@transprevrow=\rk@tracerow\relax
+    % Same row: a plain horizontal arrow at the snapshots' vertical
+    % mid-height reads left to right on its own, no step number needed.
+    \draw[-{Stealth[length=4pt,width=3pt]},draw=\RKTokAlgorithmTraceSeparatorColor,line width=.8pt]
+      ({\rk@transprevx+\rk@tracewidth+.05},{\rk@transprevy-0.5*\rk@traceheight-.3}) --
+      ({\rk@transnextx-.05},{\rk@transnexty-0.5*\rk@traceheight-.3});%
+    % text width is capped to the configured gap= (not the full snapshot
+    % width): a wider label would visually extend under the next
+    % snapshot's own opaque cell box, which is drawn afterwards and would
+    % silently paint over -- not just visually crowd -- the overlapping
+    % half of the label. A caption note below the fixture recommends a
+    % wider gap= when using longer transition text.
+    \node[rk algo trace label,anchor=south,align=center,text width=\rk@tracegap cm] at
+      ({(\rk@transprevx+\rk@tracewidth+\rk@transnextx)/2},{\rk@transprevy-0.5*\rk@traceheight-.28}) {#1};%
+  \else
+    % Wrapped to a new row: reading order is no longer purely left to
+    % right, so prepend a step number (spec sec 3.2).
+    \draw[-{Stealth[length=4pt,width=3pt]},draw=\RKTokAlgorithmTraceSeparatorColor,line width=.8pt]
+      ({\rk@transprevx+0.5*\rk@tracewidth},{\rk@transprevy-\rk@traceheight-.1}) --
+      ({\rk@transnextx+0.5*\rk@tracewidth},{\rk@transnexty+.1});%
+    \node[rk algo trace label,anchor=north,align=center,text width=\rk@tracewidth cm] at
+      ({\rk@transprevx+0.5*\rk@tracewidth},{\rk@transprevy-\rk@traceheight-.28}) {\the\rk@tracetransitioncount. #1};%
+  \fi
 }
 
 % Linear-container primitives (stackstate, queuestate; spec section 7) are

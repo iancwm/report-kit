@@ -383,3 +383,26 @@ def test_algorithmtrace_mode_strip_keeps_requested_columns(compile_doc):
     assert len(rects) >= 3
     row_ys = {round(r.y0, 0) for r in rects}
     assert len(row_ys) == 1, "strip mode must keep all snapshots on one row"
+
+
+def test_transition_renders_between_its_two_snapshots(compile_doc):
+    page = compile_doc(
+        r"""
+        \begin{diagram}[type=trace,width=\textwidth,caption={Transitions.}]
+          \begin{algorithmtrace}[columns=3]
+            \snapshot{Initial}{\begin{arraystate}[indices=false]\cell{1}\end{arraystate}}
+            \tracetransition{sum too small; advance L}
+            \snapshot{Advance}{\begin{arraystate}[indices=false]\cell{2}\end{arraystate}}
+            \tracetransition{sum too big; advance R}
+            \snapshot{Shrink}{\begin{arraystate}[indices=false]\cell{3}\end{arraystate}}
+          \end{algorithmtrace}
+        \end{diagram}
+        """
+    )[0]
+    boxes = word_boxes(page, {"Initial", "Advance", "Shrink", "too", "small;", "big;"})
+    assert {"Initial", "Advance", "Shrink"} <= set(boxes)
+    assert {"too", "small;"} <= set(boxes), "first transition text did not render"
+    assert {"big;"} <= set(boxes), "second transition text did not render"
+    # Each transition sits strictly between its two snapshots' x-ranges.
+    assert boxes["Initial"][2] < boxes["small;"][0] < boxes["Advance"][0]
+    assert boxes["Advance"][2] < boxes["big;"][0] < boxes["Shrink"][0]

@@ -107,23 +107,27 @@ cursor's role survives grayscale without depending on color.
 \end{arraystate}
 \end{diagram}
 
-\section{Algorithmtrace: ordered snapshots}
-Three ordered snapshots of a sliding-window advance, read left to right.
+\section{Algorithmtrace: ordered snapshots and transitions}
+Three ordered snapshots of a sliding-window advance, read left to right,
+with \texttt{\string\tracetransition} labelling why each step happened.
+A wider \texttt{gap=} gives each transition label room to wrap.
 
 \begin{diagram}[type=trace,width=\textwidth,caption={A three-element window advances across a six-element array.},description={Three ordered snapshots show a three-element window at positions zero to two, one to three, and two to four.}]
-\begin{algorithmtrace}[columns=3]
+\begin{algorithmtrace}[columns=3,gap=1.1]
   \snapshot{Initial}{%
     \begin{arraystate}[cell width=.85,row height=1.0]
       \cell{4}\cell{2}\cell{7}\cell{1}\cell{3}\cell{6}
       \range[state=active]{0}{2}
     \end{arraystate}%
   }
+  \tracetransition{sum too small; advance right}
   \snapshot{Advance right}{%
     \begin{arraystate}[cell width=.85,row height=1.0]
       \cell{4}\cell{2}\cell{7}\cell{1}\cell{3}\cell{6}
       \range[state=active]{1}{3}
     \end{arraystate}%
   }
+  \tracetransition{sum too big; advance again}
   \snapshot{Advance again}{%
     \begin{arraystate}[cell width=.85,row height=1.0]
       \cell{4}\cell{2}\cell{7}\cell{1}\cell{3}\cell{6}
