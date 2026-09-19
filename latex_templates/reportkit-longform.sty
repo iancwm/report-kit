@@ -74,6 +74,25 @@
 % </reportkit-contract>
 \NewDocumentCommand{\RKPath}{m}{\begingroup\urlstyle{tt}\url{#1}\endgroup}
 
+% A condensed navigation panel for a compact-guide title page: unlike
+% \RKContents, it never clears to a dedicated page, and it has no
+% \tableofcontents typography or aux-file dependency -- it lists whatever
+% labels the caller gives it, so it renders correctly on the very first
+% compile (a real \tableofcontents entry does not exist until a second
+% pass has run).
+% <reportkit-contract>
+% {"kind":"command","description":"Rkcompactcontents","arguments":[{"name":"labels","type":"text","description":"Comma-separated section labels, listed in reading order."}],"constraints":[],"example":"\\RKCompactContents{Two pointers, Stack and queue, Topological sort}","stability":"experimental","since":"1.6.0"}
+% </reportkit-contract>
+\newcommand{\RKCompactContents}[1]{%
+  \begingroup
+  \sffamily\fontsize{8}{10}\selectfont\color{Muted}
+  \def\rk@compactcontents@sep{}%
+  \renewcommand{\do}[1]{\rk@compactcontents@sep\MakeUppercase{##1}\def\rk@compactcontents@sep{\quad\textbullet\quad}}%
+  \docsvlist{#1}%
+  \par
+  \endgroup
+}
+
 % Keep short listings with their lead-in. Longer listings may split normally;
 % authors can place the marker at a deliberate continuation boundary.
 % <reportkit-contract>
