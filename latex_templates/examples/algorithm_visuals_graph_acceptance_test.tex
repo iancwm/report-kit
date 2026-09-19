@@ -155,6 +155,54 @@ place -- and validates that every id it is given has indegree zero.
 \end{dagstate}
 \end{diagram}
 
+\section{Composition: graphstate + queuestate (BFS frontier walkthrough)}
+Per the spec's composition-before-specialization principle (spec section
+4/C3), this sprint does not add a dedicated BFS primitive. A breadth-first
+search work queue is instead expressed by placing an existing
+\texttt{graphstate} beside an existing \texttt{queuestate} inside one
+\texttt{diagram} -- proving the two independent primitives compose at
+guide scale without a spacing or caption defect.
+
+\begin{diagram}[type=graph,width=\textwidth,caption={A breadth-first search: the current node's unvisited neighbors enter the work queue.},description={A graph on the left shows a start node visited, its current neighbor being processed, one neighbor queued as frontier, and one neighbor unseen. A FIFO work queue on the right holds the two nodes discovered so far, front to rear.}]
+\begin{graphstate}[columns=2]
+  \graphnode[state=visited]{a}{Start}
+  \graphnode[state=current]{b}{Current}
+  \graphnode[state=frontier]{c}{Queued}
+  \graphnode[state=unseen]{d}{Unseen}
+  \graphedge{a}{b}
+  \graphedge{b}{c}
+  \graphedge{b}{d}
+\end{graphstate}
+\begin{scope}[xshift=8.6cm,yshift=-1.05cm]
+  \begin{queuestate}
+    \enqueue[state=visited]{Start}
+    \enqueue[state=frontier]{Queued}
+  \end{queuestate}
+\end{scope}
+\end{diagram}
+
+\section{Composition: graphstate + stackstate (DFS frontier walkthrough)}
+The equivalent depth-first search composition pairs \texttt{graphstate}
+with \texttt{stackstate} instead of a dedicated DFS primitive.
+
+\begin{diagram}[type=graph,width=\textwidth,caption={A depth-first search: the current node's unvisited neighbor is pushed onto the call stack.},description={A graph on the left shows a start node visited, its current neighbor being processed, one neighbor pushed as frontier, and one neighbor unseen. A LIFO call stack on the right holds the two nodes visited so far, with the most recently pushed node on top.}]
+\begin{graphstate}[columns=2]
+  \graphnode[state=visited]{e}{Start}
+  \graphnode[state=current]{f}{Current}
+  \graphnode[state=frontier]{g}{Pushed}
+  \graphnode[state=unseen]{h}{Unseen}
+  \graphedge{e}{f}
+  \graphedge{f}{g}
+  \graphedge{f}{h}
+\end{graphstate}
+\begin{scope}[xshift=8.6cm,yshift=-1.05cm]
+  \begin{stackstate}
+    \push[state=visited]{Start}
+    \push[state=frontier]{Pushed}
+  \end{stackstate}
+\end{scope}
+\end{diagram}
+
 \section{Grayscale and semantic check}
 \begin{principle}{State is not just color}
 Every shared algorithm state carries a distinct line-style fragment in
