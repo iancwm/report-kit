@@ -1,6 +1,6 @@
 # ReportKit — Outstanding Work
 
-**Last updated:** 2026-09-17
+**Last updated:** 2026-09-19
 
 This is an index, not an audit. Each spec/plan under `docs/superpowers/`
 carries its own `**Status:**` line, updated at the workflow checkpoint that
@@ -30,6 +30,7 @@ The PR-time synchronization directive is in
 | [2026-09-10-reportkit-fork-port-fixes-spec.md](docs/superpowers/specs/2026-09-10-reportkit-fork-port-fixes-spec.md) | Implemented in v1.9.1 via PR #19; all 11 applicable fixes landed | Complete |
 | [2026-09-12-reportkit-code-quality-and-dependency-remediation-spec.md](docs/superpowers/specs/2026-09-12-reportkit-code-quality-and-dependency-remediation-spec.md) | Implemented — merged via PR #25 (`7c5fafc`); all phases (0-2) landed; all 3 open questions resolved | Complete |
 | [2026-09-16-reportkit-algorithm-visualization-primitives-spec.md](docs/superpowers/specs/2026-09-16-reportkit-algorithm-visualization-primitives-spec.md) | Phases 1-3 and P3 extensions implemented 2026-09-17: shared state vocabulary plus array/window/trace, linear containers, graph/grid/DAG, heap/interval/DP, keyed join, union/find, linked-list, and recursion-tree primitives | Complete |
+| [2026-09-18-algorithm-visuals-fix-sprint-spec.md](docs/superpowers/specs/2026-09-18-algorithm-visuals-fix-sprint-spec.md) | Complete with concerns — Tasks 1–4 implemented; dedicated gate passes; full acceptance retains pre-existing out-of-scope failures. | Complete |
 
 ## Open work
 
@@ -126,6 +127,30 @@ change record.
   The complete algorithm-visualization feature now covers the full P0–P3
   scope in section 21 of the
   [spec](docs/superpowers/specs/2026-09-16-reportkit-algorithm-visualization-primitives-spec.md).
+
+- **Algorithm visuals and cheat-sheet fix sprint — COMPLETE WITH CONCERNS (2026-09-19).**
+  Tasks 1–3 are merged and Task 4 is complete: the four-page guide fixture,
+  acceptance-list wiring, mechanical release gate, and 140-DPI colour,
+  grayscale, and institutional-research visual review are all landed. The
+  dedicated integration gate passes (`4 passed`); the full acceptance command
+  still reports only the pre-existing out-of-scope heap, PDF-extraction,
+  contract-drift, and publication-pipeline failures documented in
+  `.superpowers/sdd/2026-09-18-algorithm-visuals-fix-sprint/task-4-report.md`.
+  The implementation plan and specification are now tracked alongside the
+  fixture and test. The merged Task 1 report is preserved at
+  `.superpowers/sdd/2026-09-18-algorithm-visuals-fix-sprint/task-1-report.md`.
+
+  Landed interfaces used by the reference fixture include
+  \tracetransition (the non-conflicting trace-transition name),
+  \begin{codeblock}[title][keep=auto]{lang},
+  \RKCompactContents{comma-separated labels}, and
+  \readyqueue{clean} with a zero-indegree badge. The longform
+  \section page-break contract remains unchanged; the fixture uses
+  \RKSectionOpener so stack and queue share one reading unit.
+
+  The release decision is explicit in the Task 4 report: the pointer trace
+  shows `L` advancing, the window labels the entering/leaving item and index,
+  and the dependency figure places `clean_orders` in READY with indegree 0.
 
 - Institutional theme + equity-research profile — **Step 1 (theme
   infrastructure) implemented 2026-09-09**: `reportkit.cls` now delegates
@@ -460,6 +485,13 @@ comparison against a checked-in baseline as informative, not authoritative,
 from a session provisioned this way.
 
 ## History
+
+- 2026-09-19: completed the algorithm visuals and cheat-sheet fix sprint.
+  Merged Task 1's nine-commit implementation, added the four-page integration
+  guide and mechanical release gate, wired it into acceptance compilation, and
+  completed default/grayscale/institutional-research 140-DPI visual review.
+  The dedicated gate passes; the full acceptance command remains nonzero only
+  for pre-existing out-of-scope failures documented in the Task 4 report.
 
 - 2026-09-16: fixed a real documentation/reality mismatch found while doing a
   status-report pass on the repo: `SKILL.md`'s frontmatter `description` and

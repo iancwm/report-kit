@@ -1,0 +1,196 @@
+% ReportKit four-page algorithm guide reference spread.
+% This is an integration fixture for the 2026-09-18 algorithm-visuals fix
+% sprint. It deliberately uses the repaired primitives together at guide
+% scale; it is not a new public primitive or a replacement for the full guide.
+\documentclass{reportkit}
+\usepackage{reportkit-longform}
+
+\setreportkitleftheader{REPORTKIT / ALGORITHM GUIDE}
+\setreportkitfooter{Algorithm visuals reference spread}
+\setreportkitversion{v1.3.0}
+\setreportkitsubject{Algorithm visuals integration fixture}
+\setreportkitkeywords{ReportKit, algorithm visuals, guide fixture}
+\title{Algorithm visuals reference spread}
+\author{ReportKit acceptance fixture}
+\date{19 September 2026}
+
+\begin{document}
+\RKFrontMatterBegin
+
+% The longform title helper intentionally ends with \clearpage. This fixture
+% needs the compact navigation and grouped pattern table on the same opening
+% page, so the small title-page composition stays local to this visual artefact
+% while reusing the public compact-contents helper.
+\thispagestyle{empty}
+\begin{center}
+  \vspace*{0.08\textheight}
+  {\sffamily\fontsize{8.5}{10}\selectfont\bfseries\color{LinkBlue}
+    REPORTKIT / ALGORITHM GUIDE\par}
+  \vspace{7mm}
+  {\sffamily\bfseries\fontsize{23}{27}\selectfont\color{Ink}
+    Algorithm visuals\par}
+  {\sffamily\bfseries\fontsize{23}{27}\selectfont\color{Ink}
+    reference spread\par}
+  \vspace{4mm}
+  {\sffamily\color{Muted}Four pages of guide-scale state and execution views\par}
+  \vspace{7mm}
+  {\sffamily\fontsize{8}{10}\selectfont\color{Muted}
+    \RKCompactContents{Two pointers and sliding window, Stack and queue, Topological sort}\par}
+  \vspace{9mm}
+  \begingroup
+  \sffamily\fontsize{8.2}{10}\selectfont
+  \renewcommand{\arraystretch}{1.35}
+  \begin{tabular}{@{}p{0.28\textwidth}p{0.62\textwidth}@{}}
+    \toprule
+    \textbf{Pattern group} & \textbf{Question the figure should answer} \\
+    \midrule
+    Two pointers & Which boundary moved, and what remains active? \\
+    Sliding window & Which item entered or left the window? \\
+    Traversal & What is next on the queue or stack? \\
+    Topological sort & Which dependency node can execute next? \\
+    \bottomrule
+  \end{tabular}
+  \endgroup
+  \vfill
+  {\sffamily\fontsize{8}{10}\selectfont\color{Muted}
+    ReportKit visual release-gate fixture · default theme\par}
+\end{center}
+\clearpage
+\RKMainMatterBegin
+
+\RKSectionOpener{Two pointers and sliding window}
+The state view carries the movement semantics; the short code units stay with
+their introducing prose through the explicit \texttt{keep=auto} contract.
+
+\noindent
+\begin{minipage}[t]{0.48\linewidth}
+\begin{diagram}[type=array,width=\linewidth,caption={Two pointers bind the active range.},description={Two pointers example: the left pointer L is at index zero, the right pointer R is at index four, and the active range is the candidate interval.}]
+\begin{arraystate}[indices=auto,legend=auto]
+  \cell[state=current]{1}\cell[state=active]{3}\cell[state=active]{5}\cell[state=active]{7}\cell[state=current]{9}
+  \pointer[role=left,below]{L}{0}
+  \pointer[role=right,below]{R}{4}
+  \range[state=active]{0}{4}
+\end{arraystate}
+\end{diagram}
+
+\begin{codeblock}[Two-pointer][keep=auto]{Python}
+def pair_sum(nums, target):
+    left, right = 0, len(nums) - 1
+    return nums[left], nums[right]
+\end{codeblock}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.48\linewidth}
+
+\begin{diagram}[type=array,width=\linewidth,caption={A window records entry and exit.},description={Sliding window example: item seven enters at index five while duplicate item seven leaves at index two; left and right window roles show the inclusive active band.}]
+\begin{windowstate}[legend=auto]
+  \values{4,2,7,1,3,7}
+  \window{3}{4}
+  \entering{5}{7}
+  \leaving{2}{7}
+\end{windowstate}
+\end{diagram}
+
+\begin{codeblock}[Window update][keep=auto]{Python}
+def advance(window, entering, leaving):
+    window.add(entering)
+    window.remove(leaving)
+\end{codeblock}
+\end{minipage}
+
+\begin{diagram}[type=trace,width=.98\linewidth,source={}]
+\begin{algorithmtrace}[mode=strip,columns=2,snapshot width=1.5,gap=1.1]
+  \snapshot{Before}{%
+    \begin{arraystate}[indices=false]
+      \cell{1}\cell{3}\cell{5}
+      \pointer[role=left,below]{L}{0}
+    \end{arraystate}%
+  }
+  \tracetransition{advance L}
+  \snapshot{After}{%
+    \begin{arraystate}[indices=false]
+      \cell{1}\cell{3}\cell{5}
+      \pointer[role=left,below]{L}{1}
+    \end{arraystate}%
+  }
+\end{algorithmtrace}
+\end{diagram}
+
+\clearpage
+\RKSectionOpener{Stack and queue}
+Stack and queue share one reading unit here: the container chrome shows the
+direction of work, while the adjacent graph compositions show how traversal
+state and worklists reinforce one another.
+
+\begin{diagram}[type=stack,width=\textwidth,caption={LIFO and FIFO worklists at guide scale.},description={Stack and queue example: the stack top is the next depth-first item, and the queue front is the next breadth-first item.}]
+\begin{stackstate}
+  \push[state=visited]{A}
+  \push[state=frontier]{B}
+\end{stackstate}
+\begin{scope}[xshift=5.2cm]
+  \begin{queuestate}
+    \enqueue[state=current]{A}
+    \enqueue[state=frontier]{B}
+  \end{queuestate}
+\end{scope}
+\end{diagram}
+
+\begin{diagram}[type=graph,width=\textwidth,caption={BFS composes graphstate with queuestate.},description={BFS composition example: the graph's frontier node is the next candidate, and the queue holds that candidate after the current node.}]
+\begin{graphstate}[columns=2,x spacing=2.3,y spacing=1.55]
+  \graphnode[state=visited]{bfs-a}{Start}
+  \graphnode[state=current]{bfs-b}{Current}
+  \graphnode[state=frontier]{bfs-c}{Queued}
+  \graphnode[state=unseen]{bfs-d}{Unseen}
+  \graphedge{bfs-a}{bfs-b}
+  \graphedge{bfs-b}{bfs-c}
+  \graphedge{bfs-b}{bfs-d}
+\end{graphstate}
+\begin{scope}[xshift=7.0cm,yshift=-1.0cm]
+  \begin{queuestate}
+    \enqueue[state=current]{Current}
+    \enqueue[state=frontier]{Queued}
+  \end{queuestate}
+\end{scope}
+\end{diagram}
+
+\begin{diagram}[type=graph,width=\textwidth,caption={DFS composes graphstate with stackstate.},description={DFS composition example: the graph's frontier node is pushed onto the call stack below the current node.}]
+\begin{graphstate}[columns=2,x spacing=2.3,y spacing=1.55]
+  \graphnode[state=visited]{dfs-a}{Start}
+  \graphnode[state=current]{dfs-b}{Current}
+  \graphnode[state=frontier]{dfs-c}{Pushed}
+  \graphnode[state=unseen]{dfs-d}{Unseen}
+  \graphedge{dfs-a}{dfs-b}
+  \graphedge{dfs-b}{dfs-c}
+  \graphedge{dfs-b}{dfs-d}
+\end{graphstate}
+\begin{scope}[xshift=7.0cm,yshift=-1.0cm]
+  \begin{stackstate}
+    \push[state=visited]{Current}
+    \push[state=frontier]{Pushed}
+  \end{stackstate}
+\end{scope}
+\end{diagram}
+
+\clearpage
+\RKSectionOpener{Topological sort}
+The dependency layout makes prerequisite distance visible from left to right.
+The ready queue is the execution decision: its zero-indegree badge agrees with
+the node that can execute next.
+
+\begin{diagram}[type=dag,width=\textwidth,caption={A pipeline ready queue under Kahn's algorithm.},description={Topological sort example: raw orders is resolved, clean orders is the next executable frontier node with zero indegree, and daily sales remains unseen with one dependency. The ready queue contains clean orders.}]
+\begin{dagstate}[layout=dependency]
+  \dagnode[indegree=0,state=resolved]{raw}{raw\_orders}
+  \dagnode[indegree=0,state=frontier]{clean}{clean\_orders}
+  \dagnode[indegree=1,state=unseen]{sales}{daily\_sales}
+  \dependency{raw}{clean}
+  \dependency{clean}{sales}
+  \readyqueue{clean}
+\end{dagstate}
+\end{diagram}
+
+\begin{codeblock}[Kahn's ready step][keep=auto]{Python}
+ready = deque([clean_orders])
+node = ready.popleft()
+run(node)
+\end{codeblock}
+
+\end{document}
