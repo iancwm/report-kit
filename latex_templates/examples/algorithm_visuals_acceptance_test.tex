@@ -44,12 +44,12 @@ an active-range highlight.
 active-range highlight, automatic left/right cursors, and entering/leaving
 annotations.
 
-\begin{diagram}[type=array,width=\textwidth,caption={A three-element sliding window advances by one position.},description={A six-element array with a window spanning indices two to four, an incoming value of five, and an outgoing value of one.}]
+\begin{diagram}[type=array,width=\textwidth,caption={A three-element sliding window advances by one position.},description={A six-element array with a window spanning indices two to four, advancing to include index five (value six) and drop index two (value seven).}]
 \begin{windowstate}
   \values{4,2,7,1,3,6}
   \window{2}{4}
-  \entering{5}
-  \leaving{1}
+  \entering{5}{6}
+  \leaving{2}{7}
 \end{windowstate}
 \end{diagram}
 

@@ -104,6 +104,11 @@
 \newcount\rk@algoinstancecounter
 \rk@algoinstancecounter=0\relax
 \newcommand{\rk@algoinstanceid}{0}
+% Declared backing-array length for the current windowstate (set by
+% \values, reset by windowstate's own begin code), used to bounds-check
+% \entering/\leaving indices (spec sec 2.4 / A4).
+\newcount\rk@windowcellcount
+\rk@windowcellcount=0\relax
 % indices= is a tri-state key: true (always show), false (never show), or
 % auto (show on the first algorithmtrace snapshot, or whenever the current
 % cell width would still keep the index label at/above the themed minimum
@@ -408,13 +413,14 @@
 % windowstate -- sliding/moving contiguous region, built on arraystate.
 % -----------------------------------------------------------------------------
 % <reportkit-contract>
-% {"kind":"figure","description":"Sliding or moving contiguous window over linear data, with entering/leaving markers.","arguments":[{"name":"options","type":"options","description":"Cell width and row height layout keys, as arraystate."}],"constraints":[],"example":"\\begin{diagram}[type=array,caption={Sliding window.},description={A six-element array with a window from index two to four.}]\n\\begin{windowstate}\n\\values{4,2,7,1,3,6}\n\\window{2}{4}\n\\entering{5}\n\\leaving{1}\n\\end{windowstate}\n\\end{diagram}","stability":"experimental","since":"1.10.0"}
+% {"kind":"figure","description":"Sliding or moving contiguous window over linear data, with entering/leaving markers.","arguments":[{"name":"options","type":"options","description":"Cell width and row height layout keys, as arraystate."}],"constraints":[],"example":"\\begin{diagram}[type=array,caption={Sliding window.},description={A six-element array with a window from index two to four.}]\n\\begin{windowstate}\n\\values{4,2,7,1,3,6}\n\\window{2}{4}\n\\entering{5}{6}\n\\leaving{2}{7}\n\\end{windowstate}\n\\end{diagram}","stability":"experimental","since":"1.10.0"}
 % </reportkit-contract>
 \NewDocumentEnvironment{windowstate}{O{}}{%
   \begingroup
   \global\advance\rk@algoinstancecounter by 1\relax
   \edef\rk@algoinstanceid{\the\rk@algoinstancecounter}%
   \def\rk@algoindicesmode{true}%
+  \rk@windowcellcount=0\relax
   \pgfkeys{/reportkit/arraystate,cell width=1.05,row height=1.15,#1}%
   \rk@algocol=0\relax\rk@algorow=0\relax\rk@algoannocount=0\relax
   \def\rk@algorownames{}%
@@ -428,6 +434,9 @@
   \@for\rk@algorowvalue:=#1\do{%
     \cell{\rk@algorowvalue}%
   }%
+  % Record the declared backing-array length so \entering/\leaving can
+  % reject an out-of-bounds index (spec sec 2.4 / A4).
+  \rk@windowcellcount=\rk@algocol\relax
 }
 % <reportkit-contract>
 % {"kind":"command","description":"Mark the active window's inclusive index bounds and left/right cursors.","arguments":[{"name":"start","type":"text","description":"Zero-based window start index, inclusive."},{"name":"end","type":"text","description":"Zero-based window end index, inclusive."}],"constraints":[{"code": "inside_windowstate", "description": "Only valid inside windowstate."}],"example":"\\window{2}{4}","stability":"experimental","since":"1.10.0","parent":"windowstate"}
@@ -437,17 +446,50 @@
   \pointer[role=left,below]{L}{#1}%
   \pointer[role=right,below]{R}{#2}%
 }
-% <reportkit-contract>
-% {"kind":"command","description":"Annotate the value about to enter the window.","arguments":[{"name":"value","type":"text","description":"Incoming value."}],"constraints":[{"code": "inside_windowstate", "description": "Only valid inside windowstate."}],"example":"\\entering{5}","stability":"experimental","since":"1.10.0","parent":"windowstate"}
-% </reportkit-contract>
-\NewDocumentCommand{\entering}{m}{%
-  \annotation{\textcolor{\RKTokAlgorithmCandidateDraw}{$\rightarrow$ entering: #1}}%
+% Bounds-check an \entering/\leaving index against the declared backing
+% array (\values{...}) and raise a primitive-specific error if it falls
+% outside 0..count-1 (spec sec 2.4 / A4).
+\newcommand{\rk@windowcheckindex}[2]{%
+  \ifnum#1<0\relax
+    \PackageError{reportkit-algorithm-viz}{#2 index #1 is out of bounds}{Declare it within \string\values{...}'s range (0 to \the\numexpr\rk@windowcellcount-1\relax).}%
+  \else
+    \ifnum#1>\numexpr\rk@windowcellcount-1\relax\relax
+      \PackageError{reportkit-algorithm-viz}{#2 index #1 is out of bounds}{Declare it within \string\values{...}'s range (0 to \the\numexpr\rk@windowcellcount-1\relax).}%
+    \fi
+  \fi
+}
+% Draw a short labelled arrow at the given cell, distinguishing entering
+% (arrowhead points down, into the cell) from leaving (arrowhead points
+% up, away from the cell) purely by direction -- readable in grayscale,
+% and unambiguous even when \entering/\leaving share a duplicate value
+% with another cell, since the arrow targets a specific index.
+\newcommand{\rk@windowmarker}[3]{% #1=index #2=draw color #3=into|away
+  \edef\rk@windowtargetcell{rkalgocell-0-#1}%
+  \ifstrequal{#3}{into}{%
+    \draw[-{Stealth[length=4.2pt,width=3.2pt]},draw=#2,line width=\RKTokAlgorithmPointerWidth]
+      ($(\rk@windowtargetcell.north)+(0,\rk@algopointerheadgap+\rk@algopointerarrowlen)$) --
+      ($(\rk@windowtargetcell.north)+(0,\rk@algopointerheadgap)$);%
+  }{%
+    \draw[-{Stealth[length=4.2pt,width=3.2pt]},draw=#2,line width=\RKTokAlgorithmPointerWidth]
+      ($(\rk@windowtargetcell.north)+(0,\rk@algopointerheadgap)$) --
+      ($(\rk@windowtargetcell.north)+(0,\rk@algopointerheadgap+\rk@algopointerarrowlen)$);%
+  }%
 }
 % <reportkit-contract>
-% {"kind":"command","description":"Annotate the value about to leave the window.","arguments":[{"name":"value","type":"text","description":"Outgoing value."}],"constraints":[{"code": "inside_windowstate", "description": "Only valid inside windowstate."}],"example":"\\leaving{1}","stability":"experimental","since":"1.10.0","parent":"windowstate"}
+% {"kind":"command","description":"Mark the value about to enter the window at a specific index, with a labelled arrow into that cell.","arguments":[{"name":"index","type":"text","description":"Zero-based index (within the declared \\values) the incoming value targets."},{"name":"value","type":"text","description":"Incoming value."}],"constraints":[{"code": "inside_windowstate", "description": "Only valid inside windowstate."}, {"code": "index_in_bounds", "description": "index must be within the declared \\values range."}],"example":"\\entering{5}{6}","stability":"experimental","since":"1.10.0","parent":"windowstate"}
 % </reportkit-contract>
-\NewDocumentCommand{\leaving}{m}{%
-  \annotation{\textcolor{\RKTokAlgorithmDiscardedDraw}{$\leftarrow$ leaving: #1}}%
+\NewDocumentCommand{\entering}{m m}{%
+  \rk@windowcheckindex{#1}{\string\entering}%
+  \rk@windowmarker{#1}{\RKTokAlgorithmCandidateDraw}{into}%
+  \annotation{\textcolor{\RKTokAlgorithmCandidateDraw}{$\rightarrow$ entering: #2}}%
+}
+% <reportkit-contract>
+% {"kind":"command","description":"Mark the value about to leave the window at a specific index, with a labelled arrow away from that cell.","arguments":[{"name":"index","type":"text","description":"Zero-based index (within the declared \\values) the outgoing value targets."},{"name":"value","type":"text","description":"Outgoing value."}],"constraints":[{"code": "inside_windowstate", "description": "Only valid inside windowstate."}, {"code": "index_in_bounds", "description": "index must be within the declared \\values range."}],"example":"\\leaving{2}{7}","stability":"experimental","since":"1.10.0","parent":"windowstate"}
+% </reportkit-contract>
+\NewDocumentCommand{\leaving}{m m}{%
+  \rk@windowcheckindex{#1}{\string\leaving}%
+  \rk@windowmarker{#1}{\RKTokAlgorithmDiscardedDraw}{away}%
+  \annotation{\textcolor{\RKTokAlgorithmDiscardedDraw}{$\leftarrow$ leaving: #2}}%
 }
 
 % -----------------------------------------------------------------------------

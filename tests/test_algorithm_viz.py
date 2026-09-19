@@ -66,8 +66,8 @@ def test_windowstate_marks_active_window_and_entering_leaving(compile_doc):
           \begin{windowstate}
             \values{4,2,7,1,3,6}
             \window{2}{4}
-            \entering{5}
-            \leaving{1}
+            \entering{5}{6}
+            \leaving{2}{7}
           \end{windowstate}
         \end{diagram}
         """
@@ -273,6 +273,67 @@ def test_unknown_pointer_role_raises_a_package_error(compile_doc):
                 \cell{1}
                 \pointer[role=nonsense,below]{X}{0}
               \end{arraystate}
+            \end{diagram}
+            """
+        )
+
+
+def test_entering_and_leaving_mark_distinct_cells_by_index(compile_doc):
+    # Spec sec 2.4 (A4): \entering/\leaving take (index, value) so
+    # duplicate values stay unambiguous -- both "7" appear in this array,
+    # but only the leaving one (index 2) should carry a labelled arrow.
+    page = compile_doc(
+        r"""
+        \begin{diagram}[type=array,width=\textwidth,caption={Entering and leaving.}]
+          \begin{windowstate}
+            \values{4,2,7,1,3,7}
+            \window{3}{4}
+            \entering{5}{7}
+            \leaving{2}{7}
+          \end{windowstate}
+        \end{diagram}
+        """
+    )[0]
+    text = page.get_text()
+    assert "entering" in text
+    assert "leaving" in text
+    # Two distinct near-vertical marker/pointer stems must exist (one for
+    # the window's own L/R cursor pair is separate; entering/leaving add
+    # two more), each anchored at a different cell.
+    drawings = page.get_drawings()
+    verticals = []
+    for d in drawings:
+        for item in d.get("items", []):
+            if item[0] == "l":
+                p0, p1 = item[1], item[2]
+                if abs(p0.x - p1.x) < 0.5 and abs(p0.y - p1.y) > 3:
+                    verticals.append(round((p0.x + p1.x) / 2, 1))
+    assert len(set(verticals)) >= 2, "entering/leaving arrows did not target distinct x-positions"
+
+
+def test_entering_out_of_range_index_raises_a_package_error(compile_doc):
+    with pytest.raises(Exception):
+        compile_doc(
+            r"""
+            \begin{diagram}[type=array,width=\textwidth,caption={Out of range.}]
+              \begin{windowstate}
+                \values{1,2,3}
+                \entering{5}{9}
+              \end{windowstate}
+            \end{diagram}
+            """
+        )
+
+
+def test_leaving_out_of_range_index_raises_a_package_error(compile_doc):
+    with pytest.raises(Exception):
+        compile_doc(
+            r"""
+            \begin{diagram}[type=array,width=\textwidth,caption={Out of range.}]
+              \begin{windowstate}
+                \values{1,2,3}
+                \leaving{-1}{9}
+              \end{windowstate}
             \end{diagram}
             """
         )
