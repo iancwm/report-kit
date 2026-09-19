@@ -108,3 +108,48 @@ def test_unknown_algorithm_state_raises_a_package_error(compile_doc):
             \end{diagram}
             """
         )
+
+
+def test_bare_pointer_targets_direct_cell_row_not_a_named_row(compile_doc):
+    # A named \row declared before the direct-cell row must not steal the
+    # bare (row=-less) \pointer/\range target: a bare \pointer must resolve
+    # against the row built from direct \cell calls, while row=<name> must
+    # resolve only against the named row. Regression for the "Unknown
+    # arraystate row" family of bugs (spec sec 2.2 / A2).
+    # No description= here: reportkit-diagrams.sty's ActualText accessibility
+    # span (emitted only when description= is non-empty) makes PyMuPDF's text
+    # extraction return fragments of the description instead of the diagram's
+    # real glyphs -- a pre-existing, out-of-scope issue (confirmed against
+    # main, unrelated to this sprint) that also explains several already-
+    # failing word_boxes-based tests elsewhere in this algorithm-family
+    # suite. Omitting description= keeps this test's signal on the actual
+    # row-lookup bug it targets.
+    # A generous row height keeps each row's own "below" pointer clear of
+    # the next row, so this test's signal stays on row *targeting* rather
+    # than on how close a below-pointer's label sits to an adjacent row.
+    page = compile_doc(
+        r"""
+        \begin{diagram}[type=array,width=\textwidth,caption={Row lookup.}]
+          \begin{arraystate}[row height=2.4]
+            \row{name}{1,2,3}
+            \cell{9}\cell{8}\cell{7}
+            \pointer[below]{Lo}{0}
+            \pointer[below,row=name]{Hi}{0}
+          \end{arraystate}
+        \end{diagram}
+        """
+    )[0]
+    boxes = word_boxes(page, {"9", "8", "7", "1", "2", "3", "Lo", "Hi"})
+    assert {"9", "1", "Lo", "Hi"} <= set(boxes)
+    direct_row_top = boxes["9"][1]
+    direct_row_bottom = boxes["9"][3]
+    named_row_bottom = boxes["1"][3]
+    assert named_row_bottom < direct_row_top
+    # "Hi" (row=name pointer) must resolve to the named row (1,2,3): its label
+    # sits in the gap below that row and above the direct-cell row, never
+    # spilling down into the direct-cell row's own band.
+    assert named_row_bottom < boxes["Hi"][1] < direct_row_top
+    # "Lo" (bare pointer, no row=) must resolve to the direct-cell row
+    # (9,8,7) instead: its label sits below that row, past the named row's
+    # band entirely.
+    assert boxes["Lo"][1] > direct_row_bottom

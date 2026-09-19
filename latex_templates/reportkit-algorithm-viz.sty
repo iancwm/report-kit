@@ -139,7 +139,13 @@
 % \cell calls) to a zero-based row index, stored in \rk@algorowquery.
 \newcommand{\rk@findalgorow}[1]{%
   \edef\rk@algorowtarget{#1}%
-  \expandafter\ifstrempty\expandafter{\rk@algorowtarget}{\rk@algorowquery=0\relax}{%
+  % An empty target (no row= given) must resolve to the row direct \cell
+  % calls are currently building -- \rk@algorow -- not a hardcoded row 0.
+  % A named \row declared earlier already advanced \rk@algorow past 0, so
+  % hardcoding 0 here silently stole a bare \pointer/\range onto whatever
+  % row happens to be named first instead of the direct-cell row (spec
+  % sec 2.2 / A2's "Unknown arraystate row" family of bugs).
+  \expandafter\ifstrempty\expandafter{\rk@algorowtarget}{\rk@algorowquery=\rk@algorow\relax}{%
     \rk@algorow@index=0\relax\rk@algorowquery=-1\relax
     \expandafter\@for\expandafter\rk@algorowname\expandafter:=\rk@algorownames\do{%
       \edef\rk@algorowcandidate{\rk@algorowname}%
