@@ -15,9 +15,6 @@ still splits (that is the correct outcome per the spec), repeating a
 small "(continued)" label at the top of the next part.
 """
 
-import pymupdf
-import pytest
-
 from geometry import word_boxes
 
 # One paragraph is one full body-text line at the default reportkit theme's

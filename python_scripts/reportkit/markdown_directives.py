@@ -25,9 +25,9 @@ import json
 from pathlib import Path
 import re
 import shlex
-from typing import Any, Iterable, Mapping
+from typing import Any, Mapping
 
-from .authoring_ir import AUTHORING_SCHEMA_VERSION, AuthoringIR, DirectiveNode, SourceLocation
+from .authoring_ir import AuthoringIR, DirectiveNode, SourceLocation
 from .diagnostics import make_diagnostic
 
 

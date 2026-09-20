@@ -105,9 +105,13 @@ primitives, parent traversal, absolute TeX inputs, and escaping Markdown asset
 paths before conversion.
 
 Every production converter and TeX pass runs without shell escape, in a scoped
-build directory, with restrictive `openin_any`/`openout_any`, a 120-second
-wall-clock limit, and a 2 GiB child address-space limit. CLI flags and the
-trusted `REPORTKIT_COMPILE_TIMEOUT_SECONDS` /
+build directory, with restricted output (`openout_any=p`), a 120-second
+wall-clock limit, and a 2 GiB child address-space limit. LuaLaTeX uses
+`openin_any=a` because the pinned `luaotfload` Unicode loader reads its
+installed `ScriptExtensions.txt` and `Scripts.txt` through Lua's file API;
+the Markdown path remains raw-TeX-disabled, fragment paths are validated, and
+direct `.tex` input is the explicit trusted escape hatch. pdfTeX keeps the
+paranoid input policy. CLI flags and the trusted `REPORTKIT_COMPILE_TIMEOUT_SECONDS` /
 `REPORTKIT_MEMORY_LIMIT_MB` environment variables may change those resource
 limits; publication YAML cannot. If the host cannot enforce the memory limit,
 the build exits as an environment failure instead of silently weakening it.
