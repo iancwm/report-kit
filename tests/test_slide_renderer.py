@@ -1,6 +1,6 @@
-"""Phase B (slide renderer and presentation semantics) of the multi-format
-publication architecture spec: the "slides" renderer, "presentation"
-publication type, and experimental "executive" theme, plus decision D5's
+"""Phase B/C (slide renderer, presentation semantics, and executive theme)
+of the multi-format publication architecture spec: the "slides" renderer,
+"presentation" publication type, and stable "executive" theme, plus decision D5's
 canvas/paper rules. See tests/test_theme_contract.py for the shared
 callout/metric style-token contract (executive is automatically covered
 there once it's a canonical theme) and the implementation plan's B1-B3
@@ -38,7 +38,7 @@ def test_executive_theme_requires_lualatex_and_slides_adapter() -> None:
     assert theme["required_engine"] == "lualatex"
     assert theme["renderers"] == ["slides"]
     assert theme["renderer_adapters"]["slides"] == "reportkit-theme-executive-slides"
-    assert theme["stability"] == "experimental"
+    assert theme["stability"] == "stable"
 
 
 def test_presentation_publication_type_pairs_only_with_executive() -> None:

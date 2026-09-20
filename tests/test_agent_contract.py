@@ -77,7 +77,7 @@ def test_every_in_tree_xparse_specifier_is_supported() -> None:
 def test_registry_is_complete_and_preserves_legacy_inventory() -> None:
     registry = generate_registry(REPO, strict=True)
     assert {kind: len(records) for kind, records in registry["primitives"].items()} == {
-        "callout": 14, "figure": 34, "chart": 13, "composition": 32, "command": 107,
+        "callout": 14, "figure": 34, "chart": 13, "composition": 33, "command": 107,
     }
     assert len(registry["figures"]) == 34
     assert len(registry["callouts"]["public"]) == 10
@@ -218,10 +218,8 @@ def test_full_build_emits_schema_v3_report_and_lock(tmp_path: Path) -> None:
 
 def test_context_catalog_contains_only_the_current_publication_matrix() -> None:
     capabilities = build_context(REPO)["capabilities"]
-    # Phase B added the slides renderer, the experimental executive theme,
-    # and the presentation publication type (publications.py's own
-    # docstrings explain why "experimental" does not mean "absent from the
-    # registry" -- the pipeline just does not route to it yet, per A5).
+    # Phase B/C added the slides renderer, stable executive theme, and
+    # presentation publication type to the current public matrix.
     assert set(capabilities["publication_types"]) == {"technical-report", "equity-research", "presentation"}
     assert capabilities["publication_types"]["technical-report"]["themes"] == ["default", "technical"]
     assert capabilities["publication_types"]["equity-research"]["themes"] == ["institutional-research"]

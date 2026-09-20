@@ -1,6 +1,6 @@
 # ReportKit — Multi-Format Publication Architecture
 
-**Status:** Phase A implementation is complete in the working tree for the
+**Status:** Phase A and Phase C implementation is complete in the working tree for the
 currently registered targets. A1 landed in v1.9.2 and A2 in v1.9.3; A3
 (shared/paged core split and renderer hooks) and A4's diagram/theme-contract
 work are implemented and their pinned OCI image, doctor, and focused runtime
@@ -10,11 +10,12 @@ entrypoint split, constrained authoring path, effective-theme materialization,
 and selection-marker gate are implemented. Phase B (slide renderer and
 presentation semantics) is also implemented out of this spec's original phase
 order, with its automated B4 slide-accessibility gate retained in the working
-branch. Phase C remains experimental and Phases D–F have not started.
+branch. Phase C's executive theme and reviewed fixture are now stable; Phases
+D–F have not started.
 Supersedes nothing; extends the architecture introduced by
 [2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md](2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md)
 (Steps 1–5 implemented, `reportkit.cls` v1.9.3).
-**Last updated:** 2026-09-19
+**Last updated:** 2026-09-20
 **Current-state claims:** historical baseline verified against `origin/main` at
 `f45ab86` plus the implementation checkpoint at `a7e83f9`; the pinned
 verification update is recorded on 2026-09-19 below.
@@ -42,19 +43,20 @@ Python/theme-contract extension described below; the diagram-token work has
 landed. The pipeline and slide-renderer slices have landed; their scoped
 follow-up is recorded in the implementation plan.
 
-The sequencing matters more than the content. Executive, venture and editorial
+The sequencing matters more than the content. Venture and editorial
 each introduce a fresh opportunity for special-case coupling; if they land
 before the abstraction hardens, ReportKit acquires four more generations of the
 `\ifdefstring{\rk@theme}{...}` pattern that
 [§3.2](#32-semantic-modules-branch-on-theme-name) exists to remove.
 
 The sequencing below is the design order, not a claim about the order already
-used by the implementation branches. Executive is currently an experimental
-theme shell; the next implementation task is **not** to add another visual
-family. It is:
+used by the implementation branches. The executive theme is now the reviewed
+baseline; the next implementation task is **not** to add another visual
+family before the shared architecture is exercised further. It is:
 
-> Finish the remaining theme contract and compatibility gates, then add new
-> visual families only after the shared architecture is proven.
+> Complete the remaining compatibility gates for the reviewed baseline, then
+> add new visual families only after the shared architecture is exercised
+> further.
 
 ### The design model
 
@@ -86,7 +88,7 @@ whole specification; everything below is its consequences.
 | Generated LaTeX compatibility registry and option parser | `latex_templates/reportkit-publication-registry.def`, `latex_templates/reportkit-options.tex` |
 | `theme=default` | `latex_templates/themes/reportkit-theme-default.sty` plus `reportkit-theme-default-paged.sty` |
 | `theme=institutional-research` | `latex_templates/themes/reportkit-theme-institutional-research.sty` plus `reportkit-theme-institutional-research-paged.sty` |
-| Experimental `theme=executive` | `latex_templates/themes/reportkit-theme-executive.sty` plus `reportkit-theme-executive-slides.sty` |
+| Stable `theme=executive` | `latex_templates/themes/reportkit-theme-executive.sty` plus `reportkit-theme-executive-slides.sty` |
 | `publication-type=technical-report` | implicit — loads no extra file |
 | `publication-type=equity-research` | `latex_templates/publication_types/reportkit-equity-research.sty` |
 | `publication-type=presentation` | `latex_templates/publication_types/reportkit-presentation.sty` |
@@ -98,7 +100,7 @@ whole specification; everything below is its consequences.
 | Effective theme and constrained brand materialization | `python_scripts/reportkit/theme_overrides.py`, `publication_build.py` |
 | Split paged entrypoints | `publication_pipeline/templates/paged-base.tex`, `technical-report.tex`, `equity-research.tex` |
 | Resolved-selection PDF inspection | `publication_pipeline/scripts/inspect_pdf.py`, `tests/test_selection_marker_inspection.py` |
-| Fixtures | `latex_templates/examples/career_guide_en/`, `latex_templates/examples/equity-research/`, `latex_templates/examples/presentation_acceptance_test.tex` |
+| Fixtures | `latex_templates/examples/career_guide_en/`, `latex_templates/examples/equity-research/`, `latex_templates/examples/executive-presentation/`, `latex_templates/examples/presentation_acceptance_test.tex` |
 | Algorithm/pseudocode semantic module | `latex_templates/reportkit-algorithms.sty` (`algorithmblock`; paged class only) |
 
 ### 1.2 Verified premises
@@ -622,7 +624,7 @@ full   dominant   wide (compatibility alias)   compact   square   half   sidebar
 slide-main   slide-half   slide-hero
 ```
 
-The slide slots are now implemented for the experimental executive theme and
+The slide slots are now implemented for the stable executive theme and
 are derived from its declared canvas and safe margins. The slot contract stays
 open for future slide themes.
 
@@ -994,7 +996,7 @@ that sandbox's network path TLS-intercepts those hosts with a proxy CA the
 image's minimal Debian base does not trust — a sandbox limitation, not a
 toolchain defect; A0 needs to run somewhere with a trusted direct path to
 those hosts (this repository's own `contract-ci.yml` runner, for one). The
-capability matrix now includes the `slides` renderer and experimental
+capability matrix now includes the stable `slides` renderer and
 `presentation` publication type; HTML, DOCX, PPTX and EPUB remain absent.
 
 Before any new theme:
@@ -1018,7 +1020,7 @@ pipeline rather than only by direct compile.
 ### Phase B — Slide renderer
 
 `reportkit-slides.cls`, the `presentation` publication type,
-`reportkit-slides-core.sty`, the slide pipeline template and the experimental
+`reportkit-slides-core.sty`, the slide pipeline template and the stable
 `executive` theme are implemented. The thirteen named presentation
 compositions are proven through direct-TeX authoring, and the constrained
 Markdown directive path now renders them through the normal pipeline. The
@@ -1028,21 +1030,24 @@ pipeline also proves the plain Markdown heading-to-frame path.
 Pandoc Beamer writer and checked accessibility features are verified. B4's
 findings have a reusable PDF inspector and compiled-fixture pytest/acceptance
 gate. Directive/fragment-based composition authoring from Markdown is
-implemented through the typed IR and safe-TeX renderer. `executive` remains
-experimental pending Phase C review.
+implemented through the typed IR and safe-TeX renderer. `executive` is now
+stable after the Phase C fixture and visual review gate.
 
 **Definition of done:** a presentation compiles through the normal ReportKit
 pipeline without touching the article renderer. This is met for both the
 plain-Markdown and constrained composition paths; the pinned release gate and
-the experimental status of `executive` remain separate concerns.
+the deferred tagged-PDF capability remain separate concerns.
 
 ### Phase C — Executive theme
 
 Implement executive visual tokens and presentation compositions, reusing the
-existing diagram and visualization DSLs.
+existing diagram and visualization DSLs. This is complete for the stable
+fixture below.
 
 **Definition of done:** a credible consulting/technology deck can be authored
-with no custom page coordinates and no bespoke TikZ.
+with no custom page coordinates and no bespoke TikZ. Met by the fictional
+NexaGrid 10-slide direct/pipeline fixture, static contract coverage, and
+`scripts/visual_qa_executive.py`; the existing composition API is unchanged.
 
 ### Phase D — Venture theme
 

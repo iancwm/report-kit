@@ -9,7 +9,7 @@
 % parsing, generated-registry validation, theme + renderer-adapter loading)
 % over Beamer instead of article. `\documentclass[theme=executive,
 % publication-type=presentation]{reportkit-slides}` is the only currently
-% registered combination (executive is an experimental shell -- see
+% registered combination (executive is the stable Phase C system -- see
 % themes/reportkit-theme-executive.sty); the option parser and registry are
 % otherwise renderer-generic so a later slides theme (venture, Phase D)
 % needs no change here.

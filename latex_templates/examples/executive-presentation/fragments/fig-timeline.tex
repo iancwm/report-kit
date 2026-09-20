@@ -1,0 +1,13 @@
+\begin{diagram}[
+  type=timeline,
+  description={Two-track timeline showing build gates above adoption milestones, with a decision gate before scale.}
+]
+  \begin{reporttimeline}[tracks={Build,Adoption},span=12]
+    \event{Build}{.15}{Data contract}
+    \event{Build}{.50}{Pilot}
+    \event{Build}{.86}{Scale}
+    \event{Adoption}{.28}{3 teams}
+    \event{Adoption}{.68}{12 teams}
+    \watermark[label-position=above]{Build}{.70}{decision gate}
+  \end{reporttimeline}
+\end{diagram}

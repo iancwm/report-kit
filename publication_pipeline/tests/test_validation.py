@@ -22,6 +22,46 @@ def test_valid_tree_passes() -> None:
     root = make_publication({"01-one.md": "[[REPORTKIT-VISUAL:fig:one]]\n"}, ["01-one.md"], {"one": "fig:one"})
     assert validate_publication(root).ok
 
+
+def test_trusted_composition_fragment_does_not_need_legacy_diagram_contract() -> None:
+    root = make_publication(
+        {"01-one.md": "```reportkit messageslide\nfragment: fragments/fig-message\n```\n"},
+        ["01-one.md"],
+        {},
+    )
+    (root / "fragments" / "fig-message.tex").write_text(
+        "\\begin{threepart}\\threepartcolumn{Signal}{Evidence}\\end{threepart}\n",
+        encoding="utf-8",
+    )
+    assert validate_publication(root).ok
+
+
+def test_trusted_composition_fragment_still_receives_safety_checks() -> None:
+    root = make_publication(
+        {"01-one.md": "```reportkit messageslide\nfragment: fig-message.tex\n```\n"},
+        ["01-one.md"],
+        {},
+    )
+    (root / "fragments" / "fig-message.tex").write_text(
+        "\\immediate\\write18{touch /tmp/not-allowed}\n",
+        encoding="utf-8",
+    )
+    result = validate_publication(root)
+    assert not result.ok
+    assert any("shell-escape primitives are forbidden" in error for error in result.errors)
+
+
+def test_missing_trusted_composition_fragment_fails() -> None:
+    root = make_publication(
+        {"01-one.md": "```reportkit messageslide\nfragment: fig-message.tex\n```\n"},
+        ["01-one.md"],
+        {},
+    )
+    result = validate_publication(root)
+    assert not result.ok
+    assert any("missing trusted composition fragment" in error for error in result.errors)
+
+
 def test_missing_and_orphan_fragments_fail() -> None:
     root = make_publication({"01-one.md": "[[REPORTKIT-VISUAL:fig:missing]]\n"}, ["01-one.md"], {"orphan": "fig:orphan"})
     result = validate_publication(root)

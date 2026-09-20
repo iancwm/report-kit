@@ -19,6 +19,24 @@ TEX_PATH_RE = re.compile(
 TEX_OUTPUT_PATH_RE = re.compile(r"\\openout\s*(?:\d+|\\[A-Za-z@]+)\s*=\s*(?:\{([^{}]+)\}|([^\s%]+))")
 SHELL_ESCAPE_RE = re.compile(r"\\(?:immediate\s*\\)?write\s*18\b|\\ShellEscape\b")
 MARKDOWN_ASSET_RE = re.compile(r"!?\[[^]]*\]\((?P<path>[^ )]+)(?:\s+['\"][^'\"]*['\"])?\)")
+TRUSTED_FRAGMENT_RE = re.compile(r"^\s*fragment\s*:\s*(?P<value>\S+)\s*$")
+
+
+def _safe_trusted_fragment_name(value: str) -> str | None:
+    """Return a contained composition-fragment filename, if it is safe."""
+    normalized = value.strip().replace("\\", "/")
+    if normalized.startswith("fragments/"):
+        normalized = normalized.removeprefix("fragments/")
+    if not normalized.endswith(".tex"):
+        normalized += ".tex"
+    candidate = Path(normalized)
+    if (
+        candidate.parent != Path(".")
+        or candidate.suffix != ".tex"
+        or not FRAGMENT_RE.fullmatch(candidate.name)
+    ):
+        return None
+    return candidate.name
 
 
 def _diagram_options(text: str) -> tuple[str, str | None]:
@@ -83,6 +101,35 @@ class ValidationResult:
         ))
 
 
+def _validate_fragment_safety(result: ValidationResult, root: Path, path: Path) -> str:
+    """Scan a fragment for forbidden execution or escaping file paths."""
+    text = path.read_text(encoding="utf-8")
+    for number, raw in enumerate(text.splitlines(), 1):
+        if SHELL_ESCAPE_RE.search(raw):
+            result.add(
+                f"{path.relative_to(root)}:{number}: shell-escape primitives are forbidden",
+                rule="shell_escape", file=str(path.relative_to(root)), line=number, kind="security_violation",
+            )
+        for match in TEX_PATH_RE.finditer(raw):
+            value = (match.group(1) or match.group(2)).strip().replace("\\", "/")
+            candidate = Path(value)
+            if candidate.is_absolute() or ".." in candidate.parts or re.match(r"^[A-Za-z]:/", value):
+                result.add(
+                    f"{path.relative_to(root)}:{number}: TeX input path escapes the publication root: {value!r}",
+                    rule="tex_path_escape", file=str(path.relative_to(root)), line=number, kind="security_violation",
+                )
+        for match in TEX_OUTPUT_PATH_RE.finditer(raw):
+            value = (match.group(1) or match.group(2)).strip().replace("\\", "/")
+            candidate = Path(value)
+            if candidate.is_absolute() or ".." in candidate.parts or re.match(r"^[A-Za-z]:/", value):
+                result.add(
+                    f"{path.relative_to(root)}:{number}: TeX output path escapes the build directory: {value!r}",
+                    rule="tex_output_path_escape", file=str(path.relative_to(root)), line=number,
+                    kind="security_violation",
+                )
+    return text
+
+
 def validate_publication(root: Path) -> ValidationResult:
     root = root.resolve()
     result = ValidationResult()
@@ -113,12 +160,18 @@ def validate_publication(root: Path) -> ValidationResult:
         result.add(f"manuscript is not listed in order.txt: {name}", rule="unlisted_manuscript", file=f"manuscript/{name}")
 
     used: dict[str, str] = {}
+    trusted_fragments: set[str] = set()
     for entry in entries:
         manuscript = manuscript_dir / entry
         if not manuscript.is_file():
             continue
         result.manuscript_files.append(entry)
         for number, raw in enumerate(manuscript.read_text(encoding="utf-8").splitlines(), 1):
+            trusted_match = TRUSTED_FRAGMENT_RE.fullmatch(raw)
+            if trusted_match:
+                trusted_name = _safe_trusted_fragment_name(trusted_match.group("value"))
+                if trusted_name is not None:
+                    trusted_fragments.add(trusted_name)
             for asset_match in MARKDOWN_ASSET_RE.finditer(raw):
                 value = asset_match.group("path").strip().replace("\\", "/")
                 parsed = Path(value)
@@ -155,36 +208,24 @@ def validate_publication(root: Path) -> ValidationResult:
             continue
         fragments[match.group("slug")] = path
 
+    for trusted_name in sorted(trusted_fragments):
+        trusted_path = fragment_dir / trusted_name
+        if not trusted_path.is_file():
+            result.add(
+                f"missing trusted composition fragment: fragments/{trusted_name}",
+                rule="missing_trusted_fragment",
+                file=f"fragments/{trusted_name}",
+            )
+        else:
+            _validate_fragment_safety(result, root, trusted_path)
+
     for slug, location in used.items():
         path = fragments.get(slug)
         if path is None:
             location_file, _, location_line = location.partition(":")
             result.add(f"{location}: missing fragment: fragments/fig-{slug}.tex", rule="missing_fragment", file=location_file, line=int(location_line) if location_line.isdigit() else None)
             continue
-        text = path.read_text(encoding="utf-8")
-        for number, raw in enumerate(text.splitlines(), 1):
-            if SHELL_ESCAPE_RE.search(raw):
-                result.add(
-                    f"{path.relative_to(root)}:{number}: shell-escape primitives are forbidden",
-                    rule="shell_escape", file=str(path.relative_to(root)), line=number, kind="security_violation",
-                )
-            for match in TEX_PATH_RE.finditer(raw):
-                value = (match.group(1) or match.group(2)).strip().replace("\\", "/")
-                candidate = Path(value)
-                if candidate.is_absolute() or ".." in candidate.parts or re.match(r"^[A-Za-z]:/", value):
-                    result.add(
-                        f"{path.relative_to(root)}:{number}: TeX input path escapes the publication root: {value!r}",
-                        rule="tex_path_escape", file=str(path.relative_to(root)), line=number, kind="security_violation",
-                    )
-            for match in TEX_OUTPUT_PATH_RE.finditer(raw):
-                value = (match.group(1) or match.group(2)).strip().replace("\\", "/")
-                candidate = Path(value)
-                if candidate.is_absolute() or ".." in candidate.parts or re.match(r"^[A-Za-z]:/", value):
-                    result.add(
-                        f"{path.relative_to(root)}:{number}: TeX output path escapes the build directory: {value!r}",
-                        rule="tex_output_path_escape", file=str(path.relative_to(root)), line=number,
-                        kind="security_violation",
-                    )
+        text = _validate_fragment_safety(result, root, path)
         if len(re.findall(r"\\begin\s*\{diagram\}", text)) != 1 or len(re.findall(r"\\end\s*\{diagram\}", text)) != 1:
             result.add(f"{path.relative_to(root)}: expected exactly one diagram environment", rule="diagram_count", file=str(path.relative_to(root)))
         options, options_error = _diagram_options(text)
@@ -201,7 +242,7 @@ def validate_publication(root: Path) -> ValidationResult:
             result.add(f"{path.relative_to(root)}: label {label!r} does not match fig:{slug}", rule="diagram_label", file=str(path.relative_to(root)))
 
     for slug, path in fragments.items():
-        if slug not in used:
+        if slug not in used and path.name not in trusted_fragments:
             result.add(f"orphan fragment has no manuscript sentinel: {path.relative_to(root)}", rule="orphan_fragment", file=str(path.relative_to(root)))
     for label in sorted({label for label in result.labels if result.labels.count(label) > 1}):
         result.add(f"duplicate diagram label: {label}", rule="duplicate_diagram_label")

@@ -1,0 +1,17 @@
+\begin{diagram}[
+  type=matrix,
+  caption={Priorities by implementation effort and value at scale.},
+  source={Fictional NexaGrid portfolio workshop.},
+  description={A two by two priority matrix with four labelled workflow points.}
+]
+  \begin{reportmatrix}[width=6.3,height=4.6,xlabel={Implementation effort},ylabel={Value at scale},highlight=high/high]
+    \quadrant{low}{high}{Prioritize}
+    \quadrant{high}{high}{Sequence}
+    \quadrant{low}{low}{Observe}
+    \quadrant{high}{low}{Defer}
+    \point{Exception routing}{.30}{.80}
+    \point{Forecasting}{.52}{.68}
+    \point[label-position=below]{Self-serve reporting}{.24}{.48}
+    \point[label-position=below]{Automation}{.78}{.38}
+  \end{reportmatrix}
+\end{diagram}
