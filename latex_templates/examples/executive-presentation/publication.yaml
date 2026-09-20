@@ -1,0 +1,16 @@
+publication:
+  title: Turn fragmented operational data into decision velocity
+  subtitle: A fictional technology strategy review
+  author: NexaGrid Strategy Office
+  version: v1.0
+  date: 20 September 2026
+  left_header: NexaGrid / Strategy review
+  footer: NexaGrid Strategy Office -- fictional demonstration deck
+  subject: NexaGrid decision velocity strategy
+  keywords: ReportKit, executive theme, strategy, fictional
+document:
+  main: report.tex
+  class: reportkit-slides
+  engine: lualatex
+  theme: executive
+  publication_type: presentation

@@ -1,22 +1,17 @@
-% ReportKit theme: executive -- EXPERIMENTAL shell, Phase B of the
-% multi-format publication architecture spec (decisions D8, D9). "Do not
-% release between B and C" (D8): this file exists so the slides renderer and
-% presentation composition API (reportkit-presentation.sty) have a real
-% theme to compile against, not to be a finished visual design. Phase C
-% ("Executive theme") tunes the actual assertion-evidence hierarchy, grid,
-% density, and chart/table/diagram styles per the renderer spec, and
-% promotes this theme from experimental to stable only after visual review
-% (see publications.py's THEMES["executive"] stability field).
+% ReportKit theme: executive -- the stable consulting/strategy visual system
+% for the slides renderer. Phase C of the multi-format publication
+% architecture spec (decisions D8, D9) establishes the assertion-evidence
+% hierarchy, restrained palette, grid, and moderate-high information density.
+% The presentation composition API remains renderer/theme neutral; this file
+% owns the semantic appearance that the executive slide adapter consumes.
 %
 % Owns fonts, palette, and renderer-neutral semantic appearance -- the same
 % split A4/D11 established for default and institutional-research (compare
 % reportkit-theme-default.sty's own header comment). Geometry, running
 % furniture, and other slides-specific values live in
-% reportkit-theme-executive-slides.sty, this theme's only adapter so far
-% (Phase C may add reportkit-theme-executive-paged.sty; D11's two-layer load
-% means that would not require changing this file).
+% reportkit-theme-executive-slides.sty, this theme's only registered adapter.
 \NeedsTeXFormat{LaTeX2e}
-\ProvidesPackage{reportkit-theme-executive}[2026/09/13 v0.1.0 ReportKit executive theme (experimental)]
+\ProvidesPackage{reportkit-theme-executive}[2026/09/20 v1.0.0 ReportKit executive theme]
 
 % -----------------------------------------------------------------------------
 % Engine guard (decision D9: new visual themes require LuaLaTeX)
@@ -33,42 +28,35 @@
 \fi
 
 % -----------------------------------------------------------------------------
-% Fonts -- reuses the bundled Libertinus assets already staged for the
-% default/longform fixtures (font_data/reportkit-libertinus-fonts.tar.gz via
-% the toolchain, or ambient system fonts). D9 recommends Google Sans (already
-% bundled for institutional-research) for executive/venture; this shell uses
-% Libertinus instead, deliberately, because it needs no font_path/font_policy
-% plumbing to compile in any LuaLaTeX environment this repository already
-% supports, and this file's own header says explicitly not to treat its
-% visual choices as final. Phase C's design review picks the real family.
+% Fonts -- the bundled Libertinus Sans family gives direct fixtures and
+% pipeline builds a reproducible, open sans face without requiring a consumer
+% project to ship a separate brand font. The chart theme mirrors this choice.
 % -----------------------------------------------------------------------------
 \RequirePackage{libertinus}
 
 % -----------------------------------------------------------------------------
-% Palette. Distinct hex values from both existing themes' palettes (not
-% reused, not tuned -- placeholders a design review replaces in Phase C).
-% Accent is this theme's required semantic role for
-% reportkit-presentation.sty's kicker/label color, the same role name
-% reportkit-theme-institutional-research.sty already established.
+% Palette. A restrained navy/teal system with one warm decision accent. The
+% roles are intentionally semantic: positive/negative arithmetic, evidence,
+% decision, and limitation remain legible in colour and in grayscale.
 % -----------------------------------------------------------------------------
-\definecolor{Ink}{HTML}{1B1E24}
-\definecolor{Muted}{HTML}{5B6270}
-\definecolor{Hairline}{HTML}{D5D8DE}
-\definecolor{Surface}{HTML}{F5F6F8}
-\definecolor{Accent}{HTML}{3B5BDB}
-\definecolor{LinkBlue}{HTML}{3B5BDB}
+\definecolor{Ink}{HTML}{17202A}
+\definecolor{Muted}{HTML}{566273}
+\definecolor{Hairline}{HTML}{D8DEE7}
+\definecolor{Surface}{HTML}{F2F5F8}
+\definecolor{Accent}{HTML}{0B7285}
+\definecolor{LinkBlue}{HTML}{0B7285}
 % Semantic callout/metric category colors reportkit-boxes.sty expects every
 % theme to provide (see reportkit-theme-default.sty's palette block).
-\definecolor{Principle}{HTML}{3B5BDB}
-\definecolor{Decision}{HTML}{7048A8}
-\definecolor{Research}{HTML}{1D8A7A}
-\definecolor{Tip}{HTML}{2F7D4F}
-\definecolor{RedFlag}{HTML}{B23A3A}
+\definecolor{Principle}{HTML}{0B7285}
+\definecolor{Decision}{HTML}{C26A2D}
+\definecolor{Research}{HTML}{3C6E71}
+\definecolor{Tip}{HTML}{2F855A}
+\definecolor{RedFlag}{HTML}{B54747}
 \definecolor{Assumption}{HTML}{9A6B1E}
-\definecolor{Evidence}{HTML}{3F5D75}
-\definecolor{Limitation}{HTML}{6B6560}
-\definecolor{Deliverable}{HTML}{22694A}
-\definecolor{MetricAccent}{HTML}{3B5BDB}
+\definecolor{Evidence}{HTML}{39566F}
+\definecolor{Limitation}{HTML}{6B7280}
+\definecolor{Deliverable}{HTML}{2D6A4F}
+\definecolor{MetricAccent}{HTML}{0B7285}
 
 \color{Ink}
 \hypersetup{colorlinks=true,linkcolor=LinkBlue,urlcolor=LinkBlue,citecolor=LinkBlue,pdfborder={0 0 0},pdfdisplaydoctitle=true}
@@ -78,66 +66,61 @@
 \sisetup{detect-all=true,group-separator={,}}
 
 % -----------------------------------------------------------------------------
-% Style tokens (reportkit-core.sty's callout/metric contract) -- reuses the
-% default theme's exact chrome values. Not restyled for slides specifically:
-% callouts/metric cards are a secondary primitive on a slide (most content
-% goes through reportkit-presentation.sty's own compositions), so there is
-% no design reason yet to diverge, and Phase C can retune this without
-% touching reportkit-boxes.sty.
+% Style tokens (reportkit-core.sty's callout/metric contract). Cards use
+% quiet surfaces, a clear accent rail, and enough internal padding to remain
+% readable when a semantic box is used inside a dense evidence slide.
 % -----------------------------------------------------------------------------
 \renewcommand{\RKTokCalloutColBack}{Surface}
 \renewcommand{\RKTokCalloutColFrame}{Hairline}
-\renewcommand{\RKTokCalloutBoxRule}{.45pt}
-\renewcommand{\RKTokCalloutLeftRule}{2.2pt}
-\renewcommand{\RKTokCalloutArc}{0pt}
-\renewcommand{\RKTokCalloutOuterArc}{0pt}
+\renewcommand{\RKTokCalloutBoxRule}{.5pt}
+\renewcommand{\RKTokCalloutLeftRule}{3.2pt}
+\renewcommand{\RKTokCalloutArc}{1.2pt}
+\renewcommand{\RKTokCalloutOuterArc}{1.2pt}
 \renewcommand{\RKTokCalloutPadLeft}{8pt}
-\renewcommand{\RKTokCalloutPadRight}{8pt}
-\renewcommand{\RKTokCalloutPadTop}{6pt}
-\renewcommand{\RKTokCalloutPadBottom}{6pt}
-\renewcommand{\RKTokCalloutBeforeSkip}{6pt}
-\renewcommand{\RKTokCalloutAfterSkip}{7pt}
-\renewcommand{\RKTokCalloutTitleFont}{\fontsize{7.3}{8.5}\selectfont}
+\renewcommand{\RKTokCalloutPadRight}{7pt}
+\renewcommand{\RKTokCalloutPadTop}{5pt}
+\renewcommand{\RKTokCalloutPadBottom}{5pt}
+\renewcommand{\RKTokCalloutBeforeSkip}{5pt}
+\renewcommand{\RKTokCalloutAfterSkip}{6pt}
+\renewcommand{\RKTokCalloutTitleFont}{\fontsize{7.1}{8.2}\selectfont}
 \renewcommand{\RKTokMetricColBack}{white}
 \renewcommand{\RKTokMetricColFrame}{Hairline}
-\renewcommand{\RKTokMetricBoxRule}{.45pt}
-\renewcommand{\RKTokMetricArc}{0pt}
-\renewcommand{\RKTokMetricOuterArc}{0pt}
-\renewcommand{\RKTokMetricPadLeft}{10pt}
-\renewcommand{\RKTokMetricPadRight}{10pt}
-\renewcommand{\RKTokMetricPadTop}{8pt}
-\renewcommand{\RKTokMetricPadBottom}{8pt}
-\renewcommand{\RKTokMetricBeforeSkip}{7pt}
-\renewcommand{\RKTokMetricAfterSkip}{8pt}
-\renewcommand{\RKTokMetricBorderLineWidth}{2.4pt}
-\renewcommand{\RKTokMetricLabelFont}{\fontsize{7.3}{8.5}\selectfont}
-\renewcommand{\RKTokMetricValueFont}{\fontsize{21}{23}\selectfont}
-\renewcommand{\RKTokMetricSubtitleFont}{\fontsize{8.3}{10}\selectfont}
-\renewcommand{\RKTokMetricSubtitleSpacing}{4pt}
-\renewcommand{\RKTokMetricWhyFont}{\fontsize{7.2}{8.4}\selectfont}
-% Diagram chrome (reportkit-core.sty's "Diagram chrome" contract, Phase A4's
-% implemented diagram work). Matches the default theme's values exactly (see
-% reportkit-theme-default.sty for the same block and rationale) -- this
-% experimental theme's own visual identity does not yet extend to diagram
-% chrome, only to the callout/metric tokens above.
+\renewcommand{\RKTokMetricBoxRule}{.5pt}
+\renewcommand{\RKTokMetricArc}{1.2pt}
+\renewcommand{\RKTokMetricOuterArc}{1.2pt}
+\renewcommand{\RKTokMetricPadLeft}{9pt}
+\renewcommand{\RKTokMetricPadRight}{9pt}
+\renewcommand{\RKTokMetricPadTop}{7pt}
+\renewcommand{\RKTokMetricPadBottom}{7pt}
+\renewcommand{\RKTokMetricBeforeSkip}{6pt}
+\renewcommand{\RKTokMetricAfterSkip}{7pt}
+\renewcommand{\RKTokMetricBorderLineWidth}{2.8pt}
+\renewcommand{\RKTokMetricLabelFont}{\fontsize{7.1}{8.2}\selectfont}
+\renewcommand{\RKTokMetricValueFont}{\fontsize{22}{24}\selectfont}
+\renewcommand{\RKTokMetricSubtitleFont}{\fontsize{8}{9.5}\selectfont}
+\renewcommand{\RKTokMetricSubtitleSpacing}{3pt}
+\renewcommand{\RKTokMetricWhyFont}{\fontsize{7}{8.2}\selectfont}
+% Diagram chrome. Strategy diagrams use white cards on a quiet surface, with
+% accent rails reserved for emphasis and evidence-coloured connectors for
+% relationships. The shared primitives remain responsible for all geometry.
 \renewcommand{\RKTokDiagramNodeDraw}{Hairline}
-\renewcommand{\RKTokDiagramNodeFill}{Surface}
+\renewcommand{\RKTokDiagramNodeFill}{white}
 \renewcommand{\RKTokDiagramNodeText}{Ink}
-\renewcommand{\RKTokDiagramNodeRounding}{1.2pt}
-\renewcommand{\RKTokDiagramNodeMinHeight}{10mm}
-\renewcommand{\RKTokDiagramNodeTextWidth}{28mm}
-\renewcommand{\RKTokDiagramNodePadX}{5pt}
-\renewcommand{\RKTokDiagramNodePadY}{4pt}
-\renewcommand{\RKTokDiagramNodeFont}{\sffamily\fontsize{8.1}{9.7}\selectfont}
+\renewcommand{\RKTokDiagramNodeRounding}{1.4pt}
+\renewcommand{\RKTokDiagramNodeMinHeight}{9mm}
+\renewcommand{\RKTokDiagramNodeTextWidth}{29mm}
+\renewcommand{\RKTokDiagramNodePadX}{4pt}
+\renewcommand{\RKTokDiagramNodePadY}{3pt}
+\renewcommand{\RKTokDiagramNodeFont}{\sffamily\fontsize{7.4}{8.8}\selectfont}
 \renewcommand{\RKTokDiagramAccentDraw}{LinkBlue}
-\renewcommand{\RKTokDiagramAccentFill}{Surface}
-\renewcommand{\RKTokDiagramAccentWidth}{.8pt}
+\renewcommand{\RKTokDiagramAccentFill}{Accent!10}
+\renewcommand{\RKTokDiagramAccentWidth}{1pt}
 \renewcommand{\RKTokDiagramArrowLength}{4pt}
 \renewcommand{\RKTokDiagramArrowWidth}{4pt}
 \renewcommand{\RKTokDiagramEdgeFlowColor}{Evidence}
-\renewcommand{\RKTokDiagramEdgeFlowWidth}{.8pt}
+\renewcommand{\RKTokDiagramEdgeFlowWidth}{.9pt}
 \renewcommand{\RKTokDiagramEdgeSequenceColor}{Evidence}
-\renewcommand{\RKTokDiagramEdgeSequenceWidth}{.8pt}
+\renewcommand{\RKTokDiagramEdgeSequenceWidth}{.9pt}
 \renewcommand{\RKTokDiagramEdgeDependencyColor}{LinkBlue}
 \renewcommand{\RKTokDiagramEdgeDependencyWidth}{.75pt}
 \renewcommand{\RKTokDiagramEdgeHandoffColor}{Muted}
@@ -149,13 +132,13 @@
 \renewcommand{\RKTokDiagramEdgeLabelFill}{white}
 \renewcommand{\RKTokDiagramEdgeLabelPad}{1.5pt}
 \renewcommand{\RKTokDiagramEdgeLabelText}{Muted}
-\renewcommand{\RKTokDiagramEdgeLabelFont}{\sffamily\fontsize{6.8}{8}\selectfont}
+\renewcommand{\RKTokDiagramEdgeLabelFont}{\sffamily\fontsize{6.5}{7.7}\selectfont}
 \renewcommand{\RKTokDiagramLayerDraw}{Hairline}
-\renewcommand{\RKTokDiagramLayerFill}{white}
+\renewcommand{\RKTokDiagramLayerFill}{Surface}
 \renewcommand{\RKTokDiagramLayerWidth}{.5pt}
-\renewcommand{\RKTokDiagramLayerTitleFont}{\sffamily\bfseries\fontsize{7.7}{9}\selectfont}
+\renewcommand{\RKTokDiagramLayerTitleFont}{\sffamily\bfseries\fontsize{7.5}{8.8}\selectfont}
 \renewcommand{\RKTokDiagramLayerTitleText}{Ink}
-\renewcommand{\RKTokDiagramLayerBodyFont}{\sffamily\fontsize{7.2}{8.5}\selectfont}
+\renewcommand{\RKTokDiagramLayerBodyFont}{\sffamily\fontsize{6.9}{8.1}\selectfont}
 \renewcommand{\RKTokDiagramLayerBodyText}{Muted}
 \renewcommand{\RKTokDiagramTierDraw}{Hairline}
 \renewcommand{\RKTokDiagramTierFill}{Surface}
@@ -173,12 +156,12 @@
 \renewcommand{\RKTokDiagramMatrixAxisLabelText}{Muted}
 \renewcommand{\RKTokDiagramMatrixEndpointFont}{\sffamily\fontsize{6.8}{8}\selectfont}
 \renewcommand{\RKTokDiagramMatrixEndpointText}{Muted}
-\renewcommand{\RKTokDiagramMatrixAccentColor}{LinkBlue}
-\renewcommand{\RKTokDiagramMatrixCellFont}{\sffamily\fontsize{8}{9.5}\selectfont}
+\renewcommand{\RKTokDiagramMatrixAccentColor}{Decision}
+\renewcommand{\RKTokDiagramMatrixCellFont}{\sffamily\fontsize{7.6}{9}\selectfont}
 \renewcommand{\RKTokDiagramMatrixCellText}{Ink}
-\renewcommand{\RKTokDiagramMatrixPointColor}{LinkBlue}
-\renewcommand{\RKTokDiagramMatrixPointRadius}{1.55pt}
-\renewcommand{\RKTokDiagramMatrixPointLabelFont}{\sffamily\fontsize{6.9}{8.2}\selectfont}
+\renewcommand{\RKTokDiagramMatrixPointColor}{Accent}
+\renewcommand{\RKTokDiagramMatrixPointRadius}{1.7pt}
+\renewcommand{\RKTokDiagramMatrixPointLabelFont}{\sffamily\fontsize{6.7}{8}\selectfont}
 \renewcommand{\RKTokDiagramMatrixPointLabelText}{Ink}
 \renewcommand{\RKTokDiagramLaneDividerColor}{Hairline}
 \renewcommand{\RKTokDiagramLaneDividerWidth}{.5pt}
@@ -187,23 +170,23 @@
 \renewcommand{\RKTokDiagramTimelineAxisColor}{Evidence}
 \renewcommand{\RKTokDiagramTimelineAxisWidth}{.8pt}
 \renewcommand{\RKTokDiagramTimelineDotColor}{LinkBlue}
-\renewcommand{\RKTokDiagramTimelineDotRadius}{2.1pt}
-\renewcommand{\RKTokDiagramRoadmapAccentColor}{LinkBlue}
-\renewcommand{\RKTokDiagramRoadmapAccentFont}{\sffamily\bfseries\fontsize{7.1}{8.5}\selectfont}
+\renewcommand{\RKTokDiagramTimelineDotRadius}{2.2pt}
+\renewcommand{\RKTokDiagramRoadmapAccentColor}{Decision}
+\renewcommand{\RKTokDiagramRoadmapAccentFont}{\sffamily\bfseries\fontsize{7}{8.3}\selectfont}
 \renewcommand{\RKTokDiagramStructureCardDraw}{Hairline}
-\renewcommand{\RKTokDiagramStructureCardFill}{Surface}
-\renewcommand{\RKTokDiagramStructureCardRounding}{1.2pt}
+\renewcommand{\RKTokDiagramStructureCardFill}{white}
+\renewcommand{\RKTokDiagramStructureCardRounding}{1.4pt}
 \renewcommand{\RKTokDiagramStructureCardWidth}{.5pt}
 \renewcommand{\RKTokDiagramStructureCardPadX}{4pt}
 \renewcommand{\RKTokDiagramStructureCardPadY}{3.5pt}
-\renewcommand{\RKTokDiagramStructureCardFont}{\sffamily\fontsize{7.4}{8.8}\selectfont}
+\renewcommand{\RKTokDiagramStructureCardFont}{\sffamily\fontsize{7.1}{8.4}\selectfont}
 \renewcommand{\RKTokDiagramStructureCardText}{Ink}
-\renewcommand{\RKTokDiagramStructureTitleFont}{\sffamily\bfseries\fontsize{7.7}{9.2}\selectfont}
+\renewcommand{\RKTokDiagramStructureTitleFont}{\sffamily\bfseries\fontsize{7.4}{8.8}\selectfont}
 \renewcommand{\RKTokDiagramStructureTitleText}{Ink}
 \renewcommand{\RKTokDiagramStructureMutedFont}{\sffamily\fontsize{6.8}{8.1}\selectfont}
 \renewcommand{\RKTokDiagramStructureMutedText}{Muted}
-\renewcommand{\RKTokDiagramStructureArrowColor}{Evidence}
-\renewcommand{\RKTokDiagramStructureArrowWidth}{.7pt}
+\renewcommand{\RKTokDiagramStructureArrowColor}{Accent}
+\renewcommand{\RKTokDiagramStructureArrowWidth}{.8pt}
 \renewcommand{\RKTokDiagramStructureArrowTip}{3.6pt}
 % Algorithm-visualization state grammar (reportkit-algorithm-viz.sty family).
 % Reuses this theme's existing semantic colors rather than introducing new
@@ -256,7 +239,7 @@
 \renewcommand{\RKTokAlgorithmIndexFont}{\sffamily\fontsize{6.6}{7.9}\selectfont}
 \renewcommand{\RKTokAlgorithmIndexText}{Muted}
 \renewcommand{\RKTokAlgorithmIndexGap}{2.4pt}
-\renewcommand{\RKTokAlgorithmPointerColor}{LinkBlue}
+\renewcommand{\RKTokAlgorithmPointerColor}{Accent}
 \renewcommand{\RKTokAlgorithmPointerFont}{\sffamily\bfseries\fontsize{7}{8.4}\selectfont}
 \renewcommand{\RKTokAlgorithmPointerWidth}{.9pt}
 \renewcommand{\RKTokAlgorithmContainerDraw}{Hairline}
@@ -292,6 +275,6 @@
 % Figure/table provenance helper (reportkit-core.sty's contract; every theme
 % defines this). Reused as-is under Beamer -- \RKDiagramSource calls it
 % unchanged (reportkit-slides-core.sty).
-\newcommand{\source}[1]{\par\vspace{1pt}{\sffamily\fontsize{6.6pt}{8pt}\selectfont\color{Muted}\textit{Source:} #1}\par}
+\newcommand{\source}[1]{\par\vspace{1pt}{\sffamily\fontsize{6.4pt}{7.7pt}\selectfont\color{Muted}\textit{Source:} #1}\par}
 
 \endinput

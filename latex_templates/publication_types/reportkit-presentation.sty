@@ -37,7 +37,7 @@
 % directly -- unlike reportkit-boxes.sty/reportkit-diagrams.sty, which must
 % compile under either renderer core.
 \NeedsTeXFormat{LaTeX2e}
-\ProvidesPackage{reportkit-presentation}[2026/09/13 v0.1.0 ReportKit presentation compositions (experimental)]
+\ProvidesPackage{reportkit-presentation}[2026/09/20 v1.0.0 ReportKit presentation compositions]
 \RequirePackage{xparse}
 \RequirePackage{etoolbox}
 
@@ -47,7 +47,7 @@
 % Title slide
 % -----------------------------------------------------------------------------
 % <reportkit-contract>
-% {"kind":"composition","description":"Titleslide","arguments":[],"constraints":[{"code":"content_only_wrap_in_frame","description":"Content only; wrap in \\begin{frame}[plain]...\\end{frame}."},{"code":"reads_document_metadata","description":"Reads \\title/\\subtitle/\\author/\\date and reportkit-core's \\rk@leftheader (set with \\setreportkitleftheader); set those before use, as with the paged renderer's \\maketitle."}],"example":"\\begin{frame}[plain]\n\\begin{titleslide}\n\\end{titleslide}\n\\end{frame}","stability":"experimental","since":"1.9.3"}
+% {"kind":"composition","description":"Titleslide","arguments":[],"constraints":[{"code":"content_only_wrap_in_frame","description":"Content only; wrap in \\begin{frame}[plain]...\\end{frame}."},{"code":"reads_document_metadata","description":"Reads \\title/\\subtitle/\\author/\\date and reportkit-core's \\rk@leftheader (set with \\setreportkitleftheader); set those before use, as with the paged renderer's \\maketitle."}],"example":"\\begin{frame}[plain]\n\\begin{titleslide}\n\\end{titleslide}\n\\end{frame}","stability":"stable","since":"1.9.3"}
 % </reportkit-contract>
 \NewDocumentEnvironment{titleslide}{}{%
   \vfill
@@ -66,7 +66,7 @@
 % Section divider
 % -----------------------------------------------------------------------------
 % <reportkit-contract>
-% {"kind":"composition","description":"Sectiondivider","arguments":[{"name":"title","type":"text","description":"Section title, also registered as a \\section for the PDF outline/bookmarks."}],"constraints":[{"code":"content_only_wrap_in_frame","description":"Content only; wrap in \\begin{frame}[plain]...\\end{frame}."}],"example":"\\begin{frame}[plain]\n\\begin{sectiondivider}{Example}\n\\end{sectiondivider}\n\\end{frame}","stability":"experimental","since":"1.9.3"}
+% {"kind":"composition","description":"Sectiondivider","arguments":[{"name":"title","type":"text","description":"Section title, also registered as a \\section for the PDF outline/bookmarks."}],"constraints":[{"code":"content_only_wrap_in_frame","description":"Content only; wrap in \\begin{frame}[plain]...\\end{frame}."}],"example":"\\begin{frame}[plain]\n\\begin{sectiondivider}{Example}\n\\end{sectiondivider}\n\\end{frame}","stability":"stable","since":"1.9.3"}
 % </reportkit-contract>
 \NewDocumentEnvironment{sectiondivider}{m}{%
   \section{#1}%
@@ -79,7 +79,7 @@
 }
 
 % <reportkit-contract>
-% {"kind":"composition","description":"Appendixdivider","arguments":[{"name":"title","type":"text","description":"Appendix title, also registered as a \\section (prefixed Appendix:) for the PDF outline/bookmarks."}],"constraints":[{"code":"content_only_wrap_in_frame","description":"Content only; wrap in \\begin{frame}[plain]...\\end{frame}."}],"example":"\\begin{frame}[plain]\n\\begin{appendixdivider}{Example}\n\\end{appendixdivider}\n\\end{frame}","stability":"experimental","since":"1.9.3"}
+% {"kind":"composition","description":"Appendixdivider","arguments":[{"name":"title","type":"text","description":"Appendix title, also registered as a \\section (prefixed Appendix:) for the PDF outline/bookmarks."}],"constraints":[{"code":"content_only_wrap_in_frame","description":"Content only; wrap in \\begin{frame}[plain]...\\end{frame}."}],"example":"\\begin{frame}[plain]\n\\begin{appendixdivider}{Example}\n\\end{appendixdivider}\n\\end{frame}","stability":"stable","since":"1.9.3"}
 % </reportkit-contract>
 \NewDocumentEnvironment{appendixdivider}{m}{%
   \section{Appendix: #1}%
@@ -95,7 +95,7 @@
 % Single-message and assertion-evidence
 % -----------------------------------------------------------------------------
 % <reportkit-contract>
-% {"kind":"composition","description":"Messageslide","arguments":[{"name":"headline","type":"text","description":"The one assertion this slide makes."}],"constraints":[{"code":"content_only_wrap_in_frame","description":"Content only; wrap in \\begin{frame}...\\end{frame}."}],"example":"\\begin{frame}\n\\begin{messageslide}{Example}\nExample content.\n\\end{messageslide}\n\\end{frame}","stability":"experimental","since":"1.9.3"}
+% {"kind":"composition","description":"Messageslide","arguments":[{"name":"headline","type":"text","description":"The one assertion this slide makes."}],"constraints":[{"code":"content_only_wrap_in_frame","description":"Content only; wrap in \\begin{frame}...\\end{frame}."}],"example":"\\begin{frame}\n\\begin{messageslide}{Example}\nExample content.\n\\end{messageslide}\n\\end{frame}","stability":"stable","since":"1.9.3"}
 % </reportkit-contract>
 \NewDocumentEnvironment{messageslide}{m}{%
   \vfill
@@ -107,7 +107,7 @@
 }
 
 % <reportkit-contract>
-% {"kind":"composition","description":"Evidenceslide","arguments":[{"name":"claim","type":"text","description":"The claim; content is the supporting evidence, visually separated from it."}],"constraints":[{"code":"content_only_wrap_in_frame","description":"Content only; wrap in \\begin{frame}...\\end{frame}."}],"example":"\\begin{frame}\n\\begin{evidenceslide}{Example}\nExample content.\n\\end{evidenceslide}\n\\end{frame}","stability":"experimental","since":"1.9.3"}
+% {"kind":"composition","description":"Evidenceslide","arguments":[{"name":"claim","type":"text","description":"The claim; content is the supporting evidence, visually separated from it."}],"constraints":[{"code":"content_only_wrap_in_frame","description":"Content only; wrap in \\begin{frame}...\\end{frame}."}],"example":"\\begin{frame}\n\\begin{evidenceslide}{Example}\nExample content.\n\\end{evidenceslide}\n\\end{frame}","stability":"stable","since":"1.9.3"}
 % </reportkit-contract>
 \NewDocumentEnvironment{evidenceslide}{m}{%
   {\sffamily\RKTokPresentationKickerFont\bfseries\color{Accent}\MakeUppercase{Claim}\par}
@@ -156,7 +156,7 @@
   \end{columns}
 }
 % <reportkit-contract>
-% {"kind":"composition","description":"Visualtext","arguments":[{"name":"position","type":"options","description":"left or right: which side the visual (this environment's content) renders on. Default right."},{"name":"heading","type":"text","description":"Heading for the text column."},{"name":"body","type":"text","description":"Supporting text for the text column."}],"constraints":[{"code":"content_only_wrap_in_frame","description":"Content only; wrap in \\begin{frame}...\\end{frame}."}],"example":"\\begin{frame}\n\\begin{visualtext}[right]{Example}{Example}\nExample content.\n\\end{visualtext}\n\\end{frame}","stability":"experimental","since":"1.9.3"}
+% {"kind":"composition","description":"Visualtext","arguments":[{"name":"position","type":"options","description":"left or right: which side the visual (this environment's content) renders on. Default right."},{"name":"heading","type":"text","description":"Heading for the text column."},{"name":"body","type":"text","description":"Supporting text for the text column."}],"constraints":[{"code":"content_only_wrap_in_frame","description":"Content only; wrap in \\begin{frame}...\\end{frame}."}],"example":"\\begin{frame}\n\\begin{visualtext}[right]{Example}{Example}\nExample content.\n\\end{visualtext}\n\\end{frame}","stability":"stable","since":"1.9.3"}
 % </reportkit-contract>
 \NewDocumentEnvironment{visualtext}{O{right} m m}{%
   \rkpresentation@visualtext@start[#1]{#2}{#3}%
@@ -164,7 +164,7 @@
   \rkpresentation@visualtext@end[#1]{#2}{#3}%
 }
 % <reportkit-contract>
-% {"kind":"composition","description":"Chartslide","arguments":[{"name":"position","type":"options","description":"left or right: which side the chart (this environment's content) renders on. Default right."},{"name":"heading","type":"text","description":"Heading for the text column."},{"name":"body","type":"text","description":"Supporting insight text for the text column."}],"constraints":[{"code":"alias_of_visualtext","description":"Same layout as visualtext; named separately so an author or agent authoring a chart slide finds it directly."},{"code":"content_only_wrap_in_frame","description":"Content only; wrap in \\begin{frame}...\\end{frame}."}],"example":"\\begin{frame}\n\\begin{chartslide}[right]{Example}{Example}\nExample content.\n\\end{chartslide}\n\\end{frame}","stability":"experimental","since":"1.9.3"}
+% {"kind":"composition","description":"Chartslide","arguments":[{"name":"position","type":"options","description":"left or right: which side the chart (this environment's content) renders on. Default right."},{"name":"heading","type":"text","description":"Heading for the text column."},{"name":"body","type":"text","description":"Supporting insight text for the text column."}],"constraints":[{"code":"alias_of_visualtext","description":"Same layout as visualtext; named separately so an author or agent authoring a chart slide finds it directly."},{"code":"content_only_wrap_in_frame","description":"Content only; wrap in \\begin{frame}...\\end{frame}."}],"example":"\\begin{frame}\n\\begin{chartslide}[right]{Example}{Example}\nExample content.\n\\end{chartslide}\n\\end{frame}","stability":"stable","since":"1.9.3"}
 % </reportkit-contract>
 \NewDocumentEnvironment{chartslide}{O{right} m m}{%
   \rkpresentation@visualtext@start[#1]{#2}{#3}%
@@ -172,7 +172,7 @@
   \rkpresentation@visualtext@end[#1]{#2}{#3}%
 }
 % <reportkit-contract>
-% {"kind":"composition","description":"Tableslide","arguments":[{"name":"position","type":"options","description":"left or right: which side the table (this environment's content) renders on. Default right."},{"name":"heading","type":"text","description":"Heading for the text column."},{"name":"body","type":"text","description":"Supporting insight text for the text column."}],"constraints":[{"code":"alias_of_visualtext","description":"Same layout as visualtext; named separately so an author or agent authoring a table slide finds it directly."},{"code":"content_only_wrap_in_frame","description":"Content only; wrap in \\begin{frame}...\\end{frame}."}],"example":"\\begin{frame}\n\\begin{tableslide}[right]{Example}{Example}\nExample content.\n\\end{tableslide}\n\\end{frame}","stability":"experimental","since":"1.9.3"}
+% {"kind":"composition","description":"Tableslide","arguments":[{"name":"position","type":"options","description":"left or right: which side the table (this environment's content) renders on. Default right."},{"name":"heading","type":"text","description":"Heading for the text column."},{"name":"body","type":"text","description":"Supporting insight text for the text column."}],"constraints":[{"code":"alias_of_visualtext","description":"Same layout as visualtext; named separately so an author or agent authoring a table slide finds it directly."},{"code":"content_only_wrap_in_frame","description":"Content only; wrap in \\begin{frame}...\\end{frame}."}],"example":"\\begin{frame}\n\\begin{tableslide}[right]{Example}{Example}\nExample content.\n\\end{tableslide}\n\\end{frame}","stability":"stable","since":"1.9.3"}
 % </reportkit-contract>
 \NewDocumentEnvironment{tableslide}{O{right} m m}{%
   \rkpresentation@visualtext@start[#1]{#2}{#3}%
@@ -195,7 +195,7 @@
   \ifstrempty{#2}{}{\RKDiagramSource{#2}}%
 }
 % <reportkit-contract>
-% {"kind":"composition","description":"Fullvisual","arguments":[{"name":"caption","type":"text","description":"Optional caption, typeset the same way a diagram's is."},{"name":"source","type":"text","description":"Optional source line."}],"constraints":[{"code":"content_only_wrap_in_frame","description":"Content only; wrap in \\begin{frame}...\\end{frame}."}],"example":"\\begin{frame}\n\\begin{fullvisual}[][]\nExample content.\n\\end{fullvisual}\n\\end{frame}","stability":"experimental","since":"1.9.3"}
+% {"kind":"composition","description":"Fullvisual","arguments":[{"name":"caption","type":"text","description":"Optional caption, typeset the same way a diagram's is."},{"name":"source","type":"text","description":"Optional source line."}],"constraints":[{"code":"content_only_wrap_in_frame","description":"Content only; wrap in \\begin{frame}...\\end{frame}."}],"example":"\\begin{frame}\n\\begin{fullvisual}[][]\nExample content.\n\\end{fullvisual}\n\\end{frame}","stability":"stable","since":"1.9.3"}
 % </reportkit-contract>
 \NewDocumentEnvironment{fullvisual}{O{} O{}}{%
   \rkpresentation@fullvisual@start[#1][#2]%
@@ -203,7 +203,7 @@
   \rkpresentation@fullvisual@end[#1][#2]%
 }
 % <reportkit-contract>
-% {"kind":"composition","description":"Architectureslide","arguments":[{"name":"caption","type":"text","description":"Optional caption, typeset the same way a diagram's is."},{"name":"source","type":"text","description":"Optional source line."}],"constraints":[{"code":"alias_of_fullvisual","description":"Same layout as fullvisual; named separately so an author or agent authoring an architecture slide finds it directly."},{"code":"content_only_wrap_in_frame","description":"Content only; wrap in \\begin{frame}...\\end{frame}."}],"example":"\\begin{frame}\n\\begin{architectureslide}[][]\nExample content.\n\\end{architectureslide}\n\\end{frame}","stability":"experimental","since":"1.9.3"}
+% {"kind":"composition","description":"Architectureslide","arguments":[{"name":"caption","type":"text","description":"Optional caption, typeset the same way a diagram's is."},{"name":"source","type":"text","description":"Optional source line."}],"constraints":[{"code":"alias_of_fullvisual","description":"Same layout as fullvisual; named separately so an author or agent authoring an architecture slide finds it directly."},{"code":"content_only_wrap_in_frame","description":"Content only; wrap in \\begin{frame}...\\end{frame}."}],"example":"\\begin{frame}\n\\begin{architectureslide}[][]\nExample content.\n\\end{architectureslide}\n\\end{frame}","stability":"stable","since":"1.9.3"}
 % </reportkit-contract>
 \NewDocumentEnvironment{architectureslide}{O{} O{}}{%
   \rkpresentation@fullvisual@start[#1][#2]%
@@ -215,7 +215,7 @@
 % Two-column comparison and three-part argument
 % -----------------------------------------------------------------------------
 % <reportkit-contract>
-% {"kind":"composition","description":"Comparison","arguments":[],"constraints":[{"code":"exactly_two_columns","description":"Content must be exactly two \\comparisoncolumn calls."},{"code":"content_only_wrap_in_frame","description":"Content only; wrap in \\begin{frame}...\\end{frame}."}],"example":"\\begin{frame}\n\\begin{comparison}\n\\comparisoncolumn{Example}{Example}\n\\comparisoncolumn{Example}{Example}\n\\end{comparison}\n\\end{frame}","stability":"experimental","since":"1.9.3"}
+% {"kind":"composition","description":"Comparison","arguments":[],"constraints":[{"code":"exactly_two_columns","description":"Content must be exactly two \\comparisoncolumn calls."},{"code":"content_only_wrap_in_frame","description":"Content only; wrap in \\begin{frame}...\\end{frame}."}],"example":"\\begin{frame}\n\\begin{comparison}\n\\comparisoncolumn{Example}{Example}\n\\comparisoncolumn{Example}{Example}\n\\end{comparison}\n\\end{frame}","stability":"stable","since":"1.9.3"}
 % </reportkit-contract>
 \NewDocumentEnvironment{comparison}{}{%
   \begin{columns}[T,onlytextwidth]
@@ -223,7 +223,7 @@
   \end{columns}
 }
 % <reportkit-contract>
-% {"kind":"command","description":"Comparisoncolumn","arguments":[{"name":"heading","type":"text","description":"Column heading."},{"name":"body","type":"text","description":"Column content."}],"constraints":[{"code":"requires_parent_environment","description":"Only valid inside a comparison environment."}],"example":"\\comparisoncolumn{Example}{Example}","stability":"experimental","since":"1.9.3"}
+% {"kind":"command","description":"Comparisoncolumn","arguments":[{"name":"heading","type":"text","description":"Column heading."},{"name":"body","type":"text","description":"Column content."}],"constraints":[{"code":"requires_parent_environment","description":"Only valid inside a comparison environment."}],"example":"\\comparisoncolumn{Example}{Example}","stability":"stable","since":"1.9.3"}
 % </reportkit-contract>
 \NewDocumentCommand{\comparisoncolumn}{m m}{%
   \begin{column}{.47\linewidth}
@@ -236,7 +236,7 @@
 }
 
 % <reportkit-contract>
-% {"kind":"composition","description":"Threepart","arguments":[],"constraints":[{"code":"exactly_three_columns","description":"Content must be exactly three \\threepartcolumn calls."},{"code":"content_only_wrap_in_frame","description":"Content only; wrap in \\begin{frame}...\\end{frame}."}],"example":"\\begin{frame}\n\\begin{threepart}\n\\threepartcolumn{Example}{Example}\n\\threepartcolumn{Example}{Example}\n\\threepartcolumn{Example}{Example}\n\\end{threepart}\n\\end{frame}","stability":"experimental","since":"1.9.3"}
+% {"kind":"composition","description":"Threepart","arguments":[],"constraints":[{"code":"exactly_three_columns","description":"Content must be exactly three \\threepartcolumn calls."},{"code":"content_only_wrap_in_frame","description":"Content only; wrap in \\begin{frame}...\\end{frame}."}],"example":"\\begin{frame}\n\\begin{threepart}\n\\threepartcolumn{Example}{Example}\n\\threepartcolumn{Example}{Example}\n\\threepartcolumn{Example}{Example}\n\\end{threepart}\n\\end{frame}","stability":"stable","since":"1.9.3"}
 % </reportkit-contract>
 \NewDocumentEnvironment{threepart}{}{%
   \begin{columns}[T,onlytextwidth]
@@ -244,7 +244,7 @@
   \end{columns}
 }
 % <reportkit-contract>
-% {"kind":"command","description":"Threepartcolumn","arguments":[{"name":"heading","type":"text","description":"Column heading."},{"name":"body","type":"text","description":"Column content."}],"constraints":[{"code":"requires_parent_environment","description":"Only valid inside a threepart environment."}],"example":"\\threepartcolumn{Example}{Example}","stability":"experimental","since":"1.9.3"}
+% {"kind":"command","description":"Threepartcolumn","arguments":[{"name":"heading","type":"text","description":"Column heading."},{"name":"body","type":"text","description":"Column content."}],"constraints":[{"code":"requires_parent_environment","description":"Only valid inside a threepart environment."}],"example":"\\threepartcolumn{Example}{Example}","stability":"stable","since":"1.9.3"}
 % </reportkit-contract>
 \NewDocumentCommand{\threepartcolumn}{m m}{%
   \begin{column}{.31\linewidth}
@@ -260,7 +260,7 @@
 % Hero metric
 % -----------------------------------------------------------------------------
 % <reportkit-contract>
-% {"kind":"composition","description":"Herometric","arguments":[{"name":"value","type":"text","description":"The number, dominating the frame."},{"name":"label","type":"text","description":"What the number is."}],"constraints":[{"code":"content_only_wrap_in_frame","description":"Content only; wrap in \\begin{frame}...\\end{frame}."}],"example":"\\begin{frame}\n\\begin{herometric}{Example}{Example}\nExample content.\n\\end{herometric}\n\\end{frame}","stability":"experimental","since":"1.9.3"}
+% {"kind":"composition","description":"Herometric","arguments":[{"name":"value","type":"text","description":"The number, dominating the frame."},{"name":"label","type":"text","description":"What the number is."}],"constraints":[{"code":"content_only_wrap_in_frame","description":"Content only; wrap in \\begin{frame}...\\end{frame}."}],"example":"\\begin{frame}\n\\begin{herometric}{Example}{Example}\nExample content.\n\\end{herometric}\n\\end{frame}","stability":"stable","since":"1.9.3"}
 % </reportkit-contract>
 \NewDocumentEnvironment{herometric}{m m}{%
   \vfill
@@ -278,7 +278,7 @@
 % Closing
 % -----------------------------------------------------------------------------
 % <reportkit-contract>
-% {"kind":"composition","description":"Closingslide","arguments":[{"name":"headline","type":"text","description":"Closing statement or call to action."}],"constraints":[{"code":"content_only_wrap_in_frame","description":"Content only; wrap in \\begin{frame}[plain]...\\end{frame}."}],"example":"\\begin{frame}[plain]\n\\begin{closingslide}{Example}\nExample content.\n\\end{closingslide}\n\\end{frame}","stability":"experimental","since":"1.9.3"}
+% {"kind":"composition","description":"Closingslide","arguments":[{"name":"headline","type":"text","description":"Closing statement or call to action."}],"constraints":[{"code":"content_only_wrap_in_frame","description":"Content only; wrap in \\begin{frame}[plain]...\\end{frame}."}],"example":"\\begin{frame}[plain]\n\\begin{closingslide}{Example}\nExample content.\n\\end{closingslide}\n\\end{frame}","stability":"stable","since":"1.9.3"}
 % </reportkit-contract>
 \NewDocumentEnvironment{closingslide}{m}{%
   \vfill

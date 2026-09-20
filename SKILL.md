@@ -1,13 +1,13 @@
 ---
 name: reportkit
-description: Create polished technical or analytical PDF reports (and, experimentally, slide decks) with the bundled ReportKit LaTeX class, semantic diagrams, callouts, and matched Matplotlib charts. Use for a designed report, brief, or presentation PDF, not plain prose or a quick document.
+description: Create polished technical or analytical PDF reports and slide decks with the bundled ReportKit LaTeX class, semantic diagrams, callouts, and matched Matplotlib charts. Use for a designed report, brief, or presentation PDF, not plain prose or a quick document.
 ---
 
 # ReportKit
 
 ReportKit produces evidence-led, reader-oriented technical reports. It combines a local LaTeX class, semantic callouts and diagrams, and a matched Python/Matplotlib chart theme.
 
-Use it when the requested deliverable is a finished technical, analytical, evaluation, strategy, or research-report PDF. A designed slide deck is supported on an experimental basis (see "Presentations" below). Do not use it for an informal memo, generic prose, or any deliverable that does not need a designed PDF.
+Use it when the requested deliverable is a finished technical, analytical, evaluation, strategy, research-report, or executive-presentation PDF. Do not use it for an informal memo, generic prose, or any deliverable that does not need a designed PDF.
 
 Git tags are the reproducible release identifiers. Check `reportkit.cls` when the class version itself matters.
 
@@ -61,11 +61,11 @@ For a multi-chapter publication (a guide, book, or report assembled from several
 
 This never writes into `<skill-directory>` — every build artefact, including `reportkit.lock` (the pinned ReportKit ref and toolchain versions), lands under `<report-directory>`. See [`publication_pipeline/README.md`](publication_pipeline/README.md) for the section-build and validation commands.
 
-### Presentations (experimental)
+### Presentations
 
 `reportkit build` can also produce a Beamer-based 16:9 slide deck end to end: set `document.publication_type: presentation` and `document.theme: executive` in `publication.yaml`, then build a plain-Markdown manuscript as usual. Headings become frames (Pandoc's Beamer writer, `--slide-level=1`); `reportkit-presentation.sty` also exposes thirteen named slide compositions (e.g. `messageslide`) usable as fenced `reportkit` directives — see [`publication_pipeline/README.md`](publication_pipeline/README.md) for the directive syntax.
 
-Treat this path as experimental, not a peer of the paged report themes: only the `executive` theme has a slide adapter (the `default` and `institutional-research` themes are paged-only); `executive` still uses a placeholder Libertinus font, not its eventual Google Sans; and tagged/accessible PDF export is explicitly unsupported for any renderer. An automated PDF-accessibility gate (metadata, outline, meaningful links, diagram alt text) does run against the canonical slide fixture — see [references/agent-contract.md](references/agent-contract.md).
+The stable `executive` theme is the supported consulting/strategy slide system; the `default` and `institutional-research` themes remain paged-only. It uses the bundled Libertinus Sans family for reproducible builds. Metadata, outline, meaningful links, and diagram alternatives are checked automatically; tagged PDF remains explicitly unsupported for any renderer. See [references/agent-contract.md](references/agent-contract.md) and the canonical `latex_templates/examples/executive-presentation/` fixture.
 
 ## Write for the decision
 

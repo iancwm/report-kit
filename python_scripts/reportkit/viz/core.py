@@ -1235,8 +1235,8 @@ def theme_file_for(theme: str, repo_root: str | Path | None = None) -> Path:
     open question 2.
     """
     # core.py lives at python_scripts/reportkit/viz/core.py; the repository
-    # root is therefore two parents above the reportkit package.
-    root = Path(repo_root) if repo_root is not None else Path(__file__).resolve().parents[2]
+    # root is therefore three parents above this module.
+    root = Path(repo_root) if repo_root is not None else Path(__file__).resolve().parents[3]
     canonical = canonical_theme_name(theme)
     return root / "latex_templates" / "themes" / f"reportkit-theme-{canonical}.sty"
 
@@ -1289,7 +1289,7 @@ def validate_theme_contract_against_latex(
     if record is None:
         return [*errors, f"theme {theme!r} is missing from the publication registry"]
 
-    root = Path(repo_root) if repo_root is not None else Path(__file__).resolve().parents[2]
+    root = Path(repo_root) if repo_root is not None else Path(__file__).resolve().parents[3]
     themes_root = root / "latex_templates" / "themes"
     common_package = str(record.get("common_package", ""))
     common_path = themes_root / f"{common_package}.sty"

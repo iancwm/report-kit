@@ -1,6 +1,6 @@
 # ReportKit — Outstanding Work
 
-**Last updated:** 2026-09-19
+**Last updated:** 2026-09-20
 
 This is the current-work index, not an audit. The front of the document contains
 only work that is still actionable. Completed implementation records and dated
@@ -16,8 +16,8 @@ and [references/documentation-status.md](references/documentation-status.md).
 | [2026-09-06-reportkit-vnext-ai-publication-system-spec.md](docs/superpowers/specs/2026-09-06-reportkit-vnext-ai-publication-system-spec.md) | Reconciled roadmap; implementation phases are complete in the companion plan. Only the deferred consumer-project template remains. | P3 |
 | [2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md](docs/superpowers/specs/2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md) | Steps 1–5 and pinned visual baseline comparison passed; human §25 review remains. | P2 |
 | [2026-09-09-reportkit-institutional-theme-implementation-plan.md](docs/superpowers/plans/2026-09-09-reportkit-institutional-theme-implementation-plan.md) | Same state: pinned baseline passed; human §25 visual release review remains. | P2 |
-| [2026-09-09-reportkit-multi-format-publication-architecture-spec.md](docs/superpowers/specs/2026-09-09-reportkit-multi-format-publication-architecture-spec.md) | A0–A5, Phase B, and constrained-authoring item C′1 are implemented; focused pinned A3/A4 checks passed, full acceptance and future visual phases remain. | P2 |
-| [2026-09-10-reportkit-multi-format-publication-implementation-plan.md](docs/superpowers/plans/2026-09-10-reportkit-multi-format-publication-implementation-plan.md) | Same implementation state as the spec; remaining work is release verification and later visual phases. | P2 |
+| [2026-09-09-reportkit-multi-format-publication-architecture-spec.md](docs/superpowers/specs/2026-09-09-reportkit-multi-format-publication-architecture-spec.md) | A0–A5, Phase B, constrained-authoring item C′1, and Phase C executive theme are implemented; full acceptance and later visual phases remain. | P2 |
+| [2026-09-10-reportkit-multi-format-publication-implementation-plan.md](docs/superpowers/plans/2026-09-10-reportkit-multi-format-publication-implementation-plan.md) | Same implementation state as the spec; the stable executive fixture and visual QA helper are now landed, while full acceptance and later visual phases remain. | P2 |
 | [2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md](docs/superpowers/specs/2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md) | A′/B′, constrained authoring, standalone render, progressive-disclosure budgets, and the generated OpenAI adapter are implemented; i18n and tagging remain deferred. | P2 |
 
 ## Open work
@@ -33,12 +33,6 @@ and [references/documentation-status.md](references/documentation-status.md).
   image/doctor and 53 focused A3/A4 checks passed on 2026-09-19. Finish the
   interrupted full acceptance matrix and record its result; focused status
   records are synchronized.
-
-- **Multi-format Phase C — promote the executive theme.** Complete the
-  consulting/strategy visual system, 8–10 slide fixture, and visual approval
-  required to move `executive` from experimental to stable. Keep the existing
-  presentation composition API unchanged.
-
 
 ### P3
 
@@ -112,6 +106,11 @@ verification notes are retained in `History` below.
 - Multi-format A0–A5, Phase B, and constrained-authoring C′1 are implemented
   for the currently registered targets. The remaining pinned/runtime gates
   and future visual phases are listed above.
+- Multi-format Phase C is implemented: the executive theme has a reviewed
+  consulting/strategy token system, a fictional 10-slide direct/pipeline
+  fixture, shared primitive coverage, and a render-and-review QA helper. The
+  presentation composition API is unchanged; the full acceptance matrix and
+  later visual phases remain open.
 - The agent-facing A′/B′ contract, constrained Markdown/typed-IR authoring
   path, standalone render loop, progressive-disclosure budget slices, and
   generated OpenAI adapter are implemented. The deferred i18n and tagging
@@ -166,6 +165,15 @@ comparison against a checked-in baseline as informative, not authoritative,
 from a session provisioned this way.
 
 ## History
+
+- 2026-09-20: completed multi-format Phase C on the executive-theme branch.
+  Promoted `slides`, `presentation`, and `executive` to stable; retuned the
+  navy/teal strategy palette, evidence typography, card and diagram tokens;
+  added the fictional NexaGrid 10-slide fixture in both direct-TeX and typed
+  Markdown directive forms; generated a public waterfall figure; added static
+  and compiled fixture coverage plus `scripts/visual_qa_executive.py`; and
+  synchronized the skill/spec/plan status. Visual review is performed from
+  the rendered page PNGs before the PR is opened; tagged PDF remains deferred.
 
 - 2026-09-19: split the active P2 work across four parallel implementation
   tracks. The standalone `reportkit render` command is now implemented with

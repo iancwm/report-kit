@@ -1,6 +1,5 @@
-% ReportKit theme adapter: executive / slides renderer. EXPERIMENTAL --
-% see reportkit-theme-executive.sty's header for why. Phase B of the
-% multi-format publication architecture spec (decisions D5, D8, D11).
+% ReportKit theme adapter: executive / slides renderer. Stable Phase C
+% consulting/strategy frame geometry and presentation token scale.
 %
 % Owns this theme's canvas/frame geometry, running chrome (footline), and
 % the presentation-composition style tokens reportkit-presentation.sty
@@ -11,7 +10,7 @@
 % paged section-heading placement is, so it lives here, not in the common
 % theme file.
 \NeedsTeXFormat{LaTeX2e}
-\ProvidesPackage{reportkit-theme-executive-slides}[2026/09/13 v0.1.0 ReportKit executive theme / slides adapter (experimental)]
+\ProvidesPackage{reportkit-theme-executive-slides}[2026/09/20 v1.0.0 ReportKit executive theme / slides adapter]
 
 % -----------------------------------------------------------------------------
 % Canvas and safe margin
@@ -43,21 +42,21 @@
 
 % -----------------------------------------------------------------------------
 % Presentation-composition style tokens (reportkit-core.sty's contract).
-% Placeholder values -- Phase C's design review retunes these; nothing here
-% is meant to be a finished visual system yet (see this file's header).
+% The scale gives short claims visual priority while keeping charts, tables,
+% and diagrams readable at the declared 160 x 90 mm canvas.
 % -----------------------------------------------------------------------------
-\renewcommand{\RKTokPresentationKickerFont}{\fontsize{9pt}{11pt}\selectfont}
-\renewcommand{\RKTokPresentationTitleFont}{\fontsize{34pt}{38pt}\selectfont}
-\renewcommand{\RKTokPresentationSubtitleFont}{\fontsize{14pt}{18pt}\selectfont}
-\renewcommand{\RKTokPresentationDividerTitleFont}{\fontsize{40pt}{44pt}\selectfont}
-\renewcommand{\RKTokPresentationMessageFont}{\fontsize{26pt}{30pt}\selectfont}
-\renewcommand{\RKTokPresentationBodyFont}{\fontsize{14pt}{18pt}\selectfont}
-\renewcommand{\RKTokPresentationCaptionFont}{\fontsize{9pt}{11pt}\selectfont}
-\renewcommand{\RKTokPresentationHeroValueFont}{\fontsize{64pt}{68pt}\selectfont}
-\renewcommand{\RKTokPresentationHeroLabelFont}{\fontsize{13pt}{16pt}\selectfont}
-\renewcommand{\RKTokPresentationColumnHeadingFont}{\fontsize{15pt}{18pt}\selectfont}
-\renewcommand{\RKTokPresentationClosingFont}{\fontsize{30pt}{34pt}\selectfont}
-\renewcommand{\RKTokPresentationRuleWidth}{.6pt}
+\renewcommand{\RKTokPresentationKickerFont}{\fontsize{8.5pt}{10.5pt}\selectfont}
+\renewcommand{\RKTokPresentationTitleFont}{\fontsize{29pt}{33pt}\selectfont}
+\renewcommand{\RKTokPresentationSubtitleFont}{\fontsize{12pt}{15pt}\selectfont}
+\renewcommand{\RKTokPresentationDividerTitleFont}{\fontsize{35pt}{39pt}\selectfont}
+\renewcommand{\RKTokPresentationMessageFont}{\fontsize{23pt}{27pt}\selectfont}
+\renewcommand{\RKTokPresentationBodyFont}{\fontsize{11.5pt}{15pt}\selectfont}
+\renewcommand{\RKTokPresentationCaptionFont}{\fontsize{7.5pt}{9pt}\selectfont}
+\renewcommand{\RKTokPresentationHeroValueFont}{\fontsize{54pt}{58pt}\selectfont}
+\renewcommand{\RKTokPresentationHeroLabelFont}{\fontsize{11pt}{14pt}\selectfont}
+\renewcommand{\RKTokPresentationColumnHeadingFont}{\fontsize{12.5pt}{15pt}\selectfont}
+\renewcommand{\RKTokPresentationClosingFont}{\fontsize{25pt}{29pt}\selectfont}
+\renewcommand{\RKTokPresentationRuleWidth}{.85pt}
 \rk@presentationtokensloadedtrue
 
 \endinput

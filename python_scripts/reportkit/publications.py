@@ -134,17 +134,17 @@ RENDERERS: dict[str, dict[str, Any]] = {
             "tagged_pdf_reason": "The pinned LaTeX format has not yet passed the documented tagging spike.",
         },
     },
-    # Phase B of the multi-format publication architecture spec (decisions
+    # Phase B/C of the multi-format publication architecture spec (decisions
     # D5, D8). Beamer at aspectratio=169 already produces a 160mm x 90mm
     # frame natively (16.00cm x 9.00cm in beamer.cls's own aspect-ratio
     # table -- verified by reading beamer.cls, not assumed), so no extra
     # paperwidth/paperheight override is needed to hit the declared canvas.
-    # "experimental": the renderer and presentation target are routed through
-    # reportkit build, but the executive visual system remains experimental
-    # pending the design review described in the implementation plan.
+    # The slides renderer and its executive target have a reviewed, stable
+    # visual system. Tagged PDF remains truthfully unsupported below; that is
+    # an accessibility capability, not a reason to mislabel the renderer.
     "slides": {
         "name": "slides",
-        "stability": "experimental",
+        "stability": "stable",
         "since": "1.9.3",
         "class_adapter": "reportkit-slides",
         "class_file": "latex_templates/reportkit-slides.cls",
@@ -233,15 +233,11 @@ THEMES: dict[str, dict[str, Any]] = {
         common_package="reportkit-theme-institutional-research", stability="stable", since="1.7.0",
         renderer_adapters={"paged": "reportkit-theme-institutional-research-paged"},
     ),
-    # Phase B (decision D9: new visual themes require LuaLaTeX) and D8's
-    # "experimental executive theme shell containing a complete token set...
-    # do not release between B and C" -- this is that shell. It carries every
-    # token reportkit-core.sty's style-token contract requires (so it compiles
-    # cleanly and reportkit-boxes.sty works unmodified) but the visual design
-    # itself is not tuned; Phase C promotes it to stable after design review.
+    # Phase C (decision D9: new visual themes require LuaLaTeX) promotes the
+    # executive slide system after its reviewed fixture and visual QA gate.
     "executive": _theme(
         "executive", renderers=["slides"], required_engine="lualatex",
-        common_package="reportkit-theme-executive", stability="experimental", since="1.9.3",
+        common_package="reportkit-theme-executive", stability="stable", since="1.9.3",
         renderer_adapters={"slides": "reportkit-theme-executive-slides"},
     ),
 }
@@ -272,7 +268,7 @@ PUBLICATION_TYPES: dict[str, dict[str, Any]] = {
         "stability": "stable",
         "since": "1.8.0",
     },
-    # Phase B. Deliberately no "paper" key -- the slides renderer is a canvas
+    # Phase B/C. Deliberately no "paper" key -- the slides renderer is a canvas
     # renderer (decision D5); resolve_build_target() rejects an explicit
     # document.paper for it rather than silently ignoring one.
     "presentation": {
@@ -283,7 +279,7 @@ PUBLICATION_TYPES: dict[str, dict[str, Any]] = {
         "template": "presentation.tex",
         "package": "reportkit-presentation",
         "selection_criteria": "Slide decks: pitches, strategy reviews, and other presented (not read) material.",
-        "stability": "experimental",
+        "stability": "stable",
         "since": "1.9.3",
     },
 }

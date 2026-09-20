@@ -1,11 +1,8 @@
-"""Python theme tokens for ReportKit's executive theme. EXPERIMENTAL -- see
-latex_templates/themes/reportkit-theme-executive.sty's header for why: this
-exists so the slides renderer and presentation composition API have a real
-theme to render charts against, not as a finished visual design. Phase C's
-design review retunes these values; only `apply_theme("executive")`
-resolving at all, and its colors matching the LaTeX theme file, are meant to
-hold up before then (both are covered by tests/test_reportkit_viz_themes.py
-and this module's own use in reportkit_viz.py check-theme).
+"""Python tokens for ReportKit's stable executive slide theme.
+
+The token record is the chart-side projection of the consulting/strategy
+system in ``reportkit-theme-executive.sty``: restrained navy/teal structure,
+one warm decision accent, and compact slide-native figure slots.
 
 Colors mirror latex_templates/themes/reportkit-theme-executive.sty's
 palette exactly -- reportkit_viz.py check-theme --theme executive validates
@@ -25,23 +22,23 @@ from . import (
     TypographyTokens,
 )
 
-INK = "#1B1E24"
-MUTED = "#5B6270"
-HAIRLINE = "#D5D8DE"
-SURFACE = "#F5F6F8"
-ACCENT = "#3B5BDB"  # LinkBlue / Principle / Accent
-DECISION = "#7048A8"
-RESEARCH = "#1D8A7A"
-TIP = "#2F7D4F"
-RED_FLAG = "#B23A3A"
+INK = "#17202A"
+MUTED = "#566273"
+HAIRLINE = "#D8DEE7"
+SURFACE = "#F2F5F8"
+ACCENT = "#0B7285"  # LinkBlue / Principle / Accent
+DECISION = "#C26A2D"
+RESEARCH = "#3C6E71"
+TIP = "#2F855A"
+RED_FLAG = "#B54747"
 ASSUMPTION = "#9A6B1E"
-EVIDENCE = "#3F5D75"
-LIMITATION = "#6B6560"
-METRIC = "#3B5BDB"
-DELIVERABLE = "#22694A"
+EVIDENCE = "#39566F"
+LIMITATION = "#6B7280"
+METRIC = "#0B7285"
+DELIVERABLE = "#2D6A4F"
 WHITE = "#FFFFFF"
 
-# Phase B (decision D5): Beamer's aspectratio=169 produces a 160mm x 90mm
+# Phase C (decision D5): Beamer's aspectratio=169 produces a 160mm x 90mm
 # frame natively; reportkit-theme-executive-slides.sty sets an 8mm safe-area
 # text margin each side (that file's own comment says to update this
 # derivation if that number ever changes -- no cross-language token sync
@@ -107,13 +104,13 @@ THEME = Theme(
     },
     surface=SURFACE,
     white=WHITE,
-    data_colors=(ACCENT, RESEARCH, DECISION, EVIDENCE, "#7A8699", "#8D7FA8"),
+    data_colors=(ACCENT, RESEARCH, DECISION, EVIDENCE, "#7A8794", "#9A765C"),
     benchmark="#9198A5",
-    data_warm="#8F6A4E",
+    data_warm="#A85C45",
     data_positive=TIP,
     data_negative=RED_FLAG,
     text_width_in=TEXT_WIDTH_IN,
-    # Phase B (B3): slide visualization slots, not the seven paged size
+    # Phase C: slide visualization slots, not the seven paged size
     # names (full/wide/dominant/compact/square/half/sidebar) -- those are
     # paged-layout concepts (equity-research's sidebar pane, a full A4 text
     # column, ...) that don't have an obvious slide-canvas equivalent, and
@@ -134,10 +131,9 @@ THEME = Theme(
         # A smaller supporting visual (e.g. alongside a herometric).
         "slide-hero": (_USABLE_WIDTH_MM * 0.62 / 25.4, _USABLE_HEIGHT_MM / 25.4 * 0.5),
     },
-    # D9 recommends Google Sans for executive; this experimental shell uses
-    # Libertinus instead (reportkit-theme-executive.sty's header explains
-    # why), so the chart font candidates match that, not the LaTeX theme's
-    # eventual Phase C choice.
+    # The stable executive fixture chooses the bundled Libertinus family for
+    # reproducible direct and pipeline builds; the fallback candidates keep
+    # consumer projects usable when the bundle is not installed system-wide.
     sans_candidates=("Libertinus Sans", "Linux Biolinum O", "Linux Biolinum", "Arial", "DejaVu Sans"),
     serif_candidates=("Libertinus Serif", "Linux Libertine O", "Linux Libertine", "DejaVu Serif"),
     mono_candidates=("Libertinus Mono", "Linux Libertine Mono O", "DejaVu Sans Mono"),
