@@ -110,6 +110,7 @@ def compile_fixture(workdir: Path) -> tuple[Path, str, int]:
                 # LuaLaTeX must read its installed article class and Unicode
                 # data files; the fixture itself is checked in and shell
                 # escape remains disabled by run_limited().
+                "LC_ALL": "C",
                 "openin_any": "a",
                 "openout_any": "p",
                 "SOURCE_DATE_EPOCH": "1",

@@ -720,6 +720,11 @@ def build(args: argparse.Namespace) -> int:
             TEXINPUTS=texinputs,
             openin_any="p",
             openout_any="p",
+            # The pinned luaotfload build can fail while loading its
+            # multiscript module under the runner's C.UTF-8 locale.  Keep
+            # every normal-pipeline TeX invocation on the same stable C
+            # locale as the renderer and acceptance-test subprocesses.
+            LC_ALL="C",
             SOURCE_DATE_EPOCH="1",
             FORCE_SOURCE_DATE="1",
             TZ="UTC",

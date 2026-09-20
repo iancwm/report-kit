@@ -11,7 +11,6 @@ import json
 from pathlib import Path
 import shutil
 import subprocess
-import sys
 
 import pytest
 
@@ -102,12 +101,6 @@ def _build(source_root: Path, output_root: Path) -> tuple[int, dict]:
         [str(REPO / "reportkit"), "build", "--source-root", str(source_root), "--output-root", str(output_root), "--json"],
         capture_output=True, text=True,
     )
-    if result.returncode:
-        print(f"reportkit build stderr:\n{result.stderr}", file=sys.stderr)
-        for log_name in ("publication-pass-1.log", "publication-pass-2.log", "publication.log"):
-            log = output_root / "combined" / log_name
-            if log.is_file():
-                print(f"{log_name} tail:\n{log.read_text(encoding='utf-8', errors='replace')[-16000:]}", file=sys.stderr)
     return result.returncode, json.loads(result.stdout)
 
 
