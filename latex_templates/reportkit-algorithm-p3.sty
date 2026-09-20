@@ -107,7 +107,7 @@
 }
 
 % <reportkit-contract>
-% {"kind":"figure","description":"Keyed join state with two input relations, a central hash/index structure, matched rows, and optional output rows.","arguments":[{"name":"options","type":"options","description":"width=, row spacing=, and input spacing= layout keys."}],"constraints":[{"code":"two_sides","description":"At least one left and one right input declaration are required."}],"example":"\\begin{diagram}[type=join,caption={Hash join.},description={Two input relations feed a central hash index; matching keys produce joined output rows.}]\n\\begin{joinstate}\n\\joininput[side=left]{orders}{Orders}\n\\joininput[side=right]{customers}{Customers}\n\\hashbucket[state=active]{customer_id}{C42,C73}\n\\joinmatch{customer_id}{C42 -> joined row}\n\\joinoutput{Joined rows}\n\\end{joinstate}\n\\end{diagram}","stability":"experimental","since":"1.10.0"}
+% {"kind":"figure","description":"Keyed join state with two input relations, a central hash/index structure, matched rows, and optional output rows.","arguments":[{"name":"options","type":"options","description":"width=, row spacing=, and input spacing= layout keys."}],"constraints":[{"code":"two_sides","description":"At least one left and one right input declaration are required."}],"example":"\\begin{diagram}[type=join,caption={Hash join.},description={Two input relations feed a central hash index; matching keys produce joined output rows.}]\n\\begin{joinstate}\n\\joininput[side=left]{orders}{Orders}\n\\joininput[side=right]{customers}{Customers}\n\\hashbucket[state=active]{customer_id}{C42,C73}\n\\joinmatch{customer_id}{C42 \\(\\to\\) joined row}\n\\joinoutput{Joined rows}\n\\end{joinstate}\n\\end{diagram}","stability":"experimental","since":"1.10.0"}
 % </reportkit-contract>
 \NewDocumentEnvironment{joinstate}{O{}}{%
   \begingroup
@@ -149,7 +149,7 @@
 \let\hashindex\hashbucket
 
 % <reportkit-contract>
-% {"kind":"command","description":"Declare one key match and the resulting joined row description.","arguments":[{"name":"options","type":"options","description":"state= shared algorithm state for the match; resolved is the default."},{"name":"key","type":"text","description":"Key matching a declared hashbucket."},{"name":"result","type":"text","description":"Joined-row description."}],"constraints":[{"code":"inside_joinstate","description":"Only valid inside joinstate."}],"example":"\\joinmatch{customer_id}{C42 -> order/customer row}","stability":"experimental","since":"1.10.0","parent":"joinstate"}
+% {"kind":"command","description":"Declare one key match and the resulting joined row description.","arguments":[{"name":"options","type":"options","description":"state= shared algorithm state for the match; resolved is the default."},{"name":"key","type":"text","description":"Key matching a declared hashbucket."},{"name":"result","type":"text","description":"Joined-row description."}],"constraints":[{"code":"inside_joinstate","description":"Only valid inside joinstate."}],"example":"\\joinmatch{customer_id}{C42 \\(\\to\\) order/customer row}","stability":"experimental","since":"1.10.0","parent":"joinstate"}
 % </reportkit-contract>
 \NewDocumentCommand{\joinmatch}{O{} m m}{%
   \pgfkeys{/reportkit/joinmatch,state=resolved,#1}%

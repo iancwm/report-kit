@@ -149,7 +149,17 @@ def test_effective_theme_drives_deterministic_tex_and_chart_projections(tmp_path
     assert "\\definecolor{RKEffectiveLinkBlue}{HTML}{ABCDEF}" in tex
     assert "\\definecolor{RKEffectiveResearch}{HTML}{123456}" in tex
     assert r"\newcommand{\RKBrandLogo}{logo.svg}" in tex
+    assert r"\RKBrandHasLogotrue" in tex
     assert validate_tex_overrides(tex, effective) == []
+
+    no_logo = build_effective_theme(
+        "default",
+        {"primary": "#abcdef"},
+        publication_root=tmp_path,
+        font_policy="fallback",
+        registry=_enabled_registry(),
+    )
+    assert r"\RKBrandHasLogofalse" in render_tex_overrides(no_logo)
 
     chart = materialize_chart_overrides(effective)
     assert chart["primary"] == "#ABCDEF"

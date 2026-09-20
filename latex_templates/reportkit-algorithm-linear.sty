@@ -59,7 +59,11 @@
 \newcommand{\rk@linearplace}[2]{%
   \pgfkeys{/reportkit/linearitem,state={},#1}%
   \rk@setalgostate{\rk@linearitemstate}%
-  \ifstrequal{\rk@linearorientation}{vertical}{%
+  % \ifstrequal compares the macro token itself here, so a stack would take
+  % the horizontal branch even after its orientation was set to `vertical`.
+  % Expand the stored orientation before comparing it; queues remain on the
+  % shared horizontal path and stacks now grow upward as declared.
+  \ifdefstring{\rk@linearorientation}{vertical}{%
     \pgfmathsetmacro{\rk@linearx}{0}%
     \pgfmathsetmacro{\rk@lineary}{\the\rk@linearindex*\rk@linearspacing}%
   }{%
