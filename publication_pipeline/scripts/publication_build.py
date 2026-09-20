@@ -724,7 +724,14 @@ def build(args: argparse.Namespace) -> int:
         env = dict(
             os.environ,
             TEXINPUTS=texinputs,
-            openin_any="p",
+            # luaotfload reads the installed Unicode ScriptExtensions.txt and
+            # Scripts.txt through Lua's file API during LuaLaTeX startup. The
+            # pinned TeX Live toolchain cannot resolve those absolute
+            # kpathsea paths under paranoid input mode; the visual-QA
+            # LuaLaTeX runners use the same setting. Markdown and fragment
+            # validation still constrain all user-controlled inputs, and
+            # output writes remain restricted below.
+            openin_any="a" if engine == "lualatex" else "p",
             openout_any="p",
             # The pinned luaotfload build can fail while loading its
             # multiscript module under the runner's C.UTF-8 locale.  Keep
