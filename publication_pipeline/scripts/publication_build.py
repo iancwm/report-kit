@@ -711,7 +711,13 @@ def build(args: argparse.Namespace) -> int:
         "commands": [], "exit_codes": [], "diagnostics": {}, "figures": figure_count, "tables": table_count, "pdf_sha256": None,
     }
     report_path = output / "build-report.json"
-    texinputs = f"{output}:{REPO_ROOT / 'latex_templates'}//:"
+    templates_root = REPO_ROOT / "latex_templates"
+    # Keep the TeX search path explicit.  A recursive `//` entry makes
+    # kpathsea expose the repository tree to LuaTeX's module lookup and
+    # triggers luaotfload's multiscript loader failure in the pinned image;
+    # the three roots below are the complete class/theme/publication input
+    # surface and match the direct renderer test environment.
+    texinputs = f"{output}:{templates_root}:{templates_root / 'themes'}:{templates_root / 'publication_types'}:"
     for pass_number in range(1, 3):
         command = [engine, "-file-line-error", "-interaction=nonstopmode", "-halt-on-error", tex.name]
         report["commands"].append(" ".join(command))
