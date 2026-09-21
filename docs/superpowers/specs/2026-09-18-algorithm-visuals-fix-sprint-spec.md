@@ -2,11 +2,12 @@
 
 Implementation specification from visual review · 18 September 2026
 
-**Status:** Implemented in the working tree on 2026-09-19. Tasks 1–3 are
-merged; Task 4's four-page reference fixture, mechanical release gate, and
-140-DPI default/institutional-research visual review are complete. The full
-repository acceptance command still reports pre-existing out-of-scope
-failures documented in the Task 4 report.
+**Status:** Implemented and merged to `main` by PR #44 on 2026-09-21.
+Tasks 1–3 are merged; Task 4's four-page reference fixture, mechanical release
+gate, and 140-DPI default/institutional-research visual review are complete.
+Pinned workflow run 65 passed with 374 pytest cases and 1 skip, and its
+acceptance-fixture and equity visual-QA stages completed successfully.
+**Last updated:** 2026-09-21
 
 ## Executive summary
 
