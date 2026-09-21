@@ -1,6 +1,6 @@
 # ReportKit — Outstanding Work
 
-**Last updated:** 2026-09-20
+**Last updated:** 2026-09-21
 
 This is the current-work index, not an audit. The front of the document contains
 only work that is still actionable. Completed implementation records and dated
@@ -16,8 +16,8 @@ and [references/documentation-status.md](references/documentation-status.md).
 | [2026-09-06-reportkit-vnext-ai-publication-system-spec.md](docs/superpowers/specs/2026-09-06-reportkit-vnext-ai-publication-system-spec.md) | Reconciled roadmap; implementation phases are complete in the companion plan. Only the deferred consumer-project template remains. | P3 |
 | [2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md](docs/superpowers/specs/2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md) | Steps 1–5 and pinned visual baseline comparison passed; human §25 review remains. | P2 |
 | [2026-09-09-reportkit-institutional-theme-implementation-plan.md](docs/superpowers/plans/2026-09-09-reportkit-institutional-theme-implementation-plan.md) | Same state: pinned baseline passed; human §25 visual release review remains. | P2 |
-| [2026-09-09-reportkit-multi-format-publication-architecture-spec.md](docs/superpowers/specs/2026-09-09-reportkit-multi-format-publication-architecture-spec.md) | A0–A5, Phase B, constrained-authoring item C′1, and Phase C executive theme are implemented; full acceptance and later visual phases remain. | P2 |
-| [2026-09-10-reportkit-multi-format-publication-implementation-plan.md](docs/superpowers/plans/2026-09-10-reportkit-multi-format-publication-implementation-plan.md) | Same implementation state as the spec; the stable executive fixture and visual QA helper are now landed, while full acceptance and later visual phases remain. | P2 |
+| [2026-09-09-reportkit-multi-format-publication-architecture-spec.md](docs/superpowers/specs/2026-09-09-reportkit-multi-format-publication-architecture-spec.md) | A0–A5, Phase B, constrained-authoring item C′1, and Phase C executive theme are implemented; the pinned current-target acceptance gate is green and Phases D–F remain. | P2 |
+| [2026-09-10-reportkit-multi-format-publication-implementation-plan.md](docs/superpowers/plans/2026-09-10-reportkit-multi-format-publication-implementation-plan.md) | Same implementation state as the spec; the readable plan and Phase C fixture record are synchronized to the merged mainline, with Phases D–F remaining. | P2 |
 | [2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md](docs/superpowers/specs/2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md) | A′/B′, constrained authoring, standalone render, progressive-disclosure budgets, and the generated OpenAI adapter are implemented; i18n and tagging remain deferred. | P2 |
 
 ## Open work
@@ -28,11 +28,6 @@ and [references/documentation-status.md](references/documentation-status.md).
   fixture and checked-in baseline passed the pinned OCI comparison on
   2026-09-19 with zero diagnostics. Complete the spec §25 human visual review;
   do not update expected pixels from a non-pinned host.
-
-- **Multi-format A3/A4 — complete the acceptance matrix.** The pinned OCI
-  image/doctor and 53 focused A3/A4 checks passed on 2026-09-19. Finish the
-  interrupted full acceptance matrix and record its result; focused status
-  records are synchronized.
 
 ### P3
 
@@ -80,7 +75,7 @@ verification notes are retained in `History` below.
 | [2026-09-10-reportkit-fork-port-fixes-spec.md](docs/superpowers/specs/2026-09-10-reportkit-fork-port-fixes-spec.md) | All 11 applicable fixes landed and covered. |
 | [2026-09-12-reportkit-code-quality-and-dependency-remediation-spec.md](docs/superpowers/specs/2026-09-12-reportkit-code-quality-and-dependency-remediation-spec.md) | Phases 0–2 and all three open questions complete. |
 | [2026-09-16-reportkit-algorithm-visualization-primitives-spec.md](docs/superpowers/specs/2026-09-16-reportkit-algorithm-visualization-primitives-spec.md) | Full P0–P3 algorithm-visualization scope complete. |
-| [2026-09-18-algorithm-visuals-fix-sprint-spec.md](docs/superpowers/specs/2026-09-18-algorithm-visuals-fix-sprint-spec.md) | Tasks 1–4 complete; dedicated gate passes, with only documented pre-existing acceptance failures. |
+| [2026-09-18-algorithm-visuals-fix-sprint-spec.md](docs/superpowers/specs/2026-09-18-algorithm-visuals-fix-sprint-spec.md) | Tasks 1–4 complete; the dedicated visual gate and pinned current-target acceptance run pass. |
 | [2026-09-18-algorithm-visuals-fix-sprint.md](docs/superpowers/plans/2026-09-18-algorithm-visuals-fix-sprint.md) | Tasks 1–4 complete and synchronized with the sprint spec. |
 
 ### Completed implementation slices
@@ -101,16 +96,15 @@ verification notes are retained in `History` below.
   geometry, readable traces, dependency-layout/ready-queue rendering,
   code-unit pagination protection, the four-page guide fixture, acceptance
   wiring, and default/grayscale/institutional-research visual review are
-  complete. The dedicated gate passes; the full acceptance command retains
-  only the pre-existing out-of-scope failures recorded by the sprint plan.
+  complete. The dedicated gate and the pinned current-target acceptance run
+  pass; the merged runner result is recorded in History below.
 - Multi-format A0–A5, Phase B, and constrained-authoring C′1 are implemented
-  for the currently registered targets. The remaining pinned/runtime gates
-  and future visual phases are listed above.
+  for the currently registered targets. The pinned current-target gate is
+  green; future visual phases are listed above.
 - Multi-format Phase C is implemented: the executive theme has a reviewed
   consulting/strategy token system, a fictional 10-slide direct/pipeline
   fixture, shared primitive coverage, and a render-and-review QA helper. The
-  presentation composition API is unchanged; the full acceptance matrix and
-  later visual phases remain open.
+  presentation composition API is unchanged; Phases D–F remain open.
 - The agent-facing A′/B′ contract, constrained Markdown/typed-IR authoring
   path, standalone render loop, progressive-disclosure budget slices, and
   generated OpenAI adapter are implemented. The deferred i18n and tagging
@@ -166,6 +160,16 @@ from a session provisioned this way.
 
 ## History
 
+- 2026-09-21: synchronized the post-merge implementation records after runner
+  fix PR #44 landed on `main` at `f5f5a6b`. Pinned workflow run 65 for the
+  implementation head passed with 374 pytest cases and 1 skip; Ruff, contract
+  acceptance, dependency audit, acceptance fixtures, and equity visual QA all
+  completed successfully. The algorithm visuals sprint and the current-target
+  multi-format acceptance gate are now recorded as green; human institutional
+  visual review and Phases D–F remain open. Also restored the multi-format
+  implementation plan after the executive-theme merge had left its Markdown
+  path unreadable as binary data.
+
 - 2026-09-20: completed multi-format Phase C on the executive-theme branch.
   Promoted `slides`, `presentation`, and `executive` to stable; retuned the
   navy/teal strategy palette, evidence typography, card and diagram tokens;
@@ -181,10 +185,10 @@ from a session provisioned this way.
   fingerprint, and structured missing-PyMuPDF handling; its focused tests pass
   in both the host and pinned environments. The institutional four-page visual
   baseline comparison passed in the pinned OCI toolchain (human §25 review is
-  still open). Focused pinned A3/A4 checks passed; the broader acceptance suite
-  retains documented pre-existing failures and was not treated as a release
-  pass. Phase C remains intentionally open because no reviewed executive deck
-  fixture exists yet.
+  still open). Focused pinned A3/A4 checks passed; the broader acceptance
+  suite was subsequently completed by runner fix PR #44. Phase C remains
+  intentionally open in this historical entry because the executive fixture
+  had not yet landed on that date.
 
 - 2026-09-19: implemented the agent-contract progressive-disclosure and
   neutrality slices. `reportkit context --slice` now serves a compact
@@ -202,8 +206,8 @@ from a session provisioned this way.
   Merged Task 1's nine-commit implementation, added the four-page integration
   guide and mechanical release gate, wired it into acceptance compilation, and
   completed default/grayscale/institutional-research 140-DPI visual review.
-  The dedicated gate passes; the full acceptance command remains nonzero only
-  for pre-existing out-of-scope failures documented in the Task 4 report.
+  The dedicated gate passed; the later pinned runner pass is recorded in the
+  2026-09-21 synchronization entry above.
 
 - 2026-09-16: fixed a real documentation/reality mismatch found while doing a
   status-report pass on the repo: `SKILL.md`'s frontmatter `description` and

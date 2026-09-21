@@ -11,10 +11,11 @@ An additive `algorithmblock` primitive is included in the generated contract.
 Companion to
 [2026-09-09-reportkit-multi-format-publication-architecture-spec.md](2026-09-09-reportkit-multi-format-publication-architecture-spec.md)
 (the "renderer spec"), which it amends in [§18](#18-amendments-to-the-renderer-spec).
-**Last updated:** 2026-09-19
+**Last updated:** 2026-09-21
 **Current-state claims:** the historical baseline below is verified against the
 working tree at `2587e03`; the additive checkpoint is verified against `main`
-at `74197e6`; the current authoring checkpoint is verified against `a7e83f9`.
+at `74197e6`; the current authoring and runner checkpoint is verified against
+merged `main` at `f5f5a6b`.
 Every premise carries a `file:line` anchor.
 **Priority:** P2 — [§3](#3-the-capability-contract), [§5](#5-documentation-derivation-and-drift)
 and [§8](#8-reproducibility-and-toolchain-pinning) are Phase A work in the
@@ -55,6 +56,16 @@ control, atomic output replacement, a JSON manifest and toolchain fingerprint;
 missing PyMuPDF is reported as the structured `RK_PYMUPDF_MISSING` environment
 diagnostic. Focused coverage is in
 `publication_pipeline/tests/test_render_command.py`.
+
+**Runner/toolchain reconciliation (2026-09-21):** The merged runner fix keeps
+Markdown raw-TeX-disabled and fragment paths validated while allowing the
+pinned LuaLaTeX/luaotfload Unicode data reads required by the real toolchain.
+The normal pipeline now records explicit TeX search roots and a stable locale;
+the generated agent contract and publication-pipeline documentation describe
+the resulting `openin_any`/`openout_any` boundary. Workflow run 65 validated
+the contract, dependency, fixture, and visual-QA gates with 374 pytest cases
+passed and 1 skipped; i18n, tagged PDF, and the consumer template remain
+deferred.
 
 ---
 

@@ -1,11 +1,9 @@
 # ReportKit — Multi-Format Publication Architecture
 
-**Status:** Phase A and Phase C implementation is complete in the working tree for the
-currently registered targets. A1 landed in v1.9.2 and A2 in v1.9.3; A3
-(shared/paged core split and renderer hooks) and A4's diagram/theme-contract
-work are implemented and their pinned OCI image, doctor, and focused runtime
-checks passed on 2026-09-19. The full acceptance matrix was not completed in
-that run and remains the release follow-up. A5's target-aware pipeline, D7
+**Status:** Phase A, Phase B, and Phase C implementation is complete in `main`
+for the currently registered targets. A1 landed in v1.9.2 and A2 in v1.9.3;
+A3 (shared/paged core split and renderer hooks) and A4's diagram/theme-contract
+work are implemented. A5's target-aware pipeline, D7
 entrypoint split, constrained authoring path, effective-theme materialization,
 and selection-marker gate are implemented. Phase B (slide renderer and
 presentation semantics) is also implemented out of this spec's original phase
@@ -15,10 +13,10 @@ D–F have not started.
 Supersedes nothing; extends the architecture introduced by
 [2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md](2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md)
 (Steps 1–5 implemented, `reportkit.cls` v1.9.3).
-**Last updated:** 2026-09-20
+**Last updated:** 2026-09-21
 **Current-state claims:** historical baseline verified against `origin/main` at
-`f45ab86` plus the implementation checkpoint at `a7e83f9`; the pinned
-verification update is recorded on 2026-09-19 below.
+`f45ab86` plus the merged implementation checkpoint at `f5f5a6b`; pinned
+workflow run 65 is the current acceptance record below.
 Every premise below carries a `file:line` anchor so the implementer does not
 re-derive it.
 **Priority:** P2 — architectural hardening, ahead of any new theme.
@@ -318,8 +316,9 @@ style-token contract; the default, institutional-research, and executive
 themes populate it; and `reportkit-boxes.sty` plus the diagram, structure,
 process, and spatial modules consume it without theme-name branching. The
 Python/theme-contract extension is implemented in the working tree. Pinned
-verification on 2026-09-19 passed the focused A3/A4 checks; the complete
-acceptance matrix remains outstanding.
+workflow run 65 passed the current-target acceptance path with 374 pytest
+cases and 1 skip; contract acceptance, acceptance fixtures, and equity visual
+QA also completed successfully. Future visual phases remain open.
 
 ### 3.3 Diagram styling is embedded in semantic primitives
 
@@ -395,9 +394,9 @@ line is a backward-compatibility risk against [§19](#19-backward-compatibility)
 
 **A3 status:** the shared/paged split and renderer hooks are implemented in
 `reportkit-core.sty`, `reportkit-paged-core.sty` and
-`reportkit-slides-core.sty`. The pinned OCI image and doctor passed on
-2026-09-19, and the focused A3/A4 runtime checks passed; the full acceptance
-matrix was interrupted before completion and remains authoritative follow-up.
+`reportkit-slides-core.sty`. The pinned OCI image and doctor passed, the
+focused A3/A4 runtime checks passed, and workflow run 65 completed the
+current-target acceptance path successfully.
 
 ---
 
@@ -533,7 +532,8 @@ equity-research pipeline acceptance case and the full D7 paged-template split
 are implemented with Markdown source and trusted figure fragments. The
 follow-up also materializes the effective theme and makes PDF inspection
 consume the selection marker, covering missing, malformed, mismatched and
-default-theme-leaking selections. Pinned/runtime verification remains open.
+default-theme-leaking selections. The pinned current-target verification is
+recorded in workflow run 65; future-theme runtime gates remain open.
 
 ---
 
@@ -932,8 +932,9 @@ auto-accepted baseline is indistinguishable from no test at all.
 The institutional spec's historical gap — no implementing session had a
 TeX Live install with `lualatex` — was closed for local, unpinned LuaLaTeX
 compiles and rendered checks during the A4/B work. The pinned image remains the
-authoritative release environment; its compatibility baseline and the new
-runtime slices still require A0/pinned verification before new themes land.
+authoritative release environment; workflow run 65 built and exercised it for
+the current-target compatibility baseline. Human visual release review and
+future-theme gates remain separate from that mechanical pass.
 
 ---
 
@@ -975,28 +976,22 @@ in the changelog.
 
 ### Phase A — Architecture hardening
 
-**Current status (verified 2026-09-16, against `origin/main` at `f45ab86` plus `a7e83f9`):** A1 and A2 are complete. A3 (item 3
+**Current status (verified 2026-09-21, against merged `main` at `f5f5a6b`):** A1 and A2 are complete. A3 (item 3
 below: shared/paged core split, item 5's `\Needspace`/`\captionof` half via
-renderer hooks) is implemented and verified in a local non-pinned
-LuaLaTeX/pdfLaTeX toolchain; the pinned-toolchain CI gate still needs to run
-and, if it passes, stand as the recorded baseline. A4's theme/adapter,
+renderer hooks) is implemented and verified in the pinned toolchain. A4's theme/adapter,
 callout/metric, diagram-appearance, and Python `Theme` contract work are
-implemented in the working tree; runtime and pinned-toolchain verification
-remain. A5 is complete for the currently registered targets: the target-aware
+implemented and covered by the focused and pinned runtime checks. A5 is complete for the currently registered targets: the target-aware
 pipeline, real presentation build, equity pipeline acceptance, full D7 paged
 split, constrained authoring path, effective-theme materialization and
-selection-marker inspection are implemented. A0 remains open. Mainline
-bounded parallel section-build tooling is retained in the rebased base.
+selection-marker inspection are implemented. A0's pinned current-target gate is
+closed by workflow run 65. Mainline bounded parallel section-build tooling is
+retained in the rebased base.
 
-A0 specifically (building the pinned toolchain image and capturing baseline
-PDF hashes/metadata) could not be attempted from the sandbox this phase was
-executed in: `toolchain/Dockerfile` fetches `ca-certificates` and the rest of
-its pinned packages over HTTPS from `snapshot.debian.org`/`pypi.org`, and
-that sandbox's network path TLS-intercepts those hosts with a proxy CA the
-image's minimal Debian base does not trust — a sandbox limitation, not a
-toolchain defect; A0 needs to run somewhere with a trusted direct path to
-those hosts (this repository's own `contract-ci.yml` runner, for one). The
-capability matrix now includes the stable `slides` renderer and
+The earlier sandbox limitation that prevented A0 from building the pinned
+image is resolved by the repository's own runner: workflow run 65 built the
+image, ran the pinned doctor and completed the current-target test, contract,
+fixture, and visual-QA gates. The capability matrix now includes the stable
+`slides` renderer and
 `presentation` publication type; HTML, DOCX, PPTX and EPUB remain absent.
 
 Before any new theme:

@@ -2,10 +2,11 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Status:** Complete — Tasks 1–3 are merged and Task 4's four-page guide
-fixture, mechanical release gate, and 140-DPI visual review landed on
-2026-09-19. The full acceptance command remains nonzero only because of
-pre-existing out-of-scope failures recorded in the Task 4 report.
+**Status:** Complete and merged to `main` by PR #44 on 2026-09-21. Tasks 1–3
+and Task 4's four-page guide fixture, mechanical release gate, and 140-DPI
+visual review are complete. Pinned workflow run 65 passed with 374 pytest
+cases and 1 skip; acceptance fixtures and equity visual QA also passed.
+**Last updated:** 2026-09-21
 
 **Goal:** Repair `arraystate`/`windowstate`/`algorithmtrace` geometry, add DAG dependency-layout and ready-queue rendering, and add code-unit pagination protection, so a compact A4 programming guide answers "which pointer moved / which item entered or left the window / which pipeline node can execute next" from the figures alone.
 
@@ -137,7 +138,7 @@ pre-existing out-of-scope failures recorded in the Task 4 report.
   3. Stack/queue (`stackstate`/`queuestate`, one reading unit per spec §5.2) plus the BFS/DFS composition fixtures from Task 2 Step 3 (reuse them here, don't duplicate authoring — you can `\input` the relevant fixture file's figure environments if that's cleaner, or just copy the specific `diagram` blocks).
   4. Topological sort: `dagstate[layout=dependency]` reproducing the spec §4.2 target figure (raw_orders → clean_orders → daily_sales) with `\readyqueue{clean}`.
 - [x] **Step 3:** Compile the fixture with `lualatex` (directly, or via a throwaway pytest using `compile_doc`) and check page count is exactly 4 (`len(doc)`). Fix layout until it is — this may require adjusting `\vspace`/section boundaries per spec §5.2's "must not force a new major section after a short fragment solely for mechanical chapter spacing" guidance from Task 3.
-- [x] **Step 4:** Add `latex_templates/examples/algorithm_guide_fixture_acceptance_test.tex` to `scripts/acceptance_check.sh`'s `TEST_TEXES` array. The new fixture compiles cleanly in the script; the overall command remains nonzero for the documented pre-existing heap, PDF-extraction, contract-drift, and publication-pipeline failures.
+- [x] **Step 4:** Add `latex_templates/examples/algorithm_guide_fixture_acceptance_test.tex` to `scripts/acceptance_check.sh`'s `TEST_TEXES` array. The new fixture compiles cleanly in the script; the later pinned runner pass covers the complete current-target acceptance path.
 - [x] **Step 5:** Write `tests/test_algorithm_guide_fixture.py` with mechanical checks for as many of spec §6.3's gate bullets as are checkable without human eyes: page count is 4; index labels' rendered center-x matches their cell's center-x (reuse Task 1's geometric assertion helper/pattern); the DAG's `\readyqueue` node and its indegree badge do not contradict (badge shows 0 for every readied id — grep the fixture source, or assert via `word_boxes` that a "0" badge label appears near each readied node's recorded position); no codeblock's title text appears on a different PyMuPDF page than the first line of its code (per Task 3's pagination fix). Run it green.
 - [x] **Step 6:** Render the fixture at 140 DPI in the default theme and in a high-contrast `institutional-research`/`equity-research` render, plus a grayscale default render, using PyMuPDF. The scratch renders were inspected page by page; no release-gate bullet failed.
 - [x] **Step 7:** Answer the spec §6's Release Decision explicitly in the Task 4 report: "Which pointer moved? Which item entered or left the window? Which pipeline node can execute next?" The fixture now includes a two-snapshot pointer trace, labelled window events, and a zero-indegree READY queue. Commit everything.
