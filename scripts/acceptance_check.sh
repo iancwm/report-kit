@@ -19,6 +19,10 @@ elif [[ $# -gt 0 ]]; then
 fi
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# luaotfload's pinned multiscript loader is locale-sensitive; keep every TeX
+# subprocess deterministic even when the caller inherits C.UTF-8 or a GUI
+# locale that is not installed in the build image.
+export LC_ALL=C
 TEST_TEXES=(
   "latex_templates/examples/primitive_acceptance_test.tex"
   "latex_templates/examples/primitive_additions_acceptance_test.tex"

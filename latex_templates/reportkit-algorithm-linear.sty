@@ -59,7 +59,11 @@
 \newcommand{\rk@linearplace}[2]{%
   \pgfkeys{/reportkit/linearitem,state={},#1}%
   \rk@setalgostate{\rk@linearitemstate}%
-  \ifstrequal{\rk@linearorientation}{vertical}{%
+  % \ifstrequal compares the macro token itself here, so a stack would take
+  % the horizontal branch even after its orientation was set to `vertical`.
+  % Expand the stored orientation before comparing it; queues remain on the
+  % shared horizontal path and stacks now grow upward as declared.
+  \ifdefstring{\rk@linearorientation}{vertical}{%
     \pgfmathsetmacro{\rk@linearx}{0}%
     \pgfmathsetmacro{\rk@lineary}{\the\rk@linearindex*\rk@linearspacing}%
   }{%
@@ -95,6 +99,15 @@
   \def\rk@linearorientation{vertical}%
   \pgfkeys{/reportkit/linearstate,spacing=1.15,#1}%
   \rk@linearindex=0\relax
+  % A width= diagram wrapper rescales the complete TikZ picture.  A stack's
+  % natural width is only one cell, so a full-width wrapper would otherwise
+  % magnify the vertical pitch until a long stack ran off the page.  Reserve
+  % the requested diagram width in the picture's horizontal bounding box;
+  % the cells keep their intended size while the wrapper's scale stays near
+  % one.  Natural-width and scale-only diagrams keep their existing bounds.
+  \ifx\rk@diagramwidth\@empty\else
+    \path[draw=none] (0,0) rectangle (\rk@diagramwidth,0);%
+  \fi
 }{%
   \ifnum\rk@linearindex>0\relax
     \pgfmathsetmacro{\rk@lineartopy}{(\the\rk@linearindex-1)*\rk@linearspacing}%

@@ -100,9 +100,11 @@ the harness: PyMuPDF.
 
 Markdown input is converted with raw TeX disabled. Files in `fragments/` and
 direct `.tex` documents are trusted escape hatches and must come from a trusted
-author. Converter and TeX children run without shell escape, with restrictive
-TeX file access, a 120-second timeout, and a 2 GiB address-space limit. Trusted
-operators can override those resource values with CLI flags or
+author. Converter and TeX children run without shell escape, with restricted
+output writes, a 120-second timeout, and a 2 GiB address-space limit. The
+LuaLaTeX path uses `openin_any=a` because pinned `luaotfload` reads its Unicode
+data files through Lua; Markdown remains raw-TeX-disabled and fragment paths
+are validated before compilation. Trusted operators can override those resource values with CLI flags or
 `REPORTKIT_COMPILE_TIMEOUT_SECONDS` / `REPORTKIT_MEMORY_LIMIT_MB`;
 `publication.yaml` cannot weaken them. The complete contract and exit-code
 table are in [references/agent-contract.md](../references/agent-contract.md).

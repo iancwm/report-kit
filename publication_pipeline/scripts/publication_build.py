@@ -711,15 +711,30 @@ def build(args: argparse.Namespace) -> int:
         "commands": [], "exit_codes": [], "diagnostics": {}, "figures": figure_count, "tables": table_count, "pdf_sha256": None,
     }
     report_path = output / "build-report.json"
-    texinputs = f"{output}:{REPO_ROOT / 'latex_templates'}//:"
+    templates_root = REPO_ROOT / "latex_templates"
+    # Keep the TeX search path explicit: the staged output plus the known
+    # class/theme/publication roots are the complete ReportKit input surface.
+    texinputs = f"{output}:{templates_root}:{templates_root / 'themes'}:{templates_root / 'publication_types'}:"
     for pass_number in range(1, 3):
         command = [engine, "-file-line-error", "-interaction=nonstopmode", "-halt-on-error", tex.name]
         report["commands"].append(" ".join(command))
         env = dict(
             os.environ,
             TEXINPUTS=texinputs,
-            openin_any="p",
+            # luaotfload reads the installed Unicode ScriptExtensions.txt and
+            # Scripts.txt through Lua's file API during LuaLaTeX startup. The
+            # pinned TeX Live toolchain cannot resolve those absolute
+            # kpathsea paths under paranoid input mode; the visual-QA
+            # LuaLaTeX runners use the same setting. Markdown and fragment
+            # validation still constrain all user-controlled inputs, and
+            # output writes remain restricted below.
+            openin_any="a" if engine == "lualatex" else "p",
             openout_any="p",
+            # The pinned luaotfload build can fail while loading its
+            # multiscript module under the runner's C.UTF-8 locale.  Keep
+            # every normal-pipeline TeX invocation on the same stable C
+            # locale as the renderer and acceptance-test subprocesses.
+            LC_ALL="C",
             SOURCE_DATE_EPOCH="1",
             FORCE_SOURCE_DATE="1",
             TZ="UTC",

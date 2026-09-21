@@ -233,10 +233,11 @@
 
 % Place one backing-array cell (row y=0, like arraystate's row 0) and its
 % mirrored tree node, plus the edge to its parent (skipped for the root),
-% and remember its value text (locally, via plain \def so it stays scoped to
-% the enclosing heapstate group) so \current can redraw it later without the
-% author repeating the value. #1 value text; uses \rk@heapindex as the
-% current 0-based index.
+% and remember its value text (locally, via \let so it snapshots the current
+% loop value and stays scoped to the enclosing heapstate group) so \current
+% can redraw it later without the author repeating the value. #1 is the value
+% macro passed by the \@for loop; uses \rk@heapindex as the current 0-based
+% index.
 \newcommand{\rk@heapplacevalue}[1]{%
   \pgfmathsetmacro{\rk@heapx}{\the\rk@heapindex*\rk@heapcellwidth}%
   \edef\rk@heapcellname{rkheaparray-\the\rk@heapindex}%
@@ -254,7 +255,7 @@
       \draw[rk algo heap edge] (\rk@heapnodex,\rk@heapnodey) -- (\rk@heapcoordx,\rk@heapcoordy);
     \end{pgfonlayer}
   \fi
-  \expandafter\def\csname rk@heapval@\the\rk@heapindex\endcsname{#1}%
+  \expandafter\let\csname rk@heapval@\the\rk@heapindex\endcsname=#1%
   \advance\rk@heapindex by 1\relax
 }
 

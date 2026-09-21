@@ -7,7 +7,6 @@ build/.venv-tests if it exists, rather than falling back to system Python
 which may have incompatible compiled dependencies.
 """
 
-import os
 import subprocess
 from pathlib import Path
 
@@ -42,9 +41,7 @@ def test_acceptance_check_uses_venv():
         capture_output=True,
         timeout=5
     )
-    assert result.returncode == 0, (
-        f"Venv Python should have pytest installed"
-    )
+    assert result.returncode == 0, "Venv Python should have pytest installed"
 
 
 if __name__ == "__main__":

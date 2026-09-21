@@ -132,6 +132,18 @@
   \fi
 }
 
+% Keep the accessibility description in the PDF as a zero-width marked
+% content marker rather than wrapping the visible diagram box.  PyMuPDF and
+% similar text extractors correctly prefer /ActualText over the glyphs inside
+% a marked span; wrapping the box therefore hides every node label from the
+% renderer's text-based acceptance checks.  The marker preserves the
+% description for PDF consumers without replacing the diagram's visible text.
+\newcommand{\rk@actualtextmarker}[1]{%
+  \rk@actualtextbegin{#1}%
+  \kern0pt%
+  \rk@actualtextend%
+}
+
 % Non-floating by design. A conceptual diagram should not drift away from the
 % prose that introduces it. \RKReserveSpace moves the entire diagram/caption
 % block to the next page (under the paged renderer) when the remaining space
@@ -154,8 +166,6 @@
   \end{lrbox}%
   \ifx\rk@diagramdescription\@empty
     \PackageWarning{reportkit-diagrams}{diagram has no description= and will expose no alt text}%
-  \else
-    \rk@actualtextbegin{\rk@diagramdescription}%
   \fi
   \ifx\rk@diagramwidth\@empty
     \ifx\rk@diagramscale\@empty
@@ -166,7 +176,9 @@
   \else
     \resizebox{\rk@diagramwidth}{!}{\usebox{\rk@diagrambox}}%
   \fi
-  \ifx\rk@diagramdescription\@empty\else\rk@actualtextend\fi
+  \ifx\rk@diagramdescription\@empty\else
+    \rk@actualtextmarker{\rk@diagramdescription}%
+  \fi
   \RKDiagramPlacementEnd%
   \vspace{-2pt}%
   \expandafter\ifstrempty\expandafter{\rk@diagramcaption}{}{%

@@ -20,7 +20,6 @@ import json
 import os
 from pathlib import Path
 import shutil
-import subprocess
 import sys
 import tempfile
 
@@ -70,6 +69,7 @@ def compile_fixture(workdir: Path) -> tuple[Path, str, int]:
             memory_limit_mb=2048,
             env={
                 **os.environ,
+                "LC_ALL": "C",
                 "openin_any": "a",
                 "openout_any": "p",
                 "SOURCE_DATE_EPOCH": "1",
