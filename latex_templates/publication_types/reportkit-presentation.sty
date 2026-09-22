@@ -55,7 +55,7 @@
 \newcounter{rkpresentation@references}
 \pgfkeys{
   /reportkit/assertionslide/.is family,
-  /reportkit/assertionslide,
+  /reportkit/assertionslide/.cd,
   kicker/.store in=\rkpresentation@kicker,
 }
 \newcommand{\rkpresentation@measureheader}[3]{%
@@ -167,7 +167,7 @@
 % {"kind":"composition","description":"Assertionslide","arguments":[{"name":"options","type":"options","description":"Optional key list; currently supports kicker={...}."},{"name":"assertion","type":"text","description":"The single working-slide assertion."},{"name":"deck","type":"text","description":"Optional short supporting sentence in the deck hierarchy."}],"constraints":[{"code":"content_only_wrap_in_frame","description":"Content only; wrap in \begin{frame}...\end{frame}."},{"code":"bounded_assertion_header","description":"The header is measured and reserved at a fixed maximum height; body typography is not reduced to rescue an invalid assertion."},{"code":"fit_states","description":"The assertion resolves to standard, compact, or invalid; invalid emits PRESENTATION_ASSERTION_TOO_LONG."}],"example":"\begin{frame}\n\begin{assertionslide}[kicker={Parenting constitution}]{Six household rules prevent most major unforced errors.}[Agree on these before you are tired.]\nEvidence body.\n\end{assertionslide}\n\end{frame}","stability":"stable","since":"1.9.3"}
 % </reportkit-contract>
 \NewDocumentEnvironment{assertionslide}{O{} m O{}}{%
-  \pgfkeys{/reportkit/assertionslide,kicker={},#1}%
+  \pgfkeys{/reportkit/assertionslide/.cd,kicker={},#1}%
   \rkpresentation@fitassertion{#2}{#3}%
   \begin{minipage}[t][\RKTokPresentationAssertionHeaderMaxHeight][t]{\linewidth}
     \ifdefempty{\rkpresentation@kicker}{}{%
