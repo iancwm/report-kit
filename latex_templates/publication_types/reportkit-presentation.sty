@@ -235,7 +235,7 @@
 \newcommand{\rkpresentation@gridcolumns}{2}
 \newcommand{\rkpresentation@gridvariant}{surface}
 \newcommand{\rkpresentation@cardvariant}{surface}
-\newcommand{\rkpresentation@cardwidth}{.47\linewidth}
+\newlength{\rkpresentation@cardwidthlen}
 \newcommand{\rkpresentation@cardfill}{white}
 \newcommand{\rkpresentation@cardrule}{Hairline}
 \newcommand{\rkpresentation@cardrulewidth}{\RKTokPresentationCardRuleWidth}
@@ -259,11 +259,11 @@
 \NewDocumentEnvironment{cardgrid}{O{}}{%
   \pgfkeys{/reportkit/cardgrid/.cd,columns=2,variant=surface,#1}%
   \ifnum\rkpresentation@gridcolumns=2
-    \def\rkpresentation@cardwidth{.47\linewidth}%
+    \setlength{\rkpresentation@cardwidthlen}{.47\linewidth}%
   \else\ifnum\rkpresentation@gridcolumns=3
-    \def\rkpresentation@cardwidth{.31\linewidth}%
+    \setlength{\rkpresentation@cardwidthlen}{.31\linewidth}%
   \else\ifnum\rkpresentation@gridcolumns=4
-    \def\rkpresentation@cardwidth{.22\linewidth}%
+    \setlength{\rkpresentation@cardwidthlen}{.22\linewidth}%
   \else
     \PackageError{reportkit-presentation}{PRESENTATION_CARDGRID_COLUMNS}{%
       cardgrid supports only columns=2, columns=3, or columns=4.}%
@@ -307,12 +307,12 @@
   \ifnum\value{rkpresentation@card}>1
     \hspace{\RKTokPresentationCardGutter}%
   \fi
-  \begin{minipage}[t][\RKTokPresentationCardMinHeight][t]{\rkpresentation@cardwidth}%
+  \begin{minipage}[t][\RKTokPresentationCardMinHeight][t]{\rkpresentation@cardwidthlen}%
     {%
       \setlength{\fboxsep}{\RKTokPresentationCardPadding}%
       \setlength{\fboxrule}{\rkpresentation@cardrulewidth}%
       \fcolorbox{\rkpresentation@cardrule}{\rkpresentation@cardfill}{%
-        \parbox[t]{\dimexpr\rkpresentation@cardwidth-2\fboxsep-2\fboxrule\relax}{%
+        \parbox[t]{\dimexpr\rkpresentation@cardwidthlen-2\fboxsep-2\fboxrule\relax}{%
           \rkpresentation@cardprefix
           {\sffamily\bfseries\RKTokPresentationAnnotationFont\color{Ink}#2\par}%
           \vspace{1mm}%
