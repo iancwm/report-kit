@@ -200,6 +200,9 @@
     {\sffamily\RKTokPresentationAnnotationFont\color{Muted}\textit{#2}\par}%
   }%
 }
+% <reportkit-contract>
+% {"kind":"command","description":"Referenceitem","arguments":[{"name":"reference","type":"text","description":"One short source or reference entry."}],"constraints":[{"code":"requires_parent_environment","value":"referenceslide","description":"Only valid inside referenceslide."}],"example":"\\referenceitem{Author (2026), Title.}","stability":"stable","since":"1.9.3"}
+% </reportkit-contract>
 \NewDocumentCommand{\referenceitem}{m}{%
   \stepcounter{rkpresentation@references}%
   \ifnum\value{rkpresentation@references}>8
