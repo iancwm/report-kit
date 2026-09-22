@@ -227,6 +227,106 @@
 }
 
 % -----------------------------------------------------------------------------
+% Dense evidence grids
+% -----------------------------------------------------------------------------
+% Card grids are deliberately a small semantic composition rather than a
+% domain-specific slide family. The theme owns spacing, padding, minimum
+% height, and rule weight; this module owns only the layout contract.
+\newcommand{\rkpresentation@gridcolumns}{2}
+\newcommand{\rkpresentation@gridvariant}{surface}
+\newcommand{\rkpresentation@cardvariant}{surface}
+\newlength{\rkpresentation@cardwidthlen}
+\newcommand{\rkpresentation@cardfill}{white}
+\newcommand{\rkpresentation@cardrule}{Hairline}
+\newcommand{\rkpresentation@cardrulewidth}{\RKTokPresentationCardRuleWidth}
+\newcommand{\rkpresentation@cardprefix}{}
+\newcounter{rkpresentation@card}
+\pgfkeys{
+  /reportkit/cardgrid/.is family,
+  /reportkit/cardgrid/.cd,
+  columns/.store in=\rkpresentation@gridcolumns,
+  variant/.store in=\rkpresentation@gridvariant,
+}
+\pgfkeys{
+  /reportkit/carditem/.is family,
+  /reportkit/carditem/.cd,
+  variant/.store in=\rkpresentation@cardvariant,
+}
+
+% <reportkit-contract>
+% {"kind":"composition","description":"Cardgrid","arguments":[{"name":"options","type":"options","description":"columns=2, 3, or 4; optional default card variant."}],"constraints":[{"code":"supported_columns","description":"Only columns=2, columns=3, and columns=4 are supported; invalid values emit a hard diagnostic."},{"code":"theme_owned_density","description":"Gutters, padding, minimum height, rule weight, and text roles come from presentation tokens."},{"code":"grayscale_safe","description":"Variants use borders, rails, ordinals, or rule weight in addition to fill."},{"code":"content_only_wrap_in_frame","description":"Content only; wrap in \\begin{frame}...\\end{frame}."}],"example":"\\begin{frame}\n\\begin{cardgrid}[columns=2,variant=surface]\n\\carditem[numbered]{Rule one}{Short evidence.}\n\\carditem[accent-rail]{Rule two}{Short evidence.}\n\\end{cardgrid}\n\\end{frame}","stability":"stable","since":"1.9.3"}
+% </reportkit-contract>
+\NewDocumentEnvironment{cardgrid}{O{}}{%
+  \pgfkeys{/reportkit/cardgrid/.cd,columns=2,variant=surface,#1}%
+  \ifnum\rkpresentation@gridcolumns=2
+    \setlength{\rkpresentation@cardwidthlen}{.47\linewidth}%
+  \else\ifnum\rkpresentation@gridcolumns=3
+    \setlength{\rkpresentation@cardwidthlen}{.31\linewidth}%
+  \else\ifnum\rkpresentation@gridcolumns=4
+    \setlength{\rkpresentation@cardwidthlen}{.22\linewidth}%
+  \else
+    \PackageError{reportkit-presentation}{PRESENTATION_CARDGRID_COLUMNS}{%
+      cardgrid supports only columns=2, columns=3, or columns=4.}%
+    \def\rkpresentation@gridcolumns{2}%
+    \setlength{\rkpresentation@cardwidthlen}{.47\linewidth}%
+  \fi\fi\fi
+  \setcounter{rkpresentation@card}{0}%
+  \par\noindent
+}{%
+  \par
+}
+
+% <reportkit-contract>
+% {"kind":"command","description":"Carditem","arguments":[{"name":"variant","type":"options","description":"plain, surface, accent-rail, numbered, or emphasis; defaults to the parent grid variant."},{"name":"heading","type":"text","description":"Card heading."},{"name":"body","type":"text","description":"Dense evidence text."}],"constraints":[{"code":"requires_parent_environment","description":"Use inside cardgrid."},{"code":"supported_variants","description":"Only plain, surface, accent-rail, numbered, and emphasis are supported."}],"example":"\\carditem[accent-rail]{Heading}{Evidence}","stability":"stable","since":"1.9.3"}
+% </reportkit-contract>
+\NewDocumentCommand{\carditem}{O{} m m}{%
+  \stepcounter{rkpresentation@card}%
+  \ifdefempty{#1}{%
+    \pgfkeys{/reportkit/carditem/.cd,variant=\rkpresentation@gridvariant}%
+  }{%
+    \pgfkeys{/reportkit/carditem/.cd,variant=#1}%
+  }%
+  \def\rkpresentation@cardfill{white}%
+  \def\rkpresentation@cardrule{Hairline}%
+  \def\rkpresentation@cardrulewidth{\RKTokPresentationCardRuleWidth}%
+  \def\rkpresentation@cardprefix{}%
+  \ifdefstring{\rkpresentation@cardvariant}{surface}{%
+    \def\rkpresentation@cardfill{Surface}%
+  }{}%
+  \ifdefstring{\rkpresentation@cardvariant}{accent-rail}{%
+    \def\rkpresentation@cardfill{Surface}%
+    \def\rkpresentation@cardprefix{{\color{Accent}\rule{2pt}{1.25em}\hspace{2mm}}}%
+  }{}%
+  \ifdefstring{\rkpresentation@cardvariant}{numbered}{%
+    \def\rkpresentation@cardfill{Surface}%
+    \def\rkpresentation@cardprefix{{\sffamily\bfseries\RKTokPresentationAnnotationFont\color{Accent}\arabic{rkpresentation@card}\hspace{2mm}}}%
+  }{}%
+  \ifdefstring{\rkpresentation@cardvariant}{emphasis}{%
+    \def\rkpresentation@cardrulewidth{\RKTokPresentationRuleWidth}%
+  }{}%
+  \ifnum\value{rkpresentation@card}>1
+    \hspace{\RKTokPresentationCardGutter}%
+  \fi
+  \begin{minipage}[t][\RKTokPresentationCardMinHeight][t]{\rkpresentation@cardwidthlen}%
+    {%
+      \setlength{\fboxsep}{\RKTokPresentationCardPadding}%
+      \setlength{\fboxrule}{\rkpresentation@cardrulewidth}%
+      \fcolorbox{\rkpresentation@cardrule}{\rkpresentation@cardfill}{%
+        \parbox[t]{\dimexpr\rkpresentation@cardwidthlen-2\fboxsep-2\fboxrule\relax}{%
+          \rkpresentation@cardprefix
+          {\sffamily\bfseries\RKTokPresentationAnnotationFont\color{Ink}#2\par}%
+          \vspace{1mm}%
+          {\sffamily\RKTokPresentationDenseBodyFont\color{Ink}#3\par}%
+        }%
+      }%
+    }%
+  \end{minipage}%
+  \ifnum\numexpr\value{rkpresentation@card} mod \rkpresentation@gridcolumns\relax=0
+    \par\vspace{\RKTokPresentationCardGutter}%
+  \fi
+}
+
+% -----------------------------------------------------------------------------
 % Visual + text (shared implementation; also backs chartslide/tableslide)
 % -----------------------------------------------------------------------------
 % reportkit-contract: internal
