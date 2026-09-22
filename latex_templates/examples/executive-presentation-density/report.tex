@@ -1,0 +1,113 @@
+% Native density fixture for the presentation typography/composition refinement.
+\documentclass[theme=executive,publication-type=presentation]{reportkit-slides}
+
+\setreportkitleftheader{ReportKit / Presentation density}
+\setreportkitfooter{ReportKit density acceptance fixture}
+\setreportkitversion{v1.0}
+\setreportkitsubject{Presentation typography and composition refinement}
+\setreportkitkeywords{ReportKit, presentation, acceptance, density}
+\title{Evidence should dominate ordinary working slides}
+\subtitle{Native acceptance fixture for standard assertions and dense evidence}
+\author{ReportKit acceptance fixture}
+\date{22 September 2026}
+
+\newcommand{\DensityCard}[2]{%
+  {\setlength{\fboxsep}{3mm}%
+   \fcolorbox{Hairline}{Surface}{%
+     \parbox[t]{\dimexpr.44\linewidth-2\fboxsep-2\fboxrule\relax}{%
+       {\sffamily\bfseries\RKTokPresentationAnnotationFont\color{Ink}#1\par}%
+       \vspace{1mm}%
+       {\sffamily\RKTokPresentationDenseBodyFont\color{Ink}#2\par}}}}%
+}
+
+\begin{document}
+
+\begin{frame}[plain]
+  \begin{titleslide}
+  \end{titleslide}
+\end{frame}
+
+\begin{frame}
+  \begin{assertionslide}[kicker={Standard assertion}]{Evidence should dominate ordinary working slides.}[A working-slide headline orients the reader without consuming the canvas.]
+    \begin{columns}[T,onlytextwidth]
+      \begin{column}{.47\linewidth}
+        \DensityCard{Claim}{The assertion gives the reader a decision anchor.}
+        \vspace{3mm}
+        \DensityCard{Evidence}{The body carries the supporting facts.}
+      \end{column}
+      \begin{column}{.47\linewidth}
+        \DensityCard{Implication}{Evidence gets the larger share of the frame.}
+        \vspace{3mm}
+        \DensityCard{Action}{Rewrite or split before shrinking the body.}
+      \end{column}
+    \end{columns}
+  \end{assertionslide}
+\end{frame}
+
+\begin{frame}
+  \begin{assertionslide}[kicker={Two-line assertion}]{When a working-slide assertion wraps, the template uses a bounded compact state.}[The body remains at its semantic size.]
+    \begin{comparison}
+      \comparisoncolumn{Standard state}{Short claims use the standard assertion role.}
+      \comparisoncolumn{Compact state}{Longer claims use compact type or fail clearly.}
+    \end{comparison}
+  \end{assertionslide}
+\end{frame}
+
+\begin{frame}
+  \begin{assertionslide}[kicker={Process}]{Governed decisions improve when the operating loop is explicit.}[Four steps make the handoff visible.]
+    \begin{columns}[T,onlytextwidth]
+      \begin{column}{.23\linewidth}\DensityCard{1. Assert}{State the decision.}\end{column}
+      \begin{column}{.23\linewidth}\DensityCard{2. Evidence}{Show the basis.}\end{column}
+      \begin{column}{.23\linewidth}\DensityCard{3. Decide}{Name the owner.}\end{column}
+      \begin{column}{.23\linewidth}\DensityCard{4. Learn}{Close the loop.}\end{column}
+    \end{columns}
+  \end{assertionslide}
+\end{frame}
+
+\begin{frame}
+  \begin{assertionslide}[kicker={Capabilities}]{A standard assertion leaves room for three equal evidence columns.}
+    \begin{threepart}
+      \threepartcolumn{Ownership}{Decision rights are visible.}
+      \threepartcolumn{Latency}{Evidence arrives in time.}
+      \threepartcolumn{Feedback}{Outcomes update the system.}
+    \end{threepart}
+  \end{assertionslide}
+\end{frame}
+
+\begin{frame}
+  \begin{assertionslide}[kicker={Rules}]{Dense evidence needs a composition contract, not local font-size hacks.}
+    \begin{columns}[T,onlytextwidth]
+      \begin{column}{.31\linewidth}\DensityCard{Rule 1}{Keep the header bounded.}\end{column}
+      \begin{column}{.31\linewidth}\DensityCard{Rule 2}{Use semantic density roles.}\end{column}
+      \begin{column}{.31\linewidth}\DensityCard{Rule 3}{Split before microscopic type.}\end{column}
+    \end{columns}
+    \vspace{3mm}
+    \begin{columns}[T,onlytextwidth]
+      \begin{column}{.31\linewidth}\DensityCard{Rule 4}{Preserve source legibility.}\end{column}
+      \begin{column}{.31\linewidth}\DensityCard{Rule 5}{Use grayscale-safe emphasis.}\end{column}
+      \begin{column}{.31\linewidth}\DensityCard{Rule 6}{Keep evidence primary.}\end{column}
+    \end{columns}
+  \end{assertionslide}
+\end{frame}
+
+\begin{frame}
+  \begin{assertionslide}[kicker={Diagram}]{The evidence canvas remains large enough for a semantic diagram.}
+    \input{fragments/fig-density-flow.tex}
+  \end{assertionslide}
+\end{frame}
+
+\begin{frame}
+  \begin{messageslide}{Preserve hero emphasis for the one message that should dominate the frame.}
+    This is the unchanged hero-message role.
+  \end{messageslide}
+\end{frame}
+
+\begin{frame}
+  \begin{referenceslide}{Sources and use}[Short provenance belongs here; continue rather than shrinking the source role.]
+    \referenceitem{ReportKit presentation refinement specification, 22 September 2026.}
+    \referenceitem{ReportKit presentation typography and composition implementation plan.}
+    \referenceitem{Native acceptance fixture; conceptual examples are illustrative.}
+  \end{referenceslide}
+\end{frame}
+
+\end{document}
