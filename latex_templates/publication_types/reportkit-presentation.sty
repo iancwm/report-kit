@@ -40,8 +40,65 @@
 \ProvidesPackage{reportkit-presentation}[2026/09/20 v1.0.0 ReportKit presentation compositions]
 \RequirePackage{xparse}
 \RequirePackage{etoolbox}
+\RequirePackage{pgfkeys}
 
 \RKAssertPresentationTokens
+
+% Bounded assertion measurement state. The public compositions use measured
+% TeX boxes and discrete fit states; they never continuously shrink a
+% headline or the evidence body.
+\newsavebox{\rkpresentation@assertionbox}
+\newlength{\rkpresentation@assertionheight}
+\newcommand{\rkpresentation@kicker}{}
+\newcommand{\rkpresentation@fitfont}{}
+\newcommand{\rkpresentation@fitstate}{}
+\newcounter{rkpresentation@references}
+\pgfkeys{
+  /reportkit/assertionslide/.is family,
+  /reportkit/assertionslide/.cd,
+  kicker/.store in=\rkpresentation@kicker,
+}
+\newcommand{\rkpresentation@measureheader}[3]{%
+  \setbox\rkpresentation@assertionbox=\vbox{%
+    \hsize=\linewidth
+    \parindent=0pt
+    \leftskip=0pt
+    \rightskip=0pt plus 1fil
+    \parfillskip=0pt
+    \ifdefempty{\rkpresentation@kicker}{}{%
+      {\sffamily\bfseries\RKTokPresentationKickerFont\color{Accent}\MakeUppercase{\rkpresentation@kicker}\par}%
+      \vskip 1.5mm
+    }%
+    {\sffamily\bfseries#1\color{Ink}#2\par}%
+    \ifdefempty{#3}{}{%
+      \vskip 1.5mm
+      {\sffamily\RKTokPresentationAssertionDeckFont\color{Muted}#3\par}%
+    }%
+  }%
+  \setlength{\rkpresentation@assertionheight}{\dimexpr\ht\rkpresentation@assertionbox+\dp\rkpresentation@assertionbox\relax}%
+}
+\newcommand{\rkpresentation@fitassertion}[2]{%
+  \rkpresentation@measureheader{\RKTokPresentationAssertionFont}{#1}{#2}%
+  \ifdim\rkpresentation@assertionheight>\RKTokPresentationAssertionHeaderMaxHeight
+    \rkpresentation@measureheader{\RKTokPresentationAssertionCompactFont}{#1}{#2}%
+    \ifdim\rkpresentation@assertionheight>\RKTokPresentationAssertionHeaderMaxHeight
+      \def\rkpresentation@fitfont{\RKTokPresentationAssertionCompactFont}%
+      \def\rkpresentation@fitstate{invalid}%
+      \typeout{REPORTKIT-PRESENTATION-ASSERTION-FIT=invalid}%
+      \PackageError{reportkit-presentation}{PRESENTATION_ASSERTION_TOO_LONG}{%
+        The assertion exceeds the compact headline envelope. Rewrite the assertion or split the slide; body text will not be compressed.}%
+    \else
+      \def\rkpresentation@fitfont{\RKTokPresentationAssertionCompactFont}%
+      \def\rkpresentation@fitstate{compact}%
+      \typeout{REPORTKIT-PRESENTATION-ASSERTION-FIT=compact}%
+    \fi
+  \else
+    \def\rkpresentation@fitfont{\RKTokPresentationAssertionFont}%
+    \def\rkpresentation@fitstate{standard}%
+    \typeout{REPORTKIT-PRESENTATION-ASSERTION-FIT=standard}%
+  \fi
+}
+
 
 % -----------------------------------------------------------------------------
 % Title slide
@@ -107,6 +164,56 @@
 }
 
 % <reportkit-contract>
+% {"kind":"composition","description":"Assertionslide","arguments":[{"name":"options","type":"options","description":"Optional key list; currently supports kicker={...}."},{"name":"assertion","type":"text","description":"The single working-slide assertion."},{"name":"deck","type":"text","description":"Optional short supporting sentence in the deck hierarchy."}],"constraints":[{"code":"content_only_wrap_in_frame","description":"Content only; wrap in \\begin{frame}...\\end{frame}."},{"code":"bounded_assertion_header","description":"The header is measured and reserved at a fixed maximum height; body typography is not reduced to rescue an invalid assertion."},{"code":"fit_states","description":"The assertion resolves to standard, compact, or invalid; invalid emits PRESENTATION_ASSERTION_TOO_LONG."}],"example":"\\begin{frame}\n\\begin{assertionslide}[kicker={Parenting constitution}]{Six household rules prevent most major unforced errors.}[Agree on these before you are tired.]\nEvidence body.\n\\end{assertionslide}\n\\end{frame}","stability":"stable","since":"1.9.3"}
+% </reportkit-contract>
+\NewDocumentEnvironment{assertionslide}{O{} m O{}}{%
+  \pgfkeys{/reportkit/assertionslide/.cd,kicker={},#1}%
+  \rkpresentation@fitassertion{#2}{#3}%
+  \begin{minipage}[t][\RKTokPresentationAssertionHeaderMaxHeight][t]{\linewidth}
+    \ifdefempty{\rkpresentation@kicker}{}{%
+      {\sffamily\bfseries\RKTokPresentationKickerFont\color{Accent}\MakeUppercase{\rkpresentation@kicker}\par}%
+      \vspace{1.5mm}%
+    }%
+    {\sffamily\bfseries\rkpresentation@fitfont\color{Ink}#2\par}%
+    \ifdefempty{#3}{}{%
+      \vspace{1.5mm}%
+      {\sffamily\RKTokPresentationAssertionDeckFont\color{Muted}#3\par}%
+    }%
+  \end{minipage}\par
+  \vspace{3mm}%
+  {\sffamily\RKTokPresentationBodyFont\color{Ink}}%
+}{%
+  \par
+}
+
+% <reportkit-contract>
+% {"kind":"composition","description":"Referenceslide","arguments":[{"name":"title","type":"text","description":"Compact heading for the references frame."},{"name":"note","type":"text","description":"Optional usage or limitation note."}],"constraints":[{"code":"content_only_wrap_in_frame","description":"Content only; wrap in \\begin{frame}...\\end{frame}."},{"code":"reference_count","description":"Use 3–8 referenceitem calls; more than eight emits a hard overflow diagnostic and should continue on another slide."},{"code":"readable_source","description":"Reference items use the theme-owned source font and are never silently shrunk below it."}],"example":"\\begin{frame}\n\\begin{referenceslide}{Sources and use}[Short usage note.]\n\\referenceitem{Author (2026), Title. \\\\url{https://example.com}}\n\\end{referenceslide}\n\\end{frame}","stability":"stable","since":"1.9.3"}
+% </reportkit-contract>
+\NewDocumentEnvironment{referenceslide}{m O{}}{%
+  \setcounter{rkpresentation@references}{0}%
+  {\sffamily\bfseries\RKTokPresentationAssertionFont\color{Ink}#1\par}%
+  \vspace{3mm}%
+  {\sffamily\RKTokPresentationSourceFont\color{Ink}}%
+}{%
+  \ifdefempty{#2}{}{%
+    \vspace{2mm}%
+    {\sffamily\RKTokPresentationAnnotationFont\color{Muted}\textit{#2}\par}%
+  }%
+}
+% <reportkit-contract>
+% {"kind":"command","description":"Referenceitem","arguments":[{"name":"reference","type":"text","description":"One short source or reference entry."}],"constraints":[{"code":"requires_parent_environment","value":"referenceslide","description":"Only valid inside referenceslide."}],"example":"\\referenceitem{Author (2026), Title.}","stability":"stable","since":"1.9.3"}
+% </reportkit-contract>
+\NewDocumentCommand{\referenceitem}{m}{%
+  \stepcounter{rkpresentation@references}%
+  \ifnum\value{rkpresentation@references}>8
+    \PackageError{reportkit-presentation}{PRESENTATION_REFERENCES_OVERFLOW}{%
+      More than eight references were supplied; continue on another referenceslide.}%
+  \fi
+  \par\noindent\hangindent=5mm\hangafter=1
+  {\color{Accent}\textbullet}\hspace{2mm}#1\par\vspace{1.2mm}%
+}
+
+% <reportkit-contract>
 % {"kind":"composition","description":"Evidenceslide","arguments":[{"name":"claim","type":"text","description":"The claim; content is the supporting evidence, visually separated from it."}],"constraints":[{"code":"content_only_wrap_in_frame","description":"Content only; wrap in \\begin{frame}...\\end{frame}."}],"example":"\\begin{frame}\n\\begin{evidenceslide}{Example}\nExample content.\n\\end{evidenceslide}\n\\end{frame}","stability":"stable","since":"1.9.3"}
 % </reportkit-contract>
 \NewDocumentEnvironment{evidenceslide}{m}{%
@@ -120,6 +227,106 @@
   \vspace{2mm}
   {\sffamily\RKTokPresentationBodyFont\color{Ink}}%
 }{%
+}
+
+% -----------------------------------------------------------------------------
+% Dense evidence grids
+% -----------------------------------------------------------------------------
+% Card grids are deliberately a small semantic composition rather than a
+% domain-specific slide family. The theme owns spacing, padding, minimum
+% height, and rule weight; this module owns only the layout contract.
+\newcommand{\rkpresentation@gridcolumns}{2}
+\newcommand{\rkpresentation@gridvariant}{surface}
+\newcommand{\rkpresentation@cardvariant}{surface}
+\newlength{\rkpresentation@cardwidthlen}
+\newcommand{\rkpresentation@cardfill}{white}
+\newcommand{\rkpresentation@cardrule}{Hairline}
+\newcommand{\rkpresentation@cardrulewidth}{\RKTokPresentationCardRuleWidth}
+\newcommand{\rkpresentation@cardprefix}{}
+\newcounter{rkpresentation@card}
+\pgfkeys{
+  /reportkit/cardgrid/.is family,
+  /reportkit/cardgrid/.cd,
+  columns/.store in=\rkpresentation@gridcolumns,
+  variant/.store in=\rkpresentation@gridvariant,
+}
+\pgfkeys{
+  /reportkit/carditem/.is family,
+  /reportkit/carditem/.cd,
+  variant/.store in=\rkpresentation@cardvariant,
+}
+
+% <reportkit-contract>
+% {"kind":"composition","description":"Cardgrid","arguments":[{"name":"options","type":"options","description":"columns=2, 3, or 4; optional default card variant."}],"constraints":[{"code":"supported_columns","description":"Only columns=2, columns=3, and columns=4 are supported; invalid values emit a hard diagnostic."},{"code":"theme_owned_density","description":"Gutters, padding, minimum height, rule weight, and text roles come from presentation tokens."},{"code":"grayscale_safe","description":"Variants use borders, rails, ordinals, or rule weight in addition to fill."},{"code":"content_only_wrap_in_frame","description":"Content only; wrap in \\begin{frame}...\\end{frame}."}],"example":"\\begin{frame}\n\\begin{cardgrid}[columns=2,variant=surface]\n\\carditem[numbered]{Rule one}{Short evidence.}\n\\carditem[accent-rail]{Rule two}{Short evidence.}\n\\end{cardgrid}\n\\end{frame}","stability":"stable","since":"1.9.3"}
+% </reportkit-contract>
+\NewDocumentEnvironment{cardgrid}{O{}}{%
+  \pgfkeys{/reportkit/cardgrid/.cd,columns=2,variant=surface,#1}%
+  \ifnum\rkpresentation@gridcolumns=2
+    \setlength{\rkpresentation@cardwidthlen}{.47\linewidth}%
+  \else\ifnum\rkpresentation@gridcolumns=3
+    \setlength{\rkpresentation@cardwidthlen}{.31\linewidth}%
+  \else\ifnum\rkpresentation@gridcolumns=4
+    \setlength{\rkpresentation@cardwidthlen}{.22\linewidth}%
+  \else
+    \PackageError{reportkit-presentation}{PRESENTATION_CARDGRID_COLUMNS}{%
+      cardgrid supports only columns=2, columns=3, or columns=4.}%
+    \def\rkpresentation@gridcolumns{2}%
+    \setlength{\rkpresentation@cardwidthlen}{.47\linewidth}%
+  \fi\fi\fi
+  \setcounter{rkpresentation@card}{0}%
+  \par\noindent
+}{%
+  \par
+}
+
+% <reportkit-contract>
+% {"kind":"command","description":"Carditem","arguments":[{"name":"variant","type":"options","description":"plain, surface, accent-rail, numbered, or emphasis; defaults to the parent grid variant."},{"name":"heading","type":"text","description":"Card heading."},{"name":"body","type":"text","description":"Dense evidence text."}],"constraints":[{"code":"requires_parent_environment","description":"Use inside cardgrid."},{"code":"supported_variants","description":"Only plain, surface, accent-rail, numbered, and emphasis are supported."}],"example":"\\carditem[accent-rail]{Heading}{Evidence}","stability":"stable","since":"1.9.3"}
+% </reportkit-contract>
+\NewDocumentCommand{\carditem}{O{} m m}{%
+  \stepcounter{rkpresentation@card}%
+  \ifdefempty{#1}{%
+    \pgfkeys{/reportkit/carditem/.cd,variant=\rkpresentation@gridvariant}%
+  }{%
+    \pgfkeys{/reportkit/carditem/.cd,variant=#1}%
+  }%
+  \def\rkpresentation@cardfill{white}%
+  \def\rkpresentation@cardrule{Hairline}%
+  \def\rkpresentation@cardrulewidth{\RKTokPresentationCardRuleWidth}%
+  \def\rkpresentation@cardprefix{}%
+  \ifdefstring{\rkpresentation@cardvariant}{surface}{%
+    \def\rkpresentation@cardfill{Surface}%
+  }{}%
+  \ifdefstring{\rkpresentation@cardvariant}{accent-rail}{%
+    \def\rkpresentation@cardfill{Surface}%
+    \def\rkpresentation@cardprefix{{\color{Accent}\rule{2pt}{1.25em}\hspace{2mm}}}%
+  }{}%
+  \ifdefstring{\rkpresentation@cardvariant}{numbered}{%
+    \def\rkpresentation@cardfill{Surface}%
+    \def\rkpresentation@cardprefix{{\sffamily\bfseries\RKTokPresentationAnnotationFont\color{Accent}\arabic{rkpresentation@card}\hspace{2mm}}}%
+  }{}%
+  \ifdefstring{\rkpresentation@cardvariant}{emphasis}{%
+    \def\rkpresentation@cardrulewidth{\RKTokPresentationRuleWidth}%
+  }{}%
+  \ifnum\value{rkpresentation@card}>1
+    \hspace{\RKTokPresentationCardGutter}%
+  \fi
+  \begin{minipage}[t][\RKTokPresentationCardMinHeight][t]{\rkpresentation@cardwidthlen}%
+    {%
+      \setlength{\fboxsep}{\RKTokPresentationCardPadding}%
+      \setlength{\fboxrule}{\rkpresentation@cardrulewidth}%
+      \fcolorbox{\rkpresentation@cardrule}{\rkpresentation@cardfill}{%
+        \parbox[t]{\dimexpr\rkpresentation@cardwidthlen-2\fboxsep-2\fboxrule\relax}{%
+          \rkpresentation@cardprefix
+          {\sffamily\bfseries\RKTokPresentationAnnotationFont\color{Ink}#2\par}%
+          \vspace{1mm}%
+          {\sffamily\RKTokPresentationDenseBodyFont\color{Ink}#3\par}%
+        }%
+      }%
+    }%
+  \end{minipage}%
+  \ifnum\numexpr\value{rkpresentation@card} mod \rkpresentation@gridcolumns\relax=0
+    \par\vspace{\RKTokPresentationCardGutter}%
+  \fi
 }
 
 % -----------------------------------------------------------------------------

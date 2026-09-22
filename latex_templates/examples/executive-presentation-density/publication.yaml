@@ -1,0 +1,16 @@
+publication:
+  title: Evidence should dominate ordinary working slides
+  subtitle: ReportKit presentation density acceptance fixture
+  author: ReportKit acceptance fixture
+  version: v1.0
+  date: 22 September 2026
+  left_header: ReportKit / Presentation density
+  footer: ReportKit density acceptance fixture
+  subject: Presentation typography and composition refinement
+  keywords: ReportKit, presentation, acceptance, density
+document:
+  main: report.tex
+  class: reportkit-slides
+  engine: lualatex
+  theme: executive
+  publication_type: presentation
