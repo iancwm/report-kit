@@ -63,10 +63,24 @@ This never writes into `<skill-directory>` — every build artefact, including `
 
 ### Presentations
 
-`reportkit build` can also produce a Beamer-based 16:9 slide deck end to end: set `document.publication_type: presentation` and `document.theme: executive` in `publication.yaml`, then build a plain-Markdown manuscript as usual. Headings become frames (Pandoc's Beamer writer, `--slide-level=1`); `reportkit-presentation.sty` also exposes thirteen named slide compositions (e.g. `messageslide`) usable as fenced `reportkit` directives — see [`publication_pipeline/README.md`](publication_pipeline/README.md) for the directive syntax.
+`reportkit build` can also produce a Beamer-based 16:9 slide deck end to end: set `document.publication_type: presentation` and `document.theme: executive` in `publication.yaml`, then build a plain-Markdown manuscript as usual. Headings become frames (Pandoc's Beamer writer, `--slide-level=1`); `reportkit-presentation.sty` also exposes named slide compositions usable as fenced `reportkit` directives — see [`publication_pipeline/README.md`](publication_pipeline/README.md) for the directive syntax and [the presentation authoring contract](references/presentation-authoring.md) for composition selection.
 
-The stable `executive` theme is the supported consulting/strategy slide system; the `default` and `institutional-research` themes remain paged-only. It uses the bundled Libertinus Sans family for reproducible builds. Metadata, outline, meaningful links, and diagram alternatives are checked automatically; tagged PDF remains explicitly unsupported for any renderer. See [references/agent-contract.md](references/agent-contract.md) and the canonical `latex_templates/examples/executive-presentation/` fixture.
+Choose a composition by rhetorical role:
 
+- `messageslide` is a sparse hero assertion: the assertion is the visual and supporting copy is brief. Keep its existing hero-message scale; do not use it as the default wrapper for a slide that needs a grid, process, comparison, or other substantial evidence.
+- `assertionslide` is the standard working slide: one assertion, optional context/deck, and an evidence body. Its standard or compact assertion scale leaves the evidence canvas dominant. Use it for ordinary evidence-heavy slides.
+- `evidenceslide` is the explicit `CLAIM` → `EVIDENCE` composition. Use it when that rhetorical separation is meaningful; it is not an alias for `assertionslide`.
+- `titleslide` establishes document identity, `sectiondivider`/`appendixdivider` orient the audience between sections, and `closingslide` delivers a deliberate conclusion or call to action. These title, divider, and closing roles are separate from a normal working assertion.
+
+Write assertions as claims rather than report-section titles: one line is ideal; two lines are acceptable and may use the compact assertion treatment; three lines should generally be rewritten or split. Never shrink body text to rescue an oversized assertion. Rewrite the assertion, split the slide, or choose a more suitable composition instead of adding a local font-size override.
+
+The refinement target also adds semantic dense layouts for 2×2 cards, 2×3 cards, three equal columns, and four ordered steps, plus restrained card variants (`plain`, `surface`, `accent-rail`, `numbered`, and `emphasis`). Use the planned composition-level API and theme-owned density tokens; do not recreate these layouts with per-card `fontsize`/`small` hacks. See [references/presentation-authoring.md](references/presentation-authoring.md) for the selection rules and current-versus-planned API boundary.
+
+For source-heavy endings, the planned `referenceslide`/`referenceitem` contract provides a compact heading, readable references, and an optional usage or limitation note. Keep short provenance in a source/footer line; put full references on the references slide. If the list does not fit, continue it on another references slide rather than reducing type below the legibility floor.
+
+The stable `executive` theme is the supported consulting/strategy slide system; the `default` and `institutional-research` themes remain paged-only. It uses the bundled Libertinus Sans family for reproducible builds. Metadata, outline, meaningful links, and diagram alternatives are checked automatically; tagged PDF remains explicitly unsupported for any renderer. See [references/agent-contract.md](references/agent-contract.md), [references/repository-boundary.md](references/repository-boundary.md), [references/presentation-authoring.md](references/presentation-authoring.md), and the canonical `latex_templates/examples/executive-presentation/` fixture.
+
+`reportkit context --json` is the authoritative capability and contract catalog, and `reportkit docs --check --json` is the documentation-drift gate. If a composition or card helper is added, update its owning source contract and rerun the supported drift command; do not hand-edit generated contract inventories. Documentation may describe a planned API, but it must not imply that an absent capability is already available.
 ## Write for the decision
 
 - Establish the question, scope, evidence, method, and material assumptions before conclusions.
