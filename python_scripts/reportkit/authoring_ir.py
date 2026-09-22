@@ -27,6 +27,12 @@ _RESERVED_FIELDS = {
 }
 _FORBIDDEN_RAW_FIELDS = {"raw", "raw_tex", "latex", "tex"}
 _SAFE_FRAGMENT = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.-]*\.tex\Z")
+# Authoring preflight is intentionally advisory. TeX box measurement in the
+# native presentation renderer remains authoritative.
+PRESENTATION_ASSERTION_PREFLIGHT_MAX_CHARS = 160
+_PRESENTATION_CARD_VARIANTS = {"plain", "surface", "accent-rail", "numbered", "emphasis"}
+_PRESENTATION_CARD_COLUMNS = {"2", "3", "4"}
+
 
 
 @dataclass(frozen=True)
@@ -283,6 +289,64 @@ def _numeric_constraint_errors(node: DirectiveNode, record: Mapping[str, Any]) -
     return errors
 
 
+
+def _presentation_arguments(node: DirectiveNode) -> dict[str, str]:
+    """Return the friendly authoring spelling for presentation arguments.
+
+    The LaTeX API receives a key list in assertionslide/cardgrid's first
+    optional slot. Markdown authors may use direct kicker/columns fields;
+    normalize those into the options channel without changing the stored source IR.
+    """
+    arguments = dict(node.arguments)
+    if node.primitive == "assertionslide" and "kicker" in arguments and "options" not in arguments:
+        arguments["options"] = f"kicker={arguments.pop('kicker')}"
+    if node.primitive == "cardgrid":
+        direct = arguments.pop("columns", None)
+        if direct is not None and "options" not in arguments:
+            arguments["options"] = f"columns={direct}"
+    return arguments
+
+
+def _presentation_preflight_errors(node: DirectiveNode) -> list[dict[str, Any]]:
+    errors: list[dict[str, Any]] = []
+    arguments = _presentation_arguments(node)
+    if node.primitive == "assertionslide":
+        assertion = arguments.get("assertion", "").strip()
+        if assertion and len(assertion) > PRESENTATION_ASSERTION_PREFLIGHT_MAX_CHARS:
+            errors.append(_diagnostic(
+                "presentation_assertion_advisory",
+                "assertionslide assertion is unusually long; rewrite it or split the slide before building. "
+                "This advisory does not reproduce TeX measurement; the compiled fit diagnostic remains authoritative.",
+                node,
+                kind="authoring_advisory",
+                details={
+                    "authoritative": False,
+                    "character_count": len(assertion),
+                    "threshold": PRESENTATION_ASSERTION_PREFLIGHT_MAX_CHARS,
+                },
+            ))
+    if node.primitive == "cardgrid":
+        options = _option_values(arguments.get("options", ""))
+        columns = options.get("columns")
+        if columns is not None and columns not in _PRESENTATION_CARD_COLUMNS:
+            errors.append(_diagnostic(
+                "presentation_cardgrid_columns",
+                "cardgrid supports only columns=2, columns=3, or columns=4.",
+                node,
+                details={"supplied": columns, "allowed": sorted(_PRESENTATION_CARD_COLUMNS)},
+            ))
+    if node.primitive == "carditem":
+        variant = arguments.get("variant", "").strip()
+        if variant and variant not in _PRESENTATION_CARD_VARIANTS:
+            errors.append(_diagnostic(
+                "presentation_card_variant",
+                "carditem variant must be plain, surface, accent-rail, numbered, or emphasis.",
+                node,
+                details={"supplied": variant, "allowed": sorted(_PRESENTATION_CARD_VARIANTS)},
+            ))
+    return errors
+
+
 def _validate_node(
     node: DirectiveNode,
     records: Mapping[str, Mapping[str, Any]],
@@ -313,7 +377,7 @@ def _validate_node(
         node, record, publication_type=publication_type, theme=theme, renderer=renderer,
     ))
     arguments = {str(item["name"]): item for item in record.get("arguments", []) if isinstance(item, Mapping) and item.get("name")}
-    supplied = {key: value for key, value in node.arguments.items() if key not in _RESERVED_FIELDS}
+    supplied = {key: value for key, value in _presentation_arguments(node).items() if key not in _RESERVED_FIELDS}
     missing = [
         name for name, argument in arguments.items()
         if argument.get("required") and name not in supplied
@@ -406,6 +470,7 @@ def _validate_node(
                     details={"constraint": dict(constraint), "supplied": supplied[key_name]},
                 ))
     errors.extend(_numeric_constraint_errors(node, record))
+    errors.extend(_presentation_preflight_errors(node))
     exact = next((str(item.get("code")) for item in record.get("constraints", []) if isinstance(item, Mapping) and str(item.get("code", "")).startswith("exactly_")), None)
     if exact:
         expected = {"exactly_two_columns": 2, "exactly_three_columns": 3}.get(exact)
