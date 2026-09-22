@@ -58,7 +58,7 @@ def test_assertionslide_long_text_is_advisory_not_an_authoritative_tex_fit() -> 
 
 def test_assertionslide_does_not_accept_raw_tex_escape_hatches() -> None:
     parsed = parse_markdown(
-        _fenced("assertionslide", r"assertion: Safe text\nraw_tex: \textbf{unsafe}"),
+        _fenced("assertionslide", "assertion: Safe text\nraw_tex: \\textbf{unsafe}"),
         source_file="manuscript/unsafe.md",
     )
     diagnostics = validate_ir(
