@@ -41,10 +41,17 @@ def _argument_text(argument: Mapping[str, Any], supplied: Mapping[str, str]) -> 
 
 def _render_arguments(node: DirectiveNode, record: Mapping[str, Any]) -> str:
     values: list[str] = []
+    supplied = dict(node.arguments)
+    # Keep the Markdown surface ergonomic while rendering the exact LaTeX
+    # options slot expected by the presentation composition.
+    if node.primitive == "assertionslide" and "kicker" in supplied and "options" not in supplied:
+        supplied["options"] = f"kicker={supplied.pop('kicker')}"
+    if node.primitive == "cardgrid" and "columns" in supplied and "options" not in supplied:
+        supplied["options"] = f"columns={supplied.pop('columns')}"
     for argument in record.get("arguments", []):
         if not isinstance(argument, Mapping):
             continue
-        value = _argument_text(argument, node.arguments)
+        value = _argument_text(argument, supplied)
         if value is None:
             if argument.get("required"):
                 raise ValueError(f"{node.primitive!r} is missing required argument {argument.get('name')!r}")
