@@ -268,7 +268,7 @@
     \PackageError{reportkit-presentation}{PRESENTATION_CARDGRID_COLUMNS}{%
       cardgrid supports only columns=2, columns=3, or columns=4.}%
     \def\rkpresentation@gridcolumns{2}%
-    \def\rkpresentation@cardwidth{.47\linewidth}%
+    \setlength{\rkpresentation@cardwidthlen}{.47\linewidth}%
   \fi\fi\fi
   \setcounter{rkpresentation@card}{0}%
   \par\noindent
