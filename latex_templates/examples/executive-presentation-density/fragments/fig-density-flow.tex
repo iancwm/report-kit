@@ -1,0 +1,15 @@
+\begin{diagram}[
+  type=flow,
+  source={Conceptual acceptance fixture.},
+  description={Four ordered stages move from assertion through evidence to decision and feedback.}
+]
+  \begin{reportflow}
+    \step{assert}{Assert}
+    \step{evidence}{Evidence}
+    \step{decide}{Decide}
+    \step{learn}{Learn}
+    \flowedge{assert}{evidence}
+    \flowedge{evidence}{decide}
+    \flowedge{decide}{learn}
+  \end{reportflow}
+\end{diagram}
