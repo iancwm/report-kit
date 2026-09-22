@@ -1,35 +1,35 @@
 # Evidence should dominate ordinary working slides
 
 ~~~reportkit assertionslide
-kicker: Standard assertion
+options: kicker=Standard assertion
 assertion: Evidence should dominate ordinary working slides.
 deck: A working-slide headline orients the reader without consuming the canvas.
 ~~~
 
 ~~~reportkit assertionslide
-kicker: Two-line assertion
+options: kicker=Two-line assertion
 assertion: When a working-slide assertion wraps, the template uses a bounded compact state.
 deck: The body remains at its semantic size.
 ~~~
 
 ~~~reportkit assertionslide
-kicker: Process
+options: kicker=Process
 assertion: Governed decisions improve when the operating loop is explicit.
 deck: Four steps make the handoff visible.
 ~~~
 
 ~~~reportkit assertionslide
-kicker: Capabilities
+options: kicker=Capabilities
 assertion: A standard assertion leaves room for three equal evidence columns.
 ~~~
 
 ~~~reportkit assertionslide
-kicker: Rules
+options: kicker=Rules
 assertion: Dense evidence needs a composition contract, not local font-size hacks.
 ~~~
 
 ~~~reportkit assertionslide
-kicker: Diagram
+options: kicker=Diagram
 assertion: The evidence canvas remains large enough for a semantic diagram.
 fragment: fig-density-flow.tex
 ~~~
