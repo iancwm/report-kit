@@ -235,10 +235,15 @@ THEMES: dict[str, dict[str, Any]] = {
     ),
     # Phase C (decision D9: new visual themes require LuaLaTeX) promotes the
     # executive slide system after its reviewed fixture and visual QA gate.
+    # Phase F1 adds the paged adapter for executive-brief (decision D11: one
+    # common file, one adapter per renderer the theme actually supports).
     "executive": _theme(
-        "executive", renderers=["slides"], required_engine="lualatex",
+        "executive", renderers=["paged", "slides"], required_engine="lualatex",
         common_package="reportkit-theme-executive", stability="stable", since="1.9.3",
-        renderer_adapters={"slides": "reportkit-theme-executive-slides"},
+        renderer_adapters={
+            "paged": "reportkit-theme-executive-paged",
+            "slides": "reportkit-theme-executive-slides",
+        },
     ),
 }
 
@@ -267,6 +272,22 @@ PUBLICATION_TYPES: dict[str, dict[str, Any]] = {
         "selection_criteria": "Exhibit-led institutional equity research and investment analysis.",
         "stability": "stable",
         "since": "1.8.0",
+    },
+    # Phase F1. Registered with both themes only after both combinations
+    # compiled the 2-8 page acceptance fixture
+    # (latex_templates/examples/executive-brief/). Experimental until the
+    # pinned-toolchain visual review approves those pages.
+    "executive-brief": {
+        "name": "executive-brief",
+        "renderer": "paged",
+        "paper": "letter",
+        "themes": ["executive", "institutional-research"],
+        "default_target": {"theme": "executive", "paper": "letter"},
+        "template": "executive-brief.tex",
+        "package": "reportkit-executive-brief",
+        "selection_criteria": "Short (2-8 page) management decision documents: recommendation, findings, risks, and next steps.",
+        "stability": "experimental",
+        "since": "1.9.3",
     },
     # Phase B/C. Deliberately no "paper" key -- the slides renderer is a canvas
     # renderer (decision D5); resolve_build_target() rejects an explicit

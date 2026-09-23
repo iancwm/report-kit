@@ -2,7 +2,7 @@
 % Regenerate with: python -c 'from reportkit.publications import write_latex_registry; write_latex_registry(...)'
 \def\RKPublicationRegistryVersion{1}
 \def\RKValidThemes{default,executive,institutional-research,technical}
-\def\RKValidPublicationTypes{equity-research,presentation,technical-report}
+\def\RKValidPublicationTypes{equity-research,executive-brief,presentation,technical-report}
 \def\RKValidRenderers{paged,slides}
 \expandafter\def\csname RKRendererClass@paged\endcsname{reportkit}
 \expandafter\def\csname RKRendererClassFile@paged\endcsname{latex_templates/reportkit.cls}
@@ -22,8 +22,9 @@
 \DeclareOption{theme=default}{\RKSetTheme{default}{default}}
 \expandafter\def\csname RKThemeCanonical@executive\endcsname{executive}
 \expandafter\def\csname RKThemePackage@executive\endcsname{reportkit-theme-executive}
-\expandafter\def\csname RKThemeRenderers@executive\endcsname{slides}
+\expandafter\def\csname RKThemeRenderers@executive\endcsname{paged,slides}
 \expandafter\def\csname RKThemeRequiredEngine@executive\endcsname{lualatex}
+\expandafter\def\csname RKThemeAdapter@executive@paged\endcsname{reportkit-theme-executive-paged}
 \expandafter\def\csname RKThemeAdapter@executive@slides\endcsname{reportkit-theme-executive-slides}
 \DeclareOption{theme=executive}{\RKSetTheme{executive}{executive}}
 \expandafter\def\csname RKThemeCanonical@institutional-research\endcsname{institutional-research}
@@ -45,6 +46,14 @@
 \expandafter\def\csname RKPublicationPackage@equity-research\endcsname{reportkit-equity-research}
 \DeclareOption{publication-type=equity-research}{\RKSetPublicationType{equity-research}}
 \expandafter\def\csname RKPublicationTheme@equity-research@institutional-research\endcsname{1}
+\expandafter\def\csname RKPublicationRenderer@executive-brief\endcsname{paged}
+\expandafter\def\csname RKPublicationClass@executive-brief\endcsname{reportkit}
+\expandafter\def\csname RKPublicationThemes@executive-brief\endcsname{executive,institutional-research}
+\expandafter\def\csname RKPublicationDefaultTheme@executive-brief\endcsname{executive}
+\expandafter\def\csname RKPublicationPackage@executive-brief\endcsname{reportkit-executive-brief}
+\DeclareOption{publication-type=executive-brief}{\RKSetPublicationType{executive-brief}}
+\expandafter\def\csname RKPublicationTheme@executive-brief@executive\endcsname{1}
+\expandafter\def\csname RKPublicationTheme@executive-brief@institutional-research\endcsname{1}
 \expandafter\def\csname RKPublicationRenderer@presentation\endcsname{slides}
 \expandafter\def\csname RKPublicationClass@presentation\endcsname{reportkit-slides}
 \expandafter\def\csname RKPublicationThemes@presentation\endcsname{executive}

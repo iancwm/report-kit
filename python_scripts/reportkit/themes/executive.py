@@ -52,6 +52,10 @@ _SAFE_MARGIN_MM = 8
 _USABLE_WIDTH_MM = _CANVAS_WIDTH_MM - 2 * _SAFE_MARGIN_MM
 _USABLE_HEIGHT_MM = _CANVAS_HEIGHT_MM - 10
 TEXT_WIDTH_IN = _USABLE_WIDTH_MM / 25.4
+# Phase F1: reportkit-theme-executive-paged.sty sets Letter paper with 19mm
+# side margins for executive-brief: 215.9 - 2*19 = 177.9mm of text width.
+# Keep this in step with that adapter's \geometry{} call.
+_PAGED_TEXT_WIDTH_IN = (215.9 - 2 * 19) / 25.4
 
 TYPOGRAPHY = TypographyTokens(
     display="Libertinus Sans",
@@ -130,6 +134,20 @@ THEME = Theme(
         "slide-half": (_USABLE_WIDTH_MM * 0.48 / 25.4, _USABLE_HEIGHT_MM / 25.4 * 0.62),
         # A smaller supporting visual (e.g. alongside a herometric).
         "slide-hero": (_USABLE_WIDTH_MM * 0.62 / 25.4, _USABLE_HEIGHT_MM / 25.4 * 0.5),
+        # Phase F1 (executive-brief, paged renderer): the seven paged names,
+        # using the same width:height ratios institutional_research.py
+        # applies to its own text width (full 0.578, wide/dominant 0.497,
+        # compact 0.415; square 0.790x text width at 0.897 height:width;
+        # half is one 0.485\linewidth exhibitpair pane at compact's ratio;
+        # sidebar a ~2in square). text_width_in above stays the slide
+        # width, so these carry their own absolute paged dimensions.
+        "full": (_PAGED_TEXT_WIDTH_IN, round(_PAGED_TEXT_WIDTH_IN * 0.578, 3)),
+        "wide": (_PAGED_TEXT_WIDTH_IN, round(_PAGED_TEXT_WIDTH_IN * 0.497, 3)),
+        "dominant": (_PAGED_TEXT_WIDTH_IN, round(_PAGED_TEXT_WIDTH_IN * 0.497, 3)),
+        "compact": (_PAGED_TEXT_WIDTH_IN, round(_PAGED_TEXT_WIDTH_IN * 0.415, 3)),
+        "square": (round(_PAGED_TEXT_WIDTH_IN * 0.790, 3), round(_PAGED_TEXT_WIDTH_IN * 0.790 * 0.897, 3)),
+        "half": (round(_PAGED_TEXT_WIDTH_IN * 0.485, 3), round(_PAGED_TEXT_WIDTH_IN * 0.485 * 0.415, 3)),
+        "sidebar": (1.95, 1.95),
     },
     # The stable executive fixture chooses the bundled Libertinus family for
     # reproducible direct and pipeline builds; the fallback candidates keep

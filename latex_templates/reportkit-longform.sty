@@ -18,7 +18,12 @@
 
 % Major sections start a fresh reading unit. The explicit mark update is
 % important: fancyhdr must not name a section before its heading begins.
-\pretocmd{\section}{\clearpage}{}{}
+% Short publications (executive-brief) switch this off from their
+% entrypoint's front-matter hook with \RKSectionOpensPagefalse; the default
+% keeps every existing long-form build unchanged.
+\newif\ifRKSectionOpensPage
+\RKSectionOpensPagetrue
+\pretocmd{\section}{\ifRKSectionOpensPage\clearpage\fi}{}{}
 \renewcommand{\contentsname}{Contents}
 \setcounter{tocdepth}{1}
 \newcommand{\RKContents}{%

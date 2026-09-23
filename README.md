@@ -48,7 +48,11 @@ Migrating an existing content branch out of this repo is covered in
   dense financial-model mode, and risk/reward primitives; see
   `docs/superpowers/specs/2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md`
   for the architecture and current verification record; pinned visual QA
-  remains a release-gate concern.
+  remains a release-gate concern. Its exhibit system and table grammar live
+  in the shared `reportkit-exhibits.sty`, which `reportkit-executive-brief.sty`
+  (`publication-type=executive-brief`, experimental, `theme=executive` or
+  `theme=institutional-research`) also loads for its short decision-brief
+  masthead, action list, and source list.
 - `REPORT_TEMPLATE.tex` — minimal report skeleton.
 - `examples/{primitive_acceptance_test,visual_grammar_acceptance_test}.tex` —
   compile the legacy and v1.4 public APIs respectively; use the acceptance

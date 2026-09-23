@@ -36,8 +36,10 @@ def test_slides_renderer_is_registered() -> None:
 def test_executive_theme_requires_lualatex_and_slides_adapter() -> None:
     theme = THEMES["executive"]
     assert theme["required_engine"] == "lualatex"
-    assert theme["renderers"] == ["slides"]
+    # Phase F1 added the paged adapter for executive-brief.
+    assert theme["renderers"] == ["paged", "slides"]
     assert theme["renderer_adapters"]["slides"] == "reportkit-theme-executive-slides"
+    assert theme["renderer_adapters"]["paged"] == "reportkit-theme-executive-paged"
     assert theme["stability"] == "stable"
 
 
@@ -156,18 +158,25 @@ def test_core_declares_presentation_token_sentinels_separately_from_style_tokens
 # -----------------------------------------------------------------------------
 # B3: slide visualization slots
 # -----------------------------------------------------------------------------
-def test_executive_figure_sizes_are_slide_slots_only() -> None:
+def test_executive_figure_sizes_are_slide_slots_plus_paged_brief_sizes() -> None:
     pytest.importorskip("matplotlib")
     pytest.importorskip("numpy")
     pytest.importorskip("pandas")
     from reportkit.themes import get_theme
 
     theme = get_theme("executive")
-    assert set(theme.figure_sizes) == {"slide-main", "slide-half", "slide-hero"}
-    # Every slot must fit inside the declared 160mm x 90mm canvas.
+    slide_slots = {key: value for key, value in theme.figure_sizes.items() if key.startswith("slide-")}
+    assert set(slide_slots) == {"slide-main", "slide-half", "slide-hero"}
+    # Phase F1 added the paged executive-brief target, so the seven paged
+    # names exist too, bounded by the paged adapter's Letter text width.
+    paged = set(theme.figure_sizes) - set(slide_slots)
+    assert paged == {"full", "wide", "dominant", "compact", "square", "half", "sidebar"}
+    for name in paged:
+        assert 0 < theme.figure_sizes[name][0] <= (215.9 - 38) / 25.4 + 1e-9
+    # Every slide slot must fit inside the declared 160mm x 90mm canvas.
     canvas_width_in = 160 / 25.4
     canvas_height_in = 90 / 25.4
-    for name, (width_in, height_in) in theme.figure_sizes.items():
+    for name, (width_in, height_in) in slide_slots.items():
         assert 0 < width_in <= canvas_width_in, f"{name} width exceeds the canvas"
         assert 0 < height_in <= canvas_height_in, f"{name} height exceeds the canvas"
 

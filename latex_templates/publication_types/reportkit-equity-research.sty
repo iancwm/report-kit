@@ -1,9 +1,10 @@
 % ReportKit publication type: equity-research -- Step 3 of the institutional
 % research theme + equity-research profile spec
 % (docs/superpowers/specs/2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md).
-% Front page, rating strip, sidebar, "what changed", exhibit system, table
-% grammar, dense financial-model mode, and risk/reward composition
-% primitives (spec §7-§18, §23).
+% Front page, rating strip, sidebar, "what changed", dense financial-model
+% mode, and risk/reward composition primitives (spec §7-§18, §23). The
+% exhibit system and table grammar live in the shared reportkit-exhibits.sty
+% (required below), which executive-brief also loads.
 %
 % Selected via `\documentclass[publication-type=equity-research]{reportkit}`,
 % loaded by reportkit.cls after the selected theme and before the four
@@ -40,44 +41,11 @@
     {Add theme=institutional-research to \string\documentclass's options.}%
 }{}
 
-% -----------------------------------------------------------------------------
-% Table column types (spec §16) -- ragged-right / ragged-left / centered
-% expandable columns for tabularx, matching Appendix A's Y/Z/C convention.
-% -----------------------------------------------------------------------------
-\newcolumntype{Y}{>{\RaggedRight\arraybackslash}X}
-\newcolumntype{Z}{>{\raggedleft\arraybackslash}X}
-\newcolumntype{C}{>{\centering\arraybackslash}X}
-
-% Institutional table grammar (spec §16): no vertical borders (use booktabs
-% \toprule/\midrule/\bottomrule, never \vline), header weight instead of
-% colored panels (\bfseries the header row, don't \rowcolor it), right-align
-% numeric columns (r or Z), decimal alignment where practical (siunitx's S
-% column type, already available -- siunitx is required by
-% reportkit-core.sty), and a muted source line (\source{}, theme-provided).
-% This is deliberately one generic environment, not six named ones
-% (financial-summary/estimate-revisions/valuation/sensitivity/
-% scenario-analysis/financial-model, per spec §16's list): those differ only
-% in column count and content, not in typographic grammar, and hard-coding
-% six fixed column layouts without real fixture data to validate them
-% against (Step 5) risks shipping tables that are wrong for the first real
-% publication that uses them. financialtable is a typographic context, not
-% a table environment itself -- open a tabularx/tabular (with booktabs rules
-% and Y/Z/C/S columns) inside it for any of the six, e.g.
-% \begin{financialtable}\begin{tabularx}{\linewidth}{@{}Yrrr@{}}...
-% \end{tabularx}\end{financialtable}.
-% <reportkit-contract>
-% {"kind":"composition","description":"Financialtable","arguments":[],"constraints":[],"example":"\\begin{financialtable}\nExample content.\n\\end{financialtable}","stability":"stable","since":"1.8.0"}
-% </reportkit-contract>
-\NewDocumentEnvironment{financialtable}{}{%
-  \par\RKReserveSpace{5\baselineskip}\noindent
-  \sffamily\rktablebodysize\color{Ink}
-  \renewcommand{\arraystretch}{1.05}
-  \addtolength{\linewidth}{-2pt}% Reserve a small gutter for wide tabularx tables.
-  \sisetup{table-format=-3.2}%
-  \ignorespaces
-}{%
-  \par\vspace{4pt}%
-}
+% The exhibit system (spec §11-§12) and institutional table grammar (spec
+% §16) moved verbatim into reportkit-exhibits.sty so executive-brief can reuse
+% them without loading equity-research's front-page/sidebar structure. Loaded
+% at the same point their definitions previously occupied in this file.
+\RequirePackage{reportkit-exhibits}
 
 % -----------------------------------------------------------------------------
 % Research front page (spec §7)
@@ -264,145 +232,6 @@
 % </reportkit-contract>
 \NewDocumentCommand{\change}{m m m}{%
   \noindent#1\hfill\textcolor{Muted}{#2}\;$\to$\;\textbf{#3}\par\vspace{1.5pt}%
-}
-
-% -----------------------------------------------------------------------------
-% Exhibit system (spec §11) -- the most important new primitive. Auto-
-% numbered via \refstepcounter (so \label/\ref work normally); number= can
-% override the displayed number for a document that numbers exhibits itself
-% (e.g. across a combined publication built from independently-numbered
-% sections), without disturbing the counter other exhibits still auto-
-% increment from.
-% -----------------------------------------------------------------------------
-\newcounter{rkexhibit}
-\pgfkeys{
-  /reportkit/exhibit/.is family,
-  /reportkit/exhibit,
-  number/.store in=\rk@exhibitnumber,
-  title/.store in=\rk@exhibittitle,
-  source/.store in=\rk@exhibitsource,
-  label/.store in=\rk@exhibitlabel,
-}
-% <reportkit-contract>
-% {"kind":"composition","description":"Exhibit","arguments":[{"name":"options","type":"options","description":"Options."}],"constraints":[],"example":"\\begin{exhibit}[]\nExample content.\n\\end{exhibit}","stability":"stable","since":"1.8.0"}
-% </reportkit-contract>
-\NewDocumentEnvironment{exhibit}{O{}}{%
-  \pgfkeys{/reportkit/exhibit,number={},title={},source={},label={},#1}%
-  \expandafter\ifstrempty\expandafter{\rk@exhibittitle}{%
-    \PackageWarningNoLine{reportkit-equity-research}{exhibit used without title= -- spec section 11 requires one}%
-  }{}%
-  \par\RKReserveSpace{9\baselineskip}%
-  \refstepcounter{rkexhibit}%
-  \noindent{\sffamily\bfseries\rkexhibitheadlinesize\color{Ink}%
-    Exhibit \expandafter\ifstrempty\expandafter{\rk@exhibitnumber}{\therkexhibit}{\rk@exhibitnumber}: \rk@exhibittitle\par}%
-  \expandafter\ifstrempty\expandafter{\rk@exhibitlabel}{}{\label{\rk@exhibitlabel}}%
-  \vspace{3pt}\noindent\ignorespaces
-}{%
-  \par
-  \expandafter\ifstrempty\expandafter{\rk@exhibitsource}{}{\source{\rk@exhibitsource}}%
-  \vspace{6pt}%
-}
-
-% -----------------------------------------------------------------------------
-% Exhibit page compositions (spec §12). Supported layouts:
-%   1 x full width          -> fullwidthexhibit (or just place \exhibit at
-%                               the main column's full width -- it already
-%                               defaults to that; fullwidthexhibit exists so
-%                               a page composed mostly of exhibitpair/grid
-%                               blocks can mark one as deliberately full
-%                               width without changing indentation).
-%   2 x half width           -> exhibitpair (exactly two \exhibitpane{...})
-%   N equal columns          -> exhibitgrid[columns=N] (N \exhibitpane{...})
-%   1 dominant + 2 supporting -> compose fullwidthexhibit followed by
-%                               exhibitpair, per spec §12's "avoid generic
-%                               dashboard grids" instruction: this is a
-%                               composition of the two primitives above, not
-%                               a third environment.
-%   2 exhibits + full-width table -> exhibitpair followed by a plain
-%                               \begin{exhibit}...\end{exhibit} containing a
-%                               financialtable, for the same reason.
-% Avoid generic dashboard grids: exhibitgrid does not stretch content to
-% fill unused columns, and deliberate whitespace (fewer panes than columns)
-% is left as-is, not redistributed.
-% -----------------------------------------------------------------------------
-% <reportkit-contract>
-% {"kind":"composition","description":"Fullwidthexhibit","arguments":[],"constraints":[],"example":"\\begin{fullwidthexhibit}\nExample content.\n\\end{fullwidthexhibit}","stability":"stable","since":"1.8.0"}
-% </reportkit-contract>
-\NewDocumentEnvironment{fullwidthexhibit}{}{%
-  \par\noindent\begin{minipage}[t]{\linewidth}\ignorespaces%
-}{%
-  \end{minipage}\par\vspace{8pt}%
-}
-
-\newcounter{rkexhibitpane}
-\pgfkeys{
-  /reportkit/exhibitgrid/.is family,
-  /reportkit/exhibitgrid,
-  columns/.store in=\rk@exhibitpanecols,
-}
-\pgfkeys{
-  /reportkit/exhibitpane/.is family,
-  /reportkit/exhibitpane,
-  width/.store in=\rk@exhibitpanewidth,
-}
-\newcommand{\rk@exhibitpanecols}{2}
-\newcommand{\rk@exhibitpanewidth}{}
-
-% <reportkit-contract>
-% {"kind":"composition","description":"Exhibitgrid","arguments":[{"name":"options","type":"options","description":"Options."}],"constraints":[{"code":"max_columns","description":"An exhibit grid supports at most three columns.","value":3}],"example":"\\begin{exhibitgrid}[]\nExample content.\n\\end{exhibitgrid}","stability":"stable","since":"1.8.0"}
-% </reportkit-contract>
-\NewDocumentEnvironment{exhibitgrid}{O{}}{%
-  \pgfkeys{/reportkit/exhibitgrid,columns=2,#1}%
-  \par\noindent\setcounter{rkexhibitpane}{0}%
-}{%
-  \par\vspace{10pt}%
-}
-% exhibitpair is exhibitgrid[columns=2] under another name -- \exhibitgrid/
-% \endexhibitgrid are the control sequences \NewDocumentEnvironment defined
-% above for it, callable directly without \begin{}/\end{} the same way
-% \begin{exhibitgrid} itself expands to \exhibitgrid.
-% <reportkit-contract>
-% {"kind":"composition","description":"Exhibitpair","arguments":[],"constraints":[],"example":"\\begin{exhibitpair}\nExample content.\n\\end{exhibitpair}","stability":"stable","since":"1.8.0"}
-% </reportkit-contract>
-\NewDocumentEnvironment{exhibitpair}{}{%
-  \exhibitgrid[columns=2]%
-}{%
-  \endexhibitgrid
-}
-
-% Pane widths are literal fraction constants for columns=1/2/3 (linewidth,
-% 0.485\linewidth x2, 0.313\linewidth x3 -- each leaving a ~3% gutter,
-% matching Appendix A's own 0.485\linewidth two-up split), not a computed
-% \dimexpr: this file cannot be compile-tested in the implementing session,
-% and arithmetic on \linewidth inside \dimexpr is exactly the kind of thing
-% that's easy to get subtly wrong without a compiler to check it against.
-% columns=4+ (or a non-uniform split, e.g. one dominant pane) needs an
-% explicit width= on every \exhibitpane in the grid instead.
-% <reportkit-contract>
-% {"kind":"command","description":"Exhibitpane","arguments":[{"name":"options","type":"options","description":"Options."},{"name":"content","type":"text","description":"Content."}],"constraints":[],"example":"\\exhibitpane[]{Example}","stability":"stable","since":"1.8.0","parent":"exhibitgrid"}
-% </reportkit-contract>
-\NewDocumentCommand{\exhibitpane}{O{} m}{%
-  \stepcounter{rkexhibitpane}%
-  \pgfkeys{/reportkit/exhibitpane,width={},#1}%
-  \ifnum\value{rkexhibitpane}>1\hfill\fi
-  \expandafter\ifstrempty\expandafter{\rk@exhibitpanewidth}{%
-    \ifcase\rk@exhibitpanecols\relax
-      \PackageError{reportkit-equity-research}{exhibitgrid columns=0 is not usable}{Use columns=1, 2, or 3, or pass width=<fraction>\string\linewidth on every \string\exhibitpane.}%
-    \or % columns=1
-      \def\rk@exhibitpanew{\linewidth}%
-    \or % columns=2
-      \def\rk@exhibitpanew{0.485\linewidth}%
-    \or % columns=3
-      \def\rk@exhibitpanew{0.313\linewidth}%
-    \else
-      \PackageError{reportkit-equity-research}{exhibitgrid only computes pane widths for columns=1, 2, or 3}{Pass width=<fraction>\string\linewidth on every \string\exhibitpane when using more columns.}%
-    \fi
-  }{%
-    \def\rk@exhibitpanew{\rk@exhibitpanewidth}%
-  }%
-  \begin{minipage}[t]{\rk@exhibitpanew}%
-  \ignorespaces#2%
-  \end{minipage}%
 }
 
 % -----------------------------------------------------------------------------

@@ -8,12 +8,14 @@ entrypoint split, constrained authoring path, effective-theme materialization,
 and selection-marker gate are implemented. Phase B (slide renderer and
 presentation semantics) is also implemented out of this spec's original phase
 order, with its automated B4 slide-accessibility gate retained in the working
-branch. Phase C's executive theme and reviewed fixture are now stable; Phases
-D–F have not started.
+branch. Phase C's executive theme and reviewed fixture are now stable. Phase
+F1's `executive-brief` publication type (§14) is implemented as experimental
+for the executive and institutional-research themes, pending pinned visual
+review; the rest of Phase F (book) has not started.
 Supersedes nothing; extends the architecture introduced by
 [2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md](2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md)
 (Steps 1–5 implemented, `reportkit.cls` v1.9.3).
-**Last updated:** 2026-09-21
+**Last updated:** 2026-09-23
 **Current-state claims:** historical baseline verified against `origin/main` at
 `f45ab86` plus the merged implementation checkpoint at `f5f5a6b`; pinned
 workflow run 65 is the current acceptance record below.
@@ -801,6 +803,14 @@ helpers in core all apply directly.
 
 **Do not create a large new primitive library** unless something is genuinely
 missing.
+
+**Status (2026-09-23):** implemented as experimental. The exhibit system now
+lives in the shared `publication_types/reportkit-exhibits.sty`; the brief adds
+only `briefheader`/`\briefmeta`, `briefactions`/`\briefaction` and
+`briefsources`. The fixture `latex_templates/examples/executive-brief/`
+compiles to three Letter pages under both registered themes on the local
+toolchain; pinned visual review remains. See the implementation plan's F1
+section.
 
 ---
 

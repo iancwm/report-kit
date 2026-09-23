@@ -376,7 +376,10 @@ def resolve_document(config: dict[str, Any], profile: str | None = None) -> dict
     renderer_name = str(publication["renderer"]) if publication else "paged"
     geometry_kind = RENDERERS.get(renderer_name, {}).get("geometry", {}).get("kind", "paper")
     if geometry_kind == "paper":
-        document.setdefault("paper", "a4")
+        # Default to the publication type's own registered paper (Letter for
+        # equity-research and executive-brief) so the recorded selection
+        # matches the page size the theme adapter actually sets.
+        document.setdefault("paper", str((publication or {}).get("paper") or "a4"))
     return document
 
 
