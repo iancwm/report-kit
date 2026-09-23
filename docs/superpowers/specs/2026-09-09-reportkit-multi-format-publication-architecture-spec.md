@@ -8,10 +8,12 @@ entrypoint split, constrained authoring path, effective-theme materialization,
 and selection-marker gate are implemented. Phase B (slide renderer and
 presentation semantics) is also implemented out of this spec's original phase
 order, with its automated B4 slide-accessibility gate retained in the working
-branch. Phase C's executive theme and reviewed fixture are now stable. Phase E
-(editorial theme and feature-article type) and Phase F1's `executive-brief`
-publication type (§14) are implemented as experimental, pending pinned visual
-review; Phase D and the rest of Phase F (book) have not started.
+branch. Phase C's executive theme and reviewed fixture are now stable. Phase
+F1's `executive-brief` publication type (§14) is implemented as experimental
+for the executive and institutional-research themes, and Phase E (editorial
+theme and feature-article type) is implemented as experimental; both are
+pending pinned visual review. Phase D and the rest of Phase F (book) have not
+started.
 Supersedes nothing; extends the architecture introduced by
 [2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md](2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md)
 (Steps 1–5 implemented, `reportkit.cls` v1.9.3).

@@ -31,8 +31,6 @@ execution. Phase C is now promoted to stable with the reviewed fixture and
 visual-QA helper landed. Phase F1 (executive brief) is implemented as an
 experimental publication type registered for executive and
 institutional-research; pinned-toolchain visual review remains (see F1).
-Phase E (editorial theme and feature-article type) is implemented as
-experimental, pending pinned visual review (see §9).
 **Last updated:** 2026-09-23
 **Plans:** [2026-09-09-reportkit-multi-format-publication-architecture-spec.md](../specs/2026-09-09-reportkit-multi-format-publication-architecture-spec.md)
 **Amended by:** [2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md](../specs/2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md)
@@ -42,7 +40,7 @@ Python/theme-contract, target-aware A5/equity-acceptance, automated B4
 slide-accessibility changes, Phase C executive fixture, and pinned fixture
 baselines retained in mainline. Workflow run 65 passed with 374 pytest cases
 and 1 skip. Phase E is implemented as experimental (section 9 records
-what landed and what remains); Phases D and F remain future work.
+what landed and what remains); Phase D and Phase F's book work remain future work.
 
 ---
 

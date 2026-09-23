@@ -266,10 +266,10 @@ THEMES: dict[str, dict[str, Any]] = {
         },
     ),
     # Phase E: the magazine / thought-leadership paged system. Experimental
-    # until its fixture passes pinned-toolchain visual review; the shared
-    # language declaration above (Latn/en verified, vi metadata-only, RTL
-    # unsupported) is also the honest editorial declaration -- Libertinus
-    # carries Greek/Cyrillic glyphs, but no fixture verifies them.
+    # until its fixture passes pinned-toolchain visual review. Its language
+    # record comes from reportkit.themes.editorial's SCRIPT_COVERAGE (Latn/en
+    # verified, vi metadata-only, RTL unsupported) -- Libertinus carries
+    # Greek/Cyrillic glyphs, but no fixture verifies them.
     "editorial": _theme(
         "editorial", renderers=["paged"], required_engine="lualatex",
         common_package="reportkit-theme-editorial", stability="experimental", since="1.10.0",
