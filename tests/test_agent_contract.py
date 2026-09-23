@@ -163,7 +163,21 @@ def test_context_is_versioned_filterable_and_legacy_compatible() -> None:
         "publication_package": "reportkit-equity-research", "brand_overrides": False,
         "language_support": {
             "verified": ["en"], "metadata_only": ["vi"],
-            "scripts": {"verified": ["Latn"], "metadata_only": []}, "rtl": "unsupported",
+            "scripts": {
+                "verified": ["Latn"], "metadata_only": [],
+                "font_stacks": {"Latn": {
+                    "body": ["Google Sans", "Inter", "Noto Sans", "TeX Gyre Heros"],
+                    "heading": ["Google Sans", "Inter", "Noto Sans", "TeX Gyre Heros"],
+                    "mono": ["Latin Modern Mono"],
+                }},
+            },
+            "rtl": "unsupported",
+            "locale_typography": {"en": "american", "en-US": "american"},
+            "text_direction": ["ltr"],
+            "missing_glyph": {
+                "strict": "fatal: the TeX engine stops at the first missing glyph (\\tracinglostchars=3)",
+                "fallback": "blocking missing_glyph log diagnostic unless allowlisted by the project",
+            },
         },
         "profile": "draft",
     }

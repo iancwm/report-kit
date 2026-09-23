@@ -17,6 +17,7 @@ from .authoring import validate_authoring
 from .config import (
     CONFIG_NAME,
     load_publication_config,
+    resolve_declared_language,
     resolve_document,
     resolve_output,
     resolve_theme,
@@ -27,6 +28,7 @@ from .context_budget import CONTEXT_SLICE_NAMES, build_context_slice
 from .diagnostics import diagnostic_envelope, inspect_log, load_allowlist, load_maps, make_diagnostic, suggest
 from .documentation import check_documentation, write_documentation
 from .initialization import initialize, install_fonts
+from .languages import language_diagnostics
 from .publications import (
     PUBLICATION_TYPES,
     THEMES,
@@ -336,9 +338,18 @@ def _run_check(args: argparse.Namespace) -> int:
         )
     except PublicationRegistryError as exc:
         diagnostics.append(exc.diagnostic)
-    font_policy_conflict = theme_font_policy_conflict(resolve_theme(config, args.profile))
+    theme_config = resolve_theme(config, args.profile)
+    font_policy_conflict = theme_font_policy_conflict(theme_config)
     if font_policy_conflict:
         diagnostics.append(make_diagnostic("configuration_error", font_policy_conflict, code="RK_CONFIG_FONT_POLICY", primitive="theme.font_policy"))
+    requested_theme = str(document.get("theme"))
+    if requested_theme in THEMES:
+        # Agent-contract spec section 13: fail early on RTL, malformed, or (under
+        # strict) undeclared languages; warn on metadata-only languages.
+        diagnostics.extend(language_diagnostics(
+            resolve_declared_language(config, args.profile), requested_theme,
+            font_policy=str(theme_config.get("font_policy", "fallback")),
+        ))
     errors = [item["message"] for item in diagnostics if item["severity"] == "error"]
     payload = diagnostic_envelope(
         diagnostics,

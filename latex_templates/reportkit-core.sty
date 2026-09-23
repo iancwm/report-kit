@@ -62,7 +62,73 @@
 \newcommand{\setreportkitversion}[1]{\renewcommand{\rk@version}{#1}}
 \newcommand{\setreportkitsubject}[1]{\renewcommand{\rk@subject}{#1}}
 \newcommand{\setreportkitkeywords}[1]{\renewcommand{\rk@keywords}{#1}}
-\newcommand{\setreportkitlanguage}[1]{\renewcommand{\rk@language}{#1}}
+% -----------------------------------------------------------------------------
+% Language, script, and font-policy truthfulness (agent-contract spec section 13)
+% -----------------------------------------------------------------------------
+% \setreportkitlanguage{<BCP 47 tag>} always sets the PDF catalog language.
+% It loads locale-aware typography (babel: hyphenation, captions, quotation
+% and spacing conventions) only when the selected theme marks the language
+% verified in the generated publication registry. A metadata-only language
+% (Vietnamese today) sets the catalog language and nothing else; a
+% right-to-left language is always an error; an undeclared language is an
+% error under font policy strict and a warning otherwise. Call it once, in
+% the preamble. Without a call the catalog language stays en-US and no
+% locale package is loaded: the format's built-in hyphenation is already
+% US English, the same patterns babel's american selects.
+%
+% \setreportkitfontpolicy{strict|fallback} is shared by every theme. strict
+% makes a missing glyph fatal in the engine itself (\tracinglostchars=3);
+% fallback keeps the kernel default, which logs "Missing character" for the
+% build-log gate to report as a blocking missing_glyph diagnostic.
+\newcommand{\rk@fontpolicy}{fallback}
+\newcommand{\setreportkitfontpolicy}[1]{\renewcommand{\rk@fontpolicy}{#1}}
+\newcommand{\rk@languagestatus}{default}
+\newcommand{\rk@languageprimary}{en}
+\def\rk@languageprimary@split#1-#2\@nil{#1}
+\newcommand{\setreportkitlanguage}[1]{%
+  \renewcommand{\rk@language}{#1}%
+  \edef\rk@languagetag{#1}%
+  \edef\rk@languageprimary{\expandafter\rk@languageprimary@split\rk@languagetag-\@nil}%
+  \ifcsname RKRTLLanguage@\rk@languageprimary\endcsname
+    \def\rk@languagestatus{rtl}%
+    \PackageError{reportkit-core}%
+      {Language '\rk@languagetag' is right-to-left; RTL is explicitly unsupported by every ReportKit renderer and theme}%
+      {Remove the RTL language declaration. ReportKit does not typeset right-to-left text.}%
+  \else
+    \ifcsname RKThemeLanguage@\rk@theme\string @\rk@languageprimary\endcsname
+      \edef\rk@languagestatus{\csname RKThemeLanguage@\rk@theme\string @\rk@languageprimary\endcsname}%
+    \else
+      \def\rk@languagestatus{undeclared}%
+    \fi
+    \ifdefstring{\rk@languagestatus}{verified}{%
+      \ifcsname RKLocaleBabel@\rk@languagetag\endcsname
+        \edef\rk@localebabel{\csname RKLocaleBabel@\rk@languagetag\endcsname}%
+      \else
+        \edef\rk@localebabel{\csname RKLocaleBabel@\rk@languageprimary\endcsname}%
+      \fi
+      \PackageInfo{reportkit-core}{Language \rk@languagetag\space is verified for theme \rk@theme; loading babel locale \rk@localebabel}%
+      \expandafter\rk@loadlocaletypography\expandafter{\rk@localebabel}%
+    }{%
+      \ifdefstring{\rk@languagestatus}{metadata-only}{%
+        \PackageInfo{reportkit-core}{Language \rk@languagetag\space is metadata-only for theme \rk@theme; setting the PDF catalog language without locale typography}%
+      }{}%
+    }%
+  \fi
+}
+\@onlypreamble\setreportkitlanguage
+\newcommand{\rk@loadlocaletypography}[1]{\RequirePackage[#1]{babel}}
+\AtEndPreamble{%
+  \ifdefstring{\rk@languagestatus}{undeclared}{%
+    \ifdefstring{\rk@fontpolicy}{strict}{%
+      \PackageError{reportkit-core}%
+        {Language '\rk@languagetag' is not declared by theme \rk@theme\space and theme.font_policy is strict}%
+        {Choose a language the theme verifies (reportkit context --slice selection) or use font policy fallback.}%
+    }{%
+      \PackageWarningNoLine{reportkit-core}{Language '\rk@languagetag' is not declared by theme \rk@theme; only the PDF catalog language is set}%
+    }%
+  }{}%
+  \ifdefstring{\rk@fontpolicy}{strict}{\tracinglostchars=3\relax}{}%
+}
 
 % Keep PDF metadata coupled to the document's normal title and author fields.
 % hyperref performs the necessary PDF-string sanitisation for bookmarks and

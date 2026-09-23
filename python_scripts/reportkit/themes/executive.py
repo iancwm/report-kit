@@ -16,6 +16,7 @@ from . import (
     GeometryTokens,
     RuleTokens,
     ScriptCoverageTokens,
+    ScriptFontStack,
     SpacingTokens,
     TableTokens,
     Theme,
@@ -82,7 +83,24 @@ CHARTS = ChartTokens(
     legend_style="above",
 )
 DIAGRAMS = DiagramTokens(node_font=8.1, node_padding=(5.0, 4.0), node_radius=1.2, edge_weight=0.8, label_font=6.8)
-SCRIPT_COVERAGE = ScriptCoverageTokens(verified=("Latn",), metadata_only=(), rtl="unsupported")
+# Language/script contract (agent-contract spec section 13). The slide theme
+# sets text in Libertinus Sans through the `libertinus` package; code uses
+# Libertinus Mono. Vietnamese stays metadata-only until a typography
+# fixture proves more.
+SCRIPT_COVERAGE = ScriptCoverageTokens(
+    verified=("Latn",),
+    metadata_only=(),
+    rtl="unsupported",
+    font_stacks={
+        "Latn": ScriptFontStack(
+            body=("Libertinus Sans",),
+            heading=("Libertinus Sans",),
+            mono=("Libertinus Mono",),
+        ),
+    },
+    verified_languages=("en",),
+    metadata_only_languages=("vi",),
+)
 
 THEME = Theme(
     name="executive",
