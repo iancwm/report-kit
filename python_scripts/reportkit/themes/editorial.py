@@ -16,6 +16,7 @@ from . import (
     GeometryTokens,
     RuleTokens,
     ScriptCoverageTokens,
+    ScriptFontStack,
     SpacingTokens,
     TableTokens,
     Theme,
@@ -84,7 +85,24 @@ DIAGRAMS = DiagramTokens(node_font=7.4, node_padding=(4.0, 3.0), node_radius=0.6
 # glyph presence is not verified typography, so nothing else is declared
 # verified (Vietnamese stays metadata-only via the registry's language
 # declaration) and RTL is unsupported.
-SCRIPT_COVERAGE = ScriptCoverageTokens(verified=("Latn",), metadata_only=(), rtl="unsupported")
+# Families below are exactly what reportkit-theme-editorial.sty selects for
+# Latin script: \RequirePackage{libertinus} (Serif body, Sans metadata, Mono)
+# plus the \newfontfamily Libertinus Serif Display headline face. Headings
+# below display size (subsections, kickers, labels) use Libertinus Sans.
+SCRIPT_COVERAGE = ScriptCoverageTokens(
+    verified=("Latn",),
+    metadata_only=(),
+    rtl="unsupported",
+    font_stacks={
+        "Latn": ScriptFontStack(
+            body=("Libertinus Serif",),
+            heading=("Libertinus Serif Display", "Libertinus Sans"),
+            mono=("Libertinus Mono",),
+        ),
+    },
+    verified_languages=("en",),
+    metadata_only_languages=("vi",),
+)
 
 THEME = Theme(
     name="editorial",
