@@ -19,7 +19,7 @@ TOKEN_ACCOUNTING = "ceil(utf8_bytes / 4)"
 
 _SLICE_DESCRIPTIONS = {
     "quickstart": "Host-neutral selection, validation, build, and recovery loop.",
-    "selection": "Publication types, compatible themes, renderers, and the resolved target.",
+    "selection": "Publication types, compatible themes, renderers, language/script support, and the resolved target.",
     "primitives": "Primitive signatures and examples filtered for the requested target.",
     "authoring": "Authoring templates, chart setup, and trust-boundary details.",
     "commands": "Stable CLI commands and machine-readable command options.",
@@ -39,6 +39,29 @@ def estimate_tokens(value: Any) -> int:
     return max(1, math.ceil(len(value.encode("utf-8")) / 4))
 
 
+def _language_line(themes: Mapping[str, Any]) -> str:
+    """Summarize theme language support in one line, grouped by declaration."""
+    groups: dict[tuple[str, str, str], list[str]] = {}
+    for name, record in sorted(themes.items()):
+        support = record.get("language_support") or {}
+        if "error" in support:
+            continue
+        key = (
+            ", ".join(support.get("verified", [])) or "none",
+            ", ".join(support.get("metadata_only", [])) or "none",
+            ", ".join(support.get("scripts", {}).get("verified", [])) or "none",
+        )
+        groups.setdefault(key, []).append(name)
+    parts = [
+        f"{', '.join(names)}: verified {verified} ({scripts} script), metadata-only {metadata}"
+        for (verified, metadata, scripts), names in groups.items()
+    ]
+    return (
+        "Languages (set publication.yaml language:) -- " + "; ".join(parts)
+        + ". RTL is unsupported. Scripts, font stacks, and locale typography are in the selection slice."
+    )
+
+
 def _quickstart_text(context: Mapping[str, Any]) -> str:
     selection = context["selection"]
     publications = context["capabilities"]["publication_types"]
@@ -51,6 +74,7 @@ def _quickstart_text(context: Mapping[str, Any]) -> str:
         "ReportKit host-neutral quickstart.",
         f"Choose a publication type by intent: {publication_lines}",
         f"The current target is {selection['publication_type']}/{selection['requested_theme']}/{selection['renderer']}.",
+        _language_line(context["capabilities"]["themes"]),
         f"Author in a consumer project, then run `{commands['check']} --json` before conversion.",
         f"Build with `{commands['build']} --json`; on failure read its structured diagnostics and remediation.",
         f"For visual feedback run `{commands['render']} --pages 1 --json`, then `{commands['inspect']} --json`.",

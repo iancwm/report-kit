@@ -303,6 +303,16 @@ def _profile_values(config: dict[str, Any], profile: str | None) -> dict[str, An
     return values
 
 
+def resolve_declared_language(config: dict[str, Any], profile: str | None = None) -> str | None:
+    """Return the publication's declared ``language`` (profile-aware), if any.
+
+    ``None`` means the publication declares no language and the historical
+    en-US catalog default applies without any locale package.
+    """
+    value = _profile_values(config, profile).get("language")
+    return None if value in (None, "") else str(value)
+
+
 def resolve_identity(config: dict[str, Any], overrides: dict[str, Any], source_root: Path, profile: str | None = None) -> dict[str, str]:
     """Merge publication config, selected profile, and CLI/environment overrides."""
     values = _profile_values(config, profile)

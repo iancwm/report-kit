@@ -27,7 +27,41 @@ Contract version `1.1.0` describes the combinations registered today:
 `executive-brief/{executive,institutional-research}/paged` target. Theme entries expose semantic
 capability names, not visual values; `technical` resolves to the same
 implementation as `default`. English with Latin script is verified;
-Vietnamese is metadata-only pending the i18n phase, and RTL is unsupported.
+Vietnamese is metadata-only, and RTL is unsupported.
+
+### Language and script support
+
+Each Python `Theme` declares `script_coverage`: verified and metadata-only
+ISO 15924 scripts, a per-script font stack (`body`, `heading`, `mono`, in the
+order the theme's `.sty` selects them), verified and metadata-only BCP 47
+languages, and `rtl: unsupported`. Context publishes it as
+`capabilities.themes.*.language_support`; each renderer's
+`language_support` declares left-to-right text only, locale typography
+loaded for verified languages only, and the missing-glyph policy.
+`selection.language_support` is the combined record for the resolved
+target. The `selection` slice carries all three; `quickstart` carries only a
+one-line summary.
+
+Declare a document language with `language:` in `publication.yaml` (or
+`\setreportkitlanguage{TAG}` in the preamble of hand-written TeX). A
+verified language (`en`, including regional tags such as `en-GB`) loads
+babel's `american` locale. The pinned format has no separate UK hyphenation
+patterns. A metadata-only language (`vi`) sets only the PDF catalog
+language and warns with `RK_LANGUAGE_METADATA_ONLY`. A right-to-left
+language fails with `RK_LANGUAGE_RTL_UNSUPPORTED`. An undeclared language
+warns with `RK_LANGUAGE_UNDECLARED`, or fails with `RK_LANGUAGE_UNSUPPORTED`
+under `theme.font_policy: strict`. `reportkit check` reports these before
+TeX runs, and the TeX core enforces the same rules. Without a declaration
+the catalog language stays `en-US` and no locale package loads; the format's
+built-in hyphenation is already US English.
+
+`theme.font_policy` applies to every theme. Under `strict`, the engine stops
+at the first missing glyph (`\tracinglostchars=3`), so a build fails with a
+`missing_glyph` compile diagnostic that no allowlist can suppress. Under
+`fallback`, TeX only logs the glyph, and the build-log gate reports a
+blocking `missing_glyph` diagnostic unless the project allowlists it.
+pdfLaTeX's "Unicode character ... not set up" failure is also classified as
+`missing_glyph`.
 
 Hosts with a small context window can request one progressive-disclosure slice
 with `context --slice NAME`. The unfiltered payload remains available for
