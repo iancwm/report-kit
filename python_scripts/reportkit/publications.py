@@ -13,6 +13,12 @@ from types import MappingProxyType
 from typing import Any, Mapping
 
 from .diagnostics import make_diagnostic
+from .languages import (
+    RENDERER_LANGUAGE_SUPPORT,
+    language_compatibility,
+    render_latex_language_tables,
+    theme_language_support,
+)
 
 
 def _freeze(value: Any) -> Any:
@@ -133,6 +139,9 @@ RENDERERS: dict[str, dict[str, Any]] = {
             "tagged_pdf": "unsupported",
             "tagged_pdf_reason": "The pinned LaTeX format has not yet passed the documented tagging spike.",
         },
+        # Agent-contract spec section 13: text direction, locale typography,
+        # and missing-glyph policy. Shared by every renderer today.
+        "language_support": _thaw(RENDERER_LANGUAGE_SUPPORT),
     },
     # Phase B/C of the multi-format publication architecture spec (decisions
     # D5, D8). Beamer at aspectratio=169 already produces a 160mm x 90mm
@@ -160,16 +169,35 @@ RENDERERS: dict[str, dict[str, Any]] = {
             "tagged_pdf": "unsupported",
             "tagged_pdf_reason": "The pinned LaTeX format has not yet passed the documented tagging spike.",
         },
+        # Agent-contract spec section 13: text direction, locale typography,
+        # and missing-glyph policy. Shared by every renderer today.
+        "language_support": _thaw(RENDERER_LANGUAGE_SUPPORT),
     },
 }
 
 
-_LANGUAGE_SUPPORT = {
-    "verified": ["en"],
-    "metadata_only": ["vi"],
-    "scripts": {"verified": ["Latn"], "metadata_only": []},
-    "rtl": "unsupported",
-}
+def _theme_language_support(name: str) -> dict[str, Any]:
+    """Derive a theme's language/script record from its Python Theme object.
+
+    The Python ``ScriptCoverageTokens`` record is the single declaration; the
+    registry only publishes it. A theme whose module is missing or whose
+    ``SCRIPT_COVERAGE`` cannot be constructed is recorded with an ``error``
+    that :func:`check_publication_registry` reports, rather than breaking
+    every import of this catalog.
+    """
+    from .themes import get_theme
+
+    try:
+        return theme_language_support(get_theme(name))
+    except (ImportError, TypeError, ValueError) as exc:
+        return {
+            "error": (
+                f"theme {name!r} must register a reportkit.themes module whose Theme declares "
+                f"script_coverage=ScriptCoverageTokens(verified=..., metadata_only=..., rtl='unsupported', "
+                f"font_stacks={{'Latn': ScriptFontStack(body=..., heading=..., mono=...)}}, "
+                f"verified_languages=..., metadata_only_languages=...): {exc}"
+            ),
+        }
 
 
 def _theme(
@@ -202,15 +230,7 @@ def _theme(
             "evidence", "warning", "danger", "data_series", "body", "heading",
             "metadata", "table", "chart", "diagram",
         ],
-        "language_support": {
-            "verified": list(_LANGUAGE_SUPPORT["verified"]),
-            "metadata_only": list(_LANGUAGE_SUPPORT["metadata_only"]),
-            "scripts": {
-                "verified": list(_LANGUAGE_SUPPORT["scripts"]["verified"]),
-                "metadata_only": list(_LANGUAGE_SUPPORT["scripts"]["metadata_only"]),
-            },
-            "rtl": _LANGUAGE_SUPPORT["rtl"],
-        },
+        "language_support": _theme_language_support(name),
         "stability": stability,
         "since": since,
     }
@@ -360,6 +380,12 @@ def render_latex_registry() -> str:
         for theme in themes:
             lines.append(rf"\expandafter\def\csname RKPublicationTheme@{name}@{theme}\endcsname{{1}}")
 
+    # Language/script truthfulness tables read by reportkit-core.sty's
+    # \setreportkitlanguage (agent-contract spec section 13).
+    lines.extend(render_latex_language_tables({
+        name: THEMES[_canonical_theme_name(name)] for name in THEMES
+        if "error" not in THEMES[_canonical_theme_name(name)]["language_support"]
+    }))
     return "\n".join(lines) + "\n"
 
 
@@ -442,7 +468,7 @@ def check_publication_registry(repo_root: Path | None = None) -> list[str]:
     errors: list[str] = []
 
     for name, record in sorted(RENDERERS.items()):
-        for field in ("class_adapter", "class_file", "template_base", "pandoc_writer", "geometry", "accessibility"):
+        for field in ("class_adapter", "class_file", "template_base", "pandoc_writer", "geometry", "accessibility", "language_support"):
             if not record.get(field):
                 errors.append(f"renderer {name!r} is missing {field}")
         class_file = root / str(record.get("class_file", ""))
@@ -470,6 +496,16 @@ def check_publication_registry(repo_root: Path | None = None) -> list[str]:
                 errors.append(f"theme {name!r} package does not exist: {adapter}")
         if not record.get("common_package"):
             errors.append(f"theme {name!r} is missing common_package")
+        language_support = record.get("language_support") or {}
+        if "error" in language_support:
+            errors.append(str(language_support["error"]))
+        elif name == canonical:
+            from .languages import validate_script_coverage
+            from .themes import get_theme
+
+            errors.extend(
+                f"theme {name!r} {message}" for message in validate_script_coverage(get_theme(name))
+            )
 
     for name, record in sorted(PUBLICATION_TYPES.items()):
         renderer = record.get("renderer")
@@ -591,7 +627,9 @@ def resolve_build_target(
         renderer_adapter=str(adapter) if adapter else None,
         publication_package=str(publication["package"]) if publication.get("package") else None,
         brand_overrides=bool(theme_record.get("brand_overrides", False)),
-        language_support=_freeze(theme_record["language_support"]),
+        language_support=_freeze(language_compatibility(
+            _thaw(theme_record["language_support"]), _thaw(renderer["language_support"]),
+        )),
     )
 
 

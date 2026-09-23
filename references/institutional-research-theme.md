@@ -47,7 +47,10 @@ theme:
 
 `font_policy: fallback` (the default) walks Google Sans -> Inter -> Noto
 Sans -> TeX Gyre Heros and warns which one it used; `strict` fails the
-build if Google Sans specifically cannot be resolved. The target-aware
+build if Google Sans specifically cannot be resolved. Under every theme,
+`strict` also makes a missing glyph fatal in the engine and refuses a
+`language:` the theme does not declare (see
+[agent-contract.md](agent-contract.md#language-and-script-support)). The target-aware
 pipeline now propagates `document.theme` and `document.publication_type` into
 the staged class options. The Markdown/fragments path for the worked equity
 fixture can be built with:

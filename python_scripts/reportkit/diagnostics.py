@@ -360,7 +360,10 @@ def inspect_log(
         ("undefined_citation", re.compile(r"Citation .*? undefined|There were undefined citations", re.IGNORECASE)),
         ("duplicate_label", re.compile(r"Label .*? multiply defined", re.IGNORECASE)),
         ("missing_font", re.compile(r"(?:font|Font|metric) .*?(?:not found|not loadable)|libertinus.*?not found", re.IGNORECASE)),
-        ("missing_glyph", re.compile(r"Missing character:", re.IGNORECASE)),
+        # LuaLaTeX/fontspec reports a glyph the font lacks as "Missing
+        # character" (fatal under font_policy: strict); pdfLaTeX's inputenc
+        # reports a character its font encoding cannot set this way.
+        ("missing_glyph", re.compile(r"Missing character:|Unicode character .*? \(U\+[0-9A-F]+\)", re.IGNORECASE)),
         ("missing_asset", re.compile(r"(?:File .*? not found|cannot be found|I can't find file|missing asset)", re.IGNORECASE)),
         ("bibliography_warning", re.compile(r"No file .*?\.bbl|BibTeX|biber", re.IGNORECASE)),
         ("latex_error", re.compile(r"^!\s|Emergency stop|Fatal error|Undefined control sequence|LaTeX Error:", re.IGNORECASE)),
