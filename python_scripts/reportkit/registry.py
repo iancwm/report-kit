@@ -7,7 +7,7 @@ from pathlib import Path
 import re
 from typing import Any, Iterable
 
-from .publications import availability_for
+from .publications import PUBLICATION_TYPES, availability_for
 
 CALLOUT_ALIASES = {"evidence": "evidencenote", "limitation": "limitationnote", "tip": "tipnote"}
 FIGURE_ENVIRONMENTS = {
@@ -151,11 +151,39 @@ def _has_adjacent_internal_marker(text: str, position: int) -> bool:
     return bool(markers and not text[markers[-1].end():position].strip())
 
 
+def _publication_types_loading(path: Path) -> list[str]:
+    """Return registered publication types whose package is, or requires, ``path``.
+
+    Shared publication modules (for example ``reportkit-exhibits.sty``) are
+    not publication types themselves; their primitives are available exactly
+    where a registered publication package ``\\RequirePackage``s them.
+    """
+    loaders: list[str] = []
+    for name, record in PUBLICATION_TYPES.items():
+        package = record.get("package")
+        if not package:
+            continue
+        if package == path.stem:
+            loaders.append(name)
+            continue
+        package_path = path.parent / f"{package}.sty"
+        if package_path.is_file() and re.search(
+            r"\\RequirePackage(?:\[[^]]*\])?\{" + re.escape(path.stem) + r"\}",
+            package_path.read_text(encoding="utf-8"),
+        ):
+            loaders.append(name)
+    return sorted(loaders)
+
+
 def _default_availability(path: Path) -> dict[str, list[str]]:
-    if path.parent.name == "publication_types" and "equity-research" in path.name:
-        return availability_for(publication_type="equity-research")
-    if path.parent.name == "publication_types" and "presentation" in path.name:
-        return availability_for(publication_type="presentation")
+    if path.parent.name == "publication_types":
+        loaders = _publication_types_loading(path)
+        if loaders:
+            merged: dict[str, list[str]] = {"publication_types": [], "themes": [], "renderers": []}
+            for publication_type in loaders:
+                for key, values in availability_for(publication_type=publication_type).items():
+                    merged[key] = sorted(set(merged[key]) | set(values))
+            return merged
     if path.parent.name == "themes":
         theme = path.stem.removeprefix("reportkit-theme-")
         publication = "equity-research" if theme == "institutional-research" else "technical-report"

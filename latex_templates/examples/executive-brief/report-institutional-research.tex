@@ -1,0 +1,26 @@
+% ReportKit example: executive-brief publication type under the
+% institutional-research theme -- the second registered combination. Same
+% brief.tex body as report.tex; only the theme option and the theme's font
+% setup differ.
+\documentclass[theme=institutional-research,publication-type=executive-brief]{reportkit}
+
+% Keep the fixture self-contained when the repository's licensed Google Sans
+% files are staged beside it, as the equity-research fixture does.
+\IfFileExists{font_data/GoogleSans-Regular.ttf}{%
+  \setreportkitfontpath{font_data/}%
+}{}
+\setreportkitfontpolicy{fallback}
+
+\setreportkitleftheader{Harborline Freight}
+\setreportkitfooter{Harborline Operations Strategy Office -- fictional demonstration brief}
+\setreportkitversion{v1.0}
+\setreportkitsubject{Dispatch platform consolidation decision brief}
+\setreportkitkeywords{ReportKit, executive brief, institutional-research theme, fictional}
+
+\title{Consolidate the two regional dispatch platforms}
+\author{Harborline Operations Strategy Office}
+\date{2 June 2027}
+
+\begin{document}
+\input{brief.tex}
+\end{document}

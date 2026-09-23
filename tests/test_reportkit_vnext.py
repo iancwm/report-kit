@@ -295,6 +295,16 @@ def test_check_theme_institutional_now_synchronized_step4() -> None:
 # -----------------------------------------------------------------------------
 
 EQUITY_RESEARCH_STY = REPO / "latex_templates" / "publication_types" / "reportkit-equity-research.sty"
+# Phase F1 moved the exhibit system and table grammar verbatim into a shared
+# module that equity-research (and executive-brief) \RequirePackage.
+SHARED_EXHIBITS_STY = REPO / "latex_templates" / "publication_types" / "reportkit-exhibits.sty"
+
+
+def _equity_research_source() -> str:
+    """Equity-research's own file plus the shared exhibit module it loads."""
+    text = EQUITY_RESEARCH_STY.read_text(encoding="utf-8")
+    assert r"\RequirePackage{reportkit-exhibits}" in text
+    return text + "\n" + SHARED_EXHIBITS_STY.read_text(encoding="utf-8")
 
 
 def test_reportkit_cls_declares_equity_research_publication_type() -> None:
@@ -318,7 +328,7 @@ def test_equity_research_requires_institutional_type_scale() -> None:
 
 
 def test_equity_research_defines_front_page_and_exhibit_primitives() -> None:
-    text = EQUITY_RESEARCH_STY.read_text(encoding="utf-8")
+    text = _equity_research_source()
     for primitive in (
         r"\NewDocumentEnvironment{researchfrontpage}",
         r"\newcommand{\researchkicker}",
@@ -356,7 +366,7 @@ def test_equity_research_primitives_use_only_theme_tokens_for_sizing() -> None:
     color (\\definecolor) -- every color it uses is a theme token -- and the
     primitives themselves should reach for \\rk...size theme tokens rather
     than a literal size."""
-    code = _strip_latex_comments(EQUITY_RESEARCH_STY.read_text(encoding="utf-8"))
+    code = _strip_latex_comments(_equity_research_source())
     assert r"\definecolor" not in code
     # rkmastheadsize, rksectionheadingsize, and rksourcesize are theme tokens
     # this file legitimately never touches directly: masthead styling and
@@ -376,7 +386,7 @@ def test_equity_research_exhibit_pane_widths_avoid_dimexpr_arithmetic() -> None:
     \\linewidth -- see the implementation plan's rationale (unverifiable
     without a compiler). Pin that choice so it isn't quietly replaced by a
     computed expression later without the same scrutiny."""
-    code = _strip_latex_comments(EQUITY_RESEARCH_STY.read_text(encoding="utf-8"))
+    code = _strip_latex_comments(_equity_research_source())
     assert r"\dimexpr" not in code
     assert "0.485\\linewidth" in code
     assert "0.313\\linewidth" in code

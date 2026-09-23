@@ -30,7 +30,10 @@ visual design details should receive engineering/design review before
 execution. Phase C is now promoted to stable with the reviewed fixture and
 visual-QA helper landed. Phase D (venture theme and controlled branding) is
 implemented as an experimental theme; its critical gate passes on a
-non-pinned host and pinned-toolchain visual review remains (see §7).
+non-pinned host and pinned-toolchain visual review remains (see §7). Phase F1
+(executive brief) is implemented as an experimental publication type
+registered for executive and institutional-research; pinned-toolchain visual
+review remains (see F1).
 **Last updated:** 2026-09-23
 **Plans:** [2026-09-09-reportkit-multi-format-publication-architecture-spec.md](../specs/2026-09-09-reportkit-multi-format-publication-architecture-spec.md)
 **Amended by:** [2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md](../specs/2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md)
@@ -1663,6 +1666,52 @@ institutional-research only after both combinations compile.
 The acceptance fixture is 2–8 pages and covers recommendation, findings,
 compact exhibits, implication, risks, next steps and sources. Do not add a
 parallel executive component library.
+
+**F1 status (2026-09-23): implemented, experimental; pinned visual review
+remains.**
+
+- `latex_templates/publication_types/reportkit-executive-brief.sty` adds
+  only `briefheader`/`\briefmeta` (masthead and decision-metadata strip),
+  `briefactions`/`\briefaction` (action, owner, due) and `briefsources`.
+  Recommendation and implication use `decisionpoint`, headline numbers use
+  `metric`, risks use `redflag`/`assumption`, and evidence uses the exhibit
+  system with `source=` provenance.
+- The exhibit system and table grammar (`exhibit`, `fullwidthexhibit`,
+  `exhibitgrid`, `exhibitpair`, `\exhibitpane`, `financialtable`, Y/Z/C
+  columns) moved verbatim into the shared
+  `publication_types/reportkit-exhibits.sty`, which equity-research and
+  executive-brief both load. The equity-research fixture rendered
+  pixel-identical before and after the move on the local toolchain.
+  `registry.py` derives a shared module's `available_in` from the registered
+  publication packages that `\RequirePackage` it.
+- `themes/reportkit-theme-executive-paged.sty` is the executive theme's new
+  paged adapter (D11): Letter geometry, running furniture, section
+  placement, `\maketitle`, sans body, and the named `\rk...size` type scale
+  the shared paged modules read. `THEMES["executive"]` now lists
+  `paged` and `slides`.
+- `publication_pipeline/templates/executive-brief.tex` opens on
+  `briefheader` filled from publication identity, with no title or contents
+  page. `reportkit-longform.sty` gained `\ifRKSectionOpensPage` (default
+  true, so existing builds are unchanged), which the brief entrypoint turns
+  off so sections flow. `resolve_document()` now defaults an omitted paper
+  to the publication type's registered paper, so the recorded selection
+  says Letter for equity-research and executive-brief.
+- Fixture: `latex_templates/examples/executive-brief/` (`brief.tex` shared
+  body; `report.tex` for executive, `report-institutional-research.tex` for
+  institutional-research). Both compile to 3 Letter pages with no overfull
+  boxes on the local, unpinned TeX Live; the page PNGs were reviewed there.
+  Registration happened only after both combinations compiled.
+- Tests: `tests/test_executive_brief.py` (registry, reuse boundary, shared
+  type-scale contract, primitive availability, both fixture compiles, LaTeX
+  rejection of an unregistered theme, and a real pipeline build per theme).
+- `themes/executive.py` keeps its three slide slots and gains the seven
+  paged figure sizes (derived from the paged adapter's 177.9mm Letter text
+  width with institutional-research's ratios), since executive now renders
+  paged output.
+- Remaining: pinned-toolchain visual review and baselines before promotion
+  to stable; the fixture is not yet in `scripts/acceptance_check.sh` (it
+  needs its `brief.tex` include staged); no chart figure is exercised in the
+  brief fixture yet.
 
 ### F2 — book
 
