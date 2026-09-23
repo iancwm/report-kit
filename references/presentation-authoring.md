@@ -1,6 +1,6 @@
 # Presentation authoring contract
 
-This reference defines how to choose ReportKit's executive presentation compositions and how to write assertions that preserve the evidence canvas. It covers the typography and composition refinement target without changing the repository boundary or the renderer/theme split.
+This reference defines how to choose ReportKit's executive presentation compositions and how to write assertions that preserve the evidence canvas. It covers the implemented typography and composition refinement slice without changing the repository boundary or the renderer/theme split.
 
 The presentation publication type owns semantic composition names. The slides theme owns point sizes, spacing, gutters, density, and other appearance values. Authoring guidance must select a semantic role; it must not encode a theme name or repair a layout with local typography.
 
@@ -18,7 +18,7 @@ Presentation compositions are content-only: put them inside an explicit Beamer `
 | `closingslide` | Deliberate conclusion | The deck needs a final recommendation, implication, or call to action with intentional closing emphasis. | A standard assertion just because it is near the end. |
 | `referenceslide` | Sources and use | A source-heavy closing or appendix needs readable references and an optional usage/limitation note. | A footer substitute or a dense bibliography forced into microscopic type. |
 
-The first six names above are part of the current presentation composition vocabulary. `assertionslide`, `referenceslide`, `referenceitem`, and the dense card-grid contract are refinement targets; when working from a checkout that does not yet expose them through `reportkit context --json`, do not emulate them with arbitrary local TeX. Use the current stable composition that best matches the role and keep the target API documented here for the implementation checkpoint.
+The compositions above are part of the current presentation composition vocabulary. `assertionslide`, `referenceslide`, `referenceitem`, and the dense card-grid contract are implemented in main and exposed through the generated contract. Native visual release validation remains the gate for layout correctness; do not emulate the API with arbitrary local TeX or treat static contract coverage as visual approval.
 
 ## Assertion writing and fit
 
@@ -28,13 +28,13 @@ An assertion is one decision-relevant claim, not a report-section title or a sen
 - Two lines are acceptable; the compact assertion treatment may be used when the measured header fit requires it.
 - Three lines should generally be rewritten before build. If the claim still cannot fit after rewriting, split the slide.
 
-The planned fit contract has only three states: `standard`, `compact`, and `invalid`. It measures the rendered assertion against a bounded header, tries the standard assertion scale first, then the compact scale, and fails with `PRESENTATION_ASSERTION_TOO_LONG` if the compact assertion still does not fit. It does not continuously scale the font.
+The fit contract has only three states: `standard`, `compact`, and `invalid`. It measures the rendered assertion against a bounded header, tries the standard assertion scale first, then the compact scale, and fails with `PRESENTATION_ASSERTION_TOO_LONG` if the compact assertion still does not fit. It does not continuously scale the font.
 
 Never shrink body, dense-body, source, or reference text to rescue an oversized assertion. Rewrite or split the assertion/slide. Do not add a local `\\fontsize`, `\\small`, `\\scriptsize`, negative spacing, or per-card override; typography values belong to the theme's presentation tokens and semantic density roles.
 
-The executive refinement targets are approximately 18.5/22pt for a standard assertion, 16.5/20pt for compact assertions, and a 24 mm maximum assertion header, tuned only through native fixture review. These are theme-owned targets, not author-level magic numbers.
+The executive implementation uses approximately 18.5/22pt for a standard assertion, 16.5/20pt for compact assertions, and a 24 mm maximum assertion header, tuned only through native fixture review. These are theme-owned targets, not author-level magic numbers.
 
-A planned `assertionslide` has this semantic shape:
+`assertionslide` has this semantic shape:
 
     \\begin{frame}
       \\begin{assertionslide}[kicker={Parenting constitution}]{Six household rules prevent most major unforced errors.}[Agree on these before you are tired, stressed, or negotiating in front of the child.]
@@ -44,18 +44,18 @@ A planned `assertionslide` has this semantic shape:
 
 The exact implementation may expose equivalent xparse keys, but the contract remains: optional kicker, one required assertion, optional deck, bounded header, and arbitrary body evidence. The body must start below a stable header envelope; it must not be vertically rescued with content-dependent filler.
 
-## Planned dense semantic layouts
+## Dense semantic layouts
 
-The current API already has small fixed compositions such as `comparison`/`comparisoncolumn` and `threepart`/`threepartcolumn`. Those are useful for their existing contracts but do not provide a general dense-card grammar. The refinement target is a composition-level `cardgrid`/`carditem` API, or an equivalent small family of named semantic compositions, with theme-owned gutters, padding, density, and minimum text sizes.
+The current API includes the existing fixed compositions such as `comparison`/`comparisoncolumn` and `threepart`/`threepartcolumn`, as well as the general `cardgrid`/`carditem` grammar. Theme-owned gutters, padding, density, and minimum text sizes are part of the presentation contract. Native density-fixture rendering remains the release gate for visual correctness.
 
-| Planned layout | Intended content | Semantic constraints |
+| Supported layout | Intended content | Semantic constraints |
 | --- | --- | --- |
 | 2×2 cards | Four comparable rules, risks, choices, or evidence points. | Two columns, two equal-height rows, top-aligned content. |
 | 2×3 cards | Six compact rules or evidence points. | Two columns, three equal-height rows; shorten content or split if cards become prose paragraphs. |
 | Three-column cards | Three capabilities, options, or workstreams that deserve equal weight. | Three equal columns, aligned headings and stable internal padding. |
 | Four-step layout | An ordered process, method, or decision sequence. | Four equal horizontal steps with explicit order; use a process primitive when relationships/branching matter more than card text. |
 
-The intended target shape is illustrative until the owning implementation publishes the contract block:
+The supported shape is:
 
     \\begin{cardgrid}[columns=2]
       \\carditem[variant=surface]{Fear}{Violence, humiliation, and threats}
@@ -89,7 +89,7 @@ Do not add gradients, shadows, ornamental chrome, an icon library, or color-only
 
 ## References and continuation
 
-The planned `referenceslide`/`referenceitem` composition is for a source-heavy closing or appendix frame:
+The supported `referenceslide`/`referenceitem` composition is for a source-heavy closing or appendix frame:
 
     \\begin{frame}
       \\begin{referenceslide}{Sources and use}

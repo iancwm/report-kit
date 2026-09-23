@@ -2,9 +2,9 @@
 
 Implementation specification from visual review · 22 September 2026
 
-**Status:** Proposed  
-**Last updated:** 2026-09-22  
-**Priority:** P0 for headline hierarchy and the general-purpose assertion composition; P1/P2 for density and polish follow-ons.  
+**Status:** Core implementation landed in `main` through PRs #47–#50; native target-aware visual release validation remains open.  
+**Last updated:** 2026-09-23  
+**Priority:** Core P0/P1 implementation slice complete; P2 native visual release validation and polish follow-ons remain.  
 **Scope:** The stable `presentation × slides × executive` target. This is a refinement of the Phase C baseline, not a new visual family.  
 **Related architecture:** [2026-09-09-reportkit-multi-format-publication-architecture-spec.md](2026-09-09-reportkit-multi-format-publication-architecture-spec.md)
 
@@ -28,6 +28,12 @@ The first release slice is intentionally narrow:
 Secondary work improves body density, source legibility, grid composition, and references slides after the P0 hierarchy is stable.
 
 ---
+
+## Current implementation and verification status
+
+The core refinement implementation is present on `main` at `37093f8`, delivered through merged PRs #47–#50. The tree now contains the hero-versus-standard assertion hierarchy, measured `assertionslide` fitting, dense `cardgrid`/`carditem` compositions, `referenceslide`/`referenceitem`, constrained-authoring advisory preflight, updated authoring guidance, and the native density fixture source with static contract tests.
+
+Pinned CI [run 77](https://github.com/iancwm/report-kit/actions/runs/35718890321) passed the repository's current automated gates. It does not yet prove the visual release criteria in this specification: the target-aware native build of the canonical and density executive fixtures, 140-DPI review, mechanical envelope/safe-area checks, grayscale review, and canonical hero-closing regression remain open.
 
 ## 1. Problem statement
 
@@ -210,7 +216,7 @@ Add a general-purpose working-slide composition that provides:
 
 This is the default composition for slides where the evidence, not the title, should dominate.
 
-### B2. Proposed TeX API
+### B2. Implemented TeX API
 
 Preferred authoring form:
 
@@ -454,7 +460,7 @@ Do not create decorative gradients, shadows, icon libraries, or ornamental chrom
 
 A source-heavy closing frame should not be authored as a generic message or arbitrary report page.
 
-Proposed contract:
+Implemented contract:
 
 ```latex
 \begin{frame}
@@ -689,9 +695,12 @@ This refinement is complete when all of the following are true:
 
 ---
 
-## 18. Recommended first implementation PR
 
-Keep the first PR intentionally small:
+**Current completion note (2026-09-23):** The semantic and contract layers are implemented in `main`. Definition-of-done items that require native rendering evidence—especially dense-slide legibility, no overlap/clipping/safe-area violations, and canonical executive-fixture regression—remain release-gate work and must not be inferred from static tests alone.
+
+## 18. Historical implementation sequence
+
+The original plan was to keep the first PR intentionally small. The implementation was subsequently split across PRs #47–#50; this section is retained as historical sequencing guidance:
 
 **PR: Standard assertion hierarchy for executive presentations**
 

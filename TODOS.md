@@ -1,6 +1,6 @@
 # ReportKit — Outstanding Work
 
-**Last updated:** 2026-09-21
+**Last updated:** 2026-09-23
 
 This is the current-work index, not an audit. The front of the document contains
 only work that is still actionable. Completed implementation records and dated
@@ -19,8 +19,12 @@ and [references/documentation-status.md](references/documentation-status.md).
 | [2026-09-09-reportkit-multi-format-publication-architecture-spec.md](docs/superpowers/specs/2026-09-09-reportkit-multi-format-publication-architecture-spec.md) | A0–A5, Phase B, constrained-authoring item C′1, and Phase C executive theme are implemented; the pinned current-target acceptance gate is green and Phases D–F remain. | P2 |
 | [2026-09-10-reportkit-multi-format-publication-implementation-plan.md](docs/superpowers/plans/2026-09-10-reportkit-multi-format-publication-implementation-plan.md) | Same implementation state as the spec; the readable plan and Phase C fixture record are synchronized to the merged mainline, with Phases D–F remaining. | P2 |
 | [2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md](docs/superpowers/specs/2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md) | A′/B′, constrained authoring, standalone render, progressive-disclosure budgets, and the generated OpenAI adapter are implemented; i18n and tagging remain deferred. | P2 |
+| [2026-09-22-reportkit-presentation-typography-and-composition-refinement-spec.md](docs/superpowers/specs/2026-09-22-reportkit-presentation-typography-and-composition-refinement-spec.md) | Core implementation is merged; native density/canonical visual release validation remains. | P2 |
+| [2026-09-22-reportkit-presentation-typography-and-composition-refinement.md](docs/superpowers/plans/2026-09-22-reportkit-presentation-typography-and-composition-refinement.md) | Workstreams A/B/D and the semantic fixture source are merged; dense/reference authoring expansion and native C/E release gates remain. | P2 |
 
 ## Open work
+
+- **Presentation refinement — native visual release gate.** The assertion hierarchy, dense compositions, references composition, constrained-authoring preflight, and density fixture source are merged. Complete the target-aware native build of both canonical and density executive fixtures, 140-DPI visual review, mechanical envelope/safe-area checks, grayscale review, and canonical hero-closing regression. Do not claim release completion from static tests alone.
 
 ### P2
 
@@ -104,7 +108,11 @@ verification notes are retained in `History` below.
 - Multi-format Phase C is implemented: the executive theme has a reviewed
   consulting/strategy token system, a fictional 10-slide direct/pipeline
   fixture, shared primitive coverage, and a render-and-review QA helper. The
-  presentation composition API is unchanged; Phases D–F remain open.
+  presentation-refinement follow-on is also merged: hero-versus-standard
+  assertion roles, bounded measured `assertionslide` fitting, dense
+  `cardgrid`/`carditem` compositions, `referenceslide`, constrained-authoring
+  preflight, and the native density fixture source/tests are present. Native
+  visual release gates remain open; Phases D–F remain open.
 - The agent-facing A′/B′ contract, constrained Markdown/typed-IR authoring
   path, standalone render loop, progressive-disclosure budget slices, and
   generated OpenAI adapter are implemented. The deferred i18n and tagging
@@ -157,6 +165,15 @@ recipe does not address — a freshly-`apt`-installed TeX Live is not the
 pinned CI toolchain, so treat any hash-level (not just text/render-level)
 comparison against a checked-in baseline as informative, not authoritative,
 from a session provisioned this way.
+
+- 2026-09-23: synchronized the presentation-refinement documentation after
+  PRs #47–#50 merged to `main` at `37093f8`. The assertion hierarchy,
+  bounded measured `assertionslide`, dense card/reference compositions,
+  constrained-authoring preflight, authoring guidance, and density fixture
+  source are now recorded as implemented. Pinned CI [run 77](https://github.com/iancwm/report-kit/actions/runs/35718890321)
+  is green. The native target-aware density/canonical builds, mechanical PDF
+  envelope checks, 140-DPI visual review, and hero-closing regression remain
+  explicitly open; no baseline pixels were changed.
 
 ## History
 

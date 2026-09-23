@@ -2,8 +2,8 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans. Track progress with checkbox syntax and keep each workstream inside its declared file-ownership boundary.
 
-**Status:** Proposed  
-**Last updated:** 2026-09-22
+**Status:** Core implementation slices are merged in `main` through PRs #47–#50. Workstreams A1–A6, B1–B2, and D1–D4 are represented in the tree; dense/reference authoring expansion and native visual release gates remain.  
+**Last updated:** 2026-09-23
 
 **Goal:** Implement the presentation refinement spec so ReportKit distinguishes hero-message slides from ordinary assertion/evidence slides, preserves evidence canvas, supports deterministic headline fitting and dense presentation layouts, improves source/reference legibility, and proves the result through native ReportKit builds.
 
@@ -14,6 +14,18 @@
 **Tech stack:** LaTeX2e / Beamer / xparse / etoolbox, ReportKit theme tokens, Python typed authoring IR, pytest, PyMuPDF PDF inspection, LuaLaTeX, ReportKit publication pipeline.
 
 ---
+
+## Current implementation record
+
+The implementation landed on `main` at `37093f8` through PRs #47–#50. The merged slices cover:
+
+- **A:** assertion tokens, bounded/measured `assertionslide`, dense `cardgrid`/`carditem`, `referenceslide`, theme-owned density tokens, and generated contract metadata;
+- **B:** typed `assertionslide` authoring and advisory assertion-length preflight; dense-grid/reference authoring support remains partial;
+- **C:** the density fixture source and static acceptance tests; native compilation, PDF geometry checks, and 140-DPI visual review remain;
+- **D:** `SKILL.md` and presentation-authoring guidance for the implemented API;
+- **E:** the repository-wide pinned CI gate is green in [run 77](https://github.com/iancwm/report-kit/actions/runs/35718890321), but the presentation-specific native release gate has not yet been completed.
+
+The detailed checkbox breakdown below is retained as the original execution plan. This status block is authoritative for the current split between merged implementation and remaining release validation.
 
 ## 1. Parallelization strategy
 
@@ -104,7 +116,7 @@ The exact TeX `\PackageError` prose may vary, but the stable diagnostic identifi
 
 ---
 
-# Workstream A — LaTeX presentation system
+# Workstream A — LaTeX presentation system (core implementation landed; native visual review open)
 
 **Purpose:** Own all presentation semantics and appearance refinements in one conflict-free stream.
 
@@ -239,7 +251,7 @@ Return:
 
 ---
 
-# Workstream B — Constrained authoring and preflight
+# Workstream B — Constrained authoring and preflight (assertionslide/preflight landed; dense/reference authoring open)
 
 **Starts after:** A3 interface checkpoint.
 
@@ -303,7 +315,7 @@ Return:
 
 ---
 
-# Workstream C — Native density fixture and PDF inspection
+# Workstream C — Native density fixture and PDF inspection (release validation open)
 
 **Starts after:** A3 interface checkpoint. Can add P0 fixture first, then extend after A5/A6.
 
@@ -393,7 +405,7 @@ Return:
 
 ---
 
-# Workstream D — Agent and documentation contract
+# Workstream D — Agent and documentation contract (guidance landed)
 
 **Starts after:** A3 interface checkpoint. Extend after A5/A6.
 
@@ -429,17 +441,17 @@ Explicitly say that body text must not be shrunk to rescue an oversized assertio
 
 After A5:
 
-- [ ] document when to use 2×2, 2×3, three-column, and four-step layouts;
-- [ ] document semantic card variants;
-- [ ] warn against manually recreating those layouts with local font-size hacks.
+- [x] document when to use 2×2, 2×3, three-column, and four-step layouts;
+- [x] document semantic card variants;
+- [x] warn against manually recreating those layouts with local font-size hacks.
 
 ## Task D3 — References guidance
 
 After A6:
 
-- [ ] document `referenceslide`;
-- [ ] distinguish short provenance/source lines from full bibliographic references;
-- [ ] advise continuation slides rather than microscopic type.
+- [x] document `referenceslide`;
+- [x] distinguish short provenance/source lines from full bibliographic references;
+- [x] advise continuation slides rather than microscopic type.
 
 ## Task D4 — Machine-readable capability drift
 
@@ -458,7 +470,7 @@ Return:
 
 ---
 
-# Workstream E — Integration and release gate
+# Workstream E — Integration and release gate (remaining)
 
 **Starts after:** A-D complete.
 
