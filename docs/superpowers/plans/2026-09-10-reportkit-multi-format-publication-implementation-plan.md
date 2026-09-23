@@ -1726,6 +1726,39 @@ reading `SKILL.md`.
 - Preserve Vietnamese as metadata-only until an actual typography fixture
   proves more.
 
+**Implemented 2026-09-23 (working tree):** `ScriptCoverageTokens` now
+requires `font_stacks` (one `ScriptFontStack(body, heading, mono)` per
+verified script), `verified_languages`, and `metadata_only_languages`, beside
+the existing `verified`, `metadata_only`, and `rtl` fields.
+`reportkit.languages.validate_script_coverage` enforces the contract through
+`validate_theme_contract`, and `check_publication_registry` does the same for
+every registered theme. All three canonical themes declare `Latn` only,
+`en` verified, `vi` metadata-only, and RTL unsupported. The registry derives
+each theme's `language_support` from its Python `Theme`, and every renderer
+declares LTR-only text, verified-only locale typography, and the
+missing-glyph policy. `selection.language_support` combines the two, and
+the `selection` slice carries it; `quickstart` gains one summary line at 274
+estimated tokens. The generated LaTeX registry carries the language tables.
+`\setreportkitlanguage` loads babel only for verified languages, sets only
+the catalog language for metadata-only languages, rejects RTL, and rejects
+undeclared languages under strict policy. `\setreportkitfontpolicy` moved
+into the core. `strict` sets `\tracinglostchars=3`, which makes missing
+glyphs fatal. The pipeline writes both setters into `metadata.tex`, and
+`reportkit check` and `build` emit `RK_LANGUAGE_*` diagnostics before TeX
+runs. pdfLaTeX's inputenc "Unicode character" error now classifies as
+`missing_glyph`. Real LuaLaTeX and pdfLaTeX compiles in
+`tests/test_language_script_truthfulness.py` prove these behaviours. The
+tests include end-to-end `reportkit build` runs (strict exits 4, fallback
+exits 3 through the log gate, both with `missing_glyph`) and the
+`career_guide_vi` fixture failing under pdfLaTeX at U+1EC0.
+
+**Verification limits:** regional English (for example `en-GB`) truthfully
+resolves to babel's `american` locale. The pinned format has no separate UK
+patterns, and babel logs `Hyphen rules for 'british' set to \l@english`.
+Vietnamese compiles without missing glyphs under LuaLaTeX, but no fixture
+proves its hyphenation or punctuation conventions, so it stays
+metadata-only. No non-Latin script is verified.
+
 ## 12. Cross-cutting automated acceptance
 
 ### Static and contract
