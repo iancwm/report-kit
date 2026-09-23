@@ -18,6 +18,7 @@ from . import (
     GeometryTokens,
     RuleTokens,
     ScriptCoverageTokens,
+    ScriptFontStack,
     SpacingTokens,
     TableTokens,
     Theme,
@@ -78,7 +79,26 @@ CHARTS = ChartTokens(
     legend_style="above",
 )
 DIAGRAMS = DiagramTokens(node_font=8.4, node_padding=(5.0, 4.0), node_radius=3.0, edge_weight=1.1, label_font=7.2)
-SCRIPT_COVERAGE = ScriptCoverageTokens(verified=("Latn",), metadata_only=(), rtl="unsupported")
+# The families reportkit-theme-venture.sty actually selects, in fallback
+# order: Google Sans (bundled static faces) for body and display, then the
+# Inter / Noto Sans / TeX Gyre Heros chain; fontspec's default Latin Modern
+# Mono for code. A brand display_font replaces only display roles and is not
+# a verified coverage claim.
+_LATIN_SANS = ("Google Sans", "Inter", "Noto Sans", "TeX Gyre Heros")
+SCRIPT_COVERAGE = ScriptCoverageTokens(
+    verified=("Latn",),
+    metadata_only=(),
+    rtl="unsupported",
+    font_stacks={
+        "Latn": ScriptFontStack(
+            body=_LATIN_SANS,
+            heading=_LATIN_SANS,
+            mono=("Latin Modern Mono",),
+        ),
+    },
+    verified_languages=("en",),
+    metadata_only_languages=("vi",),
+)
 
 THEME = Theme(
     name="venture",

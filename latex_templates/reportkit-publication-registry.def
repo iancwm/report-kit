@@ -94,3 +94,6 @@
 \expandafter\def\csname RKThemeLanguage@technical@en\endcsname{verified}
 \expandafter\def\csname RKThemeLanguage@technical@vi\endcsname{metadata-only}
 \expandafter\def\csname RKThemeScripts@technical\endcsname{Latn}
+\expandafter\def\csname RKThemeLanguage@venture@en\endcsname{verified}
+\expandafter\def\csname RKThemeLanguage@venture@vi\endcsname{metadata-only}
+\expandafter\def\csname RKThemeScripts@venture\endcsname{Latn}

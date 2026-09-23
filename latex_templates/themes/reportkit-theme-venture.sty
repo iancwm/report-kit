@@ -44,14 +44,14 @@
 \newcommand{\rkventure@defaultdisplay}{Google Sans}
 \newcommand{\rkventure@displayname}{Google Sans}
 \newcommand{\rkventure@fontpath}{}
-\newcommand{\rkventure@fontpolicy}{fallback}
 % Public setters shared with the other LuaLaTeX themes' vocabulary; the
 % generated override file calls them only when they exist.
 \newcommand{\setreportkitfontfamily}[1]{\renewcommand{\rkventure@displayname}{#1}}
 % A directory containing <family>-Regular.ttf and <family>-Bold.ttf (with
 % any spaces removed from <family>), including the trailing slash.
 \newcommand{\setreportkitfontpath}[1]{\renewcommand{\rkventure@fontpath}{#1}}
-\newcommand{\setreportkitfontpolicy}[1]{\renewcommand{\rkventure@fontpolicy}{#1}}
+% \rk@fontpolicy and \setreportkitfontpolicy are defined by reportkit-core.sty
+% because strict also makes missing glyphs fatal under every theme.
 
 \newcommand{\rkventure@setbodyfamily}[1]{\setmainfont{#1}\setsansfont{#1}}
 \IfFontExistsTF{GoogleSans-Regular.ttf}{%
@@ -76,7 +76,7 @@
 % means "the body family in bold", which is the unbranded default.
 \newcommand{\rkventure@displayface}{}
 \newcommand{\rkventure@displayunavailable}{%
-  \ifdefstring{\rkventure@fontpolicy}{strict}{%
+  \ifdefstring{\rk@fontpolicy}{strict}{%
     \PackageError{reportkit-theme-venture}%
       {FAIL brand display font \rkventure@displayname\space is unavailable}%
       {Install the font, set theme.font_path to a directory containing it, or set theme.font_policy: fallback.}%
