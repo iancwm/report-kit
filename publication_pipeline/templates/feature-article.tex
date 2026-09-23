@@ -1,0 +1,27 @@
+% ReportKit entrypoint: feature-article. The builder replaces these
+% explicit placeholders from the resolved BuildTarget; no unrestricted TeX
+% formatting is applied to this source. The front-matter hook opens the
+% article with the publication type's semantic opening (headline, deck,
+% byline) built from publication.yaml identity; every visual value comes
+% from the selected theme's feature-composition tokens.
+\documentclass[theme=%%REPORTKIT_THEME%%,publication-type=%%REPORTKIT_PUBLICATION_TYPE%%]{%%REPORTKIT_CLASS%%}
+\newcommand{\RKFrontMatter}{%
+  \ifRKPubHasCover
+    \clearpage\thispagestyle{empty}\noindent
+    \makebox[\textwidth][c]{\includegraphics[page=1,width=\textwidth,height=\textheight,keepaspectratio]{\RKPubCoverPath}}\clearpage
+  \fi
+  \ifRKPubIsCombined
+    \RKFrontMatterBegin
+    \RKTitlePage[\RKPubSubtitle]{\RKPubTitle}
+    \RKPubPublicationDetails
+    \RKContents
+    \RKMainMatterBegin
+  \else
+    \begin{featureopening}
+    \featureheadline[\RKPubLeftHeader]{\RKPubTitle}
+    \if\relax\detokenize\expandafter{\RKPubSubtitle}\relax\else\featuredeck{\RKPubSubtitle}\fi
+    \if\relax\detokenize\expandafter{\RKPubAuthor}\relax\else\featurebyline{\RKPubAuthor}\fi
+    \end{featureopening}
+  \fi
+}
+\input{paged-base.tex}

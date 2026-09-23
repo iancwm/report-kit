@@ -31,6 +31,8 @@ execution. Phase C is now promoted to stable with the reviewed fixture and
 visual-QA helper landed. Phase F1 (executive brief) is implemented as an
 experimental publication type registered for executive and
 institutional-research; pinned-toolchain visual review remains (see F1).
+Phase E (editorial theme and feature-article type) is implemented as
+experimental, pending pinned visual review (see §9).
 **Last updated:** 2026-09-23
 **Plans:** [2026-09-09-reportkit-multi-format-publication-architecture-spec.md](../specs/2026-09-09-reportkit-multi-format-publication-architecture-spec.md)
 **Amended by:** [2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md](../specs/2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md)
@@ -39,7 +41,8 @@ institutional-research; pinned-toolchain visual review remains (see F1).
 Python/theme-contract, target-aware A5/equity-acceptance, automated B4
 slide-accessibility changes, Phase C executive fixture, and pinned fixture
 baselines retained in mainline. Workflow run 65 passed with 374 pytest cases
-and 1 skip; Phases D–F remain future work.
+and 1 skip. Phase E is implemented as experimental (section 9 records
+what landed and what remains); Phases D and F remain future work.
 
 ---
 
@@ -1590,6 +1593,58 @@ and the structured missing-PyMuPDF failure.
 
 **Gate:** replace the editorial theme with a test theme and compile the same
 feature structure unchanged. No feature primitive may mention editorial.
+
+**Status (2026-09-23): implemented as experimental; pinned visual review
+remains.** What landed:
+
+- `reportkit-theme-editorial.sty` (LuaLaTeX guard; Libertinus Serif body,
+  Libertinus Sans metadata/labels/charts, Libertinus Serif Display headlines,
+  Libertinus Serif Initials drop caps; warm ink/oxblood palette; all shared
+  callout/metric/diagram/algorithm tokens) and
+  `reportkit-theme-editorial-paged.sty` (A4, 150 mm text block, running
+  furniture, opening page style, and every feature token).
+- A third token contract in `reportkit-core.sty` ("Feature-composition style
+  tokens", 60 `\RKTokFeature...` tokens behind `\RKAssertFeatureTokens`),
+  mirroring the presentation-token pattern so no other paged theme has to
+  populate feature-only values.
+- `reportkit-feature-article.sty` with thirteen registered primitives:
+  `featureopening`, `featureheadline`, `featuredeck`, `featurebyline`,
+  `openingvisual`, `imagecredit`, `dropcap`, `featurecolumns`, `pullquote`,
+  `featuresidebar`, `featureexhibit`, `featuresection`, `featurereferences`.
+  Rhythm is a closed vocabulary: one-column flow, `featurecolumns`, and
+  full-width visuals (`openingvisual`, `featureexhibit[span=full]`). `span`
+  accepts only `column`/`full`; misuse fails with named `FEATURE_*` errors.
+- Registry entries (`editorial` theme, `feature-article` publication type,
+  both experimental, since 1.10.0), regenerated LaTeX registry,
+  `publication_pipeline/templates/feature-article.tex`, `reportkit.themes.editorial`
+  (palette-synchronized Python tokens, `inset`/`column` figure sizes), and
+  `references/feature-article-authoring.md` with a generated contract section.
+- Language coverage declared honestly: Latn/en verified, Vietnamese
+  metadata-only, other scripts undeclared (Libertinus has Greek/Cyrillic
+  glyphs, but no fixture verifies them), RTL unsupported.
+- Fixture `latex_templates/examples/editorial-feature/` (fictional
+  Varenholm flood-gauge feature, 6 A4 pages: opening page with opening
+  visual, drop cap, one- and two-column prose, two pull quotes, sidebar,
+  column/inset/full-width exhibits including a chart and a `reportflow`
+  diagram, image credits, references) plus a primitive smoke fixture in
+  `scripts/acceptance_check.sh`.
+
+**Gate verified by `tests/test_editorial_theme.py`:** the canonical fixture
+is recompiled with only `theme=editorial` swapped for a probe theme (the
+default common package plus a test-only feature adapter) registered through
+the real `render_latex_registry()`; it compiles, loads no editorial file or
+face, and its text block contains the same letters. The feature package and
+every registered feature primitive record contain no "editorial" mention,
+and the package sets no literal font, color or palette name.
+
+**Remaining:** pinned-toolchain visual review and checked-in page baselines
+(the fixture was reviewed only on an unpinned local TeX Live, so no pixel
+baseline is committed); promotion to stable after that review; chart text
+resolves Libertinus Sans only where it is registered with fontconfig (the
+unpinned host fell back to DejaVu Sans, the same gap the executive fixture
+has); non-floating exhibits can leave a partial page when a full-width
+exhibit does not fit, which is an authoring choice to review in the pinned
+render; `book` compatibility for editorial belongs to Phase F.
 
 ## 10. Phase F — executive brief and book polish
 

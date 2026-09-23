@@ -1,0 +1,56 @@
+% Phase E compile smoke test: every reportkit-feature-article.sty primitive
+% once, under the editorial theme. Not a real article -- the reviewed
+% fictional feature lives in latex_templates/examples/editorial-feature/.
+% Requires lualatex (decision D9); scripts/acceptance_check.sh compiles it in
+% its LuaLaTeX block.
+\documentclass[theme=editorial,publication-type=feature-article]{reportkit}
+\setreportkitleftheader{ReportKit acceptance}
+\setreportkitfooter{Feature-article smoke test}
+\title{Feature-article acceptance test}
+\author{ReportKit}
+\date{}
+
+\begin{document}
+
+\begin{featureopening}
+\featureheadline[Acceptance]{Every feature primitive, once}
+\featuredeck{A compile smoke test for the feature-article publication type.}
+\featurebyline{By ReportKit}[Fixture]
+\begin{openingvisual}{A placeholder rule standing in for an opening visual.}[Illustration: ReportKit]
+\rule{\linewidth}{25mm}
+\end{openingvisual}
+\end{featureopening}
+
+\dropcap{O}{ne-column} prose opens the article. It runs at the full text width and uses the theme's reading body.
+
+\featuresection{Two-column rhythm}[A standfirst introduces the section.]
+
+\begin{featurecolumns}
+Two-column prose follows the section opener.
+
+\pullquote{A pull quote lifts a short line out of the running text.}[Attribution]
+
+\begin{featuresidebar}{Sidebar}
+A self-contained companion box.
+\end{featuresidebar}
+
+\begin{featureexhibit}{A column exhibit fits its column}
+\rule{\linewidth}{20mm}
+\imagecredit{Source: ReportKit}
+\end{featureexhibit}
+\end{featurecolumns}
+
+\begin{featureexhibit}{An inset exhibit sits in one-column prose}
+\rule{\linewidth}{20mm}
+\end{featureexhibit}
+
+\begin{featureexhibit}[span=full]{A full-width exhibit spans the text block}
+\rule{\linewidth}{20mm}
+\imagecredit{Source: ReportKit}
+\end{featureexhibit}
+
+\begin{featurereferences}
+\item ReportKit (2026), feature-article smoke test. \url{https://example.com/reportkit}
+\end{featurereferences}
+
+\end{document}

@@ -1,8 +1,8 @@
 % Generated from python_scripts/reportkit/publications.py; do not edit.
 % Regenerate with: python -c 'from reportkit.publications import write_latex_registry; write_latex_registry(...)'
 \def\RKPublicationRegistryVersion{1}
-\def\RKValidThemes{default,executive,institutional-research,technical}
-\def\RKValidPublicationTypes{equity-research,executive-brief,presentation,technical-report}
+\def\RKValidThemes{default,editorial,executive,institutional-research,technical}
+\def\RKValidPublicationTypes{equity-research,executive-brief,feature-article,presentation,technical-report}
 \def\RKValidRenderers{paged,slides}
 \expandafter\def\csname RKRendererClass@paged\endcsname{reportkit}
 \expandafter\def\csname RKRendererClassFile@paged\endcsname{latex_templates/reportkit.cls}
@@ -20,6 +20,12 @@
 \expandafter\def\csname RKThemeRequiredEngine@default\endcsname{pdflatex}
 \expandafter\def\csname RKThemeAdapter@default@paged\endcsname{reportkit-theme-default-paged}
 \DeclareOption{theme=default}{\RKSetTheme{default}{default}}
+\expandafter\def\csname RKThemeCanonical@editorial\endcsname{editorial}
+\expandafter\def\csname RKThemePackage@editorial\endcsname{reportkit-theme-editorial}
+\expandafter\def\csname RKThemeRenderers@editorial\endcsname{paged}
+\expandafter\def\csname RKThemeRequiredEngine@editorial\endcsname{lualatex}
+\expandafter\def\csname RKThemeAdapter@editorial@paged\endcsname{reportkit-theme-editorial-paged}
+\DeclareOption{theme=editorial}{\RKSetTheme{editorial}{editorial}}
 \expandafter\def\csname RKThemeCanonical@executive\endcsname{executive}
 \expandafter\def\csname RKThemePackage@executive\endcsname{reportkit-theme-executive}
 \expandafter\def\csname RKThemeRenderers@executive\endcsname{paged,slides}
@@ -54,6 +60,13 @@
 \DeclareOption{publication-type=executive-brief}{\RKSetPublicationType{executive-brief}}
 \expandafter\def\csname RKPublicationTheme@executive-brief@executive\endcsname{1}
 \expandafter\def\csname RKPublicationTheme@executive-brief@institutional-research\endcsname{1}
+\expandafter\def\csname RKPublicationRenderer@feature-article\endcsname{paged}
+\expandafter\def\csname RKPublicationClass@feature-article\endcsname{reportkit}
+\expandafter\def\csname RKPublicationThemes@feature-article\endcsname{editorial}
+\expandafter\def\csname RKPublicationDefaultTheme@feature-article\endcsname{editorial}
+\expandafter\def\csname RKPublicationPackage@feature-article\endcsname{reportkit-feature-article}
+\DeclareOption{publication-type=feature-article}{\RKSetPublicationType{feature-article}}
+\expandafter\def\csname RKPublicationTheme@feature-article@editorial\endcsname{1}
 \expandafter\def\csname RKPublicationRenderer@presentation\endcsname{slides}
 \expandafter\def\csname RKPublicationClass@presentation\endcsname{reportkit-slides}
 \expandafter\def\csname RKPublicationThemes@presentation\endcsname{executive}
@@ -87,6 +100,9 @@
 \expandafter\def\csname RKThemeLanguage@default@en\endcsname{verified}
 \expandafter\def\csname RKThemeLanguage@default@vi\endcsname{metadata-only}
 \expandafter\def\csname RKThemeScripts@default\endcsname{Latn}
+\expandafter\def\csname RKThemeLanguage@editorial@en\endcsname{verified}
+\expandafter\def\csname RKThemeLanguage@editorial@vi\endcsname{metadata-only}
+\expandafter\def\csname RKThemeScripts@editorial\endcsname{Latn}
 \expandafter\def\csname RKThemeLanguage@executive@en\endcsname{verified}
 \expandafter\def\csname RKThemeLanguage@executive@vi\endcsname{metadata-only}
 \expandafter\def\csname RKThemeScripts@executive\endcsname{Latn}

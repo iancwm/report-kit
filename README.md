@@ -40,6 +40,9 @@ Migrating an existing content branch out of this repo is covered in
   exactly. `reportkit-theme-institutional-research.sty`
   (`theme=institutional-research`, requires `lualatex`) is a Letter-geometry,
   Google-Sans institutional research theme.
+  `reportkit-theme-editorial.sty` (`theme=editorial`, requires `lualatex`,
+  experimental) is an A4 magazine/thought-leadership theme with a Libertinus
+  Serif body and Libertinus Sans metadata.
 - `publication_types/` — structural primitives layered on top of a theme,
   selected via `\documentclass[publication-type=<name>]{reportkit}`.
   `reportkit-equity-research.sty` (`publication-type=equity-research`,
@@ -53,6 +56,12 @@ Migrating an existing content branch out of this repo is covered in
   (`publication-type=executive-brief`, experimental, `theme=executive` or
   `theme=institutional-research`) also loads for its short decision-brief
   masthead, action list, and source list.
+  `reportkit-feature-article.sty` (`publication-type=feature-article`,
+  experimental, currently requires `theme=editorial`) adds headline, deck,
+  byline, opening visual, drop cap, section opener, two-column prose, pull
+  quote, sidebar, feature exhibit, image credit, and references primitives;
+  see `references/feature-article-authoring.md` and
+  `examples/editorial-feature/` (6-page fictional feature).
 - `REPORT_TEMPLATE.tex` — minimal report skeleton.
 - `examples/{primitive_acceptance_test,visual_grammar_acceptance_test}.tex` —
   compile the legacy and v1.4 public APIs respectively; use the acceptance

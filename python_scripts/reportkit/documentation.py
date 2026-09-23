@@ -76,6 +76,7 @@ def generated_documents(repo_root: Path, registry: dict[str, Any]) -> dict[Path,
     targets = {
         repo_root / "references" / "primitive-contract.md": render_reference(registry),
         repo_root / "references" / "institutional-research-theme.md": render_reference(registry, publication_type="equity-research"),
+        repo_root / "references" / "feature-article-authoring.md": render_reference(registry, publication_type="feature-article"),
     }
     return {
         path: _replace_generated(path.read_text(encoding="utf-8"), generated)
