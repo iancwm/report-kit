@@ -490,6 +490,98 @@
 }
 
 % -----------------------------------------------------------------------------
+% Feature-composition style tokens (Phase E, decision D2 extended to the
+% feature-article publication type)
+% -----------------------------------------------------------------------------
+% A third contract with its own gate, for the same reason the presentation
+% tokens above have one: these are only ever read by
+% reportkit-feature-article.sty (loaded only when
+% publication-type=feature-article). Folding them into
+% \RKAssertStyleTokens would force every other paged theme to populate
+% feature-only values it never uses. Populated by a feature-compatible
+% theme's -paged adapter (composition spacing/type is a per-renderer
+% component value under D11). Every visual decision a feature composition
+% makes -- family, size, weight, color, rule, inset, spacing, the opening
+% page style and the credit alignment -- is one of these tokens, so a
+% second feature-compatible theme restyles the same article structure
+% without touching the publication type. Font tokens bundle their own
+% family/weight/\fontsize{}{}\selectfont; color tokens hold an xcolor
+% expression; length tokens hold a TeX dimension; ExhibitInsetFraction is
+% a bare number (a fraction of \linewidth) and DropCapLines a bare integer;
+% CreditAlign holds \raggedright, \raggedleft or \centering; KickerTransform
+% holds a one-argument macro (\MakeUppercase or \@firstofone).
+\newcommand{\RKTokFeatureOpeningPageStyle}{\rk@styletokenerror{\RKTokFeatureOpeningPageStyle}}
+\newcommand{\RKTokFeatureOpeningTopSkip}{\rk@styletokenerror{\RKTokFeatureOpeningTopSkip}}
+\newcommand{\RKTokFeatureOpeningRuleColor}{\rk@styletokenerror{\RKTokFeatureOpeningRuleColor}}
+\newcommand{\RKTokFeatureOpeningRuleWidth}{\rk@styletokenerror{\RKTokFeatureOpeningRuleWidth}}
+\newcommand{\RKTokFeatureOpeningAfterSkip}{\rk@styletokenerror{\RKTokFeatureOpeningAfterSkip}}
+\newcommand{\RKTokFeatureKickerFont}{\rk@styletokenerror{\RKTokFeatureKickerFont}}
+\newcommand{\RKTokFeatureKickerColor}{\rk@styletokenerror{\RKTokFeatureKickerColor}}
+\newcommand{\RKTokFeatureKickerTransform}{\rk@styletokenerror{\RKTokFeatureKickerTransform}}
+\newcommand{\RKTokFeatureHeadlineFont}{\rk@styletokenerror{\RKTokFeatureHeadlineFont}}
+\newcommand{\RKTokFeatureHeadlineColor}{\rk@styletokenerror{\RKTokFeatureHeadlineColor}}
+\newcommand{\RKTokFeatureDeckFont}{\rk@styletokenerror{\RKTokFeatureDeckFont}}
+\newcommand{\RKTokFeatureDeckColor}{\rk@styletokenerror{\RKTokFeatureDeckColor}}
+\newcommand{\RKTokFeatureBylineFont}{\rk@styletokenerror{\RKTokFeatureBylineFont}}
+\newcommand{\RKTokFeatureBylineColor}{\rk@styletokenerror{\RKTokFeatureBylineColor}}
+\newcommand{\RKTokFeatureElementSkip}{\rk@styletokenerror{\RKTokFeatureElementSkip}}
+\newcommand{\RKTokFeatureCaptionFont}{\rk@styletokenerror{\RKTokFeatureCaptionFont}}
+\newcommand{\RKTokFeatureCaptionColor}{\rk@styletokenerror{\RKTokFeatureCaptionColor}}
+\newcommand{\RKTokFeatureCreditFont}{\rk@styletokenerror{\RKTokFeatureCreditFont}}
+\newcommand{\RKTokFeatureCreditColor}{\rk@styletokenerror{\RKTokFeatureCreditColor}}
+\newcommand{\RKTokFeatureCreditAlign}{\rk@styletokenerror{\RKTokFeatureCreditAlign}}
+\newcommand{\RKTokFeaturePullQuoteFont}{\rk@styletokenerror{\RKTokFeaturePullQuoteFont}}
+\newcommand{\RKTokFeaturePullQuoteColor}{\rk@styletokenerror{\RKTokFeaturePullQuoteColor}}
+\newcommand{\RKTokFeaturePullQuoteAttributionFont}{\rk@styletokenerror{\RKTokFeaturePullQuoteAttributionFont}}
+\newcommand{\RKTokFeaturePullQuoteRuleColor}{\rk@styletokenerror{\RKTokFeaturePullQuoteRuleColor}}
+\newcommand{\RKTokFeaturePullQuoteRuleWidth}{\rk@styletokenerror{\RKTokFeaturePullQuoteRuleWidth}}
+\newcommand{\RKTokFeaturePullQuoteInset}{\rk@styletokenerror{\RKTokFeaturePullQuoteInset}}
+\newcommand{\RKTokFeaturePullQuoteSkip}{\rk@styletokenerror{\RKTokFeaturePullQuoteSkip}}
+\newcommand{\RKTokFeatureSidebarTitleFont}{\rk@styletokenerror{\RKTokFeatureSidebarTitleFont}}
+\newcommand{\RKTokFeatureSidebarTitleColor}{\rk@styletokenerror{\RKTokFeatureSidebarTitleColor}}
+\newcommand{\RKTokFeatureSidebarBodyFont}{\rk@styletokenerror{\RKTokFeatureSidebarBodyFont}}
+\newcommand{\RKTokFeatureSidebarFill}{\rk@styletokenerror{\RKTokFeatureSidebarFill}}
+\newcommand{\RKTokFeatureSidebarRuleColor}{\rk@styletokenerror{\RKTokFeatureSidebarRuleColor}}
+\newcommand{\RKTokFeatureSidebarRuleWidth}{\rk@styletokenerror{\RKTokFeatureSidebarRuleWidth}}
+\newcommand{\RKTokFeatureSidebarAccentRuleWidth}{\rk@styletokenerror{\RKTokFeatureSidebarAccentRuleWidth}}
+\newcommand{\RKTokFeatureSidebarPad}{\rk@styletokenerror{\RKTokFeatureSidebarPad}}
+\newcommand{\RKTokFeatureExhibitLabelFont}{\rk@styletokenerror{\RKTokFeatureExhibitLabelFont}}
+\newcommand{\RKTokFeatureExhibitLabelColor}{\rk@styletokenerror{\RKTokFeatureExhibitLabelColor}}
+\newcommand{\RKTokFeatureExhibitTitleFont}{\rk@styletokenerror{\RKTokFeatureExhibitTitleFont}}
+\newcommand{\RKTokFeatureExhibitTitleColor}{\rk@styletokenerror{\RKTokFeatureExhibitTitleColor}}
+\newcommand{\RKTokFeatureExhibitRuleColor}{\rk@styletokenerror{\RKTokFeatureExhibitRuleColor}}
+\newcommand{\RKTokFeatureExhibitRuleWidth}{\rk@styletokenerror{\RKTokFeatureExhibitRuleWidth}}
+\newcommand{\RKTokFeatureExhibitInsetFraction}{\rk@styletokenerror{\RKTokFeatureExhibitInsetFraction}}
+\newcommand{\RKTokFeatureExhibitSkip}{\rk@styletokenerror{\RKTokFeatureExhibitSkip}}
+\newcommand{\RKTokFeatureSectionFont}{\rk@styletokenerror{\RKTokFeatureSectionFont}}
+\newcommand{\RKTokFeatureSectionColor}{\rk@styletokenerror{\RKTokFeatureSectionColor}}
+\newcommand{\RKTokFeatureSectionRuleColor}{\rk@styletokenerror{\RKTokFeatureSectionRuleColor}}
+\newcommand{\RKTokFeatureSectionRuleWidth}{\rk@styletokenerror{\RKTokFeatureSectionRuleWidth}}
+\newcommand{\RKTokFeatureStandfirstFont}{\rk@styletokenerror{\RKTokFeatureStandfirstFont}}
+\newcommand{\RKTokFeatureStandfirstColor}{\rk@styletokenerror{\RKTokFeatureStandfirstColor}}
+\newcommand{\RKTokFeatureSectionSkip}{\rk@styletokenerror{\RKTokFeatureSectionSkip}}
+\newcommand{\RKTokFeatureColumnGutter}{\rk@styletokenerror{\RKTokFeatureColumnGutter}}
+\newcommand{\RKTokFeatureColumnRuleWidth}{\rk@styletokenerror{\RKTokFeatureColumnRuleWidth}}
+\newcommand{\RKTokFeatureColumnRuleColor}{\rk@styletokenerror{\RKTokFeatureColumnRuleColor}}
+\newcommand{\RKTokFeatureDropCapFont}{\rk@styletokenerror{\RKTokFeatureDropCapFont}}
+\newcommand{\RKTokFeatureDropCapColor}{\rk@styletokenerror{\RKTokFeatureDropCapColor}}
+\newcommand{\RKTokFeatureDropCapLeadFont}{\rk@styletokenerror{\RKTokFeatureDropCapLeadFont}}
+\newcommand{\RKTokFeatureDropCapLines}{\rk@styletokenerror{\RKTokFeatureDropCapLines}}
+\newcommand{\RKTokFeatureReferenceTitleFont}{\rk@styletokenerror{\RKTokFeatureReferenceTitleFont}}
+\newcommand{\RKTokFeatureReferenceFont}{\rk@styletokenerror{\RKTokFeatureReferenceFont}}
+\newcommand{\RKTokFeatureReferenceColor}{\rk@styletokenerror{\RKTokFeatureReferenceColor}}
+\newif\ifrk@featuretokensloaded
+\rk@featuretokensloadedfalse
+% Called by reportkit-feature-article.sty immediately before defining
+% anything that reads a token above.
+\newcommand{\RKAssertFeatureTokens}{%
+  \ifrk@featuretokensloaded\else
+    \PackageError{reportkit-core}{No theme has populated the required feature-composition style tokens}%
+      {Select a feature-compatible theme whose paged adapter populates the RKTokFeature tokens before reportkit-feature-article loads.}%
+  \fi
+}
+
+% -----------------------------------------------------------------------------
 % Anti-stranding page-break mechanism (structural, not visual -- every theme
 % shares the same heuristic fractions of \textheight)
 % -----------------------------------------------------------------------------

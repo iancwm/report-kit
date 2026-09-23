@@ -80,6 +80,10 @@ For source-heavy endings, the supported `referenceslide`/`referenceitem` contrac
 
 The stable `executive` theme is the supported consulting/strategy slide system; the `default` and `institutional-research` themes remain paged-only. It uses the bundled Libertinus Sans family for reproducible builds. Metadata, outline, meaningful links, and diagram alternatives are checked automatically; tagged PDF remains explicitly unsupported for any renderer. See [references/agent-contract.md](references/agent-contract.md), [references/repository-boundary.md](references/repository-boundary.md), [references/presentation-authoring.md](references/presentation-authoring.md), and the canonical `latex_templates/examples/executive-presentation/` fixture.
 
+### Feature articles
+
+For designed narrative reading — a magazine-style feature or thought-leadership article — use `\documentclass[theme=editorial,publication-type=feature-article]{reportkit}` with `lualatex` (both are experimental until pinned visual review). Build it from the feature primitives (`featureopening`, `featureheadline`, `featuredeck`, `featurebyline`, `openingvisual`, `dropcap`, `featuresection`, `featurecolumns`, `pullquote`, `featuresidebar`, `featureexhibit`, `imagecredit`, `featurereferences`); layout rhythm is limited to one-column prose, `featurecolumns`, and full-width visuals (`featureexhibit[span=full]` outside columns), never coordinates or local font changes. See [references/feature-article-authoring.md](references/feature-article-authoring.md) and `latex_templates/examples/editorial-feature/`.
+
 `reportkit context --json` is the authoritative capability and contract catalog, and `reportkit docs --check --json` is the documentation-drift gate. If a composition or card helper is added, update its owning source contract and rerun the supported drift command; do not hand-edit generated contract inventories. Documentation must distinguish the supported API from future roadmap capability; it must not imply that an absent capability is already available.
 ## Write for the decision
 

@@ -156,9 +156,14 @@ def _default_availability(path: Path) -> dict[str, list[str]]:
         return availability_for(publication_type="equity-research")
     if path.parent.name == "publication_types" and "presentation" in path.name:
         return availability_for(publication_type="presentation")
+    if path.parent.name == "publication_types" and "feature-article" in path.name:
+        return availability_for(publication_type="feature-article")
     if path.parent.name == "themes":
         theme = path.stem.removeprefix("reportkit-theme-")
-        publication = "equity-research" if theme == "institutional-research" else "technical-report"
+        publication = {
+            "institutional-research": "equity-research",
+            "editorial": "feature-article",
+        }.get(theme, "technical-report")
         return availability_for(publication_type=publication)
     return availability_for()
 

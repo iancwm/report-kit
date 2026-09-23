@@ -22,8 +22,9 @@ reportkit docs --check --json
 
 Contract version `1.1.0` describes the combinations registered today:
 `technical-report/{default,technical}/paged`,
-`equity-research/institutional-research/paged`, and the experimental
-`presentation/executive/slides` target. Theme entries expose semantic
+`equity-research/institutional-research/paged`,
+`presentation/executive/slides`, and the experimental
+`feature-article/editorial/paged` target. Theme entries expose semantic
 capability names, not visual values; `technical` resolves to the same
 implementation as `default`. English with Latin script is verified;
 Vietnamese is metadata-only pending the i18n phase, and RTL is unsupported.

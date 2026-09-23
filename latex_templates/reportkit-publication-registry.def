@@ -1,8 +1,8 @@
 % Generated from python_scripts/reportkit/publications.py; do not edit.
 % Regenerate with: python -c 'from reportkit.publications import write_latex_registry; write_latex_registry(...)'
 \def\RKPublicationRegistryVersion{1}
-\def\RKValidThemes{default,executive,institutional-research,technical}
-\def\RKValidPublicationTypes{equity-research,presentation,technical-report}
+\def\RKValidThemes{default,editorial,executive,institutional-research,technical}
+\def\RKValidPublicationTypes{equity-research,feature-article,presentation,technical-report}
 \def\RKValidRenderers{paged,slides}
 \expandafter\def\csname RKRendererClass@paged\endcsname{reportkit}
 \expandafter\def\csname RKRendererClassFile@paged\endcsname{latex_templates/reportkit.cls}
@@ -20,6 +20,12 @@
 \expandafter\def\csname RKThemeRequiredEngine@default\endcsname{pdflatex}
 \expandafter\def\csname RKThemeAdapter@default@paged\endcsname{reportkit-theme-default-paged}
 \DeclareOption{theme=default}{\RKSetTheme{default}{default}}
+\expandafter\def\csname RKThemeCanonical@editorial\endcsname{editorial}
+\expandafter\def\csname RKThemePackage@editorial\endcsname{reportkit-theme-editorial}
+\expandafter\def\csname RKThemeRenderers@editorial\endcsname{paged}
+\expandafter\def\csname RKThemeRequiredEngine@editorial\endcsname{lualatex}
+\expandafter\def\csname RKThemeAdapter@editorial@paged\endcsname{reportkit-theme-editorial-paged}
+\DeclareOption{theme=editorial}{\RKSetTheme{editorial}{editorial}}
 \expandafter\def\csname RKThemeCanonical@executive\endcsname{executive}
 \expandafter\def\csname RKThemePackage@executive\endcsname{reportkit-theme-executive}
 \expandafter\def\csname RKThemeRenderers@executive\endcsname{slides}
@@ -45,6 +51,13 @@
 \expandafter\def\csname RKPublicationPackage@equity-research\endcsname{reportkit-equity-research}
 \DeclareOption{publication-type=equity-research}{\RKSetPublicationType{equity-research}}
 \expandafter\def\csname RKPublicationTheme@equity-research@institutional-research\endcsname{1}
+\expandafter\def\csname RKPublicationRenderer@feature-article\endcsname{paged}
+\expandafter\def\csname RKPublicationClass@feature-article\endcsname{reportkit}
+\expandafter\def\csname RKPublicationThemes@feature-article\endcsname{editorial}
+\expandafter\def\csname RKPublicationDefaultTheme@feature-article\endcsname{editorial}
+\expandafter\def\csname RKPublicationPackage@feature-article\endcsname{reportkit-feature-article}
+\DeclareOption{publication-type=feature-article}{\RKSetPublicationType{feature-article}}
+\expandafter\def\csname RKPublicationTheme@feature-article@editorial\endcsname{1}
 \expandafter\def\csname RKPublicationRenderer@presentation\endcsname{slides}
 \expandafter\def\csname RKPublicationClass@presentation\endcsname{reportkit-slides}
 \expandafter\def\csname RKPublicationThemes@presentation\endcsname{executive}

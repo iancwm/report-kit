@@ -77,7 +77,7 @@ def test_every_in_tree_xparse_specifier_is_supported() -> None:
 def test_registry_is_complete_and_preserves_legacy_inventory() -> None:
     registry = generate_registry(REPO, strict=True)
     assert {kind: len(records) for kind, records in registry["primitives"].items()} == {
-        "callout": 14, "figure": 34, "chart": 13, "composition": 36, "command": 109,
+        "callout": 14, "figure": 34, "chart": 13, "composition": 42, "command": 116,
     }
     assert len(registry["figures"]) == 34
     assert len(registry["callouts"]["public"]) == 10
@@ -219,13 +219,15 @@ def test_full_build_emits_schema_v3_report_and_lock(tmp_path: Path) -> None:
 def test_context_catalog_contains_only_the_current_publication_matrix() -> None:
     capabilities = build_context(REPO)["capabilities"]
     # Phase B/C added the slides renderer, stable executive theme, and
-    # presentation publication type to the current public matrix.
-    assert set(capabilities["publication_types"]) == {"technical-report", "equity-research", "presentation"}
+    # presentation publication type to the current public matrix; Phase E
+    # added the experimental editorial theme and feature-article type.
+    assert set(capabilities["publication_types"]) == {"technical-report", "equity-research", "presentation", "feature-article"}
     assert capabilities["publication_types"]["technical-report"]["themes"] == ["default", "technical"]
     assert capabilities["publication_types"]["equity-research"]["themes"] == ["institutional-research"]
     assert capabilities["publication_types"]["presentation"]["themes"] == ["executive"]
+    assert capabilities["publication_types"]["feature-article"]["themes"] == ["editorial"]
     assert set(capabilities["renderers"]) == {"paged", "slides"}
-    assert set(capabilities["themes"]) == {"default", "technical", "institutional-research", "executive"}
+    assert set(capabilities["themes"]) == {"default", "technical", "institutional-research", "executive", "editorial"}
     assert all(theme["language_support"]["rtl"] == "unsupported" for theme in capabilities["themes"].values())
     assert all(theme["language_support"]["scripts"]["verified"] == ["Latn"] for theme in capabilities["themes"].values())
 

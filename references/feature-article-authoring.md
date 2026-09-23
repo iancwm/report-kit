@@ -1,6 +1,56 @@
-# ReportKit primitive contract
+# Feature-article authoring contract
 
-The exact generated primitive signatures are maintained below.
+This reference covers the `feature-article` publication type and the `editorial` theme (Phase E of the multi-format publication architecture). Both are **experimental**: the canonical fixture compiles and its structure/style boundary is tested, but pinned-toolchain visual review has not yet happened.
+
+Select them together:
+
+```latex
+\documentclass[theme=editorial,publication-type=feature-article]{reportkit}
+```
+
+or, in `publication.yaml`, `document.publication_type: feature-article`, `document.theme: editorial`, `document.engine: lualatex`. The editorial theme requires LuaLaTeX.
+
+## Structure versus style
+
+`reportkit-feature-article.sty` owns what a feature is made of; the theme owns how it looks. Every size, family, color, rule, inset and spacing value a feature primitive uses is a `\RKTokFeature...` token populated by the theme's paged adapter (`reportkit-theme-editorial-paged.sty`). A second feature-compatible theme restyles the same article source without edits; `tests/test_editorial_theme.py` proves this by compiling the canonical fixture again under an unrelated probe theme.
+
+Do not add local `\fontsize`, `\color`, `\vspace`, `minipage` or `\hspace` in the article body to adjust the look. Change the theme instead.
+
+## Primitive roles
+
+| Primitive | Role |
+| --- | --- |
+| `featureopening` | Opening block on the first page; applies the theme's opening page style. Use once. |
+| `\featureheadline[kicker]{headline}` | The article headline with an optional topic kicker. |
+| `\featuredeck{deck}` | One or two sentences stating what the article argues. |
+| `\featurebyline{byline}[detail]` | Author credit plus an optional dateline or reading time. |
+| `openingvisual` | Full-width opening image with caption and optional credit. |
+| `\dropcap{initial}{lead}` | Drop cap at the start of the first paragraph (at most once per section). |
+| `\featuresection{title}[standfirst]` | Section opener for a new movement of the story; registers the PDF outline and running head. |
+| `featurecolumns` | Two-column prose. Not nestable; no floats inside. |
+| `\pullquote{quote}[attribution]` | A short line from the article, set apart. Never invent quotes. |
+| `featuresidebar` | Self-contained companion box; unbreakable, keep under about half a page. |
+| `featureexhibit[span=...]{title}` | Numbered exhibit (`span=column` or `span=full`) with a finding-first title; credit it with `\imagecredit`. |
+| `\imagecredit{credit}` | Credit or source line for a visual. |
+| `featurereferences[title]` | Numbered notes and sources (`\item` entries) at the end of the article. |
+
+## Layout rhythm
+
+The rhythm vocabulary is closed on purpose; it is not a positioning API.
+
+- **One-column prose** is the default flow. A `span=column` exhibit here is an inset at the theme's inset width.
+- **Two-column prose** is `featurecolumns`. A `span=column` exhibit inside it fills its column.
+- **Full-width visuals** are `openingvisual` and `featureexhibit[span=full]`, placed outside `featurecolumns`. Using either inside columns fails with `FEATURE_EXHIBIT_FULL_SPAN_IN_COLUMNS` or `FEATURE_OPENING_VISUAL_IN_COLUMNS`; any other `span` value fails with `FEATURE_EXHIBIT_UNKNOWN_SPAN`.
+
+Exhibits are not floats: they stay where they are written. If an exhibit leaves a large gap at a page foot, move it or the surrounding prose rather than adding spacing.
+
+## Typography and language coverage
+
+The editorial theme sets body text in Libertinus Serif, headlines and section openers in Libertinus Serif Display, drop caps in Libertinus Serif Initials, and metadata, labels, captions, credits and chart text in Libertinus Sans. All four families ship in the pinned toolchain's bundled Libertinus archive.
+
+Coverage is declared, not assumed: English Latin-script typography is verified by the fixture; Vietnamese is metadata-only; other scripts are undeclared even though Libertinus contains Greek and Cyrillic glyphs; RTL is unsupported.
+
+Charts use `rkv.apply_theme("editorial")`, which exposes the paged size names plus `inset` and `column` sizes for the two exhibit spans. Matplotlib resolves Libertinus Sans only when the font is registered with fontconfig; otherwise it falls back to the next candidate.
 
 <!-- REPORTKIT-CONTRACT:START -->
 ## Generated primitive contract
@@ -16,7 +66,6 @@ This section is generated from source-adjacent contract metadata. Do not edit it
 | `deliverablenote` | `m` | `title` (text, required) | — | stable since 1.0.0 | <code>\begin{deliverablenote}{Example}&lt;br&gt;Example content.&lt;br&gt;\end{deliverablenote}</code> |
 | `evidence` | `m` | `title` (text, required) | — | stable since 1.0.0 | <code>\begin{evidence}{Example}&lt;br&gt;Example content.&lt;br&gt;\end{evidence}</code> |
 | `evidencenote` | `m` | `title` (text, required) | — | stable since 1.0.0 | <code>\begin{evidencenote}{Example}&lt;br&gt;Example content.&lt;br&gt;\end{evidencenote}</code> |
-| `execsummary` | `` | — | — | stable since 1.0.0 | <code>\begin{execsummary}&lt;br&gt;Example content.&lt;br&gt;\end{execsummary}</code> |
 | `limitation` | `m` | `title` (text, required) | — | stable since 1.0.0 | <code>\begin{limitation}{Example}&lt;br&gt;Example content.&lt;br&gt;\end{limitation}</code> |
 | `limitationnote` | `m` | `title` (text, required) | — | stable since 1.0.0 | <code>\begin{limitationnote}{Example}&lt;br&gt;Example content.&lt;br&gt;\end{limitationnote}</code> |
 | `metric` | `m m` | `label` (text, required)<br>`value` (text, required) | — | stable since 1.0.0 | <code>\begin{metric}{Example}{1}&lt;br&gt;Example content.&lt;br&gt;\end{metric}</code> |
@@ -89,46 +138,15 @@ This section is generated from source-adjacent contract metadata. Do not edit it
 | --- | --- | --- | --- | --- | --- |
 | `RKShortListing` | `O{}` | `options` (options, optional=) | — | stable since 1.0.0 | <code>\begin{RKShortListing}[]&lt;br&gt;Example content.&lt;br&gt;\end{RKShortListing}</code> |
 | `algorithmblock` | `O{} m` | `options` (options, optional=) — Optional label= and caption= (and linenumbers=&lt;step&gt;) keys.<br>`title` (text, required) — Algorithm name, shown after ALGORITHM in the box header. | Do not open or close the algorithmic environment directly inside algorithmblock; algorithmblock opens and closes it.<br>Never floats; a long algorithm may break across a page instead of drifting away from its introducing prose. | stable since 1.0.0 | <code>\begin{algorithmblock}{Two-pointer elimination}&lt;br&gt;\AlgorithmInput{Heights $h_0,\ldots,h_{n-1}$}&lt;br&gt;\AlgorithmOutput{Maximum container area}&lt;br&gt;\State $best \gets 0$&lt;br&gt;\end{algorithmblock}</code> |
-| `analystblock` | `` | — | — | stable since 1.8.0 | <code>\begin{analystblock}&lt;br&gt;Example content.&lt;br&gt;\end{analystblock}</code> |
-| `appendixdivider` | `m` | `title` (text, required) — Appendix title, also registered as a \section (prefixed Appendix:) for the PDF outline/bookmarks. | Content only; wrap in \begin{frame}[plain]...\end{frame}. | stable since 1.9.3 | <code>\begin{frame}[plain]&lt;br&gt;\begin{appendixdivider}{Example}&lt;br&gt;\end{appendixdivider}&lt;br&gt;\end{frame}</code> |
-| `architectureslide` | `O{} O{}` | `caption` (text, optional=) — Optional caption, typeset the same way a diagram's is.<br>`source` (text, optional=) — Optional source line. | Same layout as fullvisual; named separately so an author or agent authoring an architecture slide finds it directly.<br>Content only; wrap in \begin{frame}...\end{frame}. | stable since 1.9.3 | <code>\begin{frame}&lt;br&gt;\begin{architectureslide}[][]&lt;br&gt;Example content.&lt;br&gt;\end{architectureslide}&lt;br&gt;\end{frame}</code> |
-| `assertionslide` | `O{} m O{}` | `options` (options, optional=) — Optional key list; currently supports kicker={...}.<br>`assertion` (text, required) — The single working-slide assertion.<br>`deck` (text, optional=) — Optional short supporting sentence in the deck hierarchy. | Content only; wrap in \begin{frame}...\end{frame}.<br>The header is measured and reserved at a fixed maximum height; body typography is not reduced to rescue an invalid assertion.<br>The assertion resolves to standard, compact, or invalid; invalid emits PRESENTATION_ASSERTION_TOO_LONG. | stable since 1.9.3 | <code>\begin{frame}&lt;br&gt;\begin{assertionslide}[kicker={Parenting constitution}]{Six household rules prevent most major unforced errors.}[Agree on these before you are tired.]&lt;br&gt;Evidence body.&lt;br&gt;\end{assertionslide}&lt;br&gt;\end{frame}</code> |
-| `cardgrid` | `O{}` | `options` (options, optional=) — columns=2, 3, or 4; optional default card variant. | Only columns=2, columns=3, and columns=4 are supported; invalid values emit a hard diagnostic.<br>Gutters, padding, minimum height, rule weight, and text roles come from presentation tokens.<br>Variants use borders, rails, ordinals, or rule weight in addition to fill.<br>Content only; wrap in \begin{frame}...\end{frame}. | stable since 1.9.3 | <code>\begin{frame}&lt;br&gt;\begin{cardgrid}[columns=2,variant=surface]&lt;br&gt;\carditem[numbered]{Rule one}{Short evidence.}&lt;br&gt;\carditem[accent-rail]{Rule two}{Short evidence.}&lt;br&gt;\end{cardgrid}&lt;br&gt;\end{frame}</code> |
-| `chartslide` | `O{right} m m` | `position` (options, optional=right) — left or right: which side the chart (this environment's content) renders on. Default right.<br>`heading` (text, required) — Heading for the text column.<br>`body` (text, required) — Supporting insight text for the text column. | Same layout as visualtext; named separately so an author or agent authoring a chart slide finds it directly.<br>Content only; wrap in \begin{frame}...\end{frame}. | stable since 1.9.3 | <code>\begin{frame}&lt;br&gt;\begin{chartslide}[right]{Example}{Example}&lt;br&gt;Example content.&lt;br&gt;\end{chartslide}&lt;br&gt;\end{frame}</code> |
-| `closingslide` | `m` | `headline` (text, required) — Closing statement or call to action. | Content only; wrap in \begin{frame}[plain]...\end{frame}. | stable since 1.9.3 | <code>\begin{frame}[plain]&lt;br&gt;\begin{closingslide}{Example}&lt;br&gt;Example content.&lt;br&gt;\end{closingslide}&lt;br&gt;\end{frame}</code> |
 | `codeblock` | `O{} O{} m` | `title` (text, optional=) — Optional free-text label shown left of the language badge.<br>`options` (options, optional=) — keep=auto opts into measured, whole-unit pagination; omitted, behaviour is unchanged.<br>`language` (text, required) — Listings language name, e.g. Python, SQL, HTML. | keep=auto must be requested explicitly via the second optional argument; the default reservation is unchanged when it is omitted. | experimental since 1.3.0 | <code>\begin{codeblock}[Two-pointer scan][keep=auto]{Python}&lt;br&gt;def solve(nums):&lt;br&gt;    return nums&lt;br&gt;\end{codeblock}</code> |
-| `comparison` | `` | — | Content must be exactly two \comparisoncolumn calls.<br>Content only; wrap in \begin{frame}...\end{frame}. | stable since 1.9.3 | <code>\begin{frame}&lt;br&gt;\begin{comparison}&lt;br&gt;\comparisoncolumn{Example}{Example}&lt;br&gt;\comparisoncolumn{Example}{Example}&lt;br&gt;\end{comparison}&lt;br&gt;\end{frame}</code> |
 | `diagram` | `O{}` | `options` (options, optional=) | — | stable since 1.0.0 | <code>\begin{diagram}[]&lt;br&gt;Example content.&lt;br&gt;\end{diagram}</code> |
-| `estimatesblock` | `` | — | — | stable since 1.8.0 | <code>\begin{estimatesblock}&lt;br&gt;Example content.&lt;br&gt;\end{estimatesblock}</code> |
-| `evidenceslide` | `m` | `claim` (text, required) — The claim; content is the supporting evidence, visually separated from it. | Content only; wrap in \begin{frame}...\end{frame}. | stable since 1.9.3 | <code>\begin{frame}&lt;br&gt;\begin{evidenceslide}{Example}&lt;br&gt;Example content.&lt;br&gt;\end{evidenceslide}&lt;br&gt;\end{frame}</code> |
-| `exhibit` | `O{}` | `options` (options, optional=) | — | stable since 1.8.0 | <code>\begin{exhibit}[]&lt;br&gt;Example content.&lt;br&gt;\end{exhibit}</code> |
-| `exhibitgrid` | `O{}` | `options` (options, optional=) | An exhibit grid supports at most three columns. | stable since 1.8.0 | <code>\begin{exhibitgrid}[]&lt;br&gt;Example content.&lt;br&gt;\end{exhibitgrid}</code> |
-| `exhibitpair` | `` | — | — | stable since 1.8.0 | <code>\begin{exhibitpair}&lt;br&gt;Example content.&lt;br&gt;\end{exhibitpair}</code> |
 | `featurecolumns` | `` | — | featurecolumns cannot be nested.<br>featureexhibit[span=full] and openingvisual are not allowed inside; close the columns, place the full-width visual, then reopen.<br>Do not place floating figure/table environments inside; use featureexhibit. | experimental since 1.10.0 | <code>\begin{featurecolumns}&lt;br&gt;The survey began with a single gauge.&lt;br&gt;&lt;br&gt;Within a year there were forty.&lt;br&gt;\end{featurecolumns}</code> |
 | `featureexhibit` | `O{} m` | `options` (options, optional=) — span=column (default) or span=full. No other keys exist.<br>`title` (text, required) — Exhibit title stating the finding, not only the metric. | Only span=column and span=full are accepted; there are no coordinates, offsets or custom widths.<br>span=full inside featurecolumns fails with FEATURE_EXHIBIT_FULL_SPAN_IN_COLUMNS.<br>Exhibits stay where they are written; size the body to \linewidth. | experimental since 1.10.0 | <code>\begin{featureexhibit}[span=full]{Forty gauges halved the warning time}&lt;br&gt;\rule{\linewidth}{25mm}&lt;br&gt;\imagecredit{Source: fictional town survey}&lt;br&gt;\end{featureexhibit}</code> |
 | `featureopening` | `` | — | Use once, at the start of the article body, before any prose.<br>The opening page's running furniture comes from the theme; do not call \thispagestyle yourself. | experimental since 1.10.0 | <code>\begin{featureopening}&lt;br&gt;\featureheadline[Infrastructure]{The river that learned to count}&lt;br&gt;\featuredeck{How a fictional delta town rebuilt its flood defences around measurement.}&lt;br&gt;\featurebyline{By Mara Ellison}[Field report]&lt;br&gt;\end{featureopening}</code> |
 | `featurereferences` | `O{\RKFeatureReferencesName}` | `title` (text, optional=\RKFeatureReferencesName) — Heading for the list; defaults to the publication type's references name. | Contains only \item entries.<br>Place in one-column flow at the end of the article. | experimental since 1.10.0 | <code>\begin{featurereferences}&lt;br&gt;\item Delta Town Council (2026), Flood gauge survey. \url{https://example.com/survey}&lt;br&gt;\end{featurereferences}</code> |
 | `featuresidebar` | `m` | `title` (text, required) — Sidebar title. | The article must still read correctly if the sidebar is skipped.<br>A sidebar does not break across pages or columns; keep it under about half a page. | experimental since 1.10.0 | <code>\begin{featuresidebar}{How the gauges work}&lt;br&gt;Each gauge reports water height every ten minutes.&lt;br&gt;\end{featuresidebar}</code> |
-| `financialmodelpage` | `` | — | — | stable since 1.8.0 | <code>\begin{financialmodelpage}&lt;br&gt;Example content.&lt;br&gt;\end{financialmodelpage}</code> |
-| `financialtable` | `` | — | — | stable since 1.8.0 | <code>\begin{financialtable}&lt;br&gt;Example content.&lt;br&gt;\end{financialtable}</code> |
-| `fullvisual` | `O{} O{}` | `caption` (text, optional=) — Optional caption, typeset the same way a diagram's is.<br>`source` (text, optional=) — Optional source line. | Content only; wrap in \begin{frame}...\end{frame}. | stable since 1.9.3 | <code>\begin{frame}&lt;br&gt;\begin{fullvisual}[][]&lt;br&gt;Example content.&lt;br&gt;\end{fullvisual}&lt;br&gt;\end{frame}</code> |
-| `fullwidthexhibit` | `` | — | — | stable since 1.8.0 | <code>\begin{fullwidthexhibit}&lt;br&gt;Example content.&lt;br&gt;\end{fullwidthexhibit}</code> |
-| `herometric` | `m m` | `value` (text, required) — The number, dominating the frame.<br>`label` (text, required) — What the number is. | Content only; wrap in \begin{frame}...\end{frame}. | stable since 1.9.3 | <code>\begin{frame}&lt;br&gt;\begin{herometric}{Example}{Example}&lt;br&gt;Example content.&lt;br&gt;\end{herometric}&lt;br&gt;\end{frame}</code> |
-| `marketdatablock` | `` | — | — | stable since 1.8.0 | <code>\begin{marketdatablock}&lt;br&gt;Example content.&lt;br&gt;\end{marketdatablock}</code> |
-| `messageslide` | `m` | `headline` (text, required) — The one assertion this slide makes. | Content only; wrap in \begin{frame}...\end{frame}. | stable since 1.9.3 | <code>\begin{frame}&lt;br&gt;\begin{messageslide}{Example}&lt;br&gt;Example content.&lt;br&gt;\end{messageslide}&lt;br&gt;\end{frame}</code> |
 | `openingvisual` | `m o` | `caption` (text, required) — Caption describing what the visual shows.<br>`credit` (text, optional) — Optional image credit or source. | Always spans the full text width; size the body to \linewidth.<br>Credit every photograph or illustration not made for the article. | experimental since 1.10.0 | <code>\begin{openingvisual}{The delta at low water, drawn from the town survey.}[Illustration: ReportKit example]&lt;br&gt;\rule{\linewidth}{30mm}&lt;br&gt;\end{openingvisual}</code> |
 | `outputblock` | `` | — | — | stable since 1.0.0 | <code>\begin{outputblock}&lt;br&gt;Example content.&lt;br&gt;\end{outputblock}</code> |
-| `ratingstrip` | `o` | `item_count` (options, optional) | — | stable since 1.8.0 | <code>\begin{ratingstrip}[]&lt;br&gt;Example content.&lt;br&gt;\end{ratingstrip}</code> |
-| `referenceslide` | `m O{}` | `title` (text, required) — Compact heading for the references frame.<br>`note` (text, optional=) — Optional usage or limitation note. | Content only; wrap in \begin{frame}...\end{frame}.<br>Use 3–8 referenceitem calls; more than eight emits a hard overflow diagnostic and should continue on another slide.<br>Reference items use the theme-owned source font and are never silently shrunk below it. | stable since 1.9.3 | <code>\begin{frame}&lt;br&gt;\begin{referenceslide}{Sources and use}[Short usage note.]&lt;br&gt;\referenceitem{Author (2026), Title. \\url{https://example.com}}&lt;br&gt;\end{referenceslide}&lt;br&gt;\end{frame}</code> |
-| `researchfrontpage` | `` | — | — | stable since 1.8.0 | <code>\begin{researchfrontpage}&lt;br&gt;Example content.&lt;br&gt;\end{researchfrontpage}</code> |
-| `researchmain` | `` | — | researchmain must be immediately followed by researchsidebar. | stable since 1.8.0 | <code>\begin{researchmain}&lt;br&gt;Example content.&lt;br&gt;\end{researchmain}</code> |
-| `researchsidebar` | `` | — | researchsidebar must immediately follow researchmain. | stable since 1.8.0 | <code>\begin{researchsidebar}&lt;br&gt;Example content.&lt;br&gt;\end{researchsidebar}</code> |
-| `sectiondivider` | `m` | `title` (text, required) — Section title, also registered as a \section for the PDF outline/bookmarks. | Content only; wrap in \begin{frame}[plain]...\end{frame}. | stable since 1.9.3 | <code>\begin{frame}[plain]&lt;br&gt;\begin{sectiondivider}{Example}&lt;br&gt;\end{sectiondivider}&lt;br&gt;\end{frame}</code> |
-| `tableslide` | `O{right} m m` | `position` (options, optional=right) — left or right: which side the table (this environment's content) renders on. Default right.<br>`heading` (text, required) — Heading for the text column.<br>`body` (text, required) — Supporting insight text for the text column. | Same layout as visualtext; named separately so an author or agent authoring a table slide finds it directly.<br>Content only; wrap in \begin{frame}...\end{frame}. | stable since 1.9.3 | <code>\begin{frame}&lt;br&gt;\begin{tableslide}[right]{Example}{Example}&lt;br&gt;Example content.&lt;br&gt;\end{tableslide}&lt;br&gt;\end{frame}</code> |
-| `threepart` | `` | — | Content must be exactly three \threepartcolumn calls.<br>Content only; wrap in \begin{frame}...\end{frame}. | stable since 1.9.3 | <code>\begin{frame}&lt;br&gt;\begin{threepart}&lt;br&gt;\threepartcolumn{Example}{Example}&lt;br&gt;\threepartcolumn{Example}{Example}&lt;br&gt;\threepartcolumn{Example}{Example}&lt;br&gt;\end{threepart}&lt;br&gt;\end{frame}</code> |
-| `titleslide` | `` | — | Content only; wrap in \begin{frame}[plain]...\end{frame}.<br>Reads \title/\subtitle/\author/\date and reportkit-core's \rk@leftheader (set with \setreportkitleftheader); set those before use, as with the paged renderer's \maketitle. | stable since 1.9.3 | <code>\begin{frame}[plain]&lt;br&gt;\begin{titleslide}&lt;br&gt;\end{titleslide}&lt;br&gt;\end{frame}</code> |
-| `visualtext` | `O{right} m m` | `position` (options, optional=right) — left or right: which side the visual (this environment's content) renders on. Default right.<br>`heading` (text, required) — Heading for the text column.<br>`body` (text, required) — Supporting text for the text column. | Content only; wrap in \begin{frame}...\end{frame}. | stable since 1.9.3 | <code>\begin{frame}&lt;br&gt;\begin{visualtext}[right]{Example}{Example}&lt;br&gt;Example content.&lt;br&gt;\end{visualtext}&lt;br&gt;\end{frame}</code> |
-| `whatschanged` | `` | — | — | stable since 1.8.0 | <code>\begin{whatschanged}&lt;br&gt;Example content.&lt;br&gt;\end{whatschanged}</code> |
 
 ### Command primitives
 
@@ -160,16 +178,10 @@ This section is generated from source-adjacent contract metadata. Do not edit it
 | `RKSwimlaneSetup` | `m m` | `width` (text, required)<br>`lane_height` (text, required) | — | stable since 1.0.0 | <code>\RKSwimlaneSetup{1}{1}</code> |
 | `RKTitlePage` | `O{} m` | `options` (options, optional=)<br>`title` (text, required) | — | stable since 1.0.0 | <code>\RKTitlePage[]{Example}</code> |
 | `annotation` | `O{} m` | `options` (options, optional=) — row= to target a named arraystate row.<br>`text` (text, required) — Annotation text, typically an invariant or running computation. | Only valid inside arraystate. | experimental since 1.10.0 | <code>\annotation[row=prefix]{P_4 - P_1 = 7}</code> |
-| `basecase` | `m m` | `value` (text, required)<br>`detail` (text, required) | — | stable since 1.8.0 | <code>\basecase{1}{Example}</code> |
-| `bearcase` | `m m` | `value` (text, required)<br>`detail` (text, required) | — | stable since 1.8.0 | <code>\bearcase{1}{Example}</code> |
 | `branch` | `O{} m m m` | `options` (options, optional=)<br>`source` (text, required)<br>`target` (text, required)<br>`label` (text, required) | — | stable since 1.0.0 | <code>\branch[]{a}{b}{Example}</code> |
-| `bullcase` | `m m` | `value` (text, required)<br>`detail` (text, required) | — | stable since 1.8.0 | <code>\bullcase{1}{Example}</code> |
-| `carditem` | `O{} m m` | `variant` (options, optional=) — plain, surface, accent-rail, numbered, or emphasis; defaults to the parent grid variant.<br>`heading` (text, required) — Card heading.<br>`body` (text, required) — Dense evidence text. | Use inside cardgrid.<br>Only plain, surface, accent-rail, numbered, and emphasis are supported. | stable since 1.9.3 | <code>\carditem[accent-rail]{Heading}{Evidence}</code> |
 | `causaledge` | `m m m` | `source` (text, required)<br>`target` (text, required)<br>`polarity` (text, required) | — | stable since 1.0.0 | <code>\causaledge{a}{b}{+}</code> |
 | `causalnode` | `O{} m m` | `options` (options, optional=)<br>`id` (text, required)<br>`label` (text, required) | — | stable since 1.0.0 | <code>\causalnode[]{a}{Example}</code> |
 | `cell` | `O{} m` | `options` (options, optional=) — state= one of the nine shared algorithm states.<br>`value` (text, required) — Cell content. | Only valid inside arraystate or a \row call. | experimental since 1.10.0 | <code>\cell[state=active]{7}</code> |
-| `change` | `m m m` | `date` (text, required)<br>`headline` (text, required)<br>`detail` (text, required) | — | stable since 1.8.0 | <code>\change{Example}{Example}{Example}</code> |
-| `comparisoncolumn` | `m m` | `heading` (text, required) — Column heading.<br>`body` (text, required) — Column content. | Only valid inside a comparison environment. | stable since 1.9.3 | <code>\comparisoncolumn{Example}{Example}</code> |
 | `current` | `m` | `index` (text, required) — Zero-based index into the values already declared with \values. | Only valid inside heapstate.<br>index must be within the values already declared with \values. | experimental since 1.10.0 | <code>\current{0}</code> |
 | `currentcell` | `m m` | `row` (text, required) — 1-based row index.<br>`column` (text, required) — 1-based column index. | Only valid inside dptable.<br>row and column must fall within the declared rows= and columns=. | experimental since 1.10.0 | <code>\currentcell{3}{4}</code> |
 | `cycleedge` | `O{} m m` | `options` (options, optional=)<br>`source` (text, required)<br>`target` (text, required) | — | stable since 1.0.0 | <code>\cycleedge[]{a}{b}</code> |
@@ -183,7 +195,6 @@ This section is generated from source-adjacent contract metadata. Do not edit it
 | `entering` | `m m` | `index` (text, required) — Zero-based index (within the declared \values) the incoming value targets.<br>`value` (text, required) — Incoming value. | Only valid inside windowstate.<br>index must be within the declared \values range. | experimental since 1.10.0 | <code>\entering{5}{6}</code> |
 | `event` | `O{} m m m` | `options` (options, optional=)<br>`track` (text, required)<br>`position` (text, required)<br>`label` (text, required) | — | stable since 1.0.0 | <code>\event[]{a}{1}{Example}</code> |
 | `evidencetier` | `O{} m` | `options` (options, optional=)<br>`label` (text, required) | — | stable since 1.0.0 | <code>\evidencetier[]{Example}</code> |
-| `exhibitpane` | `O{} m` | `options` (options, optional=)<br>`content` (text, required) | — | stable since 1.8.0 | <code>\exhibitpane[]{Example}</code> |
 | `featurebyline` | `m o` | `byline` (text, required) — Author credit, e.g. By Name.<br>`detail` (text, optional) — Optional dateline, role or reading-time detail. | — | experimental since 1.10.0 | <code>\featurebyline{By Mara Ellison}[Field report]</code> |
 | `featuredeck` | `m` | `deck` (text, required) — Deck text. | Keep the deck to one or two sentences; it is not a summary section. | experimental since 1.10.0 | <code>\featuredeck{How a fictional delta town rebuilt its flood defences around measurement.}</code> |
 | `featureheadline` | `o m` | `kicker` (text, optional) — Optional short topic label shown above the headline.<br>`headline` (text, required) — The article headline; a complete, specific statement rather than a label. | Use one headline per article, normally inside featureopening. | experimental since 1.10.0 | <code>\featureheadline[Infrastructure]{The river that learned to count}</code> |
@@ -221,16 +232,12 @@ This section is generated from source-adjacent contract metadata. Do not edit it
 | `push` | `O{} m` | `options` (options, optional=) — state= one of the nine shared algorithm states.<br>`value` (text, required) — Item content. | Only valid inside stackstate. | experimental since 1.10.0 | <code>\push[state=current]{X}</code> |
 | `quadrant` | `m m m` | `column` (text, required)<br>`row` (text, required)<br>`label` (text, required) | — | stable since 1.0.0 | <code>\quadrant{1}{1}{Example}</code> |
 | `range` | `O{} m m` | `options` (options, optional=) — state= (default active) and row= to target a named arraystate row.<br>`start` (text, required) — Zero-based start index, inclusive.<br>`end` (text, required) — Zero-based end index, inclusive. | Only valid inside arraystate.<br>start must not exceed end. | experimental since 1.10.0 | <code>\range[state=active]{2}{6}</code> |
-| `ratingitem` | `m m` | `label` (text, required)<br>`value` (text, required) | — | stable since 1.8.0 | <code>\ratingitem{Example}{1}</code> |
 | `readyqueue` | `m` | `ids` (text, required) — Comma-separated list of node ids already declared with dagnode. | Only valid inside dagstate.<br>Every id must already be declared with dagnode.<br>Every id must have been declared with indegree=0 (or no indegree= at all); a nonzero-indegree id is a validation error. | experimental since 1.10.0 | <code>\readyqueue{raw,clean}</code> |
 | `recursionedge` | `O{} m m` | `options` (options, optional=) — Optional label= for the edge.<br>`parent` (text, required) — Calling node id.<br>`child` (text, required) — Called node id. | Only valid inside recursiontree.<br>Both ids must already be declared with recursionnode. | experimental since 1.10.0 | <code>\recursionedge{f4}{f3}</code> |
 | `recursionnode` | `O{} m m m` | `options` (options, optional=) — arguments= text, state= shared algorithm state, and memoized flag.<br>`id` (text, required) — Call id referenced by recursionedge.<br>`call` (text, required) — Function or call label.<br>`return` (text, required) — Returned value. | Only valid inside recursiontree. | experimental since 1.10.0 | <code>\recursionnode[arguments={n=4},state=current]{f4}{fib}{3}</code> |
-| `referenceitem` | `m` | `reference` (text, required) — One short source or reference entry. | Only valid inside referenceslide. | stable since 1.9.3 | <code>\referenceitem{Author (2026), Title.}</code> |
 | `risk` | `m m m m m` | `likelihood` (text, required)<br>`impact` (text, required)<br>`label` (text, required)<br>`owner` (text, required)<br>`status` (text, required) | — | stable since 1.0.0 | <code>\risk{1}{1}{Example}{Example}{Example}</code> |
-| `rkscenario` | `m m m m` | `label` (text, required)<br>`color` (text, required)<br>`value` (text, required)<br>`detail` (text, required) | — | stable since 1.8.0 | <code>\rkscenario{Example}{Accent}{1}{Example}</code> |
 | `row` | `m m` | `name` (text, required) — Row name, referenced later by \pointer/\range/\annotation's row= key.<br>`values` (text, required) — Comma-separated cell values. | Only valid inside arraystate. | experimental since 1.10.0 | <code>\row{values}{3,1,4,2}</code> |
 | `selfloop` | `O{} m m` | `options` (options, optional=)<br>`state` (text, required)<br>`label` (text, required) | — | stable since 1.0.0 | <code>\selfloop[]{a}{Example}</code> |
-| `sidebarrow` | `m m` | `label` (text, required)<br>`value` (text, required) | — | stable since 1.8.0 | <code>\sidebarrow{Example}{1}</code> |
 | `skewarrow` | `m m m m` | `source_track` (text, required)<br>`source_position` (text, required)<br>`target_track` (text, required)<br>`target_position` (text, required) | — | stable since 1.0.0 | <code>\skewarrow{a}{Example}{b}{Example}</code> |
 | `snapshot` | `m m` | `title` (text, required) — Short step label, e.g. the action taken this step.<br>`content` (text, required) — Any algorithm-state primitive (arraystate, windowstate, or a later family), used exactly as inside a diagram. | Only valid inside algorithmtrace.<br>Reading order is left to right, then top to bottom. | experimental since 1.10.0 | <code>\snapshot{Initial}{\begin{arraystate}\cell{1}\end{arraystate}}</code> |
 | `solvedcell` | `m m` | `row` (text, required) — 1-based row index.<br>`column` (text, required) — 1-based column index. | Only valid inside dptable.<br>row and column must fall within the declared rows= and columns=. | experimental since 1.10.0 | <code>\solvedcell{1}{1}</code> |
@@ -241,7 +248,6 @@ This section is generated from source-adjacent contract metadata. Do not edit it
 | `tail` | `m` | `id` (text, required) — Tail node id. | Only valid inside linkedliststate.<br>id must be declared with listnode. | experimental since 1.10.0 | <code>\tail{c}</code> |
 | `terminalstate` | `O{} m m` | `options` (options, optional=)<br>`id` (text, required)<br>`label` (text, required) | — | stable since 1.0.0 | <code>\terminalstate[]{a}{Example}</code> |
 | `terminalstateat` | `O{} m m m m` | `options` (options, optional=)<br>`id` (text, required)<br>`x` (text, required)<br>`y` (text, required)<br>`label` (text, required) | — | stable since 1.0.0 | <code>\terminalstateat[]{a}{1}{1}{Example}</code> |
-| `threepartcolumn` | `m m` | `heading` (text, required) — Column heading.<br>`body` (text, required) — Column content. | Only valid inside a threepart environment. | stable since 1.9.3 | <code>\threepartcolumn{Example}{Example}</code> |
 | `tracetransition` | `m` | `text` (text, required) — Short transition text, e.g. the condition or action that produced the next snapshot. | Only valid between two \snapshot calls inside algorithmtrace. | experimental since 1.10.0 | <code>\tracetransition{sum too small; advance L}</code> |
 | `transformarrow` | `m` | `label` (text, required) | — | stable since 1.0.0 | <code>\transformarrow{Example}</code> |
 | `transition` | `O{} m m m` | `options` (options, optional=)<br>`source` (text, required)<br>`target` (text, required)<br>`label` (text, required) | — | stable since 1.0.0 | <code>\transition[]{a}{b}{Example}</code> |
