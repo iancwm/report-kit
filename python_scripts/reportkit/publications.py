@@ -278,6 +278,16 @@ THEMES: dict[str, dict[str, Any]] = {
         renderer_adapters={"slides": "reportkit-theme-venture-slides"},
         brand_overrides=True,
     ),
+    # Phase E: the magazine / thought-leadership paged system. Experimental
+    # until its fixture passes pinned-toolchain visual review. Its language
+    # record comes from reportkit.themes.editorial's SCRIPT_COVERAGE (Latn/en
+    # verified, vi metadata-only, RTL unsupported) -- Libertinus carries
+    # Greek/Cyrillic glyphs, but no fixture verifies them.
+    "editorial": _theme(
+        "editorial", renderers=["paged"], required_engine="lualatex",
+        common_package="reportkit-theme-editorial", stability="experimental", since="1.10.0",
+        renderer_adapters={"paged": "reportkit-theme-editorial-paged"},
+    ),
 }
 
 
@@ -325,6 +335,20 @@ PUBLICATION_TYPES: dict[str, dict[str, Any]] = {
     # Phase B/C. Deliberately no "paper" key -- the slides renderer is a canvas
     # renderer (decision D5); resolve_build_target() rejects an explicit
     # document.paper for it rather than silently ignoring one.
+    # Phase E. Structure only (reportkit-feature-article.sty); every visual
+    # value comes from the selected theme's feature-composition tokens.
+    "feature-article": {
+        "name": "feature-article",
+        "renderer": "paged",
+        "paper": "a4",
+        "themes": ["editorial"],
+        "default_target": {"theme": "editorial", "paper": "a4"},
+        "template": "feature-article.tex",
+        "package": "reportkit-feature-article",
+        "selection_criteria": "Designed narrative reading: magazine-style features and thought-leadership articles.",
+        "stability": "experimental",
+        "since": "1.10.0",
+    },
     "presentation": {
         "name": "presentation",
         "renderer": "slides",

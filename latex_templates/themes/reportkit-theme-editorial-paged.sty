@@ -1,0 +1,138 @@
+% ReportKit theme adapter: editorial / paged renderer. Phase E of the
+% multi-format publication architecture spec (decision D11 split).
+%
+% Owns the editorial page: A4 geometry sized for a readable one-column
+% measure and a comfortable two-column magazine measure, quiet running
+% furniture, serif display section headings, \maketitle, and every
+% feature-composition token reportkit-feature-article.sty reads
+% (reportkit-core.sty's "Feature-composition style tokens" contract).
+% Composition spacing/type is a per-renderer component value under D11,
+% exactly like the executive slides adapter's presentation tokens.
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{reportkit-theme-editorial-paged}[2026/09/23 v1.0.0 ReportKit editorial theme / paged adapter]
+
+% -----------------------------------------------------------------------------
+% Geometry. 150mm text block on A4: about 85 characters per line in
+% one-column prose and about 40 per column in featurecolumns (7mm gutter).
+% reportkit/themes/editorial.py derives TEXT_WIDTH_IN from these margins.
+% -----------------------------------------------------------------------------
+\geometry{a4paper,left=30mm,right=30mm,top=24mm,bottom=26mm,headsep=8mm,footskip=12mm}
+
+% -----------------------------------------------------------------------------
+% Running furniture -- small sans metadata, hairline under the head, folio
+% on the outer foot. The opening page drops the running head.
+% -----------------------------------------------------------------------------
+\setlength{\headheight}{21pt}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\sffamily\fontsize{7.4}{9}\selectfont\color{Accent}\MakeUppercase{\rk@leftheader}}
+\fancyhead[R]{\sffamily\fontsize{7.4}{9}\selectfont\color{Muted}\nouppercase{\leftmark}}
+\fancyfoot[L]{\sffamily\fontsize{7.2}{9}\selectfont\color{Muted}\rk@footer\ \textperiodcentered\ \rk@version}
+\fancyfoot[R]{\sffamily\fontsize{7.2}{9}\selectfont\color{Ink}\thepage}
+\renewcommand{\headrulewidth}{0.35pt}
+\renewcommand{\footrulewidth}{0pt}
+\renewcommand{\headrule}{\hbox to\headwidth{\color{Hairline}\leaders\hrule height \headrulewidth\hfill}}
+\fancypagestyle{rkeditorialopening}{%
+  \fancyhf{}%
+  \fancyfoot[L]{\sffamily\fontsize{7.2}{9}\selectfont\color{Muted}\rk@footer\ \textperiodcentered\ \rk@version}%
+  \fancyfoot[R]{\sffamily\fontsize{7.2}{9}\selectfont\color{Ink}\thepage}%
+  \renewcommand{\headrulewidth}{0pt}%
+}
+
+% -----------------------------------------------------------------------------
+% Section hierarchy -- display serif, no accent-colored numbers. Plain
+% \section/\subsection remain available (the pipeline's Markdown headings
+% use them); \featuresection is the larger story-movement opener.
+% -----------------------------------------------------------------------------
+\newcommand{\RKSectionNeed}{12\baselineskip}
+\newcommand{\RKSubsectionNeed}{6\baselineskip}
+\titleformat{\section}{\RKReserveSpace{\RKSectionNeed}\rkeditorialdisplay\fontsize{17}{21}\selectfont\color{Ink}}{\thesection}{0.6em}{}
+\titlespacing*{\section}{0pt}{16pt plus 3pt minus 2pt}{6pt}
+\titleformat{\subsection}{\RKReserveSpace{\RKSubsectionNeed}\sffamily\bfseries\fontsize{10}{13}\selectfont\color{Ink}}{\thesubsection}{0.5em}{}
+\titlespacing*{\subsection}{0pt}{11pt plus 2pt minus 2pt}{3pt}
+
+% -----------------------------------------------------------------------------
+% Title -- generic entry point for documents that do not open with
+% featureopening (for example the pipeline's non-combined front matter).
+% -----------------------------------------------------------------------------
+\renewcommand{\maketitle}{%
+  \thispagestyle{rkeditorialopening}%
+  \vspace*{6mm}%
+  {\sffamily\bfseries\fontsize{8}{10}\selectfont\color{Accent}\MakeUppercase{\rk@leftheader}\par}%
+  \vspace{5mm}%
+  {\rkeditorialdisplay\fontsize{30}{34}\selectfont\color{Ink}\@title\par}%
+  \vspace{4mm}%
+  \ifx\@author\@empty\else{\sffamily\fontsize{9}{12}\selectfont\color{Muted}\@author}\fi
+  \ifx\@date\@empty\else{\sffamily\fontsize{9}{12}\selectfont\color{Muted}\quad\textperiodcentered\quad\@date}\fi
+  \par\vspace{6mm}{\color{Ink}\hrule height .8pt}\vspace{8mm}%
+}
+
+% -----------------------------------------------------------------------------
+% Feature-composition tokens (reportkit-core.sty's contract, read by
+% reportkit-feature-article.sty). Display serif for the headline, section
+% openers and pull quotes; italic serif deck; small sans kickers, bylines,
+% labels and credits; warm paper sidebars under an oxblood rule.
+% -----------------------------------------------------------------------------
+\renewcommand{\RKTokFeatureOpeningPageStyle}{rkeditorialopening}
+\renewcommand{\RKTokFeatureOpeningTopSkip}{4mm}
+\renewcommand{\RKTokFeatureOpeningRuleColor}{Ink}
+\renewcommand{\RKTokFeatureOpeningRuleWidth}{.8pt}
+\renewcommand{\RKTokFeatureOpeningAfterSkip}{5mm}
+\renewcommand{\RKTokFeatureKickerFont}{\sffamily\bfseries\fontsize{8.4}{10}\selectfont\addfontfeatures{LetterSpace=8}}
+\renewcommand{\RKTokFeatureKickerColor}{Accent}
+\renewcommand{\RKTokFeatureKickerTransform}{\MakeUppercase}
+\renewcommand{\RKTokFeatureHeadlineFont}{\rkeditorialdisplay\fontsize{38}{41}\selectfont\raggedright}
+\renewcommand{\RKTokFeatureHeadlineColor}{Ink}
+\renewcommand{\RKTokFeatureDeckFont}{\rmfamily\itshape\fontsize{14.5}{19.5}\selectfont\raggedright}
+\renewcommand{\RKTokFeatureDeckColor}{Muted}
+\renewcommand{\RKTokFeatureBylineFont}{\sffamily\fontsize{8.6}{11}\selectfont\raggedright}
+\renewcommand{\RKTokFeatureBylineColor}{Ink}
+\renewcommand{\RKTokFeatureElementSkip}{2.6mm}
+\renewcommand{\RKTokFeatureCaptionFont}{\sffamily\fontsize{7.8}{10}\selectfont\raggedright}
+\renewcommand{\RKTokFeatureCaptionColor}{Muted}
+\renewcommand{\RKTokFeatureCreditFont}{\sffamily\fontsize{6.6}{8.2}\selectfont\addfontfeatures{LetterSpace=4}}
+\renewcommand{\RKTokFeatureCreditColor}{Muted}
+\renewcommand{\RKTokFeatureCreditAlign}{\raggedleft}
+\renewcommand{\RKTokFeaturePullQuoteFont}{\rmfamily\itshape\fontsize{16.5}{21.5}\selectfont\raggedright}
+\renewcommand{\RKTokFeaturePullQuoteColor}{Accent}
+\renewcommand{\RKTokFeaturePullQuoteAttributionFont}{\sffamily\fontsize{7.8}{10}\selectfont\raggedright}
+\renewcommand{\RKTokFeaturePullQuoteRuleColor}{Accent}
+\renewcommand{\RKTokFeaturePullQuoteRuleWidth}{1.2pt}
+\renewcommand{\RKTokFeaturePullQuoteInset}{0pt}
+\renewcommand{\RKTokFeaturePullQuoteSkip}{3mm}
+\renewcommand{\RKTokFeatureSidebarTitleFont}{\sffamily\bfseries\fontsize{9.6}{12}\selectfont\raggedright}
+\renewcommand{\RKTokFeatureSidebarTitleColor}{Ink}
+\renewcommand{\RKTokFeatureSidebarBodyFont}{\sffamily\fontsize{8.6}{12}\selectfont\raggedright\setlength{\parindent}{0pt}\setlength{\parskip}{3pt}}
+\renewcommand{\RKTokFeatureSidebarFill}{Surface}
+\renewcommand{\RKTokFeatureSidebarRuleColor}{Accent}
+\renewcommand{\RKTokFeatureSidebarRuleWidth}{0pt}
+\renewcommand{\RKTokFeatureSidebarAccentRuleWidth}{2pt}
+\renewcommand{\RKTokFeatureSidebarPad}{4mm}
+\renewcommand{\RKTokFeatureExhibitLabelFont}{\sffamily\bfseries\fontsize{7.4}{9}\selectfont\addfontfeatures{LetterSpace=6}}
+\renewcommand{\RKTokFeatureExhibitLabelColor}{Accent}
+\renewcommand{\RKTokFeatureExhibitTitleFont}{\rkeditorialdisplay\fontsize{13}{16}\selectfont\raggedright}
+\renewcommand{\RKTokFeatureExhibitTitleColor}{Ink}
+\renewcommand{\RKTokFeatureExhibitRuleColor}{Ink}
+\renewcommand{\RKTokFeatureExhibitRuleWidth}{.5pt}
+\renewcommand{\RKTokFeatureExhibitInsetFraction}{.82}
+\renewcommand{\RKTokFeatureExhibitSkip}{4mm}
+\renewcommand{\RKTokFeatureSectionFont}{\rkeditorialdisplay\fontsize{22}{26}\selectfont\raggedright}
+\renewcommand{\RKTokFeatureSectionColor}{Ink}
+\renewcommand{\RKTokFeatureSectionRuleColor}{Accent}
+\renewcommand{\RKTokFeatureSectionRuleWidth}{1.4pt}
+\renewcommand{\RKTokFeatureStandfirstFont}{\rmfamily\itshape\fontsize{11.5}{15.5}\selectfont\raggedright}
+\renewcommand{\RKTokFeatureStandfirstColor}{Muted}
+\renewcommand{\RKTokFeatureSectionSkip}{6mm}
+\renewcommand{\RKTokFeatureColumnGutter}{7mm}
+\renewcommand{\RKTokFeatureColumnRuleWidth}{.35pt}
+\renewcommand{\RKTokFeatureColumnRuleColor}{Hairline}
+\renewcommand{\RKTokFeatureDropCapFont}{\rkeditorialinitials}
+\renewcommand{\RKTokFeatureDropCapColor}{Accent}
+\renewcommand{\RKTokFeatureDropCapLeadFont}{\scshape}
+\renewcommand{\RKTokFeatureDropCapLines}{3}
+\renewcommand{\RKTokFeatureReferenceTitleFont}{\sffamily\bfseries\fontsize{9.6}{12}\selectfont\addfontfeatures{LetterSpace=6}}
+\renewcommand{\RKTokFeatureReferenceFont}{\sffamily\fontsize{7.8}{10.4}\selectfont\raggedright}
+\renewcommand{\RKTokFeatureReferenceColor}{Ink}
+\rk@featuretokensloadedtrue
+
+\endinput

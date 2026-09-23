@@ -11,10 +11,11 @@ order, with its automated B4 slide-accessibility gate retained in the working
 branch. Phase C's executive theme and reviewed fixture are now stable. Phase D's
 venture theme, controlled branding and 12-slide pitch fixture are implemented
 as `experimental`; the critical executive-versus-venture smoke gate passes on
-a non-pinned host, and pinned-toolchain visual review remains. Phase F1's
-`executive-brief` publication type (§14) is implemented as experimental for
-the executive and institutional-research themes, pending pinned visual
-review; Phase E and the rest of Phase F (book) have not started.
+a non-pinned host. Phase F1's `executive-brief` publication type (§14) is
+implemented as experimental for the executive and institutional-research
+themes, and Phase E (editorial theme and feature-article type) is implemented
+as experimental. Phases D, E and F1 are pending pinned visual review; the
+rest of Phase F (book) has not started.
 Supersedes nothing; extends the architecture introduced by
 [2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md](2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md)
 (Steps 1–5 implemented, `reportkit.cls` v1.9.3).
@@ -1074,6 +1075,12 @@ Implement the editorial theme and the `feature-article` publication type.
 
 **Definition of done:** a long-form magazine-style article can be produced
 without falling back to technical-report visual grammar.
+
+**Status (2026-09-23):** implemented as experimental. The editorial theme,
+feature-article publication type, thirteen feature primitives, the 6-page
+fictional fixture, and the theme-swap gate are in the tree (see the
+implementation plan's Phase E section). Pinned visual review and promotion to
+stable remain.
 
 ### Phase F — Brief and book polish
 

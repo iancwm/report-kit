@@ -204,6 +204,7 @@ _MODULES = {
     "technical": "reportkit.themes.default",
     "institutional-research": "reportkit.themes.institutional_research",
     "executive": "reportkit.themes.executive",
+    "editorial": "reportkit.themes.editorial",
     "venture": "reportkit.themes.venture",
 }
 
