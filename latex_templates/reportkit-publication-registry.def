@@ -1,7 +1,7 @@
 % Generated from python_scripts/reportkit/publications.py; do not edit.
 % Regenerate with: python -c 'from reportkit.publications import write_latex_registry; write_latex_registry(...)'
 \def\RKPublicationRegistryVersion{1}
-\def\RKValidThemes{default,executive,institutional-research,technical}
+\def\RKValidThemes{default,executive,institutional-research,technical,venture}
 \def\RKValidPublicationTypes{equity-research,presentation,technical-report}
 \def\RKValidRenderers{paged,slides}
 \expandafter\def\csname RKRendererClass@paged\endcsname{reportkit}
@@ -38,6 +38,12 @@
 \expandafter\def\csname RKThemeRequiredEngine@technical\endcsname{pdflatex}
 \expandafter\def\csname RKThemeAdapter@technical@paged\endcsname{reportkit-theme-default-paged}
 \DeclareOption{theme=technical}{\RKSetTheme{technical}{default}}
+\expandafter\def\csname RKThemeCanonical@venture\endcsname{venture}
+\expandafter\def\csname RKThemePackage@venture\endcsname{reportkit-theme-venture}
+\expandafter\def\csname RKThemeRenderers@venture\endcsname{slides}
+\expandafter\def\csname RKThemeRequiredEngine@venture\endcsname{lualatex}
+\expandafter\def\csname RKThemeAdapter@venture@slides\endcsname{reportkit-theme-venture-slides}
+\DeclareOption{theme=venture}{\RKSetTheme{venture}{venture}}
 \expandafter\def\csname RKPublicationRenderer@equity-research\endcsname{paged}
 \expandafter\def\csname RKPublicationClass@equity-research\endcsname{reportkit}
 \expandafter\def\csname RKPublicationThemes@equity-research\endcsname{institutional-research}
@@ -47,11 +53,12 @@
 \expandafter\def\csname RKPublicationTheme@equity-research@institutional-research\endcsname{1}
 \expandafter\def\csname RKPublicationRenderer@presentation\endcsname{slides}
 \expandafter\def\csname RKPublicationClass@presentation\endcsname{reportkit-slides}
-\expandafter\def\csname RKPublicationThemes@presentation\endcsname{executive}
+\expandafter\def\csname RKPublicationThemes@presentation\endcsname{executive,venture}
 \expandafter\def\csname RKPublicationDefaultTheme@presentation\endcsname{executive}
 \expandafter\def\csname RKPublicationPackage@presentation\endcsname{reportkit-presentation}
 \DeclareOption{publication-type=presentation}{\RKSetPublicationType{presentation}}
 \expandafter\def\csname RKPublicationTheme@presentation@executive\endcsname{1}
+\expandafter\def\csname RKPublicationTheme@presentation@venture\endcsname{1}
 \expandafter\def\csname RKPublicationRenderer@technical-report\endcsname{paged}
 \expandafter\def\csname RKPublicationClass@technical-report\endcsname{reportkit}
 \expandafter\def\csname RKPublicationThemes@technical-report\endcsname{default,technical}

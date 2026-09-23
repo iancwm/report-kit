@@ -8,12 +8,15 @@ entrypoint split, constrained authoring path, effective-theme materialization,
 and selection-marker gate are implemented. Phase B (slide renderer and
 presentation semantics) is also implemented out of this spec's original phase
 order, with its automated B4 slide-accessibility gate retained in the working
-branch. Phase C's executive theme and reviewed fixture are now stable; Phases
-D–F have not started.
+branch. Phase C's executive theme and reviewed fixture are now stable. Phase D's
+venture theme, controlled branding and 12-slide pitch fixture are implemented
+as `experimental`; the critical executive-versus-venture smoke gate passes on
+a non-pinned host, and pinned-toolchain visual review remains. Phases E–F
+have not started.
 Supersedes nothing; extends the architecture introduced by
 [2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md](2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md)
 (Steps 1–5 implemented, `reportkit.cls` v1.9.3).
-**Last updated:** 2026-09-21
+**Last updated:** 2026-09-23
 **Current-state claims:** historical baseline verified against `origin/main` at
 `f45ab86` plus the merged implementation checkpoint at `f5f5a6b`; pinned
 workflow run 65 is the current acceptance record below.
@@ -884,7 +887,7 @@ Every theme × publication-type combination needs a canonical fixture.
 | Technical | career-guide (`examples/career_guide_en/`) | exists |
 | Institutional | equity-research (`examples/equity-research/`) | exists |
 | Executive | 8–10 slide fictional technology/strategy deck | exists — direct TeX and pipeline smoke coverage |
-| Venture | 10–12 slide fictional startup pitch | new |
+| Venture | 10–12 slide fictional startup pitch | exists — 12-slide direct/pipeline fixture; experimental pending pinned visual review |
 | Editorial | 6–8 page fictional feature article | new |
 
 **Executive deck must include:** title; assertion-evidence slide; architecture;

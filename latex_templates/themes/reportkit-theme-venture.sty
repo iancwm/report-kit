@@ -1,0 +1,364 @@
+% ReportKit theme: venture -- the brand-forward startup/pitch visual system
+% for the slides renderer. Phase D of the multi-format publication
+% architecture spec (§12.2, decisions D6, D8, D9): large type, lower density,
+% strong negative space, light and dark frames, product imagery and bold
+% metrics. It styles exactly the same reportkit-presentation.sty
+% compositions the executive theme styles; there is no venture composition
+% layer and no venture-only composition name.
+%
+% Owns fonts, palette, the constrained brand hooks, and renderer-neutral
+% semantic appearance -- the same split A4/D11 established for every other
+% theme. Canvas margins, running chrome, frame surfaces (light/dark) and the
+% presentation token scale live in reportkit-theme-venture-slides.sty, this
+% theme's only registered adapter.
+%
+% Controlled branding (D6). The registry marks venture as the only theme
+% with brand_overrides: true. The pipeline materializes the four brand keys
+% (primary, secondary, logo, display_font) from one EffectiveTheme record
+% into reportkit-theme-overrides.tex, which re-points the palette names below
+% (LinkBlue/Principle/Accent/MetricAccent for primary, Research for
+% secondary) and calls the font setters defined here. Nothing else about the
+% theme is configurable.
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{reportkit-theme-venture}[2026/09/23 v0.1.0 ReportKit venture theme]
+
+% -----------------------------------------------------------------------------
+% Engine guard (decision D9: new visual themes require LuaLaTeX)
+% -----------------------------------------------------------------------------
+\RequirePackage{iftex}
+\ifPDFTeX
+  \PackageError{reportkit-theme-venture}%
+    {The venture theme requires LuaLaTeX}%
+    {Compile with lualatex, or set document.engine: lualatex in publication.yaml.}
+\fi
+
+% -----------------------------------------------------------------------------
+% Fonts. Body and default display face: the bundled Google Sans static faces
+% (font_data/, installed by the pinned toolchain image), loaded by file name
+% so the Bold face resolves even though the static files share one family
+% style name. brand.display_font / theme.font_family replace only the display
+% face (titles, statements, hero metrics, closing); body, table and source
+% roles keep the body face so a brand font cannot break dense evidence text.
+% -----------------------------------------------------------------------------
+\RequirePackage{fontspec}
+\newcommand{\rkventure@defaultdisplay}{Google Sans}
+\newcommand{\rkventure@displayname}{Google Sans}
+\newcommand{\rkventure@fontpath}{}
+\newcommand{\rkventure@fontpolicy}{fallback}
+% Public setters shared with the other LuaLaTeX themes' vocabulary; the
+% generated override file calls them only when they exist.
+\newcommand{\setreportkitfontfamily}[1]{\renewcommand{\rkventure@displayname}{#1}}
+% A directory containing <family>-Regular.ttf and <family>-Bold.ttf (with
+% any spaces removed from <family>), including the trailing slash.
+\newcommand{\setreportkitfontpath}[1]{\renewcommand{\rkventure@fontpath}{#1}}
+\newcommand{\setreportkitfontpolicy}[1]{\renewcommand{\rkventure@fontpolicy}{#1}}
+
+\newcommand{\rkventure@setbodyfamily}[1]{\setmainfont{#1}\setsansfont{#1}}
+\IfFontExistsTF{GoogleSans-Regular.ttf}{%
+  \setmainfont{GoogleSans}[Extension=.ttf,UprightFont=*-Regular,BoldFont=*-Bold]%
+  \setsansfont{GoogleSans}[Extension=.ttf,UprightFont=*-Regular,BoldFont=*-Bold]%
+}{%
+  \IfFontExistsTF{Inter}{%
+    \rkventure@setbodyfamily{Inter}%
+    \PackageWarningNoLine{reportkit-theme-venture}{WARN Google Sans unavailable; using Inter}%
+  }{%
+    \IfFontExistsTF{Noto Sans}{%
+      \rkventure@setbodyfamily{Noto Sans}%
+      \PackageWarningNoLine{reportkit-theme-venture}{WARN Google Sans unavailable; using Noto Sans}%
+    }{%
+      \rkventure@setbodyfamily{TeX Gyre Heros}%
+      \PackageWarningNoLine{reportkit-theme-venture}{WARN Google Sans unavailable; using TeX Gyre Heros}%
+    }%
+  }%
+}
+
+% Display face switch used by the adapter's display-role font tokens. Empty
+% means "the body family in bold", which is the unbranded default.
+\newcommand{\rkventure@displayface}{}
+\newcommand{\rkventure@displayunavailable}{%
+  \ifdefstring{\rkventure@fontpolicy}{strict}{%
+    \PackageError{reportkit-theme-venture}%
+      {FAIL brand display font \rkventure@displayname\space is unavailable}%
+      {Install the font, set theme.font_path to a directory containing it, or set theme.font_policy: fallback.}%
+  }{%
+    \PackageWarningNoLine{reportkit-theme-venture}%
+      {WARN brand display font \rkventure@displayname\space unavailable; using the body face}%
+  }%
+}
+\newcommand{\rkventure@resolvedisplay}{%
+  \ifdefstring{\rkventure@displayname}{\rkventure@defaultdisplay}{%
+    \PackageInfo{reportkit-theme-venture}{PASS venture display font: \rkventure@displayname}%
+  }{%
+    \edef\rkventure@fontpathval{\rkventure@fontpath}%
+    \ifx\rkventure@fontpathval\@empty
+      \IfFontExistsTF{\rkventure@displayname}{%
+        \newfontfamily\rkventure@displayfamily{\rkventure@displayname}%
+        \renewcommand{\rkventure@displayface}{\rkventure@displayfamily}%
+        \PackageInfo{reportkit-theme-venture}{PASS venture display font: \rkventure@displayname}%
+      }{\rkventure@displayunavailable}%
+    \else
+      \edef\rkventure@displayfile{\directlua{tex.sprint((string.gsub("\luaescapestring{\rkventure@displayname}", " ", "")))}}%
+      \IfFileExists{\rkventure@fontpath\rkventure@displayfile-Regular.ttf}{%
+        \newfontfamily\rkventure@displayfamily{\rkventure@displayfile}[
+          Path=\rkventure@fontpath,Extension=.ttf,UprightFont=*-Regular,BoldFont=*-Bold,
+        ]%
+        \renewcommand{\rkventure@displayface}{\rkventure@displayfamily}%
+        \PackageInfo{reportkit-theme-venture}{PASS venture display font: \rkventure@displayname\space (local path \rkventure@fontpath)}%
+      }{\rkventure@displayunavailable}%
+    \fi
+  }%
+}
+\AtBeginDocument{\rkventure@resolvedisplay}
+
+% -----------------------------------------------------------------------------
+% Brand logo (D6). The generated override file defines \RKBrandLogo (a
+% root-relative path to the hashed, staged asset, or empty). Direct TeX
+% documents that never load an override file simply have no logo.
+% -----------------------------------------------------------------------------
+\newcommand{\rkventure@iflogo}[2]{\ifcsvoid{RKBrandLogo}{#2}{#1}}
+
+% -----------------------------------------------------------------------------
+% Palette. A vivid indigo primary with a coral secondary over near-black ink
+% and generous white space. Primary drives Accent, links, the principle rail
+% and hero metrics; secondary drives the second data series and the accent
+% on dark frames. Semantic roles stay distinct in colour and in grayscale.
+% -----------------------------------------------------------------------------
+\definecolor{Ink}{HTML}{111827}
+\definecolor{Muted}{HTML}{5B6475}
+\definecolor{Hairline}{HTML}{E3E6EE}
+\definecolor{Surface}{HTML}{F4F5FA}
+\definecolor{Accent}{HTML}{4F46E5}
+\definecolor{LinkBlue}{HTML}{4F46E5}
+\definecolor{Principle}{HTML}{4F46E5}
+\definecolor{Decision}{HTML}{D97706}
+\definecolor{Research}{HTML}{FF6A3D}
+\definecolor{Tip}{HTML}{059669}
+\definecolor{RedFlag}{HTML}{DC2626}
+\definecolor{Assumption}{HTML}{B45309}
+\definecolor{Evidence}{HTML}{334155}
+\definecolor{Limitation}{HTML}{6B7280}
+\definecolor{Deliverable}{HTML}{047857}
+\definecolor{MetricAccent}{HTML}{4F46E5}
+% Inverse (dark-frame) surface roles. The slides adapter re-points Ink,
+% Muted, Hairline, Surface and Accent to these inside a dark frame; they are
+% theme-owned and deliberately not brand-configurable.
+\definecolor{VentureNight}{HTML}{0B1020}
+\definecolor{VentureInverseInk}{HTML}{FFFFFF}
+\definecolor{VentureInverseMuted}{HTML}{B6BDCC}
+\definecolor{VentureInverseHairline}{HTML}{2A3246}
+\definecolor{VentureInverseSurface}{HTML}{161C30}
+
+\color{Ink}
+\hypersetup{colorlinks=true,linkcolor=LinkBlue,urlcolor=LinkBlue,citecolor=LinkBlue,pdfborder={0 0 0},pdfdisplaydoctitle=true}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{6pt plus 1pt minus .5pt}
+\setlist{nosep,leftmargin=1.5em,topsep=4pt,itemsep=3pt}
+\sisetup{detect-all=true,group-separator={,}}
+
+% -----------------------------------------------------------------------------
+% Style tokens (reportkit-core.sty's callout/metric contract). Venture cards
+% are airy: larger padding and radius, a bold primary rail, and a heavy
+% metric border so numbers read as the slide's subject.
+% -----------------------------------------------------------------------------
+\renewcommand{\RKTokCalloutColBack}{Surface}
+\renewcommand{\RKTokCalloutColFrame}{Surface}
+\renewcommand{\RKTokCalloutBoxRule}{0pt}
+\renewcommand{\RKTokCalloutLeftRule}{4pt}
+\renewcommand{\RKTokCalloutArc}{3pt}
+\renewcommand{\RKTokCalloutOuterArc}{3pt}
+\renewcommand{\RKTokCalloutPadLeft}{11pt}
+\renewcommand{\RKTokCalloutPadRight}{10pt}
+\renewcommand{\RKTokCalloutPadTop}{8pt}
+\renewcommand{\RKTokCalloutPadBottom}{8pt}
+\renewcommand{\RKTokCalloutBeforeSkip}{7pt}
+\renewcommand{\RKTokCalloutAfterSkip}{8pt}
+\renewcommand{\RKTokCalloutTitleFont}{\fontsize{8.5}{10}\selectfont}
+\renewcommand{\RKTokMetricColBack}{Surface}
+\renewcommand{\RKTokMetricColFrame}{Surface}
+\renewcommand{\RKTokMetricBoxRule}{0pt}
+\renewcommand{\RKTokMetricArc}{3pt}
+\renewcommand{\RKTokMetricOuterArc}{3pt}
+\renewcommand{\RKTokMetricPadLeft}{12pt}
+\renewcommand{\RKTokMetricPadRight}{12pt}
+\renewcommand{\RKTokMetricPadTop}{10pt}
+\renewcommand{\RKTokMetricPadBottom}{10pt}
+\renewcommand{\RKTokMetricBeforeSkip}{8pt}
+\renewcommand{\RKTokMetricAfterSkip}{9pt}
+\renewcommand{\RKTokMetricBorderLineWidth}{4pt}
+\renewcommand{\RKTokMetricLabelFont}{\fontsize{8.5}{10}\selectfont}
+\renewcommand{\RKTokMetricValueFont}{\fontsize{30}{32}\selectfont}
+\renewcommand{\RKTokMetricSubtitleFont}{\fontsize{9.5}{11.5}\selectfont}
+\renewcommand{\RKTokMetricSubtitleSpacing}{4pt}
+\renewcommand{\RKTokMetricWhyFont}{\fontsize{8.5}{10}\selectfont}
+% Diagram chrome. Soft filled cards, generous rounding, primary for emphasis
+% and secondary for causal/relationship edges. Geometry stays with the
+% shared primitives.
+\renewcommand{\RKTokDiagramNodeDraw}{Surface}
+\renewcommand{\RKTokDiagramNodeFill}{Surface}
+\renewcommand{\RKTokDiagramNodeText}{Ink}
+\renewcommand{\RKTokDiagramNodeRounding}{3pt}
+\renewcommand{\RKTokDiagramNodeMinHeight}{11mm}
+\renewcommand{\RKTokDiagramNodeTextWidth}{30mm}
+\renewcommand{\RKTokDiagramNodePadX}{5pt}
+\renewcommand{\RKTokDiagramNodePadY}{4pt}
+\renewcommand{\RKTokDiagramNodeFont}{\sffamily\fontsize{8.4}{10}\selectfont}
+\renewcommand{\RKTokDiagramAccentDraw}{Accent}
+\renewcommand{\RKTokDiagramAccentFill}{Accent!12}
+\renewcommand{\RKTokDiagramAccentWidth}{1.2pt}
+\renewcommand{\RKTokDiagramArrowLength}{5pt}
+\renewcommand{\RKTokDiagramArrowWidth}{5pt}
+\renewcommand{\RKTokDiagramEdgeFlowColor}{Accent}
+\renewcommand{\RKTokDiagramEdgeFlowWidth}{1.1pt}
+\renewcommand{\RKTokDiagramEdgeSequenceColor}{Accent}
+\renewcommand{\RKTokDiagramEdgeSequenceWidth}{1.1pt}
+\renewcommand{\RKTokDiagramEdgeDependencyColor}{Evidence}
+\renewcommand{\RKTokDiagramEdgeDependencyWidth}{.8pt}
+\renewcommand{\RKTokDiagramEdgeHandoffColor}{Muted}
+\renewcommand{\RKTokDiagramEdgeHandoffWidth}{.8pt}
+\renewcommand{\RKTokDiagramEdgeCausalColor}{Research}
+\renewcommand{\RKTokDiagramEdgeCausalWidth}{1.1pt}
+\renewcommand{\RKTokDiagramEdgeOptionalColor}{Muted}
+\renewcommand{\RKTokDiagramEdgeOptionalWidth}{.7pt}
+\renewcommand{\RKTokDiagramEdgeLabelFill}{white}
+\renewcommand{\RKTokDiagramEdgeLabelPad}{2pt}
+\renewcommand{\RKTokDiagramEdgeLabelText}{Muted}
+\renewcommand{\RKTokDiagramEdgeLabelFont}{\sffamily\fontsize{7.2}{8.6}\selectfont}
+\renewcommand{\RKTokDiagramLayerDraw}{Surface}
+\renewcommand{\RKTokDiagramLayerFill}{Surface}
+\renewcommand{\RKTokDiagramLayerWidth}{.5pt}
+\renewcommand{\RKTokDiagramLayerTitleFont}{\sffamily\bfseries\fontsize{7.4}{8.8}\selectfont}
+\renewcommand{\RKTokDiagramLayerTitleText}{Ink}
+\renewcommand{\RKTokDiagramLayerBodyFont}{\sffamily\fontsize{7}{8.4}\selectfont}
+\renewcommand{\RKTokDiagramLayerBodyText}{Muted}
+\renewcommand{\RKTokDiagramTierDraw}{Surface}
+\renewcommand{\RKTokDiagramTierFill}{Surface}
+\renewcommand{\RKTokDiagramTierWidth}{.5pt}
+\renewcommand{\RKTokDiagramTierLabelFont}{\sffamily\fontsize{8.2}{9.8}\selectfont}
+\renewcommand{\RKTokDiagramTierLabelText}{Ink}
+\renewcommand{\RKTokDiagramStackArrowColor}{Accent}
+\renewcommand{\RKTokDiagramStackArrowWidth}{.9pt}
+\renewcommand{\RKTokDiagramCycleNodeFont}{\sffamily\fontsize{8.2}{9.8}\selectfont}
+\renewcommand{\RKTokDiagramCycleEdgeColor}{Accent}
+\renewcommand{\RKTokDiagramCycleEdgeWidth}{1pt}
+\renewcommand{\RKTokDiagramMatrixAxisColor}{Hairline}
+\renewcommand{\RKTokDiagramMatrixAxisWidth}{.7pt}
+\renewcommand{\RKTokDiagramMatrixAxisLabelFont}{\sffamily\fontsize{7.8}{9.2}\selectfont}
+\renewcommand{\RKTokDiagramMatrixAxisLabelText}{Muted}
+\renewcommand{\RKTokDiagramMatrixEndpointFont}{\sffamily\fontsize{7.2}{8.6}\selectfont}
+\renewcommand{\RKTokDiagramMatrixEndpointText}{Muted}
+\renewcommand{\RKTokDiagramMatrixAccentColor}{Accent}
+\renewcommand{\RKTokDiagramMatrixCellFont}{\sffamily\bfseries\fontsize{8.2}{9.8}\selectfont}
+\renewcommand{\RKTokDiagramMatrixCellText}{Ink}
+\renewcommand{\RKTokDiagramMatrixPointColor}{Research}
+\renewcommand{\RKTokDiagramMatrixPointRadius}{2.4pt}
+\renewcommand{\RKTokDiagramMatrixPointLabelFont}{\sffamily\fontsize{7.4}{8.8}\selectfont}
+\renewcommand{\RKTokDiagramMatrixPointLabelText}{Ink}
+\renewcommand{\RKTokDiagramLaneDividerColor}{Hairline}
+\renewcommand{\RKTokDiagramLaneDividerWidth}{.6pt}
+\renewcommand{\RKTokDiagramLaneLabelFont}{\sffamily\fontsize{7.8}{9.2}\selectfont}
+\renewcommand{\RKTokDiagramLaneLabelText}{Muted}
+\renewcommand{\RKTokDiagramTimelineAxisColor}{Accent}
+\renewcommand{\RKTokDiagramTimelineAxisWidth}{1.2pt}
+\renewcommand{\RKTokDiagramTimelineDotColor}{Research}
+\renewcommand{\RKTokDiagramTimelineDotRadius}{3pt}
+\renewcommand{\RKTokDiagramRoadmapAccentColor}{Research}
+\renewcommand{\RKTokDiagramRoadmapAccentFont}{\sffamily\bfseries\fontsize{7.8}{9.2}\selectfont}
+\renewcommand{\RKTokDiagramStructureCardDraw}{Surface}
+\renewcommand{\RKTokDiagramStructureCardFill}{Surface}
+\renewcommand{\RKTokDiagramStructureCardRounding}{3pt}
+\renewcommand{\RKTokDiagramStructureCardWidth}{.5pt}
+\renewcommand{\RKTokDiagramStructureCardPadX}{5pt}
+\renewcommand{\RKTokDiagramStructureCardPadY}{4.5pt}
+\renewcommand{\RKTokDiagramStructureCardFont}{\sffamily\fontsize{7.8}{9.2}\selectfont}
+\renewcommand{\RKTokDiagramStructureCardText}{Ink}
+\renewcommand{\RKTokDiagramStructureTitleFont}{\sffamily\bfseries\fontsize{8.2}{9.8}\selectfont}
+\renewcommand{\RKTokDiagramStructureTitleText}{Ink}
+\renewcommand{\RKTokDiagramStructureMutedFont}{\sffamily\fontsize{7.4}{8.8}\selectfont}
+\renewcommand{\RKTokDiagramStructureMutedText}{Muted}
+\renewcommand{\RKTokDiagramStructureArrowColor}{Accent}
+\renewcommand{\RKTokDiagramStructureArrowWidth}{1pt}
+\renewcommand{\RKTokDiagramStructureArrowTip}{4.2pt}
+% Algorithm-visualization state grammar (reportkit-algorithm-viz.sty family).
+% Reuses this theme's semantic colors; LineStyle tokens keep state meaning
+% legible in grayscale.
+\renewcommand{\RKTokAlgorithmCellDraw}{Hairline}
+\renewcommand{\RKTokAlgorithmCellFill}{white}
+\renewcommand{\RKTokAlgorithmCellText}{Ink}
+\renewcommand{\RKTokAlgorithmCellLineStyle}{solid}
+\renewcommand{\RKTokAlgorithmCurrentDraw}{Accent}
+\renewcommand{\RKTokAlgorithmCurrentFill}{Accent!14}
+\renewcommand{\RKTokAlgorithmCurrentText}{Ink}
+\renewcommand{\RKTokAlgorithmCurrentLineStyle}{line width=1.2pt}
+\renewcommand{\RKTokAlgorithmActiveDraw}{Accent}
+\renewcommand{\RKTokAlgorithmActiveFill}{Accent!8}
+\renewcommand{\RKTokAlgorithmActiveText}{Ink}
+\renewcommand{\RKTokAlgorithmActiveLineStyle}{solid}
+\renewcommand{\RKTokAlgorithmCandidateDraw}{Muted}
+\renewcommand{\RKTokAlgorithmCandidateFill}{Surface}
+\renewcommand{\RKTokAlgorithmCandidateText}{Ink}
+\renewcommand{\RKTokAlgorithmCandidateLineStyle}{dash pattern=on 2.4pt off 1.6pt}
+\renewcommand{\RKTokAlgorithmFrontierDraw}{Research}
+\renewcommand{\RKTokAlgorithmFrontierFill}{Research!10}
+\renewcommand{\RKTokAlgorithmFrontierText}{Ink}
+\renewcommand{\RKTokAlgorithmFrontierLineStyle}{solid}
+\renewcommand{\RKTokAlgorithmVisitedDraw}{Muted}
+\renewcommand{\RKTokAlgorithmVisitedFill}{Hairline!55!white}
+\renewcommand{\RKTokAlgorithmVisitedText}{Muted}
+\renewcommand{\RKTokAlgorithmVisitedLineStyle}{solid}
+\renewcommand{\RKTokAlgorithmResolvedDraw}{Deliverable}
+\renewcommand{\RKTokAlgorithmResolvedFill}{Deliverable!12}
+\renewcommand{\RKTokAlgorithmResolvedText}{Ink}
+\renewcommand{\RKTokAlgorithmResolvedLineStyle}{line width=0.9pt}
+\renewcommand{\RKTokAlgorithmDiscardedDraw}{RedFlag}
+\renewcommand{\RKTokAlgorithmDiscardedFill}{RedFlag!8}
+\renewcommand{\RKTokAlgorithmDiscardedText}{Muted}
+\renewcommand{\RKTokAlgorithmDiscardedLineStyle}{dashed}
+\renewcommand{\RKTokAlgorithmBlockedDraw}{RedFlag}
+\renewcommand{\RKTokAlgorithmBlockedFill}{Hairline}
+\renewcommand{\RKTokAlgorithmBlockedText}{Muted}
+\renewcommand{\RKTokAlgorithmBlockedLineStyle}{densely dotted}
+\renewcommand{\RKTokAlgorithmUnseenDraw}{Hairline}
+\renewcommand{\RKTokAlgorithmUnseenFill}{white}
+\renewcommand{\RKTokAlgorithmUnseenText}{Muted}
+\renewcommand{\RKTokAlgorithmUnseenLineStyle}{solid}
+\renewcommand{\RKTokAlgorithmCellFont}{\sffamily\fontsize{8.6}{10}\selectfont}
+\renewcommand{\RKTokAlgorithmCellMinSize}{7.5mm}
+\renewcommand{\RKTokAlgorithmCellPad}{2.2pt}
+\renewcommand{\RKTokAlgorithmCellRounding}{2pt}
+\renewcommand{\RKTokAlgorithmIndexFont}{\sffamily\fontsize{7}{8.4}\selectfont}
+\renewcommand{\RKTokAlgorithmIndexText}{Muted}
+\renewcommand{\RKTokAlgorithmIndexGap}{2.6pt}
+\renewcommand{\RKTokAlgorithmPointerColor}{Accent}
+\renewcommand{\RKTokAlgorithmPointerFont}{\sffamily\bfseries\fontsize{7.6}{9}\selectfont}
+\renewcommand{\RKTokAlgorithmPointerWidth}{1pt}
+\renewcommand{\RKTokAlgorithmContainerDraw}{Hairline}
+\renewcommand{\RKTokAlgorithmContainerWidth}{.5pt}
+\renewcommand{\RKTokAlgorithmAnnotationFont}{\sffamily\fontsize{8.2}{9.8}\selectfont}
+\renewcommand{\RKTokAlgorithmAnnotationText}{Muted}
+\renewcommand{\RKTokAlgorithmRowLabelFont}{\sffamily\fontsize{7.8}{9.2}\selectfont}
+\renewcommand{\RKTokAlgorithmRowLabelText}{Muted}
+\renewcommand{\RKTokAlgorithmTraceLabelFont}{\sffamily\bfseries\fontsize{8}{9.6}\selectfont}
+\renewcommand{\RKTokAlgorithmTraceLabelText}{Ink}
+\renewcommand{\RKTokAlgorithmTraceSeparatorColor}{Hairline}
+\renewcommand{\RKTokAlgorithmTraceSeparatorWidth}{.5pt}
+\renewcommand{\RKTokAlgorithmGraphNodeWidth}{15mm}
+\renewcommand{\RKTokAlgorithmGraphEdgeColor}{Muted}
+\renewcommand{\RKTokAlgorithmGraphEdgeWidth}{.8pt}
+\renewcommand{\RKTokAlgorithmDagBadgeDraw}{Hairline}
+\renewcommand{\RKTokAlgorithmDagBadgeFill}{white}
+\renewcommand{\RKTokAlgorithmDagBadgeText}{Muted}
+\renewcommand{\RKTokAlgorithmDagBadgeFont}{\sffamily\bfseries\fontsize{5.8}{6.8}\selectfont}
+\renewcommand{\RKTokAlgorithmDagBadgeSize}{3.6mm}
+\renewcommand{\RKTokAlgorithmReadyQueueLabelFont}{\sffamily\bfseries\fontsize{7.2}{8.6}\selectfont}
+\renewcommand{\RKTokAlgorithmReadyQueueLabelText}{Muted}
+\renewcommand{\RKTokAlgorithmIntervalAxisColor}{Hairline}
+\renewcommand{\RKTokAlgorithmIntervalAxisWidth}{.5pt}
+\renewcommand{\RKTokAlgorithmHeapEdgeColor}{Muted}
+\renewcommand{\RKTokAlgorithmHeapEdgeWidth}{.8pt}
+\rk@styletokensloadedtrue
+
+% Figure/table provenance helper (reportkit-core.sty's contract; every theme
+% defines this).
+\newcommand{\source}[1]{\par\vspace{2pt}{\sffamily\fontsize{7pt}{8.4pt}\selectfont\color{Muted}\textit{Source:} #1}\par}
+
+\endinput

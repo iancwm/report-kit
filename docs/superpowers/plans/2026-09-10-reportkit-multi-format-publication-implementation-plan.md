@@ -28,8 +28,10 @@ implemented first here at explicit request, and A5 followed once B's own
 status notes kept naming it as the biggest remaining gap. Task sizing and
 visual design details should receive engineering/design review before
 execution. Phase C is now promoted to stable with the reviewed fixture and
-visual-QA helper landed.
-**Last updated:** 2026-09-21
+visual-QA helper landed. Phase D (venture theme and controlled branding) is
+implemented as an experimental theme; its critical gate passes on a
+non-pinned host and pinned-toolchain visual review remains (see §7).
+**Last updated:** 2026-09-23
 **Plans:** [2026-09-09-reportkit-multi-format-publication-architecture-spec.md](../specs/2026-09-09-reportkit-multi-format-publication-architecture-spec.md)
 **Amended by:** [2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md](../specs/2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md)
 **Baseline:** planning baseline `main` at `4f2b27f`, ReportKit v1.9.1.
@@ -1501,6 +1503,67 @@ under executive and venture and produce materially different reviewed pixels.
 There may be no venture copy of reportkit-presentation.sty and no venture-only
 composition names. If this fails, stop and repair the abstraction before
 editorial work.
+
+**Implementation record (2026-09-23):** Implemented; venture is registered as
+`experimental` pending pinned-toolchain visual review.
+
+- **Theme.** `reportkit-theme-venture.sty` (Google Sans body and display
+  faces loaded from the bundled static files, with an Inter / Noto Sans /
+  TeX Gyre Heros fallback chain; indigo primary, coral secondary; airy
+  callout, metric and diagram tokens), `reportkit-theme-venture-slides.sty`
+  (12 mm safe margin, large display scale, light/dark frames, logo chrome)
+  and `python_scripts/reportkit/themes/venture.py` (palette mirrors the TeX
+  file; `slide-main`/`slide-half`/`slide-hero` slots from the 136 mm
+  measure). Registered in `publications.py` with `brand_overrides: true` and
+  paired with the existing `presentation` publication type; the generated
+  LaTeX registry was regenerated.
+- **Abstraction repair, not a fork.** Light and dark frames needed one new
+  renderer-neutral contract: `\RKTokPresentationSurface{<role>}` in
+  `reportkit-core.sty`, called once by every frame-level composition with one
+  of `opening`, `divider`, `statement`, `metric`, `closing`, `content`.
+  Executive implements it as a no-op (executive fixture and smoke-document
+  pixels are unchanged except for the fix below); venture maps
+  opening/divider/statement/closing to a dark frame by re-pointing the
+  semantic colour names locally and painting the background canvas. There is
+  no venture copy of `reportkit-presentation.sty` and no venture-only
+  composition name.
+- **Shared-composition fixes found by the second theme.** `\ifdefempty` on
+  macro parameters (assertion deck, reference note, card variant) failed for
+  any non-empty value and is now `\ifstrempty`; `cardgrid` card widths are
+  derived from the theme's gutter so a row always fits, items no longer
+  inherit an interword space, the grid's default variant is copied by value,
+  and the card minimum height applies to the filled card. `comparisoncolumn`
+  and `threepartcolumn` now end the rule paragraph before the body spacing;
+  this changes executive pixels slightly (rule-to-body spacing on the
+  evidence frame and two smoke frames) and is a correction, not a restyle.
+- **Controlled branding (D6).** The four keys were already parsed strictly;
+  Phase D adds logo format/charset validation (`.pdf/.png/.jpg/.jpeg`,
+  `[A-Za-z0-9._/-]`, emitted verbatim to `\includegraphics`), maps primary to
+  `LinkBlue`/`Principle`/`Accent`/`MetricAccent` and secondary to `Research`,
+  and adds `reportkit_viz.apply_publication_theme(root)` so a project's
+  `figures.py` draws charts from the same `EffectiveTheme` record the build
+  writes to `reportkit-theme-overrides.tex`. The venture theme consumes
+  `\RKBrandLogo` and the font setters; `display_font` replaces only display
+  roles under the existing strict/fallback policy.
+- **Fixture.** `latex_templates/examples/venture-presentation/`: fictional
+  Lumiquay 12-slide seed pitch (hero, problem, product screenshot, traction
+  metric and chart, market, competition matrix, business model, team, ask,
+  closing) using only Phase B compositions, with direct TeX and constrained
+  Markdown sharing all trusted fragments, and a `brand` block
+  (primary/secondary/logo) that exercises staging and hashing.
+- **QA.** `scripts/visual_qa_venture.py` materializes the fixture's
+  effective theme, compiles and inspects it, and runs the critical gate:
+  `presentation_acceptance_test.tex` compiled under `theme=executive` and
+  `theme=venture` with only the class option changed (mean per-channel
+  difference about 98/255 against a 6.0 floor; every page differs).
+  `tests/test_venture_theme.py` covers the registry record, the absence of a
+  venture composition layer, the surface-role contract, palette sync, brand
+  resolution, the direct and pipeline builds (logo staged and hashed in
+  `build-report.json`) and the smoke gate.
+
+**Remaining:** pinned-toolchain visual review and baseline capture for the
+venture fixture (this record's renders came from a non-pinned host), then
+promotion to `stable`.
 
 ## 8. Phase C-prime — constrained authoring and visual feedback
 

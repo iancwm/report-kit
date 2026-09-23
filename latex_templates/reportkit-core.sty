@@ -478,6 +478,16 @@
 \newcommand{\RKTokPresentationColumnHeadingFont}{\rk@styletokenerror{\RKTokPresentationColumnHeadingFont}}
 \newcommand{\RKTokPresentationClosingFont}{\rk@styletokenerror{\RKTokPresentationClosingFont}}
 \newcommand{\RKTokPresentationRuleWidth}{\rk@styletokenerror{\RKTokPresentationRuleWidth}}
+% Frame-surface role hook (Phase D). Every frame-level composition in
+% reportkit-presentation.sty calls this once, inside its own group, with one
+% renderer-neutral semantic role: opening, divider, statement, metric,
+% closing, or content. The composition layer never decides what a role looks
+% like; a slides adapter may ignore the role (executive: a no-op) or map it to
+% a surface treatment such as an inverse (dark) frame by locally re-pointing
+% the semantic color names the compositions already use. This keeps "light
+% and dark frames" a theme decision without venture-only composition names
+% or a second copy of the composition layer.
+\newcommand{\RKTokPresentationSurface}[1]{\rk@styletokenerror{\RKTokPresentationSurface}}
 \newif\ifrk@presentationtokensloaded
 \rk@presentationtokensloadedfalse
 % Called by reportkit-presentation.sty immediately before defining anything

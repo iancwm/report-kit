@@ -1,0 +1,97 @@
+% Canonical Phase D fixture: fictional 12-slide startup seed pitch.
+% Uses only the shared Phase B presentation compositions -- the same ones the
+% executive fixture uses -- restyled entirely by the venture theme. The
+% pipeline manuscript uses the same trusted fragments below, proving direct
+% TeX and constrained Markdown authoring share one composition API.
+%
+% Brand values (D6) come from publication.yaml. The pipeline and
+% scripts/visual_qa_venture.py both materialize them from one EffectiveTheme
+% record into reportkit-theme-overrides.tex next to this file; without that
+% generated file the deck renders in the unbranded venture palette.
+\documentclass[theme=venture,publication-type=presentation]{reportkit-slides}
+\IfFileExists{reportkit-theme-overrides.tex}{\input{reportkit-theme-overrides.tex}}{}
+
+\setreportkitleftheader{Lumiquay / Seed round}
+\setreportkitfooter{Lumiquay -- fictional demonstration pitch}
+\setreportkitversion{v1.0}
+\setreportkitsubject{Lumiquay cold-chain intelligence seed pitch}
+\setreportkitkeywords{ReportKit, venture theme, pitch, fictional}
+\title{Every chilled aisle, one step ahead of spoilage}
+\subtitle{Lumiquay seed pitch -- a fictional startup}
+\author{Lumiquay founding team}
+\date{23 September 2026}
+
+\begin{document}
+
+\begin{frame}[plain]
+  \begin{titleslide}
+  \end{titleslide}
+\end{frame}
+
+\begin{frame}[plain]
+  \begin{messageslide}{Independent grocers throw away one in twelve chilled items.}
+    \input{fragments/fig-problem.tex}
+  \end{messageslide}
+\end{frame}
+
+\begin{frame}
+  \begin{assertionslide}[kicker={Problem}]{Cold-chain failures are invisible until stock is lost.}
+    \input{fragments/fig-pain.tex}
+  \end{assertionslide}
+\end{frame}
+
+\begin{frame}
+  \begin{visualtext}[right]{Pulse predicts failures before food is lost}{Clip-on sensors learn each case's rhythm and flag a failing seal or compressor about forty minutes early, with the fix attached.}
+    \input{fragments/fig-product.tex}
+  \end{visualtext}
+\end{frame}
+
+\begin{frame}
+  \begin{herometric}{\$3.1M}{Annual recurring revenue, Q2 2026}
+    \input{fragments/fig-traction.tex}
+  \end{herometric}
+\end{frame}
+
+\begin{frame}
+  \begin{chartslide}[left]{Revenue compounds store by store}{Every cooperative that pilots Pulse rolls it out to its members within two quarters.}
+    \input{fragments/fig-chart.tex}
+  \end{chartslide}
+\end{frame}
+
+\begin{frame}
+  \begin{assertionslide}[kicker={Market}]{A \$4.2B problem that no incumbent serves.}
+    \input{fragments/fig-market.tex}
+  \end{assertionslide}
+\end{frame}
+
+\begin{frame}
+  \begin{visualtext}[left]{Prediction without the integration project}{Enterprise suites predict well but need months of setup; loggers are cheap but only record the loss.}
+    \input{fragments/fig-competition.tex}
+  \end{visualtext}
+\end{frame}
+
+\begin{frame}
+  \begin{assertionslide}[kicker={Business model}]{Stores pay less than one lost pallet a year.}
+    \input{fragments/fig-model.tex}
+  \end{assertionslide}
+\end{frame}
+
+\begin{frame}
+  \begin{assertionslide}[kicker={Team}]{Operators, engineers and sellers from the aisle.}
+    \input{fragments/fig-team.tex}
+  \end{assertionslide}
+\end{frame}
+
+\begin{frame}
+  \begin{herometric}{\$4.5M}{Seed round}
+    \input{fragments/fig-ask.tex}
+  \end{herometric}
+\end{frame}
+
+\begin{frame}[plain]
+  \begin{closingslide}{Keep every aisle fresh with us.}
+    \input{fragments/fig-closing.tex}
+  \end{closingslide}
+\end{frame}
+
+\end{document}

@@ -7,9 +7,9 @@ adapter.  Keeping those projections here prevents a brand colour or font from
 being normalized differently for TeX and Python charts.
 
 The registry remains the authority for whether a theme may accept a brand
-section.  At the time this module was added, no checked-in theme has that
-capability, so an attempted brand configuration is rejected until a registry
-record explicitly opts in.
+section.  Only a registry record with ``brand_overrides: true`` opts in
+(Phase D: ``venture``); every other theme rejects an attempted brand
+configuration.
 """
 from __future__ import annotations
 
@@ -26,6 +26,8 @@ from .themes import Theme, get_theme, theme_supports_brand_overrides
 
 BRAND_KEYS = ("primary", "secondary", "logo", "display_font")
 FONT_POLICIES = ("strict", "fallback")
+LOGO_SUFFIXES = (".pdf", ".png", ".jpg", ".jpeg")
+_LOGO_PATH_RE = re.compile(r"^[A-Za-z0-9._/-]+$")
 _HEX_RE = re.compile(r"^#[0-9A-Fa-f]{6}$")
 _TEX_COLOR_RE = re.compile(
     r"\\definecolor\{(RKEffective[A-Za-z0-9]+)\}\{HTML\}\{([0-9A-Fa-f]{6})\}"
@@ -113,7 +115,26 @@ def normalize_logo_path(value: Any, publication_root: Path | str | None) -> Path
         )
     if not resolved.is_file():
         raise ThemeOverrideError(f"brand.logo does not name a regular file: {resolved}")
+    _require_includable_logo(resolved.relative_to(root).as_posix())
     return resolved
+
+
+def _require_includable_logo(relative: str) -> None:
+    """Reject logos TeX cannot include verbatim from the staged tree.
+
+    The logo reaches TeX as a root-relative path inside ``\\includegraphics``.
+    Restricting it to a portable character set and to formats every slide
+    engine can place avoids escaping a path (an escaped ``\\_`` is not a
+    filename) and avoids discovering an SVG only after TeX starts.
+    """
+    if not _LOGO_PATH_RE.fullmatch(relative):
+        raise ThemeOverrideError(
+            f"brand.logo {relative!r} may contain only letters, digits, '.', '-', '_' and '/'"
+        )
+    if Path(relative).suffix.lower() not in LOGO_SUFFIXES:
+        raise ThemeOverrideError(
+            f"brand.logo {relative!r} must be one of: {', '.join(LOGO_SUFFIXES)}"
+        )
 
 
 @dataclass(frozen=True)
@@ -223,6 +244,9 @@ def normalize_brand_overrides(
                 raise ThemeOverrideError(f"logo path {normalized_logo} is outside publication root {root}")
             if not normalized_logo.is_file():
                 raise ThemeOverrideError(f"brand.logo does not name a regular file: {normalized_logo}")
+            _require_includable_logo(
+                normalized_logo.relative_to(root).as_posix() if root is not None else normalized_logo.name
+            )
         else:
             normalized_logo = normalize_logo_path(raw["logo"], publication_root)
     else:
@@ -250,12 +274,15 @@ def _effective_palette(theme: Theme, brand: BrandOverrides) -> tuple[dict[str, s
     # These are the shared semantic roles represented by the constrained
     # primary/secondary controls. Only replace names present in a base theme;
     # future themes can add a role without changing this projection.
+    # ``Accent`` and ``MetricAccent`` are primary roles: every slide theme
+    # sets them equal to LinkBlue, and the presentation compositions draw
+    # kickers, hero metrics and card rails from ``Accent``.
     if brand.primary:
-        for key in ("LinkBlue", "Principle"):
+        for key in ("LinkBlue", "Principle", "Accent", "MetricAccent"):
             if key in colors:
                 colors[key] = primary
     if brand.secondary:
-        for key in ("Research", "Accent", "SeriesBlue"):
+        for key in ("Research", "SeriesBlue"):
             if key in colors:
                 colors[key] = secondary
 
@@ -470,8 +497,11 @@ def render_tex_overrides(effective: EffectiveTheme) -> str:
     if effective.brand.logo:
         logo = _logo_display_path(effective.brand.logo, effective.publication_root)
         assert logo is not None
+        # Normalization restricted the path to [A-Za-z0-9._/-], so it is
+        # emitted verbatim: an escaped ``\_`` would not name the staged file.
+        _require_includable_logo(logo)
         lines.extend([
-            rf"\newcommand{{\RKBrandLogo}}{{{_tex_escape(logo)}}}",
+            rf"\newcommand{{\RKBrandLogo}}{{{logo}}}",
             r"\newif\ifRKBrandHasLogo",
             r"\RKBrandHasLogotrue",
         ])
@@ -616,7 +646,7 @@ validate_generated_tex_colors = validate_tex_overrides
 
 
 __all__ = [
-    "BRAND_KEYS", "FONT_POLICIES", "BrandOverrides", "EffectiveTheme", "ThemeOverrideError",
+    "BRAND_KEYS", "FONT_POLICIES", "LOGO_SUFFIXES", "BrandOverrides", "EffectiveTheme", "ThemeOverrideError",
     "apply_chart_overrides", "build_effective_theme", "chart_overrides", "effective_theme",
     "materialize_chart_overrides", "materialize_tex_overrides", "normalize_brand",
     "normalize_brand_overrides", "normalize_display_font", "normalize_font_policy",

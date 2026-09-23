@@ -182,6 +182,7 @@ def _theme(
     since: str,
     alias_of: str | None = None,
     renderer_adapters: dict[str, str] | None = None,
+    brand_overrides: bool = False,
 ) -> dict[str, Any]:
     return {
         "name": name,
@@ -196,7 +197,9 @@ def _theme(
         # to the common package acting as its own (only) adapter.
         "renderer_adapters": dict(renderer_adapters) if renderer_adapters is not None
         else {renderer: common_package for renderer in renderers},
-        "brand_overrides": False,
+        # Decision D6: only a theme whose record opts in may accept the four
+        # constrained brand keys (primary, secondary, logo, display_font).
+        "brand_overrides": bool(brand_overrides),
         "semantic_tokens": [
             "ink", "muted", "hairline", "surface", "primary", "secondary",
             "evidence", "warning", "danger", "data_series", "body", "heading",
@@ -240,6 +243,16 @@ THEMES: dict[str, dict[str, Any]] = {
         common_package="reportkit-theme-executive", stability="stable", since="1.9.3",
         renderer_adapters={"slides": "reportkit-theme-executive-slides"},
     ),
+    # Phase D: the brand-forward pitch system. It shares the presentation
+    # publication type and every composition with executive, and is the only
+    # theme that opts in to D6's constrained brand overrides. It stays
+    # experimental until its fixture passes pinned-toolchain visual review.
+    "venture": _theme(
+        "venture", renderers=["slides"], required_engine="lualatex",
+        common_package="reportkit-theme-venture", stability="experimental", since="1.9.3",
+        renderer_adapters={"slides": "reportkit-theme-venture-slides"},
+        brand_overrides=True,
+    ),
 }
 
 
@@ -274,7 +287,7 @@ PUBLICATION_TYPES: dict[str, dict[str, Any]] = {
     "presentation": {
         "name": "presentation",
         "renderer": "slides",
-        "themes": ["executive"],
+        "themes": ["executive", "venture"],
         "default_target": {"theme": "executive"},
         "template": "presentation.tex",
         "package": "reportkit-presentation",

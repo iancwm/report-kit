@@ -10,6 +10,7 @@ checks complement, not replace.
 from __future__ import annotations
 
 from pathlib import Path
+import re
 
 import pytest
 
@@ -41,10 +42,12 @@ def test_executive_theme_requires_lualatex_and_slides_adapter() -> None:
     assert theme["stability"] == "stable"
 
 
-def test_presentation_publication_type_pairs_only_with_executive() -> None:
+def test_presentation_publication_type_pairs_with_both_slide_themes() -> None:
+    # Phase D: executive and venture share this one publication type; a
+    # venture-specific publication type would mean the abstraction failed.
     presentation = PUBLICATION_TYPES["presentation"]
     assert presentation["renderer"] == "slides"
-    assert presentation["themes"] == ["executive"]
+    assert presentation["themes"] == ["executive", "venture"]
     assert presentation["default_target"] == {"theme": "executive"}
     assert "paper" not in presentation
 
@@ -126,10 +129,14 @@ def test_reportkit_presentation_asserts_its_own_token_contract() -> None:
     assert "executive" not in "\n".join(code_lines)
 
 
-def test_executive_slides_adapter_populates_every_presentation_token() -> None:
-    adapter_text = (
-        REPO / "latex_templates" / "themes" / "reportkit-theme-executive-slides.sty"
-    ).read_text(encoding="utf-8")
+@pytest.mark.parametrize("adapter", ["reportkit-theme-executive-slides", "reportkit-theme-venture-slides"])
+def test_slides_adapters_populate_every_presentation_token(adapter: str) -> None:
+    adapter_text = (REPO / "latex_templates" / "themes" / f"{adapter}.sty").read_text(encoding="utf-8")
+    core_text = (REPO / "latex_templates" / "reportkit-core.sty").read_text(encoding="utf-8")
+    declared = set(re.findall(r"\\newcommand\{\\(RKTokPresentation[A-Za-z]+)\}", core_text))
+    assert "RKTokPresentationSurface" in declared
+    for token in sorted(declared):
+        assert re.search(rf"\\renewcommand\{{\\{token}\}}", adapter_text), f"{adapter} is missing {token}"
     required_tokens = [
         "RKTokPresentationKickerFont", "RKTokPresentationTitleFont", "RKTokPresentationSubtitleFont",
         "RKTokPresentationDividerTitleFont", "RKTokPresentationMessageFont", "RKTokPresentationBodyFont",

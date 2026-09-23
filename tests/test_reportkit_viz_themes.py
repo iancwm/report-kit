@@ -50,8 +50,8 @@ def _restore_default_theme():
 
 
 def test_available_themes_lists_declared_aliases() -> None:
-    # Phase B added the experimental, slide-only "executive" theme.
-    assert available_themes() == ("default", "executive", "institutional-research", "technical")
+    # Phase B/C added the slide-only "executive" theme; Phase D "venture".
+    assert available_themes() == ("default", "executive", "institutional-research", "technical", "venture")
 
 
 def test_get_theme_unknown_name_raises_with_known_themes_listed() -> None:

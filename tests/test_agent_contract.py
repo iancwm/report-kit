@@ -223,9 +223,10 @@ def test_context_catalog_contains_only_the_current_publication_matrix() -> None:
     assert set(capabilities["publication_types"]) == {"technical-report", "equity-research", "presentation"}
     assert capabilities["publication_types"]["technical-report"]["themes"] == ["default", "technical"]
     assert capabilities["publication_types"]["equity-research"]["themes"] == ["institutional-research"]
-    assert capabilities["publication_types"]["presentation"]["themes"] == ["executive"]
+    # Phase D added the venture slide theme over the same publication type.
+    assert capabilities["publication_types"]["presentation"]["themes"] == ["executive", "venture"]
     assert set(capabilities["renderers"]) == {"paged", "slides"}
-    assert set(capabilities["themes"]) == {"default", "technical", "institutional-research", "executive"}
+    assert set(capabilities["themes"]) == {"default", "technical", "institutional-research", "executive", "venture"}
     assert all(theme["language_support"]["rtl"] == "unsupported" for theme in capabilities["themes"].values())
     assert all(theme["language_support"]["scripts"]["verified"] == ["Latn"] for theme in capabilities["themes"].values())
 

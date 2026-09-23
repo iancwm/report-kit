@@ -1,0 +1,130 @@
+% ReportKit theme adapter: venture / slides renderer. Phase D pitch-deck
+% frame geometry, light/dark frame surfaces, brand logo placement, and the
+% presentation token scale.
+%
+% Owns what reportkit-theme-executive-slides.sty owns for executive -- the
+% safe-area margin inside reportkit-slides.cls's 160mm x 90mm frame, running
+% chrome, and every presentation-composition token -- plus the one
+% theme-specific behavior venture adds: mapping the renderer-neutral
+% \RKTokPresentationSurface roles to light or dark (inverse) frames. The
+% compositions in reportkit-presentation.sty are unchanged and unaware of it.
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{reportkit-theme-venture-slides}[2026/09/23 v0.1.0 ReportKit venture theme / slides adapter]
+\RequirePackage{tikz}
+
+% -----------------------------------------------------------------------------
+% Canvas and safe margin
+% -----------------------------------------------------------------------------
+% 12mm each side (136mm usable width): more negative space than executive's
+% 8mm. python_scripts/reportkit/themes/venture.py derives its slide slots
+% from this same 136mm figure; update both together.
+\setbeamersize{text margin left=12mm,text margin right=12mm}
+
+% -----------------------------------------------------------------------------
+% Frame surfaces (Phase D light and dark frames)
+% -----------------------------------------------------------------------------
+% Opening, divider, statement and closing roles render on a dark frame;
+% metric and content roles stay light. The role hook runs inside the
+% composition's own group, so the colour re-pointing below is local to that
+% composition, while the global flag tells the background canvas and
+% footline -- both typeset at shipout, after the frame body -- which surface
+% to paint. The flag is reset before every frame so a frame without a
+% composition (plain Markdown content) is always light.
+\newif\ifrkventure@inverse
+\rkventure@inversefalse
+\AddToHook{env/frame/before}{\global\rkventure@inversefalse}
+\@namedef{rkventure@inverse@opening}{}
+\@namedef{rkventure@inverse@divider}{}
+\@namedef{rkventure@inverse@statement}{}
+\@namedef{rkventure@inverse@closing}{}
+\newcommand{\rkventure@useinversecolors}{%
+  \colorlet{Accent}{Research}%
+  \colorlet{LinkBlue}{Research}%
+  \colorlet{Ink}{VentureInverseInk}%
+  \colorlet{Muted}{VentureInverseMuted}%
+  \colorlet{Hairline}{VentureInverseHairline}%
+  \colorlet{Surface}{VentureInverseSurface}%
+  \color{Ink}%
+}
+\renewcommand{\RKTokPresentationSurface}[1]{%
+  \ifcsname rkventure@inverse@#1\endcsname
+    \global\rkventure@inversetrue
+    \rkventure@useinversecolors
+  \else
+    \global\rkventure@inversefalse
+  \fi
+}
+
+% A brand logo sits on a small light chip on dark frames so any logo artwork
+% stays legible, and directly in the footline on light frames.
+\newcommand{\rkventure@logochip}{%
+  \rkventure@iflogo{%
+    \node[anchor=north east,fill=white,rounded corners=1.2mm,inner sep=1.6mm]
+      at (\paperwidth-12mm,\paperheight-7mm) {\includegraphics[height=4.2mm]{\RKBrandLogo}};%
+  }{}%
+}
+\setbeamertemplate{background canvas}{%
+  \begin{tikzpicture}
+    \useasboundingbox (0,0) rectangle (\paperwidth,\paperheight);
+    \ifrkventure@inverse
+      \fill[VentureNight] (0,0) rectangle (\paperwidth,\paperheight);
+      \fill[Research] (12mm,6mm) rectangle (30mm,7.2mm);
+      \rkventure@logochip
+    \else
+      \fill[white] (0,0) rectangle (\paperwidth,\paperheight);
+    \fi
+  \end{tikzpicture}%
+}
+
+% -----------------------------------------------------------------------------
+% Running chrome -- a quiet footline: logo (or footer text) left, frame
+% number right. No headline; compositions carry their own heading type.
+% -----------------------------------------------------------------------------
+\setbeamertemplate{footline}{%
+  \leavevmode
+  \hbox{\begin{beamercolorbox}[wd=\paperwidth,ht=4.2mm,dp=2.6mm,leftskip=12mm,rightskip=12mm]{}
+    \ifrkventure@inverse
+      {\sffamily\RKTokPresentationSourceFont\color{VentureInverseMuted}\rk@footer\hfill\insertframenumber}%
+    \else
+      \rkventure@iflogo{%
+        \raisebox{-.8mm}{\includegraphics[height=3.6mm]{\RKBrandLogo}}%
+      }{%
+        {\sffamily\RKTokPresentationSourceFont\color{Muted}\rk@footer}%
+      }%
+      \hfill{\sffamily\bfseries\RKTokPresentationSourceFont\color{Accent}\insertframenumber}%
+    \fi
+  \end{beamercolorbox}}
+}
+
+% -----------------------------------------------------------------------------
+% Presentation-composition style tokens (reportkit-core.sty's contract).
+% Large display type and generous spacing: a pitch slide carries one idea.
+% Display roles use the brand display face when one is configured.
+% -----------------------------------------------------------------------------
+\renewcommand{\RKTokPresentationKickerFont}{\fontsize{9pt}{11pt}\selectfont}
+\renewcommand{\RKTokPresentationTitleFont}{\rkventure@displayface\fontsize{36pt}{39pt}\selectfont}
+\renewcommand{\RKTokPresentationSubtitleFont}{\fontsize{14pt}{18pt}\selectfont}
+\renewcommand{\RKTokPresentationDividerTitleFont}{\rkventure@displayface\fontsize{40pt}{43pt}\selectfont}
+\renewcommand{\RKTokPresentationMessageFont}{\rkventure@displayface\fontsize{25pt}{28.5pt}\selectfont}
+\renewcommand{\RKTokPresentationAssertionFont}{\rkventure@displayface\fontsize{22pt}{25.5pt}\selectfont}
+\renewcommand{\RKTokPresentationAssertionCompactFont}{\rkventure@displayface\fontsize{19pt}{22.5pt}\selectfont}
+\renewcommand{\RKTokPresentationAssertionDeckFont}{\fontsize{11pt}{13.5pt}\selectfont}
+\renewcommand{\RKTokPresentationAssertionHeaderMaxHeight}{27mm}
+\renewcommand{\RKTokPresentationDenseBodyFont}{\fontsize{10.5pt}{13pt}\selectfont}
+\renewcommand{\RKTokPresentationAnnotationFont}{\fontsize{9pt}{11pt}\selectfont}
+\renewcommand{\RKTokPresentationSourceFont}{\fontsize{7pt}{8.5pt}\selectfont}
+\renewcommand{\RKTokPresentationCardGutter}{5mm}
+\renewcommand{\RKTokPresentationCardPadding}{4.5mm}
+\renewcommand{\RKTokPresentationCardMinHeight}{32mm}
+\renewcommand{\RKTokPresentationCardRuleWidth}{0pt}
+\renewcommand{\RKTokPresentationProseWidth}{100mm}
+\renewcommand{\RKTokPresentationBodyFont}{\fontsize{13pt}{17pt}\selectfont}
+\renewcommand{\RKTokPresentationCaptionFont}{\fontsize{8pt}{9.6pt}\selectfont}
+\renewcommand{\RKTokPresentationHeroValueFont}{\rkventure@displayface\fontsize{76pt}{78pt}\selectfont}
+\renewcommand{\RKTokPresentationHeroLabelFont}{\fontsize{12pt}{15pt}\selectfont}
+\renewcommand{\RKTokPresentationColumnHeadingFont}{\rkventure@displayface\fontsize{15pt}{18pt}\selectfont}
+\renewcommand{\RKTokPresentationClosingFont}{\rkventure@displayface\fontsize{32pt}{36pt}\selectfont}
+\renewcommand{\RKTokPresentationRuleWidth}{2pt}
+\rk@presentationtokensloadedtrue
+
+\endinput
