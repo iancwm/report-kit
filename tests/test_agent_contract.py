@@ -223,6 +223,12 @@ def test_full_build_emits_schema_v3_report_and_lock(tmp_path: Path) -> None:
     payload = json.loads(result.stdout)
     assert result.returncode == 0, payload
     report = payload["report"]
+    assert {item["slug"]: item["asset_state"] for item in report["images"]} == {
+        "fixture-object": "supplied",
+        "field-photo": "placeholder",
+    }
+    assert report["unresolved_image_count"] == 1
+    assert report["unresolved_image_slots"][0]["slug"] == "field-photo"
     schema = json.loads((REPO / "schemas" / "reportkit-build-report.schema.json").read_text())
     jsonschema.Draft202012Validator(schema).validate(report)
     lock = json.loads((source / "reportkit.lock").read_text())
