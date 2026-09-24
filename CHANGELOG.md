@@ -93,6 +93,10 @@ tags on this repository, not a published package registry.
 - Failed build stages now produce one consistent structured report shape, and
   the doctor includes actionable Python dependency remediation.
 
+### For contributors
+- Callout title forms and replaceable image slots now have focused contract,
+  validation, mixed-pipeline, and build-report regression coverage.
+
 ### Fixed
 - Algorithm visualization annotations now support the documented `row=` target,
   and wide `algorithmtrace` snapshots are normalized to their allocated width;
