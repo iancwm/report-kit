@@ -257,7 +257,8 @@ def test_technical_alias_renders_the_same_book_as_default(book_pdfs: dict[str, t
     pymupdf = pytest.importorskip("pymupdf")
     default_pdf, _ = book_pdfs["default"]
     technical_pdf, technical_log = book_pdfs["technical"]
-    assert "reportkit-theme-default-paged.sty" in technical_log
+    # TeX wraps terminal/log lines at 79 columns, so join them before matching.
+    assert "reportkit-theme-default-paged.sty" in technical_log.replace("\n", "")
     with pymupdf.open(default_pdf) as default, pymupdf.open(technical_pdf) as technical:
         assert default.page_count == technical.page_count
         assert [page.get_text() for page in default] == [page.get_text() for page in technical]
@@ -267,8 +268,10 @@ def test_editorial_compatibility_smoke_restyles_the_same_book(book_pdfs: dict[st
     pymupdf = pytest.importorskip("pymupdf")
     default_pdf, default_log = book_pdfs["default"]
     editorial_pdf, editorial_log = book_pdfs["editorial"]
-    assert "reportkit-theme-editorial-paged.sty" in editorial_log
-    assert "reportkit-theme-default" not in editorial_log
+    # TeX wraps terminal/log lines at 79 columns, so join them before matching.
+    joined_editorial_log = editorial_log.replace("\n", "")
+    assert "reportkit-theme-editorial-paged.sty" in joined_editorial_log
+    assert "reportkit-theme-default" not in joined_editorial_log
     with pymupdf.open(editorial_pdf) as document:
         fonts = {font[3].split("+", 1)[-1] for page in document for font in page.get_fonts()}
     assert "LibertinusSerifDisplay-Regular" in fonts
