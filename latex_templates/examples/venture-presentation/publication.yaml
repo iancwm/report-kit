@@ -1,0 +1,22 @@
+publication:
+  title: Every chilled aisle, one step ahead of spoilage
+  subtitle: Lumiquay seed pitch -- a fictional startup
+  author: Lumiquay founding team
+  version: v1.0
+  date: 23 September 2026
+  left_header: Lumiquay / Seed round
+  footer: Lumiquay -- fictional demonstration pitch
+  subject: Lumiquay cold-chain intelligence seed pitch
+  keywords: ReportKit, venture theme, pitch, fictional
+document:
+  main: report.tex
+  class: reportkit-slides
+  engine: lualatex
+  theme: venture
+  publication_type: presentation
+# Decision D6: the only sanctioned styling surface. venture's registry record
+# opts in with brand_overrides: true; any other key fails validation.
+brand:
+  primary: "#0E7C66"
+  secondary: "#FFB020"
+  logo: assets/lumiquay-mark.pdf

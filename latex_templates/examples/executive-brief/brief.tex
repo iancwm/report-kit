@@ -1,0 +1,186 @@
+% Shared body of the Phase F1 executive-brief acceptance fixture. Both
+% direct-TeX witnesses (report.tex under theme=executive and
+% report-institutional-research.tex under theme=institutional-research)
+% \input this file unchanged: the brief's structure must not depend on which
+% registered theme renders it.
+%
+% Fictional content (Harborline Freight). Every number reconciles:
+%   run cost      North 6.1 + 5.4 + 2.7 = 14.2; South 4.8 + 4.6 + 2.2 = 11.6;
+%                 today 14.2 + 11.6 = 25.8; consolidated 7.2 + 7.0 + 3.7 = 17.9;
+%                 annual saving 25.8 - 17.9 = 7.9 (30.6 percent).
+%   one-off cost  3.1 + 4.6 + 3.2 + 1.5 contingency = 12.4;
+%                 payback 12.4 / 7.9 = 1.57 years, about 19 months; it passes
+%                 two years only below 6.2 a year, a shortfall above 21 percent.
+%   service       South on-time gap to target 96.5 - 91.8 = 4.7 points.
+%   waves         depots 4 + 9 + 7 = 20; shares 25 + 37 + 26 + 12 = 100 percent.
+
+\begin{briefheader}{Operations strategy office \textperiodcentered\ Decision brief}{Consolidate the two regional dispatch platforms onto one stack by Q3 FY27}
+Running two dispatch platforms costs Harborline \$25.8M a year and leaves the
+South region 4.7 points short of the on-time dispatch target. A three-wave
+consolidation onto the North platform cuts run cost by \$7.9M a year, pays
+back in about 19 months, and gives both regions one operating model.
+\briefmeta{Decision owner}{Chief Operating Officer}
+\briefmeta{Decision needed by}{30 June 2027}
+\briefmeta{Audience}{Executive committee}
+\briefmeta{Classification}{Internal \textperiodcentered\ fictional}
+\end{briefheader}
+
+\section{Recommendation}
+
+\begin{decisionpoint}{Approve a three-wave consolidation onto the North platform}
+Approve \$12.4M of one-off spend, including \$1.5M contingency, to migrate
+South dispatch onto the North platform in three waves between July 2027 and
+March 2028, and retire the South platform once Wave~3 has run cleanly for one
+full peak season.
+\end{decisionpoint}
+
+Approval commits the business to three things: a single dispatch operating
+model across both regions, a frozen feature roadmap on the South platform
+from July 2027, and a named migration lead reporting monthly to the executive
+committee. It does not commit the business to a new vendor; the North
+platform is already contracted through FY30.
+
+\section{Key findings}
+
+\begin{exhibitgrid}[columns=3]
+\exhibitpane{\begin{metric}{\$7.9M}{Annual run-cost saving at steady state}
+Run cost falls from \$25.8M to \$17.9M, or 30.6 percent.
+\end{metric}}
+\exhibitpane{\begin{metric}{19 months}{Payback on \$12.4M one-off spend}
+Payback stays under two years unless savings fall by more than 21 percent.
+\end{metric}}
+\exhibitpane{\begin{metric}{+4.7 pts}{South on-time dispatch uplift}
+From 91.8 percent today to the shared 96.5 percent target.
+\end{metric}}
+\end{exhibitgrid}
+
+\begin{enumerate}
+  \item \textbf{Duplication, not scale, drives cost.} Licences, support staff
+    and integrations are paid twice; the consolidated stack needs 69 percent
+    of today's combined run cost, not half, because volume still grows.
+  \item \textbf{The South platform is the service gap.} South re-routes take
+    27 minutes against 18 in the North, and South needs 61 manual
+    interventions per 1{,}000 loads against 42.
+  \item \textbf{The North platform already carries the load.} It handled 58
+    percent of FY26 volume with three severity-one incidents in twelve
+    months, against seven on the smaller South platform.
+\end{enumerate}
+
+\section{Evidence}
+
+\begin{exhibitpair}
+\exhibitpane{%
+\begin{exhibit}[title={One stack removes \$7.9M of duplicated cost}, source={Fictional Harborline FY26 cost ledger; consolidated case from vendor quote.}]
+\begin{financialtable}
+\begin{tabularx}{\linewidth}{@{}Yrrr@{}}
+\toprule
+\textbf{\$M per year} & \textbf{North} & \textbf{South} & \textbf{One stack} \\
+\midrule
+Licences and hosting & 6.1 & 4.8 & 7.2 \\
+Support staff & 5.4 & 4.6 & 7.0 \\
+Integrations & 2.7 & 2.2 & 3.7 \\
+\midrule
+\textbf{Total} & \textbf{14.2} & \textbf{11.6} & \textbf{17.9} \\
+\bottomrule
+\end{tabularx}
+\end{financialtable}
+\end{exhibit}}
+\exhibitpane{%
+\begin{exhibit}[title={South trails North on every service measure}, source={Fictional Harborline dispatch telemetry, trailing twelve months.}]
+\begin{financialtable}
+\begin{tabularx}{\linewidth}{@{}Yrrr@{}}
+\toprule
+\textbf{Measure} & \textbf{North} & \textbf{South} & \textbf{Target} \\
+\midrule
+On-time dispatch (\%) & 94.1 & 91.8 & 96.5 \\
+Re-route time (min) & 18 & 27 & 15 \\
+Manual fixes per 1k loads & 42 & 61 & 30 \\
+Sev-1 incidents & 3 & 7 & $\le$3 \\
+\bottomrule
+\end{tabularx}
+\end{financialtable}
+\end{exhibit}}
+\end{exhibitpair}
+
+\begin{exhibit}[title={Most one-off spend falls in Wave 2, when the largest South depots move}, source={Fictional migration plan, programme office estimate, March 2027.}]
+\begin{financialtable}
+\begin{tabularx}{\linewidth}{@{}Yrrrr@{}}
+\toprule
+\textbf{Wave} & \textbf{Depots} & \textbf{Window} & \textbf{Cost (\$M)} & \textbf{Share} \\
+\midrule
+Wave 1 -- pilot depots & 4 & Jul--Sep 2027 & 3.1 & 25\% \\
+Wave 2 -- high-volume depots & 9 & Oct 2027--Jan 2028 & 4.6 & 37\% \\
+Wave 3 -- remaining depots & 7 & Feb--Mar 2028 & 3.2 & 26\% \\
+Contingency & -- & -- & 1.5 & 12\% \\
+\midrule
+\textbf{Total} & \textbf{20} & & \textbf{12.4} & \textbf{100\%} \\
+\bottomrule
+\end{tabularx}
+\end{financialtable}
+\end{exhibit}
+
+\section{Implication}
+
+\begin{decisionpoint}{What approval changes for each region}
+The North region absorbs South volume on a platform it already runs, so its
+work is capacity planning rather than change. The South region carries the
+change: new dispatch screens, retrained planners, and a six-week parallel
+run per wave. The finance plan should book savings from Q2 FY28 onward, not
+from the first migrated depot.
+\end{decisionpoint}
+
+Deferring the decision by a year costs roughly \$7.9M of avoidable run cost
+and pushes the South service uplift past the FY28 peak season. Deferral is
+reasonable only if the South platform's vendor offers a price cut larger than
+that saving, which the current contract does not allow.
+
+\section{Risks}
+
+\begin{redflag}{Peak-season cut-over}
+Wave~2 overlaps the start of the October peak. Mitigation: move the four
+largest depots last within the wave and hold a two-week freeze before
+Black Friday volumes.
+\end{redflag}
+
+\begin{redflag}{Planner adoption in the South region}
+South planners have used the current screens for nine years. Mitigation:
+fund super-users at every depot and keep manual-fix rates on the weekly
+dashboard until they reach the North baseline.
+\end{redflag}
+
+\begin{assumption}{Savings depend on retiring the South platform}
+The \$7.9M saving assumes the South contract ends in April 2028. Keeping it
+as a fallback beyond one quarter removes roughly \$1.2M of the annual saving.
+\end{assumption}
+
+\section{Next steps}
+
+\begin{briefactions}
+\briefaction{Approve the \$12.4M consolidation budget and contingency}{Executive committee}{30 Jun 2027}
+\briefaction{Name the migration lead and stand up the programme office}{COO}{15 Jul 2027}
+\briefaction{Confirm Wave~1 pilot depots and parallel-run exit criteria}{Migration lead}{31 Jul 2027}
+\briefaction{Give notice on the South platform contract for April 2028}{Procurement}{30 Sep 2027}
+\briefaction{Report Wave~1 service and cost results to the committee}{Migration lead}{15 Oct 2027}
+\end{briefactions}
+
+\begin{diagram}[
+  type=roadmap,
+  caption={Three waves move every South depot within nine months.},
+  source={Fictional migration plan, programme office estimate, March 2027.},
+  description={A three-horizon roadmap: pilot depots first, high-volume depots second, remaining depots and South platform retirement last.}
+]
+  \begin{reportroadmap}
+    \horizon{Wave 1}{Pilot}{Four depots, Parallel run}
+    \horizon{Wave 2}{Volume}{Nine depots, Peak freeze}
+    \horizon{Wave 3}{Retire}{Seven depots, South switch-off}
+  \end{reportroadmap}
+\end{diagram}
+
+\section{Sources}
+
+\begin{briefsources}
+  \item Harborline Freight FY26 cost ledger, dispatch platform cost centres (fictional).
+  \item Harborline dispatch telemetry, trailing twelve months to March 2027 (fictional).
+  \item North platform vendor quote for consolidated volume, February 2027 (fictional).
+  \item Programme office migration estimate and wave plan, March 2027 (fictional).
+\end{briefsources}

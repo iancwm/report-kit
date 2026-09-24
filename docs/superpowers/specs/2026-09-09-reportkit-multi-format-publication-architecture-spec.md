@@ -8,12 +8,20 @@ entrypoint split, constrained authoring path, effective-theme materialization,
 and selection-marker gate are implemented. Phase B (slide renderer and
 presentation semantics) is also implemented out of this spec's original phase
 order, with its automated B4 slide-accessibility gate retained in the working
-branch. Phase C's executive theme and reviewed fixture are now stable; Phases
-D–F have not started.
+branch. Phase C's executive theme and reviewed fixture are now stable. Phase D's
+venture theme, controlled branding and 12-slide pitch fixture are implemented
+as `experimental`; the critical executive-versus-venture smoke gate passes on
+a non-pinned host. Phase F1's `executive-brief` publication type (§14) is
+implemented as experimental for the executive and institutional-research
+themes, and Phase E (editorial theme and feature-article type) is implemented
+as experimental. Phase F2's `book` publication type (§16) is implemented as
+experimental for the default, technical and editorial themes, and F3's
+combination-coverage test layer (§18) is implemented. Phases D, E, F1 and F2
+are pending pinned visual review.
 Supersedes nothing; extends the architecture introduced by
 [2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md](2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md)
 (Steps 1–5 implemented, `reportkit.cls` v1.9.3).
-**Last updated:** 2026-09-21
+**Last updated:** 2026-09-23
 **Current-state claims:** historical baseline verified against `origin/main` at
 `f45ab86` plus the merged implementation checkpoint at `f5f5a6b`; pinned
 workflow run 65 is the current acceptance record below.
@@ -802,6 +810,14 @@ helpers in core all apply directly.
 **Do not create a large new primitive library** unless something is genuinely
 missing.
 
+**Status (2026-09-23):** implemented as experimental. The exhibit system now
+lives in the shared `publication_types/reportkit-exhibits.sty`; the brief adds
+only `briefheader`/`\briefmeta`, `briefactions`/`\briefaction` and
+`briefsources`. The fixture `latex_templates/examples/executive-brief/`
+compiles to three Letter pages under both registered themes on the local
+toolchain; pinned visual review remains. See the implementation plan's F1
+section.
+
 ---
 
 ## 15. Feature article publication type
@@ -837,6 +853,18 @@ bibliography     appendices             glossary hooks
 signatures; indexing; trim/bleed production. These are also the trigger
 conditions for a dedicated book renderer per
 [§2.3](#23-renderer--output-mechanics).
+
+**Status (2026-09-24):** implemented as experimental for `default`,
+`technical` and `editorial`. `reportkit-book.sty` adds exactly the extension
+list above -- title page, publication details (`bookdetails`/`\bookdetail`),
+contents, numbered chapter openers (every `\section`), part openers
+(`\bookpart`), a bibliography hook (`bookreferences`, a contents-listed
+`thebibliography`) and a glossary hook (`bookglossary`/`\glossaryterm`) --
+reusing `reportkit-longform.sty`'s title page, contents and front/main-matter
+pagination unchanged. No `reportkit-book.cls`, no recto/verso, signatures,
+indexing or trim/bleed, no third renderer. See the implementation plan's F2
+section for the fixture, token contract and test detail. Pinned visual
+review remains before promotion to stable.
 
 ---
 
@@ -884,8 +912,8 @@ Every theme × publication-type combination needs a canonical fixture.
 | Technical | career-guide (`examples/career_guide_en/`) | exists |
 | Institutional | equity-research (`examples/equity-research/`) | exists |
 | Executive | 8–10 slide fictional technology/strategy deck | exists — direct TeX and pipeline smoke coverage |
-| Venture | 10–12 slide fictional startup pitch | new |
-| Editorial | 6–8 page fictional feature article | new |
+| Venture | 10–12 slide fictional startup pitch | exists — 12-slide direct/pipeline fixture; experimental pending pinned visual review |
+| Editorial | 6–8 page fictional feature article | exists (`examples/editorial-feature/`) — experimental pending pinned visual review |
 
 **Executive deck must include:** title; assertion-evidence slide; architecture;
 2×2; chart; table; roadmap; recommendation.
@@ -898,6 +926,21 @@ sidebar; image/figure; full-width exhibit; references.
 
 All fixture content must be fictional and must not reproduce third-party
 branding — the constraint the institutional spec already imposes.
+
+**F3 status (2026-09-24):** these five fixtures are the "showcase" layer of
+`tests/test_publication_theme_coverage.py`, mapped explicitly to the
+publication-type/theme pair each one demonstrates. Every other registered
+pair (`book/{default,technical,editorial}`, `executive-brief/{executive,
+institutional-research}`, and the `technical-report/technical` alias) is
+covered either by a dedicated test module that compiles its own canonical
+fixture under every theme it registers, or, for whatever pair is left over,
+by a registry-generated minimal compile fixture built through the real
+pipeline in that same test module. The parametrize list for the generated
+layer is derived from `publications.PUBLICATION_TYPES` at collection time,
+and the module's own drift assertions fail if a hand-maintained mapping ever
+references a pair the registry no longer has, or double-claims a pair the
+other layer already covers — so a compatible pair added without a showcase
+or generated case cannot silently go uncovered.
 
 ### Required automated checks
 
@@ -1062,10 +1105,22 @@ Implement the editorial theme and the `feature-article` publication type.
 **Definition of done:** a long-form magazine-style article can be produced
 without falling back to technical-report visual grammar.
 
+**Status (2026-09-23):** implemented as experimental. The editorial theme,
+feature-article publication type, thirteen feature primitives, the 6-page
+fictional fixture, and the theme-swap gate are in the tree (see the
+implementation plan's Phase E section). Pinned visual review and promotion to
+stable remain.
+
 ### Phase F — Brief and book polish
 
 Implement `executive-brief` and book refinements. Prefer reuse over new
 infrastructure.
+
+**Status (2026-09-24):** F1 (`executive-brief`) and F2 (`book`) are both
+implemented as experimental (see §14, §16 and the implementation plan's F1
+and F2 sections); F3's combination-coverage test layer is implemented (see
+§18 and the implementation plan's F3 section). Pinned visual review and
+promotion to stable remain for F1 and F2.
 
 ---
 

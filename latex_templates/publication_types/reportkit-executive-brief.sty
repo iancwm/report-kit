@@ -1,0 +1,179 @@
+% ReportKit publication type: executive-brief -- Phase F1 of the
+% multi-format publication architecture plan (spec §14). A short (2-8 page)
+% paged management decision document: title/metadata, recommendation, key
+% findings, compact exhibits, decision/implication, risks, next steps, and
+% sources.
+%
+% Reuse first (spec §14: "Do not create a large new primitive library"):
+%   recommendation / implication  -> decisionpoint (reportkit-boxes.sty)
+%   headline numbers              -> metric (reportkit-boxes.sty)
+%   risks                         -> redflag / assumption (reportkit-boxes.sty)
+%   compact exhibits              -> exhibit / exhibitpair / exhibitgrid /
+%                                    financialtable (reportkit-exhibits.sty,
+%                                    shared with equity-research)
+%   exhibit provenance            -> \source{} (theme-provided) through
+%                                    exhibit's source= key
+% This file adds only what none of those cover: the brief masthead with its
+% decision-metadata strip, an owner/due-date action list, and a compact
+% numbered source list.
+%
+% Structure, not style: every size and color below is a theme token. The
+% type-scale names are supplied by theme=institutional-research's common
+% file and by theme=executive's paged adapter.
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{reportkit-executive-brief}[2026/09/23 v1.0.0 ReportKit executive-brief publication type]
+
+\RequirePackage{xparse}
+\RequirePackage{etoolbox}
+\RequirePackage{ragged2e}
+\RequirePackage{reportkit-exhibits}
+
+\@for\rk@brieftoken:={rksectorkickersize,rkheadlinesize,rkdecksize,rksidebarsize,rkratingvaluesize,rktablebodysize,rksourcesize}\do{%
+  \@ifundefined{\rk@brieftoken}{%
+    \PackageError{reportkit-executive-brief}%
+      {The selected theme does not define \@backslashchar\rk@brieftoken,\MessageBreak which publication-type=executive-brief requires}%
+      {Use theme=executive or theme=institutional-research.}%
+  }{}%
+}
+
+% A brief is read top to bottom in a few minutes; section numbers add no
+% navigation value at this length. Bookmarks and the running header still
+% use the section titles.
+\setcounter{secnumdepth}{0}
+
+% -----------------------------------------------------------------------------
+% Masthead: kicker, one-sentence headline, deck (the environment body), and
+% a decision-metadata strip built from \briefmeta items. Items are collected
+% and typeset together at \end{briefheader}, so they may appear anywhere in
+% the body without interrupting the deck paragraph.
+% -----------------------------------------------------------------------------
+\newcounter{rk@briefmetacount}
+\newcounter{rk@briefmetaindex}
+\newcommand{\rk@briefmetaitems}{}
+\newlength{\rk@briefmetawidth}
+\newlength{\rk@briefmetagap}
+\setlength{\rk@briefmetagap}{4mm}
+
+% <reportkit-contract>
+% {"kind":"composition","description":"Executive-brief masthead: kicker, headline, deck body, and a decision-metadata strip.","arguments":[{"name":"kicker","type":"text","description":"Short line above the headline (unit, programme, or brief type)."},{"name":"headline","type":"text","description":"The recommendation or finding, stated as one sentence."}],"constraints":[{"code":"child_command","description":"Use briefmeta inside the environment for decision metadata; items render as one strip after the deck.","value":"briefmeta"}],"example":"\\begin{briefheader}{Strategy office}{Consolidate the two regional platforms by Q3}\nOne-paragraph deck.\n\\briefmeta{Decision owner}{COO}\n\\briefmeta{Decision by}{30 June}\n\\end{briefheader}","stability":"experimental","since":"1.9.3"}
+% </reportkit-contract>
+\NewDocumentEnvironment{briefheader}{m m}{%
+  \par\thispagestyle{fancy}%
+  \setcounter{rk@briefmetacount}{0}%
+  \gdef\rk@briefmetaitems{}%
+  {\sffamily\bfseries\rksectorkickersize\color{Accent}\MakeUppercase{#1}\par}%
+  \vspace{4pt}%
+  {\sffamily\bfseries\rkheadlinesize\color{Ink}\raggedright #2\par}%
+  \vspace{7pt}%
+  \begingroup\rkdecksize\color{Ink}\raggedright\ignorespaces
+}{%
+  \par\endgroup
+  \ifnum\value{rk@briefmetacount}>0
+    \vspace{8pt}\rk@briefmetastrip
+  \fi
+  \vspace{8pt}%
+}
+
+% <reportkit-contract>
+% {"kind":"command","description":"One labelled decision-metadata item (owner, decision date, audience, classification) in the briefheader strip.","arguments":[{"name":"label","type":"text","description":"Short metadata label."},{"name":"value","type":"text","description":"Metadata value."}],"constraints":[],"example":"\\briefmeta{Decision owner}{COO}","stability":"experimental","since":"1.9.3","parent":"briefheader"}
+% </reportkit-contract>
+\NewDocumentCommand{\briefmeta}{m m}{%
+  \stepcounter{rk@briefmetacount}%
+  \gappto\rk@briefmetaitems{\rk@briefmetaitem{#1}{#2}}%
+  \ignorespaces
+}
+
+% reportkit-contract: internal
+\NewDocumentCommand{\rk@briefmetaitem}{m m}{%
+  \stepcounter{rk@briefmetaindex}%
+  \ifnum\value{rk@briefmetaindex}>1
+    \hspace{\rk@briefmetagap}{\color{Hairline}\vrule width 0.4pt}\hspace{\rk@briefmetagap}%
+  \fi%
+  % \raggedright, not ragged2e's \RaggedRight: short metadata values in a
+  % narrow column should wrap at word boundaries, never hyphenate.
+  \begin{minipage}[t]{\rk@briefmetawidth}\raggedright\leavevmode
+    {\sffamily\rksidebarsize\color{Muted}\MakeUppercase{#1}\par}%
+    \vspace{1.5pt}{\sffamily\bfseries\rkratingvaluesize\color{Ink}#2\par}%
+  \end{minipage}%
+}
+
+% Equal-width items: subtract (n-1) separators (two gaps plus a 0.4pt rule)
+% from \linewidth, then divide by n -- the same arithmetic ratingitem uses.
+\newcommand{\rk@briefmetastrip}{%
+  \setlength{\rk@briefmetawidth}{\linewidth}%
+  \@tempcnta=\value{rk@briefmetacount}%
+  \advance\@tempcnta by -1
+  \@whilenum\@tempcnta>0\do{%
+    \addtolength{\rk@briefmetawidth}{-2\rk@briefmetagap}%
+    \addtolength{\rk@briefmetawidth}{-0.4pt}%
+    \advance\@tempcnta by -1
+  }%
+  \divide\rk@briefmetawidth by \value{rk@briefmetacount}%
+  \setcounter{rk@briefmetaindex}{0}%
+  \par\noindent{\color{Hairline}\hrule height 0.4pt}\par\vspace{5pt}%
+  \noindent\rk@briefmetaitems\par
+  \vspace{5pt}{\color{Hairline}\hrule height 0.4pt}\par
+}
+
+% -----------------------------------------------------------------------------
+% Next steps: numbered actions with an accountable owner and a due date.
+% Rows are independent paragraphs so a long list can break across pages.
+% -----------------------------------------------------------------------------
+\newcounter{rk@briefaction}
+
+% <reportkit-contract>
+% {"kind":"composition","description":"Next-steps list of numbered actions with owner and due-date columns.","arguments":[],"constraints":[{"code":"child_command","description":"Each row is one briefaction.","value":"briefaction"}],"example":"\\begin{briefactions}\n\\briefaction{Approve the migration budget}{CFO}{15 May}\n\\end{briefactions}","stability":"experimental","since":"1.9.3"}
+% </reportkit-contract>
+\NewDocumentEnvironment{briefactions}{}{%
+  \par\RKReserveSpace{5\baselineskip}\setcounter{rk@briefaction}{0}%
+  \noindent\rk@briefactionrow{\sffamily\bfseries\rksidebarsize\color{Muted}\#}%
+    {\sffamily\bfseries\rksidebarsize\color{Muted}ACTION}%
+    {\sffamily\bfseries\rksidebarsize\color{Muted}OWNER}%
+    {\sffamily\bfseries\rksidebarsize\color{Muted}DUE}%
+  \par\vspace{3pt}{\color{Ink}\hrule height 0.6pt}\par\vspace{4pt}%
+}{%
+  \par\vspace{6pt}%
+}
+
+% <reportkit-contract>
+% {"kind":"command","description":"One next-step row: action, accountable owner, and due date.","arguments":[{"name":"action","type":"text","description":"The action, starting with a verb."},{"name":"owner","type":"text","description":"Accountable owner."},{"name":"due","type":"text","description":"Due date or milestone."}],"constraints":[],"example":"\\briefaction{Approve the migration budget}{CFO}{15 May}","stability":"experimental","since":"1.9.3","parent":"briefactions"}
+% </reportkit-contract>
+\NewDocumentCommand{\briefaction}{m m m}{%
+  \refstepcounter{rk@briefaction}%
+  \noindent\rk@briefactionrow{\sffamily\bfseries\rktablebodysize\color{Accent}\arabic{rk@briefaction}}%
+    {\sffamily\rktablebodysize\color{Ink}#1}%
+    {\sffamily\bfseries\rktablebodysize\color{Ink}#2}%
+    {\sffamily\rktablebodysize\color{Ink}#3}%
+  \par\vspace{3pt}{\color{Hairline}\hrule height 0.4pt}\par\vspace{4pt}%
+}
+
+% Each cell starts with \leavevmode so the cell's leading \color special
+% lands inside its first text line: [t] minipages then align on first
+% baselines instead of on a zero-height colour whatsit, which would let
+% bold and regular cells drift apart vertically.
+% reportkit-contract: internal
+\NewDocumentCommand{\rk@briefactionrow}{m m m m}{%
+  \begin{minipage}[t]{0.05\linewidth}\leavevmode#1\end{minipage}%
+  \begin{minipage}[t]{0.63\linewidth}\RaggedRight\leavevmode#2\end{minipage}%
+  \hfill
+  \begin{minipage}[t]{0.17\linewidth}\raggedright\leavevmode#3\end{minipage}%
+  \hspace{0.02\linewidth}%
+  \begin{minipage}[t]{0.11\linewidth}\raggedright\leavevmode#4\end{minipage}%
+}
+
+% -----------------------------------------------------------------------------
+% Sources: the brief's full source list, in the theme's source type. Per-
+% exhibit provenance still goes through exhibit's source= key (\source{}).
+% -----------------------------------------------------------------------------
+% <reportkit-contract>
+% {"kind":"composition","description":"Compact numbered source list for the end of a brief; use \\item for each source.","arguments":[],"constraints":[],"example":"\\begin{briefsources}\n\\item Fictional operations dataset, Q1 extract.\n\\end{briefsources}","stability":"experimental","since":"1.9.3"}
+% </reportkit-contract>
+\NewDocumentEnvironment{briefsources}{}{%
+  \par\RKReserveSpace{3\baselineskip}%
+  \begin{enumerate}[label={[\arabic*]},leftmargin=2.2em,itemsep=2pt,topsep=2pt]%
+  \sffamily\rksourcesize\color{Muted}%
+}{%
+  \end{enumerate}%
+}
+
+\endinput

@@ -62,7 +62,73 @@
 \newcommand{\setreportkitversion}[1]{\renewcommand{\rk@version}{#1}}
 \newcommand{\setreportkitsubject}[1]{\renewcommand{\rk@subject}{#1}}
 \newcommand{\setreportkitkeywords}[1]{\renewcommand{\rk@keywords}{#1}}
-\newcommand{\setreportkitlanguage}[1]{\renewcommand{\rk@language}{#1}}
+% -----------------------------------------------------------------------------
+% Language, script, and font-policy truthfulness (agent-contract spec section 13)
+% -----------------------------------------------------------------------------
+% \setreportkitlanguage{<BCP 47 tag>} always sets the PDF catalog language.
+% It loads locale-aware typography (babel: hyphenation, captions, quotation
+% and spacing conventions) only when the selected theme marks the language
+% verified in the generated publication registry. A metadata-only language
+% (Vietnamese today) sets the catalog language and nothing else; a
+% right-to-left language is always an error; an undeclared language is an
+% error under font policy strict and a warning otherwise. Call it once, in
+% the preamble. Without a call the catalog language stays en-US and no
+% locale package is loaded: the format's built-in hyphenation is already
+% US English, the same patterns babel's american selects.
+%
+% \setreportkitfontpolicy{strict|fallback} is shared by every theme. strict
+% makes a missing glyph fatal in the engine itself (\tracinglostchars=3);
+% fallback keeps the kernel default, which logs "Missing character" for the
+% build-log gate to report as a blocking missing_glyph diagnostic.
+\newcommand{\rk@fontpolicy}{fallback}
+\newcommand{\setreportkitfontpolicy}[1]{\renewcommand{\rk@fontpolicy}{#1}}
+\newcommand{\rk@languagestatus}{default}
+\newcommand{\rk@languageprimary}{en}
+\def\rk@languageprimary@split#1-#2\@nil{#1}
+\newcommand{\setreportkitlanguage}[1]{%
+  \renewcommand{\rk@language}{#1}%
+  \edef\rk@languagetag{#1}%
+  \edef\rk@languageprimary{\expandafter\rk@languageprimary@split\rk@languagetag-\@nil}%
+  \ifcsname RKRTLLanguage@\rk@languageprimary\endcsname
+    \def\rk@languagestatus{rtl}%
+    \PackageError{reportkit-core}%
+      {Language '\rk@languagetag' is right-to-left; RTL is explicitly unsupported by every ReportKit renderer and theme}%
+      {Remove the RTL language declaration. ReportKit does not typeset right-to-left text.}%
+  \else
+    \ifcsname RKThemeLanguage@\rk@theme\string @\rk@languageprimary\endcsname
+      \edef\rk@languagestatus{\csname RKThemeLanguage@\rk@theme\string @\rk@languageprimary\endcsname}%
+    \else
+      \def\rk@languagestatus{undeclared}%
+    \fi
+    \ifdefstring{\rk@languagestatus}{verified}{%
+      \ifcsname RKLocaleBabel@\rk@languagetag\endcsname
+        \edef\rk@localebabel{\csname RKLocaleBabel@\rk@languagetag\endcsname}%
+      \else
+        \edef\rk@localebabel{\csname RKLocaleBabel@\rk@languageprimary\endcsname}%
+      \fi
+      \PackageInfo{reportkit-core}{Language \rk@languagetag\space is verified for theme \rk@theme; loading babel locale \rk@localebabel}%
+      \expandafter\rk@loadlocaletypography\expandafter{\rk@localebabel}%
+    }{%
+      \ifdefstring{\rk@languagestatus}{metadata-only}{%
+        \PackageInfo{reportkit-core}{Language \rk@languagetag\space is metadata-only for theme \rk@theme; setting the PDF catalog language without locale typography}%
+      }{}%
+    }%
+  \fi
+}
+\@onlypreamble\setreportkitlanguage
+\newcommand{\rk@loadlocaletypography}[1]{\RequirePackage[#1]{babel}}
+\AtEndPreamble{%
+  \ifdefstring{\rk@languagestatus}{undeclared}{%
+    \ifdefstring{\rk@fontpolicy}{strict}{%
+      \PackageError{reportkit-core}%
+        {Language '\rk@languagetag' is not declared by theme \rk@theme\space and theme.font_policy is strict}%
+        {Choose a language the theme verifies (reportkit context --slice selection) or use font policy fallback.}%
+    }{%
+      \PackageWarningNoLine{reportkit-core}{Language '\rk@languagetag' is not declared by theme \rk@theme; only the PDF catalog language is set}%
+    }%
+  }{}%
+  \ifdefstring{\rk@fontpolicy}{strict}{\tracinglostchars=3\relax}{}%
+}
 
 % Keep PDF metadata coupled to the document's normal title and author fields.
 % hyperref performs the necessary PDF-string sanitisation for bookmarks and
@@ -478,6 +544,16 @@
 \newcommand{\RKTokPresentationColumnHeadingFont}{\rk@styletokenerror{\RKTokPresentationColumnHeadingFont}}
 \newcommand{\RKTokPresentationClosingFont}{\rk@styletokenerror{\RKTokPresentationClosingFont}}
 \newcommand{\RKTokPresentationRuleWidth}{\rk@styletokenerror{\RKTokPresentationRuleWidth}}
+% Frame-surface role hook (Phase D). Every frame-level composition in
+% reportkit-presentation.sty calls this once, inside its own group, with one
+% renderer-neutral semantic role: opening, divider, statement, metric,
+% closing, or content. The composition layer never decides what a role looks
+% like; a slides adapter may ignore the role (executive: a no-op) or map it to
+% a surface treatment such as an inverse (dark) frame by locally re-pointing
+% the semantic color names the compositions already use. This keeps "light
+% and dark frames" a theme decision without venture-only composition names
+% or a second copy of the composition layer.
+\newcommand{\RKTokPresentationSurface}[1]{\rk@styletokenerror{\RKTokPresentationSurface}}
 \newif\ifrk@presentationtokensloaded
 \rk@presentationtokensloadedfalse
 % Called by reportkit-presentation.sty immediately before defining anything
@@ -486,6 +562,154 @@
   \ifrk@presentationtokensloaded\else
     \PackageError{reportkit-core}{No theme has populated the required presentation style tokens}%
       {Load a slides-compatible theme's adapter (e.g. reportkit-theme-executive-slides) before reportkit-presentation.}%
+  \fi
+}
+
+% -----------------------------------------------------------------------------
+% Feature-composition style tokens (Phase E, decision D2 extended to the
+% feature-article publication type)
+% -----------------------------------------------------------------------------
+% A third contract with its own gate, for the same reason the presentation
+% tokens above have one: these are only ever read by
+% reportkit-feature-article.sty (loaded only when
+% publication-type=feature-article). Folding them into
+% \RKAssertStyleTokens would force every other paged theme to populate
+% feature-only values it never uses. Populated by a feature-compatible
+% theme's -paged adapter (composition spacing/type is a per-renderer
+% component value under D11). Every visual decision a feature composition
+% makes -- family, size, weight, color, rule, inset, spacing, the opening
+% page style and the credit alignment -- is one of these tokens, so a
+% second feature-compatible theme restyles the same article structure
+% without touching the publication type. Font tokens bundle their own
+% family/weight/\fontsize{}{}\selectfont; color tokens hold an xcolor
+% expression; length tokens hold a TeX dimension; ExhibitInsetFraction is
+% a bare number (a fraction of \linewidth) and DropCapLines a bare integer;
+% CreditAlign holds \raggedright, \raggedleft or \centering; KickerTransform
+% holds a one-argument macro (\MakeUppercase or \@firstofone).
+\newcommand{\RKTokFeatureOpeningPageStyle}{\rk@styletokenerror{\RKTokFeatureOpeningPageStyle}}
+\newcommand{\RKTokFeatureOpeningTopSkip}{\rk@styletokenerror{\RKTokFeatureOpeningTopSkip}}
+\newcommand{\RKTokFeatureOpeningRuleColor}{\rk@styletokenerror{\RKTokFeatureOpeningRuleColor}}
+\newcommand{\RKTokFeatureOpeningRuleWidth}{\rk@styletokenerror{\RKTokFeatureOpeningRuleWidth}}
+\newcommand{\RKTokFeatureOpeningAfterSkip}{\rk@styletokenerror{\RKTokFeatureOpeningAfterSkip}}
+\newcommand{\RKTokFeatureKickerFont}{\rk@styletokenerror{\RKTokFeatureKickerFont}}
+\newcommand{\RKTokFeatureKickerColor}{\rk@styletokenerror{\RKTokFeatureKickerColor}}
+\newcommand{\RKTokFeatureKickerTransform}{\rk@styletokenerror{\RKTokFeatureKickerTransform}}
+\newcommand{\RKTokFeatureHeadlineFont}{\rk@styletokenerror{\RKTokFeatureHeadlineFont}}
+\newcommand{\RKTokFeatureHeadlineColor}{\rk@styletokenerror{\RKTokFeatureHeadlineColor}}
+\newcommand{\RKTokFeatureDeckFont}{\rk@styletokenerror{\RKTokFeatureDeckFont}}
+\newcommand{\RKTokFeatureDeckColor}{\rk@styletokenerror{\RKTokFeatureDeckColor}}
+\newcommand{\RKTokFeatureBylineFont}{\rk@styletokenerror{\RKTokFeatureBylineFont}}
+\newcommand{\RKTokFeatureBylineColor}{\rk@styletokenerror{\RKTokFeatureBylineColor}}
+\newcommand{\RKTokFeatureElementSkip}{\rk@styletokenerror{\RKTokFeatureElementSkip}}
+\newcommand{\RKTokFeatureCaptionFont}{\rk@styletokenerror{\RKTokFeatureCaptionFont}}
+\newcommand{\RKTokFeatureCaptionColor}{\rk@styletokenerror{\RKTokFeatureCaptionColor}}
+\newcommand{\RKTokFeatureCreditFont}{\rk@styletokenerror{\RKTokFeatureCreditFont}}
+\newcommand{\RKTokFeatureCreditColor}{\rk@styletokenerror{\RKTokFeatureCreditColor}}
+\newcommand{\RKTokFeatureCreditAlign}{\rk@styletokenerror{\RKTokFeatureCreditAlign}}
+\newcommand{\RKTokFeaturePullQuoteFont}{\rk@styletokenerror{\RKTokFeaturePullQuoteFont}}
+\newcommand{\RKTokFeaturePullQuoteColor}{\rk@styletokenerror{\RKTokFeaturePullQuoteColor}}
+\newcommand{\RKTokFeaturePullQuoteAttributionFont}{\rk@styletokenerror{\RKTokFeaturePullQuoteAttributionFont}}
+\newcommand{\RKTokFeaturePullQuoteRuleColor}{\rk@styletokenerror{\RKTokFeaturePullQuoteRuleColor}}
+\newcommand{\RKTokFeaturePullQuoteRuleWidth}{\rk@styletokenerror{\RKTokFeaturePullQuoteRuleWidth}}
+\newcommand{\RKTokFeaturePullQuoteInset}{\rk@styletokenerror{\RKTokFeaturePullQuoteInset}}
+\newcommand{\RKTokFeaturePullQuoteSkip}{\rk@styletokenerror{\RKTokFeaturePullQuoteSkip}}
+\newcommand{\RKTokFeatureSidebarTitleFont}{\rk@styletokenerror{\RKTokFeatureSidebarTitleFont}}
+\newcommand{\RKTokFeatureSidebarTitleColor}{\rk@styletokenerror{\RKTokFeatureSidebarTitleColor}}
+\newcommand{\RKTokFeatureSidebarBodyFont}{\rk@styletokenerror{\RKTokFeatureSidebarBodyFont}}
+\newcommand{\RKTokFeatureSidebarFill}{\rk@styletokenerror{\RKTokFeatureSidebarFill}}
+\newcommand{\RKTokFeatureSidebarRuleColor}{\rk@styletokenerror{\RKTokFeatureSidebarRuleColor}}
+\newcommand{\RKTokFeatureSidebarRuleWidth}{\rk@styletokenerror{\RKTokFeatureSidebarRuleWidth}}
+\newcommand{\RKTokFeatureSidebarAccentRuleWidth}{\rk@styletokenerror{\RKTokFeatureSidebarAccentRuleWidth}}
+\newcommand{\RKTokFeatureSidebarPad}{\rk@styletokenerror{\RKTokFeatureSidebarPad}}
+\newcommand{\RKTokFeatureExhibitLabelFont}{\rk@styletokenerror{\RKTokFeatureExhibitLabelFont}}
+\newcommand{\RKTokFeatureExhibitLabelColor}{\rk@styletokenerror{\RKTokFeatureExhibitLabelColor}}
+\newcommand{\RKTokFeatureExhibitTitleFont}{\rk@styletokenerror{\RKTokFeatureExhibitTitleFont}}
+\newcommand{\RKTokFeatureExhibitTitleColor}{\rk@styletokenerror{\RKTokFeatureExhibitTitleColor}}
+\newcommand{\RKTokFeatureExhibitRuleColor}{\rk@styletokenerror{\RKTokFeatureExhibitRuleColor}}
+\newcommand{\RKTokFeatureExhibitRuleWidth}{\rk@styletokenerror{\RKTokFeatureExhibitRuleWidth}}
+\newcommand{\RKTokFeatureExhibitInsetFraction}{\rk@styletokenerror{\RKTokFeatureExhibitInsetFraction}}
+\newcommand{\RKTokFeatureExhibitSkip}{\rk@styletokenerror{\RKTokFeatureExhibitSkip}}
+\newcommand{\RKTokFeatureSectionFont}{\rk@styletokenerror{\RKTokFeatureSectionFont}}
+\newcommand{\RKTokFeatureSectionColor}{\rk@styletokenerror{\RKTokFeatureSectionColor}}
+\newcommand{\RKTokFeatureSectionRuleColor}{\rk@styletokenerror{\RKTokFeatureSectionRuleColor}}
+\newcommand{\RKTokFeatureSectionRuleWidth}{\rk@styletokenerror{\RKTokFeatureSectionRuleWidth}}
+\newcommand{\RKTokFeatureStandfirstFont}{\rk@styletokenerror{\RKTokFeatureStandfirstFont}}
+\newcommand{\RKTokFeatureStandfirstColor}{\rk@styletokenerror{\RKTokFeatureStandfirstColor}}
+\newcommand{\RKTokFeatureSectionSkip}{\rk@styletokenerror{\RKTokFeatureSectionSkip}}
+\newcommand{\RKTokFeatureColumnGutter}{\rk@styletokenerror{\RKTokFeatureColumnGutter}}
+\newcommand{\RKTokFeatureColumnRuleWidth}{\rk@styletokenerror{\RKTokFeatureColumnRuleWidth}}
+\newcommand{\RKTokFeatureColumnRuleColor}{\rk@styletokenerror{\RKTokFeatureColumnRuleColor}}
+\newcommand{\RKTokFeatureDropCapFont}{\rk@styletokenerror{\RKTokFeatureDropCapFont}}
+\newcommand{\RKTokFeatureDropCapColor}{\rk@styletokenerror{\RKTokFeatureDropCapColor}}
+\newcommand{\RKTokFeatureDropCapLeadFont}{\rk@styletokenerror{\RKTokFeatureDropCapLeadFont}}
+\newcommand{\RKTokFeatureDropCapLines}{\rk@styletokenerror{\RKTokFeatureDropCapLines}}
+\newcommand{\RKTokFeatureReferenceTitleFont}{\rk@styletokenerror{\RKTokFeatureReferenceTitleFont}}
+\newcommand{\RKTokFeatureReferenceFont}{\rk@styletokenerror{\RKTokFeatureReferenceFont}}
+\newcommand{\RKTokFeatureReferenceColor}{\rk@styletokenerror{\RKTokFeatureReferenceColor}}
+\newif\ifrk@featuretokensloaded
+\rk@featuretokensloadedfalse
+% Called by reportkit-feature-article.sty immediately before defining
+% anything that reads a token above.
+\newcommand{\RKAssertFeatureTokens}{%
+  \ifrk@featuretokensloaded\else
+    \PackageError{reportkit-core}{No theme has populated the required feature-composition style tokens}%
+      {Select a feature-compatible theme whose paged adapter populates the RKTokFeature tokens before reportkit-feature-article loads.}%
+  \fi
+}
+
+% -----------------------------------------------------------------------------
+% Book-composition style tokens (Phase F2, decision D2 extended to the book
+% publication type)
+% -----------------------------------------------------------------------------
+% A fourth contract with its own gate, for the same reason the presentation
+% and feature tokens have one: these are only ever read by
+% reportkit-book.sty (loaded only when publication-type=book), so folding
+% them into \RKAssertStyleTokens would force every other paged theme to
+% populate book-only values. Populated by a book-compatible theme's -paged
+% adapter. Every visual decision a book opener, imprint page, reference list
+% or glossary makes is one of these tokens: font tokens bundle their own
+% family/weight/\fontsize{}{}\selectfont; color tokens hold an xcolor
+% expression; length tokens hold a TeX dimension; OpeningPageStyle holds
+% the page-style name used on part-opener and publication-details pages;
+% LabelTransform holds a one-argument macro (\MakeUppercase or
+% \@firstofone) applied to part, chapter and details labels.
+\newcommand{\RKTokBookOpeningPageStyle}{\rk@styletokenerror{\RKTokBookOpeningPageStyle}}
+\newcommand{\RKTokBookPartTopSkip}{\rk@styletokenerror{\RKTokBookPartTopSkip}}
+\newcommand{\RKTokBookPartLabelFont}{\rk@styletokenerror{\RKTokBookPartLabelFont}}
+\newcommand{\RKTokBookPartLabelColor}{\rk@styletokenerror{\RKTokBookPartLabelColor}}
+\newcommand{\RKTokBookPartTitleFont}{\rk@styletokenerror{\RKTokBookPartTitleFont}}
+\newcommand{\RKTokBookPartTitleColor}{\rk@styletokenerror{\RKTokBookPartTitleColor}}
+\newcommand{\RKTokBookPartRuleColor}{\rk@styletokenerror{\RKTokBookPartRuleColor}}
+\newcommand{\RKTokBookPartRuleWidth}{\rk@styletokenerror{\RKTokBookPartRuleWidth}}
+\newcommand{\RKTokBookElementSkip}{\rk@styletokenerror{\RKTokBookElementSkip}}
+\newcommand{\RKTokBookChapterTopSkip}{\rk@styletokenerror{\RKTokBookChapterTopSkip}}
+\newcommand{\RKTokBookChapterLabelFont}{\rk@styletokenerror{\RKTokBookChapterLabelFont}}
+\newcommand{\RKTokBookChapterLabelColor}{\rk@styletokenerror{\RKTokBookChapterLabelColor}}
+\newcommand{\RKTokBookLabelTransform}{\rk@styletokenerror{\RKTokBookLabelTransform}}
+\newcommand{\RKTokBookChapterTitleFont}{\rk@styletokenerror{\RKTokBookChapterTitleFont}}
+\newcommand{\RKTokBookChapterTitleColor}{\rk@styletokenerror{\RKTokBookChapterTitleColor}}
+\newcommand{\RKTokBookChapterRuleColor}{\rk@styletokenerror{\RKTokBookChapterRuleColor}}
+\newcommand{\RKTokBookChapterRuleWidth}{\rk@styletokenerror{\RKTokBookChapterRuleWidth}}
+\newcommand{\RKTokBookChapterAfterSkip}{\rk@styletokenerror{\RKTokBookChapterAfterSkip}}
+\newcommand{\RKTokBookDetailsTitleFont}{\rk@styletokenerror{\RKTokBookDetailsTitleFont}}
+\newcommand{\RKTokBookDetailsLabelFont}{\rk@styletokenerror{\RKTokBookDetailsLabelFont}}
+\newcommand{\RKTokBookDetailsLabelColor}{\rk@styletokenerror{\RKTokBookDetailsLabelColor}}
+\newcommand{\RKTokBookDetailsBodyFont}{\rk@styletokenerror{\RKTokBookDetailsBodyFont}}
+\newcommand{\RKTokBookDetailsSkip}{\rk@styletokenerror{\RKTokBookDetailsSkip}}
+\newcommand{\RKTokBookReferenceFont}{\rk@styletokenerror{\RKTokBookReferenceFont}}
+\newcommand{\RKTokBookReferenceColor}{\rk@styletokenerror{\RKTokBookReferenceColor}}
+\newcommand{\RKTokBookGlossaryTermFont}{\rk@styletokenerror{\RKTokBookGlossaryTermFont}}
+\newcommand{\RKTokBookGlossaryTermColor}{\rk@styletokenerror{\RKTokBookGlossaryTermColor}}
+\newcommand{\RKTokBookGlossaryBodyFont}{\rk@styletokenerror{\RKTokBookGlossaryBodyFont}}
+\newcommand{\RKTokBookGlossarySkip}{\rk@styletokenerror{\RKTokBookGlossarySkip}}
+\newif\ifrk@booktokensloaded
+\rk@booktokensloadedfalse
+% Called by reportkit-book.sty immediately before defining anything that
+% reads a token above.
+\newcommand{\RKAssertBookTokens}{%
+  \ifrk@booktokensloaded\else
+    \PackageError{reportkit-core}{No theme has populated the required book-composition style tokens}%
+      {Select a book-compatible theme whose paged adapter populates the RKTokBook tokens before reportkit-book loads.}%
   \fi
 }
 

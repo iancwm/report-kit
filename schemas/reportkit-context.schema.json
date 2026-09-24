@@ -5,6 +5,51 @@
   "type": "object",
   "required": ["schema_version", "passed", "diagnostics", "contract_version", "reportkit_version", "revision", "selection", "capabilities", "commands", "command_contract", "schemas", "toolchain", "context_budget"],
   "$defs": {
+    "font_stack": {
+      "type": "object",
+      "required": ["body", "heading", "mono"],
+      "properties": {
+        "body": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+        "heading": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+        "mono": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}}
+      },
+      "additionalProperties": false
+    },
+    "theme_language_support": {
+      "type": "object",
+      "required": ["verified", "metadata_only", "scripts", "rtl", "locale_typography"],
+      "properties": {
+        "verified": {"type": "array", "minItems": 1, "items": {"type": "string", "pattern": "^[a-z]{2,3}$"}},
+        "metadata_only": {"type": "array", "items": {"type": "string", "pattern": "^[a-z]{2,3}$"}},
+        "scripts": {
+          "type": "object",
+          "required": ["verified", "metadata_only", "font_stacks"],
+          "properties": {
+            "verified": {"type": "array", "minItems": 1, "items": {"type": "string", "pattern": "^[A-Z][a-z]{3}$"}},
+            "metadata_only": {"type": "array", "items": {"type": "string", "pattern": "^[A-Z][a-z]{3}$"}},
+            "font_stacks": {"type": "object", "minProperties": 1, "additionalProperties": {"$ref": "#/$defs/font_stack"}}
+          },
+          "additionalProperties": false
+        },
+        "rtl": {"const": "unsupported"},
+        "locale_typography": {"type": "object", "additionalProperties": {"type": "string"}},
+        "text_direction": {"type": "array", "items": {"const": "ltr"}},
+        "missing_glyph": {"type": "object", "required": ["strict", "fallback"]}
+      },
+      "additionalProperties": false
+    },
+    "renderer_language_support": {
+      "type": "object",
+      "required": ["catalog_language", "text_direction", "rtl", "locale_typography", "missing_glyph"],
+      "properties": {
+        "catalog_language": {"const": "supported"},
+        "text_direction": {"type": "array", "items": {"const": "ltr"}},
+        "rtl": {"const": "unsupported"},
+        "locale_typography": {"type": "object"},
+        "missing_glyph": {"type": "object", "required": ["strict", "fallback"]}
+      },
+      "additionalProperties": false
+    },
     "diagnostic": {
       "type": "object",
       "required": ["code", "type", "severity", "message", "remediation", "primitive", "source", "docs", "candidates", "details"],
@@ -70,12 +115,38 @@
     "contract_version": {"const": "1.1.0"},
     "reportkit_version": {"const": "1.9.3"},
     "revision": {"type": "string"},
-    "selection": {"type": "object"},
+    "selection": {
+      "type": "object",
+      "properties": {
+        "language_support": {
+          "allOf": [
+            {"$ref": "#/$defs/theme_language_support"},
+            {"required": ["text_direction", "missing_glyph"]}
+          ]
+        }
+      }
+    },
     "capabilities": {
       "type": "object",
       "required": ["publication_types", "themes", "renderers", "primitives", "authoring"],
       "properties": {
-        "publication_types": {"type": "object"}, "themes": {"type": "object"}, "renderers": {"type": "object"},
+        "publication_types": {"type": "object"},
+        "themes": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "required": ["language_support"],
+            "properties": {"language_support": {"$ref": "#/$defs/theme_language_support"}}
+          }
+        },
+        "renderers": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "required": ["language_support"],
+            "properties": {"language_support": {"$ref": "#/$defs/renderer_language_support"}}
+          }
+        },
         "authoring": {
           "type": "object",
           "required": ["mode", "document_template", "chart_prelude", "chart_export", "markdown_raw_tex", "trusted_escape_hatches"]

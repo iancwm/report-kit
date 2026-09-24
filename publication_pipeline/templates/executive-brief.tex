@@ -1,0 +1,34 @@
+% ReportKit entrypoint: executive-brief. The builder replaces these
+% explicit placeholders from the resolved BuildTarget; no unrestricted TeX
+% formatting is applied to this source.
+\documentclass[theme=%%REPORTKIT_THEME%%,publication-type=%%REPORTKIT_PUBLICATION_TYPE%%]{%%REPORTKIT_CLASS%%}
+% A 2-8 page brief opens directly on its masthead: no title page, no
+% contents page, and no page break before each section, in either combined
+% or section builds. The masthead is the
+% publication type's own briefheader primitive, filled from publication.yaml
+% identity; a combined build also carries the licensing line that longer
+% publications put on their publication-details page.
+\newcommand{\RKBriefMetaIfSet}[2]{%
+  \if\relax\detokenize\expandafter{#2}\relax\else\briefmeta{#1}{#2}\fi
+}
+\newcommand{\RKFrontMatter}{%
+  % Sections flow continuously in a brief; long-form page-per-section
+  % pagination would spread two pages of argument over eight.
+  \RKSectionOpensPagefalse
+  \ifRKPubHasCover
+    \clearpage\thispagestyle{empty}\noindent
+    \makebox[\textwidth][c]{\includegraphics[page=1,width=\textwidth,height=\textheight,keepaspectratio]{\RKPubCoverPath}}\clearpage
+  \fi
+  \begin{briefheader}{\RKPubLeftHeader}{\RKPubTitle}
+    \RKPubSubtitle
+    \RKBriefMetaIfSet{Prepared by}{\RKPubAuthor}
+    \RKBriefMetaIfSet{Date}{\RKPubDate}
+    \RKBriefMetaIfSet{Version}{\RKPubVersion}
+    \RKBriefMetaIfSet{Classification}{\RKPubClassification}
+  \end{briefheader}
+  \ifRKPubIsCombined
+    {\sffamily\rksourcesize\color{Muted}Original prose and diagrams are licensed under
+    \href{\RKPubContentLicenseURL}{\RKPubContentLicense}. \RKPubDisclaimer\par}\vspace{6pt}%
+  \fi
+}
+\input{paged-base.tex}

@@ -72,6 +72,9 @@
 \renewcommand{\RKTokPresentationColumnHeadingFont}{\fontsize{12.5pt}{15pt}\selectfont}
 \renewcommand{\RKTokPresentationClosingFont}{\fontsize{25pt}{29pt}\selectfont}
 \renewcommand{\RKTokPresentationRuleWidth}{.85pt}
+% Executive keeps every frame on the same light surface: the consulting
+% system's hierarchy comes from type and rules, not from inverse frames.
+\renewcommand{\RKTokPresentationSurface}[1]{}
 \rk@presentationtokensloadedtrue
 
 \endinput

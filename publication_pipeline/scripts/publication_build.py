@@ -89,6 +89,7 @@ from reportkit.config import (  # noqa: E402
 )
 from reportkit.manifest import unique_build_id, write_report  # noqa: E402
 from reportkit.diagnostics import diagnostic_envelope, inspect_log, make_diagnostic  # noqa: E402
+from reportkit.languages import language_diagnostics, normalize_language_tag, resolve_language  # noqa: E402
 from reportkit.latex import tex_escape  # noqa: E402
 from reportkit.markdown_directives import parse_markdown, replace_placeholders  # noqa: E402
 from reportkit.tex_renderer import render_ir  # noqa: E402
@@ -355,11 +356,18 @@ def _resolve_publication_date(value: str, *, now: datetime | None = None) -> str
     return f"{current.day} {current.strftime('%B %Y')}"
 
 
-def write_metadata(path: Path, *, identity: dict[str, str], combined: bool, license_values: dict[str, str], cover_name: str | None, uses_tables: bool, uses_code: bool) -> None:
+def write_metadata(
+    path: Path, *, identity: dict[str, str], combined: bool, license_values: dict[str, str],
+    cover_name: str | None, uses_tables: bool, uses_code: bool,
+    font_policy: str = "fallback", language: str | None = None,
+) -> None:
     """Emit the publication's identity as LaTeX macros.
 
     Every value here comes from the consumer project's publication.yaml or the
     CLI. Nothing about a specific publication is hard-coded in this engine.
+    ``font_policy`` and a declared ``language`` are written as the core's
+    setter calls so the TeX layer applies the same language/script contract
+    the pre-compile check already enforced (agent-contract spec section 13).
     """
     publication_date = _resolve_publication_date(identity.get("date", ""))
     lines = [
@@ -389,7 +397,13 @@ def write_metadata(path: Path, *, identity: dict[str, str], combined: bool, lice
         f"\\newcommand{{\\RKPubClassification}}{{{tex_escape(license_values.get('classification', ''))}}}",
         f"\\newcommand{{\\RKPubCoverPath}}{{{cover_name or ''}}}",
         f"\\newcommand{{\\RKPubDisclaimer}}{{{tex_escape(identity['disclaimer'])}}}",
+        # Validated against the {strict, fallback} set before this runs.
+        f"\\setreportkitfontpolicy{{{tex_escape(font_policy)}}}",
     ]
+    if language:
+        # A normalized BCP 47 tag contains only ASCII letters, digits, and
+        # hyphens, so it cannot carry TeX syntax.
+        lines.append(f"\\setreportkitlanguage{{{normalize_language_tag(language)}}}")
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
@@ -538,9 +552,18 @@ def build(args: argparse.Namespace) -> int:
         f"canvas={target.canvas if target.canvas else '-'}"
     )
     print(selection_marker)
-    font_policy_conflict = theme_font_policy_conflict(resolve_theme(config, profile))
+    theme_config = resolve_theme(config, profile)
+    font_policy_conflict = theme_font_policy_conflict(theme_config)
     if font_policy_conflict:
         print(f"publication config: {font_policy_conflict}", file=sys.stderr)
+        return 2
+    font_policy = str(theme_config.get("font_policy", "fallback"))
+    declared_language = identity.get("language") or None
+    language_issues = language_diagnostics(declared_language, target.requested_theme, font_policy=font_policy)
+    for issue in language_issues:
+        prefix = "publication config" if issue["severity"] == "error" else "publication config warning"
+        print(f"{prefix}: [{issue['code']}] {issue['message']}", file=sys.stderr)
+    if any(issue["severity"] == "error" for issue in language_issues):
         return 2
     try:
         effective_theme = resolve_effective_theme(
@@ -675,7 +698,11 @@ def build(args: argparse.Namespace) -> int:
     manuscript_text = "\n".join((source_root / "manuscript" / path).read_text(encoding="utf-8") for path in manuscripts)
     uses_tables = any("|" in line and "---" in line for line in manuscript_text.splitlines())
     uses_code = "```" in manuscript_text or "~~~" in manuscript_text
-    write_metadata(output / "metadata.tex", identity=identity, combined=args.mode == "combined", license_values=license_values, cover_name=cover_name, uses_tables=uses_tables, uses_code=uses_code)
+    write_metadata(
+        output / "metadata.tex", identity=identity, combined=args.mode == "combined",
+        license_values=license_values, cover_name=cover_name, uses_tables=uses_tables, uses_code=uses_code,
+        font_policy=font_policy, language=declared_language,
+    )
     links_file = source_root / "links.yaml"
     if links_file.is_file():
         try:
@@ -708,6 +735,10 @@ def build(args: argparse.Namespace) -> int:
         # like "technical" from what actually rendered).
         "selection": target.as_dict(),
         "effective_theme": effective_theme.as_dict(),
+        # Agent-contract spec section 13: how the declared language resolved
+        # (null when publication.yaml declares none and en-US applies).
+        "language": resolve_language(declared_language, target.requested_theme).as_dict() if declared_language else None,
+        "font_policy": font_policy,
         "commands": [], "exit_codes": [], "diagnostics": {}, "figures": figure_count, "tables": table_count, "pdf_sha256": None,
     }
     report_path = output / "build-report.json"

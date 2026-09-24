@@ -37,6 +37,11 @@ TEST_TEXES=(
   "latex_templates/examples/algorithm_visuals_p3_acceptance_test.tex"
   "latex_templates/examples/codeblock_pagination_acceptance_test.tex"
   "latex_templates/examples/algorithm_guide_fixture_acceptance_test.tex"
+  # Phase F2 (book publication type, default theme): every reportkit-book.sty
+  # primitive once. pdflatex-safe -- default/technical/book does not require
+  # LuaLaTeX. The reviewed fictional handbook and the editorial compatibility
+  # smoke are compiled by tests/test_book.py instead.
+  "latex_templates/examples/book_acceptance_test.tex"
 )
 
 echo "== ReportKit acceptance check =="
@@ -201,6 +206,10 @@ LUALATEX_TEST_TEXES=(
   # research, same reason). This is a compile smoke test exercising every
   # reportkit-presentation.sty composition once, not a real deck.
   "latex_templates/examples/presentation_acceptance_test.tex"
+  # Phase E (editorial theme + feature-article publication type): every
+  # feature primitive once under lualatex. The reviewed 6-page fictional
+  # article is compiled by tests/test_editorial_theme.py instead.
+  "latex_templates/examples/feature_article_acceptance_test.tex"
 )
 lua_status=0
 if command -v lualatex >/dev/null 2>&1; then

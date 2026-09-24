@@ -303,6 +303,16 @@ def _profile_values(config: dict[str, Any], profile: str | None) -> dict[str, An
     return values
 
 
+def resolve_declared_language(config: dict[str, Any], profile: str | None = None) -> str | None:
+    """Return the publication's declared ``language`` (profile-aware), if any.
+
+    ``None`` means the publication declares no language and the historical
+    en-US catalog default applies without any locale package.
+    """
+    value = _profile_values(config, profile).get("language")
+    return None if value in (None, "") else str(value)
+
+
 def resolve_identity(config: dict[str, Any], overrides: dict[str, Any], source_root: Path, profile: str | None = None) -> dict[str, str]:
     """Merge publication config, selected profile, and CLI/environment overrides."""
     values = _profile_values(config, profile)
@@ -376,7 +386,10 @@ def resolve_document(config: dict[str, Any], profile: str | None = None) -> dict
     renderer_name = str(publication["renderer"]) if publication else "paged"
     geometry_kind = RENDERERS.get(renderer_name, {}).get("geometry", {}).get("kind", "paper")
     if geometry_kind == "paper":
-        document.setdefault("paper", "a4")
+        # Default to the publication type's own registered paper (Letter for
+        # equity-research and executive-brief) so the recorded selection
+        # matches the page size the theme adapter actually sets.
+        document.setdefault("paper", str((publication or {}).get("paper") or "a4"))
     return document
 
 

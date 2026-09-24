@@ -6,12 +6,13 @@ is implemented in the current v1.9.3 tree. The constrained Markdown/typed-IR
 authoring slice (Phase C′ item 8) and the standalone `reportkit render`
 feedback command (item 9), progressive-disclosure budgets (item 10), and the
 OpenAI reference adapter (item 11) are implemented in the working tree;
-i18n extensions and tagging remain deferred.
+the i18n token extensions (item 12, [§13](#13-internationalization)) are
+implemented in the working tree; tagging remains deferred.
 An additive `algorithmblock` primitive is included in the generated contract.
 Companion to
 [2026-09-09-reportkit-multi-format-publication-architecture-spec.md](2026-09-09-reportkit-multi-format-publication-architecture-spec.md)
 (the "renderer spec"), which it amends in [§18](#18-amendments-to-the-renderer-spec).
-**Last updated:** 2026-09-21
+**Last updated:** 2026-09-23
 **Current-state claims:** the historical baseline below is verified against the
 working tree at `2587e03`; the additive checkpoint is verified against `main`
 at `74197e6`; the current authoring and runner checkpoint is verified against
@@ -554,6 +555,23 @@ glyphs, or a fallback that ruins the design the theme exists to provide.
 - RTL is explicitly **out of scope** unless a real publication needs it. Declare
   it unsupported rather than leaving it undefined.
 
+**Status (2026-09-23):** implemented in the working tree. Each Python
+`Theme.script_coverage` now declares its scripts, per-script font stacks,
+verified and metadata-only languages, and `rtl: unsupported`. Every field is
+required and validated. Context publishes these declarations per theme,
+declares LTR-only text and the missing-glyph policy per renderer, and
+combines both in `selection.language_support`, which the `selection` slice
+carries. `\setreportkitlanguage` loads babel only for verified languages and
+sets only the catalog language for metadata-only languages. It rejects RTL
+languages, and rejects undeclared languages under `font_policy: strict`.
+`strict` also sets `\tracinglostchars=3`, which makes missing glyphs fatal
+in the engine. `reportkit check` and `build` emit `RK_LANGUAGE_*` diagnostics
+before TeX runs. All themes verify `en` in `Latn`. Vietnamese remains
+metadata-only: `career_guide_vi` fails under pdfLaTeX, and no fixture proves
+its locale typography under LuaLaTeX. Regional English uses US hyphenation
+because the pinned format has no separate UK patterns. The multi-format
+plan's D-prime 3 section records the verification details.
+
 ---
 
 ## 14. Accessibility
@@ -726,7 +744,8 @@ remediation; security properties are asserted by tests.
 **Status (updated 2026-09-19):** the selected constrained Markdown/typed-IR
 authoring surface and standalone render command are implemented in the working
 tree. Progressive-disclosure slices and the generated OpenAI adapter are now
-implemented; i18n and tagging remain deferred.
+implemented; the i18n extensions are now implemented (see
+[§13](#13-internationalization)); tagging remains deferred.
 
 8. Authoring IR or constrained dialect ([§6](#6-the-authoring-contract)).
 9. Agent visual feedback loop ([§12](#12-agent-visual-feedback-loop)).
@@ -744,7 +763,8 @@ feedback command remains in this phase.
 
 10. Progressive disclosure and budget ceiling ([§11](#11-progressive-disclosure-and-context-budget)).
 11. Neutral layer plus a non-Claude reference adapter ([§16](#16-vendor-agnostic-skill-packaging)).
-12. i18n token extensions ([§13](#13-internationalization)).
+12. i18n token extensions ([§13](#13-internationalization)). **Implemented
+    2026-09-23 in the working tree.**
 
 **Done when:** a non-Claude agent authors a valid publication using only the
 neutral layer, within the declared context budget.

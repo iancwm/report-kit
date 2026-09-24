@@ -10,6 +10,7 @@ checks complement, not replace.
 from __future__ import annotations
 
 from pathlib import Path
+import re
 
 import pytest
 
@@ -36,15 +37,19 @@ def test_slides_renderer_is_registered() -> None:
 def test_executive_theme_requires_lualatex_and_slides_adapter() -> None:
     theme = THEMES["executive"]
     assert theme["required_engine"] == "lualatex"
-    assert theme["renderers"] == ["slides"]
+    # Phase F1 added the paged adapter for executive-brief.
+    assert theme["renderers"] == ["paged", "slides"]
     assert theme["renderer_adapters"]["slides"] == "reportkit-theme-executive-slides"
+    assert theme["renderer_adapters"]["paged"] == "reportkit-theme-executive-paged"
     assert theme["stability"] == "stable"
 
 
-def test_presentation_publication_type_pairs_only_with_executive() -> None:
+def test_presentation_publication_type_pairs_with_both_slide_themes() -> None:
+    # Phase D: executive and venture share this one publication type; a
+    # venture-specific publication type would mean the abstraction failed.
     presentation = PUBLICATION_TYPES["presentation"]
     assert presentation["renderer"] == "slides"
-    assert presentation["themes"] == ["executive"]
+    assert presentation["themes"] == ["executive", "venture"]
     assert presentation["default_target"] == {"theme": "executive"}
     assert "paper" not in presentation
 
@@ -126,10 +131,14 @@ def test_reportkit_presentation_asserts_its_own_token_contract() -> None:
     assert "executive" not in "\n".join(code_lines)
 
 
-def test_executive_slides_adapter_populates_every_presentation_token() -> None:
-    adapter_text = (
-        REPO / "latex_templates" / "themes" / "reportkit-theme-executive-slides.sty"
-    ).read_text(encoding="utf-8")
+@pytest.mark.parametrize("adapter", ["reportkit-theme-executive-slides", "reportkit-theme-venture-slides"])
+def test_slides_adapters_populate_every_presentation_token(adapter: str) -> None:
+    adapter_text = (REPO / "latex_templates" / "themes" / f"{adapter}.sty").read_text(encoding="utf-8")
+    core_text = (REPO / "latex_templates" / "reportkit-core.sty").read_text(encoding="utf-8")
+    declared = set(re.findall(r"\\newcommand\{\\(RKTokPresentation[A-Za-z]+)\}", core_text))
+    assert "RKTokPresentationSurface" in declared
+    for token in sorted(declared):
+        assert re.search(rf"\\renewcommand\{{\\{token}\}}", adapter_text), f"{adapter} is missing {token}"
     required_tokens = [
         "RKTokPresentationKickerFont", "RKTokPresentationTitleFont", "RKTokPresentationSubtitleFont",
         "RKTokPresentationDividerTitleFont", "RKTokPresentationMessageFont", "RKTokPresentationBodyFont",
@@ -156,18 +165,25 @@ def test_core_declares_presentation_token_sentinels_separately_from_style_tokens
 # -----------------------------------------------------------------------------
 # B3: slide visualization slots
 # -----------------------------------------------------------------------------
-def test_executive_figure_sizes_are_slide_slots_only() -> None:
+def test_executive_figure_sizes_are_slide_slots_plus_paged_brief_sizes() -> None:
     pytest.importorskip("matplotlib")
     pytest.importorskip("numpy")
     pytest.importorskip("pandas")
     from reportkit.themes import get_theme
 
     theme = get_theme("executive")
-    assert set(theme.figure_sizes) == {"slide-main", "slide-half", "slide-hero"}
-    # Every slot must fit inside the declared 160mm x 90mm canvas.
+    slide_slots = {key: value for key, value in theme.figure_sizes.items() if key.startswith("slide-")}
+    assert set(slide_slots) == {"slide-main", "slide-half", "slide-hero"}
+    # Phase F1 added the paged executive-brief target, so the seven paged
+    # names exist too, bounded by the paged adapter's Letter text width.
+    paged = set(theme.figure_sizes) - set(slide_slots)
+    assert paged == {"full", "wide", "dominant", "compact", "square", "half", "sidebar"}
+    for name in paged:
+        assert 0 < theme.figure_sizes[name][0] <= (215.9 - 38) / 25.4 + 1e-9
+    # Every slide slot must fit inside the declared 160mm x 90mm canvas.
     canvas_width_in = 160 / 25.4
     canvas_height_in = 90 / 25.4
-    for name, (width_in, height_in) in theme.figure_sizes.items():
+    for name, (width_in, height_in) in slide_slots.items():
         assert 0 < width_in <= canvas_width_in, f"{name} width exceeds the canvas"
         assert 0 < height_in <= canvas_height_in, f"{name} height exceeds the canvas"
 

@@ -75,7 +75,6 @@
 % integration -- takes effect no matter where in the preamble it runs.
 \newcommand{\rk@fontfamily}{Google Sans}
 \newcommand{\rk@fontpath}{}
-\newcommand{\rk@fontpolicy}{fallback}
 \newcommand{\setreportkitfontfamily}[1]{\renewcommand{\rk@fontfamily}{#1}}
 % font_path is a directory containing static Google Sans faces named
 % GoogleSans-Regular.ttf / GoogleSans-Bold.ttf, matching Appendix A's
@@ -84,7 +83,8 @@
 \newcommand{\setreportkitfontpath}[1]{\renewcommand{\rk@fontpath}{#1}}
 % font_policy: strict (fail if Google Sans cannot be resolved) or fallback
 % (use the Inter / Noto Sans / TeX Gyre Heros chain and warn). See spec §4.
-\newcommand{\setreportkitfontpolicy}[1]{\renewcommand{\rk@fontpolicy}{#1}}
+% \rk@fontpolicy and \setreportkitfontpolicy are defined by reportkit-core.sty
+% because strict also makes missing glyphs fatal under every theme.
 
 \newcommand{\rk@installfont}[1]{\setmainfont{#1}\setsansfont{#1}}
 

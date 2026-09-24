@@ -1,0 +1,93 @@
+% ReportKit theme adapter: executive / paged renderer. Phase F1 of the
+% multi-format publication architecture plan adds this adapter so the
+% executive-brief publication type can use the executive theme on the paged
+% renderer (reportkit.cls). It sits alongside
+% reportkit-theme-executive-slides.sty over the same common file
+% (reportkit-theme-executive.sty), exactly the D11 two-layer split: the
+% common file keeps palette, fonts, callout/metric/diagram tokens and
+% \source{}; this adapter owns only paged geometry, running furniture,
+% section placement, \maketitle, and the paged type scale.
+%
+% Type scale: the shared paged publication modules (reportkit-exhibits.sty,
+% reportkit-executive-brief.sty) read the named \rk...size commands that the
+% institutional-research theme introduced. This adapter supplies the same
+% names with executive values, so those modules stay theme-neutral.
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{reportkit-theme-executive-paged}[2026/09/23 v1.0.0 ReportKit executive theme / paged adapter]
+
+% -----------------------------------------------------------------------------
+% Geometry -- US Letter, matching the executive-brief registry target. The
+% `a4paper` \LoadClass option is irrelevant here for the same reason the
+% institutional-research adapter documents: geometry's paper option resets
+% the physical page size.
+% -----------------------------------------------------------------------------
+\geometry{letterpaper,left=19mm,right=19mm,top=17mm,bottom=17mm,headsep=6mm,footskip=9mm}
+
+% -----------------------------------------------------------------------------
+% Paged body typography. The slides adapter inherits Beamer's sans default;
+% on paper the executive system also reads in the theme's sans family.
+% -----------------------------------------------------------------------------
+\renewcommand{\familydefault}{\sfdefault}
+\renewcommand{\normalsize}{\@setfontsize{\normalsize}{10.3pt}{14.2pt}}
+\normalsize
+\setlength{\parskip}{5pt plus 1pt minus .5pt}
+\captionsetup{font=small,labelfont=bf,labelsep=period,singlelinecheck=false,skip=4pt}
+
+\newcommand{\rkmastheadsize}{\fontsize{7.8pt}{9.6pt}\selectfont}
+\newcommand{\rksectorkickersize}{\fontsize{8.4pt}{10.4pt}\selectfont}
+\newcommand{\rkheadlinesize}{\fontsize{24pt}{28pt}\selectfont}
+\newcommand{\rkdecksize}{\fontsize{12pt}{16pt}\selectfont}
+\newcommand{\rkratingvaluesize}{\fontsize{10.5pt}{13pt}\selectfont}
+\newcommand{\rksectionheadingsize}{\fontsize{14pt}{17pt}\selectfont}
+\newcommand{\rksubsectionsize}{\fontsize{11.2pt}{14pt}\selectfont}
+\newcommand{\rkbodysize}{\fontsize{10.3pt}{14.2pt}\selectfont}
+\newcommand{\rkexhibitheadlinesize}{\fontsize{9.4pt}{11.8pt}\selectfont}
+\newcommand{\rksidebarsize}{\fontsize{7.4pt}{9.2pt}\selectfont}
+\newcommand{\rksidebarsubheadingsize}{\fontsize{6.8pt}{8.2pt}\selectfont}
+\newcommand{\rktablebodysize}{\fontsize{8.4pt}{10.6pt}\selectfont}
+\newcommand{\rksourcesize}{\fontsize{7pt}{8.6pt}\selectfont}
+\newcommand{\rkdisclosuresize}{\fontsize{6.8pt}{8.2pt}\selectfont}
+
+% -----------------------------------------------------------------------------
+% Running furniture -- one hairline under the header, muted metadata only.
+% -----------------------------------------------------------------------------
+\setlength{\headheight}{21pt}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\sffamily\rkmastheadsize\bfseries\color{Accent}\MakeUppercase{\rk@leftheader}}
+\fancyhead[R]{\sffamily\rkmastheadsize\color{Muted}\nouppercase{\leftmark}}
+\fancyfoot[L]{\sffamily\fontsize{7pt}{8.5pt}\selectfont\color{Muted}\rk@footer\ \textperiodcentered\ \rk@version}
+\fancyfoot[R]{\sffamily\fontsize{7pt}{8.5pt}\selectfont\color{Muted}\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0pt}
+\renewcommand{\headrule}{\hbox to\headwidth{\color{Hairline}\leaders\hrule height \headrulewidth\hfill}}
+
+% -----------------------------------------------------------------------------
+% Section hierarchy -- short accent rule above each section heading carries
+% the executive system's structure; the heading text stays Ink.
+% -----------------------------------------------------------------------------
+\newcommand{\RKSectionNeed}{10\baselineskip}
+\newcommand{\RKSubsectionNeed}{5\baselineskip}
+
+\titleformat{\section}{\RKReserveSpace{\RKSectionNeed}\noindent{\color{Accent}\rule{10mm}{1.4pt}}\endgraf\nobreak\vspace{4pt}\sffamily\bfseries\rksectionheadingsize\color{Ink}}{\thesection}{0.7em}{}
+\titlespacing*{\section}{0pt}{15pt plus 3pt minus 2pt}{5pt}
+\titleformat{\subsection}{\RKReserveSpace{\RKSubsectionNeed}\sffamily\bfseries\rksubsectionsize\color{Ink}}{\thesubsection}{0.6em}{}
+\titlespacing*{\subsection}{0pt}{10pt plus 2pt minus 2pt}{3pt}
+
+% -----------------------------------------------------------------------------
+% Generic title (used by the pipeline entrypoint when no publication-specific
+% masthead is present).
+% -----------------------------------------------------------------------------
+\renewcommand{\maketitle}{%
+  \thispagestyle{fancy}%
+  \vspace*{1mm}%
+  {\sffamily\rksectorkickersize\bfseries\color{Accent}\MakeUppercase{\rk@leftheader}\par}%
+  \vspace{4mm}%
+  {\sffamily\bfseries\rkheadlinesize\color{Ink}\@title\par}%
+  \vspace{3mm}%
+  \ifx\@author\@empty\else{\sffamily\rksidebarsize\color{Muted}\@author}\fi
+  \ifx\@date\@empty\else{\sffamily\rksidebarsize\color{Muted}\quad\textperiodcentered\quad\@date}\fi
+  \par\vspace{5mm}{\color{Hairline}\hrule height 0.4pt}\vspace{5mm}%
+}
+
+\endinput

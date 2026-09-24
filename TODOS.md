@@ -1,6 +1,6 @@
 # ReportKit — Outstanding Work
 
-**Last updated:** 2026-09-23
+**Last updated:** 2026-09-24
 
 This is the current-work index, not an audit. The front of the document contains
 only work that is still actionable. Completed implementation records and dated
@@ -16,9 +16,9 @@ and [references/documentation-status.md](references/documentation-status.md).
 | [2026-09-06-reportkit-vnext-ai-publication-system-spec.md](docs/superpowers/specs/2026-09-06-reportkit-vnext-ai-publication-system-spec.md) | Reconciled roadmap; implementation phases are complete in the companion plan. Only the deferred consumer-project template remains. | P3 |
 | [2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md](docs/superpowers/specs/2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md) | Steps 1–5 and pinned visual baseline comparison passed; human §25 review remains. | P2 |
 | [2026-09-09-reportkit-institutional-theme-implementation-plan.md](docs/superpowers/plans/2026-09-09-reportkit-institutional-theme-implementation-plan.md) | Same state: pinned baseline passed; human §25 visual release review remains. | P2 |
-| [2026-09-09-reportkit-multi-format-publication-architecture-spec.md](docs/superpowers/specs/2026-09-09-reportkit-multi-format-publication-architecture-spec.md) | A0–A5, Phase B, constrained-authoring item C′1, and Phase C executive theme are implemented; the pinned current-target acceptance gate is green and Phases D–F remain. | P2 |
-| [2026-09-10-reportkit-multi-format-publication-implementation-plan.md](docs/superpowers/plans/2026-09-10-reportkit-multi-format-publication-implementation-plan.md) | Same implementation state as the spec; the readable plan and Phase C fixture record are synchronized to the merged mainline, with Phases D–F remaining. | P2 |
-| [2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md](docs/superpowers/specs/2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md) | A′/B′, constrained authoring, standalone render, progressive-disclosure budgets, and the generated OpenAI adapter are implemented; i18n and tagging remain deferred. | P2 |
+| [2026-09-09-reportkit-multi-format-publication-architecture-spec.md](docs/superpowers/specs/2026-09-09-reportkit-multi-format-publication-architecture-spec.md) | A0–A5, Phase B, constrained-authoring item C′1, Phase C executive theme, and Phases D–F (venture theme, editorial/feature-article, executive-brief, book, and registry-derived combination coverage) are all implemented in the working tree, D/E/F1/F2 as experimental. The pinned current-target acceptance gate is green; pinned-toolchain visual review for the experimental themes/types remains. | P2 |
+| [2026-09-10-reportkit-multi-format-publication-implementation-plan.md](docs/superpowers/plans/2026-09-10-reportkit-multi-format-publication-implementation-plan.md) | Same implementation state as the spec; the readable plan is synchronized to the merged mainline. Pinned visual review for Phases D/E/F1/F2 remains. | P2 |
+| [2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md](docs/superpowers/specs/2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md) | A′/B′, constrained authoring, standalone render, progressive-disclosure budgets, the generated OpenAI adapter, and per-script font stacks/language-support truthfulness (D-prime 3) are implemented. Tagged-PDF remains deferred. | P2 |
 | [2026-09-22-reportkit-presentation-typography-and-composition-refinement-spec.md](docs/superpowers/specs/2026-09-22-reportkit-presentation-typography-and-composition-refinement-spec.md) | Core implementation is merged; native density/canonical visual release validation remains. | P2 |
 | [2026-09-22-reportkit-presentation-typography-and-composition-refinement.md](docs/superpowers/plans/2026-09-22-reportkit-presentation-typography-and-composition-refinement.md) | Workstreams A/B/D and the semantic fixture source are merged; dense/reference authoring expansion and native C/E release gates remain. | P2 |
 
@@ -33,26 +33,15 @@ and [references/documentation-status.md](references/documentation-status.md).
   2026-09-19 with zero diagnostics. Complete the spec §25 human visual review;
   do not update expected pixels from a non-pinned host.
 
+- **Multi-format Phases D–F — pinned-toolchain visual review.** Phase D
+  (venture theme and branding), Phase E (editorial theme and feature-article),
+  Phase F1 (executive-brief), and Phase F2 (book) are all implemented and
+  registered as experimental. Each has a fixture that compiles cleanly and was
+  reviewed by eye on an unpinned host; none has a pinned-toolchain visual
+  review or a checked-in pixel baseline yet. Promote each to stable only after
+  that review passes on the pinned OCI image.
+
 ### P3
-
-- **Multi-format Phase D — venture theme and controlled branding.** Add the
-  venture theme and strict four-key brand override path, including hashed logo
-  staging, cross-renderer effective-theme materialization, and a reviewed
-  10–12 slide fixture.
-
-- **Multi-format Phase E — editorial feature article.** Add the editorial theme,
-  feature-article publication type, semantic feature primitives, and the
-  required 6–8 page fixture without introducing feature-specific positioning
-  APIs.
-
-- **Multi-format Phase F — executive brief, book, and combination coverage.**
-  Add only the publication details and fixtures named in the implementation
-  plan, then derive minimal compatibility coverage from the publication
-  registry.
-
-- **Agent contract — language and script truthfulness.** Add per-script font
-  stacks and renderer/theme language compatibility; keep RTL unsupported and
-  Vietnamese metadata-only until a real typography fixture proves otherwise.
 
 - **Agent contract — tagged-PDF spike.** Revisit tagged PDF only through the
   separate toolchain-gated `\DocumentMetadata` investigation; the current
@@ -112,11 +101,57 @@ verification notes are retained in `History` below.
   assertion roles, bounded measured `assertionslide` fitting, dense
   `cardgrid`/`carditem` compositions, `referenceslide`, constrained-authoring
   preflight, and the native density fixture source/tests are present. Native
-  visual release gates remain open; Phases D–F remain open.
+  visual release gates remain open (see above).
 - The agent-facing A′/B′ contract, constrained Markdown/typed-IR authoring
   path, standalone render loop, progressive-disclosure budget slices, and
-  generated OpenAI adapter are implemented. The deferred i18n and tagging
-  slices remain listed above.
+  generated OpenAI adapter are implemented. Tagged-PDF remains listed above.
+- **Multi-format Phase D — venture theme and controlled branding** is
+  implemented as experimental: the venture paged/slides theme, a
+  theme-neutral light/dark frame-role hook shared with executive (no venture
+  copy of `reportkit-presentation.sty` and no venture-only composition
+  names), stricter D6 four-key brand parsing with hashed/staged logos, a
+  shared effective-theme record feeding both TeX and charts, and a fictional
+  12-slide pitch fixture. The critical smoke gate (one presentation compiled
+  under executive and venture with materially different, and reviewed,
+  pixels) passes on this host. Pinned-toolchain visual review remains (see
+  above).
+- **Multi-format Phase E — editorial feature article** is implemented as
+  experimental: the editorial theme, the `feature-article` publication type
+  with 13 registered semantic primitives (headline, deck, byline, opening
+  visual, drop cap, pull quote, sidebar, feature exhibit, section opener,
+  image credit, and more), a closed one-column/two-column/full-width rhythm
+  with no feature-specific positioning API, and a 6-page fictional fixture.
+  The theme-swap gate (the same document recompiles unchanged under a test
+  theme) passes. Pinned-toolchain visual review remains (see above).
+- **Multi-format Phase F1 — executive brief** is implemented as experimental:
+  the `executive-brief` publication type is registered for the executive and
+  institutional-research themes, reuses the exhibit system (now shared as
+  `reportkit-exhibits.sty`, also used by equity-research) plus the existing
+  metric/decisionpoint/redflag/source components, and ships a 3-page fixture
+  that compiles under both themes and through the pipeline. Pinned-toolchain
+  visual review remains (see above).
+- **Multi-format Phase F2 — book** is implemented as experimental: the `book`
+  publication type (part dividers, imprint page, numbered chapter openers,
+  lettered appendices, references, glossary) is registered for default,
+  technical, and editorial, reusing `reportkit-longform.sty`'s title
+  page/contents/front-matter machinery with no separate book class and none
+  of the deferred production features (recto/verso, signatures, indexing,
+  trim/bleed). An 11-page fictional fixture compiles cleanly under all three
+  themes. Pinned-toolchain visual review remains (see above).
+- **Multi-format Phase F3 — combination coverage** is implemented: tests
+  derive the full publication-type × theme pair set from the registry at
+  collection time, split into five explicit showcase fixtures, dedicated
+  per-type test modules, and registry-generated minimal compile smoke tests
+  for every other registered pair; a pair with neither a showcase nor a
+  generated case fails collection.
+- **Agent contract — language and script truthfulness** is implemented: every
+  `Theme` declares script coverage, per-script font stacks, and
+  verified/metadata-only languages; locale typography loads only for verified
+  languages; missing glyphs are fatal under the strict font policy; RTL is
+  rejected before TeX runs; and `reportkit context` exposes
+  renderer/theme language compatibility in its `selection` slice within the
+  2,000-token quickstart ceiling. Vietnamese stays metadata-only and `en-GB`
+  falls back to US hyphenation pending a real typography fixture.
 - The standalone `reportkit render` authoring-loop command is implemented with
   page/range selection, DPI control, atomic output, a JSON manifest, a
   toolchain fingerprint, structured missing-PyMuPDF failure, focused tests,

@@ -1,0 +1,19 @@
+% ReportKit example: executive-brief publication type under the executive
+% theme. Phase F1 of the multi-format publication architecture plan. The
+% body lives in brief.tex so report-institutional-research.tex can prove the
+% same brief compiles, unchanged, under the other registered theme.
+\documentclass[theme=executive,publication-type=executive-brief]{reportkit}
+
+\setreportkitleftheader{Harborline Freight}
+\setreportkitfooter{Harborline Operations Strategy Office -- fictional demonstration brief}
+\setreportkitversion{v1.0}
+\setreportkitsubject{Dispatch platform consolidation decision brief}
+\setreportkitkeywords{ReportKit, executive brief, executive theme, fictional}
+
+\title{Consolidate the two regional dispatch platforms}
+\author{Harborline Operations Strategy Office}
+\date{2 June 2027}
+
+\begin{document}
+\input{brief.tex}
+\end{document}

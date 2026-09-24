@@ -1,0 +1,19 @@
+% ReportKit example: book publication type under the editorial theme -- the
+% Phase F2 compatibility smoke. Same body as report.tex; only the class
+% option (and the LuaLaTeX engine the editorial theme requires) differ.
+% All content is fictional.
+\documentclass[theme=editorial,publication-type=book]{reportkit}
+
+\setreportkitleftheader{Quiet Grid Handbook}
+\setreportkitfooter{Tessaly Valley Energy Cooperative -- fictional demonstration handbook}
+\setreportkitversion{First edition}
+\setreportkitsubject{A field handbook for community microgrids}
+\setreportkitkeywords{ReportKit, book, editorial theme, fictional}
+
+\title{The Quiet Grid}
+\author{Tessaly Valley Energy Cooperative}
+\date{March 2027}
+
+\begin{document}
+\input{book-body.tex}
+\end{document}

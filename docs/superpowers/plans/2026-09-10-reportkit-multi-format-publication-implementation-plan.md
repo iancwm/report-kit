@@ -28,8 +28,13 @@ implemented first here at explicit request, and A5 followed once B's own
 status notes kept naming it as the biggest remaining gap. Task sizing and
 visual design details should receive engineering/design review before
 execution. Phase C is now promoted to stable with the reviewed fixture and
-visual-QA helper landed.
-**Last updated:** 2026-09-21
+visual-QA helper landed. Phase D (venture theme and controlled branding) is
+implemented as an experimental theme; its critical gate passes on a
+non-pinned host and pinned-toolchain visual review remains (see §7). Phase F1
+(executive brief) is implemented as an experimental publication type
+registered for executive and institutional-research; pinned-toolchain visual
+review remains (see F1).
+**Last updated:** 2026-09-23
 **Plans:** [2026-09-09-reportkit-multi-format-publication-architecture-spec.md](../specs/2026-09-09-reportkit-multi-format-publication-architecture-spec.md)
 **Amended by:** [2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md](../specs/2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md)
 **Baseline:** planning baseline `main` at `4f2b27f`, ReportKit v1.9.1.
@@ -37,7 +42,8 @@ visual-QA helper landed.
 Python/theme-contract, target-aware A5/equity-acceptance, automated B4
 slide-accessibility changes, Phase C executive fixture, and pinned fixture
 baselines retained in mainline. Workflow run 65 passed with 374 pytest cases
-and 1 skip; Phases D–F remain future work.
+and 1 skip. Phase E is implemented as experimental (section 9 records
+what landed and what remains); Phase D and Phase F's book work remain future work.
 
 ---
 
@@ -1502,6 +1508,67 @@ There may be no venture copy of reportkit-presentation.sty and no venture-only
 composition names. If this fails, stop and repair the abstraction before
 editorial work.
 
+**Implementation record (2026-09-23):** Implemented; venture is registered as
+`experimental` pending pinned-toolchain visual review.
+
+- **Theme.** `reportkit-theme-venture.sty` (Google Sans body and display
+  faces loaded from the bundled static files, with an Inter / Noto Sans /
+  TeX Gyre Heros fallback chain; indigo primary, coral secondary; airy
+  callout, metric and diagram tokens), `reportkit-theme-venture-slides.sty`
+  (12 mm safe margin, large display scale, light/dark frames, logo chrome)
+  and `python_scripts/reportkit/themes/venture.py` (palette mirrors the TeX
+  file; `slide-main`/`slide-half`/`slide-hero` slots from the 136 mm
+  measure). Registered in `publications.py` with `brand_overrides: true` and
+  paired with the existing `presentation` publication type; the generated
+  LaTeX registry was regenerated.
+- **Abstraction repair, not a fork.** Light and dark frames needed one new
+  renderer-neutral contract: `\RKTokPresentationSurface{<role>}` in
+  `reportkit-core.sty`, called once by every frame-level composition with one
+  of `opening`, `divider`, `statement`, `metric`, `closing`, `content`.
+  Executive implements it as a no-op (executive fixture and smoke-document
+  pixels are unchanged except for the fix below); venture maps
+  opening/divider/statement/closing to a dark frame by re-pointing the
+  semantic colour names locally and painting the background canvas. There is
+  no venture copy of `reportkit-presentation.sty` and no venture-only
+  composition name.
+- **Shared-composition fixes found by the second theme.** `\ifdefempty` on
+  macro parameters (assertion deck, reference note, card variant) failed for
+  any non-empty value and is now `\ifstrempty`; `cardgrid` card widths are
+  derived from the theme's gutter so a row always fits, items no longer
+  inherit an interword space, the grid's default variant is copied by value,
+  and the card minimum height applies to the filled card. `comparisoncolumn`
+  and `threepartcolumn` now end the rule paragraph before the body spacing;
+  this changes executive pixels slightly (rule-to-body spacing on the
+  evidence frame and two smoke frames) and is a correction, not a restyle.
+- **Controlled branding (D6).** The four keys were already parsed strictly;
+  Phase D adds logo format/charset validation (`.pdf/.png/.jpg/.jpeg`,
+  `[A-Za-z0-9._/-]`, emitted verbatim to `\includegraphics`), maps primary to
+  `LinkBlue`/`Principle`/`Accent`/`MetricAccent` and secondary to `Research`,
+  and adds `reportkit_viz.apply_publication_theme(root)` so a project's
+  `figures.py` draws charts from the same `EffectiveTheme` record the build
+  writes to `reportkit-theme-overrides.tex`. The venture theme consumes
+  `\RKBrandLogo` and the font setters; `display_font` replaces only display
+  roles under the existing strict/fallback policy.
+- **Fixture.** `latex_templates/examples/venture-presentation/`: fictional
+  Lumiquay 12-slide seed pitch (hero, problem, product screenshot, traction
+  metric and chart, market, competition matrix, business model, team, ask,
+  closing) using only Phase B compositions, with direct TeX and constrained
+  Markdown sharing all trusted fragments, and a `brand` block
+  (primary/secondary/logo) that exercises staging and hashing.
+- **QA.** `scripts/visual_qa_venture.py` materializes the fixture's
+  effective theme, compiles and inspects it, and runs the critical gate:
+  `presentation_acceptance_test.tex` compiled under `theme=executive` and
+  `theme=venture` with only the class option changed (mean per-channel
+  difference about 98/255 against a 6.0 floor; every page differs).
+  `tests/test_venture_theme.py` covers the registry record, the absence of a
+  venture composition layer, the surface-role contract, palette sync, brand
+  resolution, the direct and pipeline builds (logo staged and hashed in
+  `build-report.json`) and the smoke gate.
+
+**Remaining:** pinned-toolchain visual review and baseline capture for the
+venture fixture (this record's renders came from a non-pinned host), then
+promotion to `stable`.
+
 ## 8. Phase C-prime — constrained authoring and visual feedback
 
 The paged and slide renderers now exist. C-prime 1 and C-prime 2 are
@@ -1589,6 +1656,58 @@ and the structured missing-PyMuPDF failure.
 **Gate:** replace the editorial theme with a test theme and compile the same
 feature structure unchanged. No feature primitive may mention editorial.
 
+**Status (2026-09-23): implemented as experimental; pinned visual review
+remains.** What landed:
+
+- `reportkit-theme-editorial.sty` (LuaLaTeX guard; Libertinus Serif body,
+  Libertinus Sans metadata/labels/charts, Libertinus Serif Display headlines,
+  Libertinus Serif Initials drop caps; warm ink/oxblood palette; all shared
+  callout/metric/diagram/algorithm tokens) and
+  `reportkit-theme-editorial-paged.sty` (A4, 150 mm text block, running
+  furniture, opening page style, and every feature token).
+- A third token contract in `reportkit-core.sty` ("Feature-composition style
+  tokens", 60 `\RKTokFeature...` tokens behind `\RKAssertFeatureTokens`),
+  mirroring the presentation-token pattern so no other paged theme has to
+  populate feature-only values.
+- `reportkit-feature-article.sty` with thirteen registered primitives:
+  `featureopening`, `featureheadline`, `featuredeck`, `featurebyline`,
+  `openingvisual`, `imagecredit`, `dropcap`, `featurecolumns`, `pullquote`,
+  `featuresidebar`, `featureexhibit`, `featuresection`, `featurereferences`.
+  Rhythm is a closed vocabulary: one-column flow, `featurecolumns`, and
+  full-width visuals (`openingvisual`, `featureexhibit[span=full]`). `span`
+  accepts only `column`/`full`; misuse fails with named `FEATURE_*` errors.
+- Registry entries (`editorial` theme, `feature-article` publication type,
+  both experimental, since 1.10.0), regenerated LaTeX registry,
+  `publication_pipeline/templates/feature-article.tex`, `reportkit.themes.editorial`
+  (palette-synchronized Python tokens, `inset`/`column` figure sizes), and
+  `references/feature-article-authoring.md` with a generated contract section.
+- Language coverage declared honestly: Latn/en verified, Vietnamese
+  metadata-only, other scripts undeclared (Libertinus has Greek/Cyrillic
+  glyphs, but no fixture verifies them), RTL unsupported.
+- Fixture `latex_templates/examples/editorial-feature/` (fictional
+  Varenholm flood-gauge feature, 6 A4 pages: opening page with opening
+  visual, drop cap, one- and two-column prose, two pull quotes, sidebar,
+  column/inset/full-width exhibits including a chart and a `reportflow`
+  diagram, image credits, references) plus a primitive smoke fixture in
+  `scripts/acceptance_check.sh`.
+
+**Gate verified by `tests/test_editorial_theme.py`:** the canonical fixture
+is recompiled with only `theme=editorial` swapped for a probe theme (the
+default common package plus a test-only feature adapter) registered through
+the real `render_latex_registry()`; it compiles, loads no editorial file or
+face, and its text block contains the same letters. The feature package and
+every registered feature primitive record contain no "editorial" mention,
+and the package sets no literal font, color or palette name.
+
+**Remaining:** pinned-toolchain visual review and checked-in page baselines
+(the fixture was reviewed only on an unpinned local TeX Live, so no pixel
+baseline is committed); promotion to stable after that review; chart text
+resolves Libertinus Sans only where it is registered with fontconfig (the
+unpinned host fell back to DejaVu Sans, the same gap the executive fixture
+has); non-floating exhibits can leave a partial page when a full-width
+exhibit does not fit, which is an authoring choice to review in the pinned
+render; `book` compatibility for editorial belongs to Phase F.
+
 ## 10. Phase F — executive brief and book polish
 
 ### F1 — executive brief
@@ -1600,6 +1719,52 @@ institutional-research only after both combinations compile.
 The acceptance fixture is 2–8 pages and covers recommendation, findings,
 compact exhibits, implication, risks, next steps and sources. Do not add a
 parallel executive component library.
+
+**F1 status (2026-09-23): implemented, experimental; pinned visual review
+remains.**
+
+- `latex_templates/publication_types/reportkit-executive-brief.sty` adds
+  only `briefheader`/`\briefmeta` (masthead and decision-metadata strip),
+  `briefactions`/`\briefaction` (action, owner, due) and `briefsources`.
+  Recommendation and implication use `decisionpoint`, headline numbers use
+  `metric`, risks use `redflag`/`assumption`, and evidence uses the exhibit
+  system with `source=` provenance.
+- The exhibit system and table grammar (`exhibit`, `fullwidthexhibit`,
+  `exhibitgrid`, `exhibitpair`, `\exhibitpane`, `financialtable`, Y/Z/C
+  columns) moved verbatim into the shared
+  `publication_types/reportkit-exhibits.sty`, which equity-research and
+  executive-brief both load. The equity-research fixture rendered
+  pixel-identical before and after the move on the local toolchain.
+  `registry.py` derives a shared module's `available_in` from the registered
+  publication packages that `\RequirePackage` it.
+- `themes/reportkit-theme-executive-paged.sty` is the executive theme's new
+  paged adapter (D11): Letter geometry, running furniture, section
+  placement, `\maketitle`, sans body, and the named `\rk...size` type scale
+  the shared paged modules read. `THEMES["executive"]` now lists
+  `paged` and `slides`.
+- `publication_pipeline/templates/executive-brief.tex` opens on
+  `briefheader` filled from publication identity, with no title or contents
+  page. `reportkit-longform.sty` gained `\ifRKSectionOpensPage` (default
+  true, so existing builds are unchanged), which the brief entrypoint turns
+  off so sections flow. `resolve_document()` now defaults an omitted paper
+  to the publication type's registered paper, so the recorded selection
+  says Letter for equity-research and executive-brief.
+- Fixture: `latex_templates/examples/executive-brief/` (`brief.tex` shared
+  body; `report.tex` for executive, `report-institutional-research.tex` for
+  institutional-research). Both compile to 3 Letter pages with no overfull
+  boxes on the local, unpinned TeX Live; the page PNGs were reviewed there.
+  Registration happened only after both combinations compiled.
+- Tests: `tests/test_executive_brief.py` (registry, reuse boundary, shared
+  type-scale contract, primitive availability, both fixture compiles, LaTeX
+  rejection of an unregistered theme, and a real pipeline build per theme).
+- `themes/executive.py` keeps its three slide slots and gains the seven
+  paged figure sizes (derived from the paged adapter's 177.9mm Letter text
+  width with institutional-research's ratios), since executive now renders
+  paged output.
+- Remaining: pinned-toolchain visual review and baselines before promotion
+  to stable; the fixture is not yet in `scripts/acceptance_check.sh` (it
+  needs its `brief.tex` include staged); no chart figure is exercised in the
+  brief fixture yet.
 
 ### F2 — book
 
@@ -1614,6 +1779,68 @@ trim/bleed or a third renderer.
 Register book with default/technical and editorial. The alias pair shares one
 visual baseline; editorial receives a distinct compatibility smoke.
 
+**Status (2026-09-24): implemented as experimental; pinned visual review
+remains.** What landed:
+
+- `latex_templates/publication_types/reportkit-book.sty` adds only what the
+  canonical fixture exercises: `\bookpart` (a divider page), `bookdetails`
+  with `\bookdetail` (the imprint page), numbered chapter openers (every
+  `\section` -- so hand-written TeX, Pandoc's Markdown headings, and every
+  existing section-level helper stay on one heading level), `\bookappendix`
+  (lettered chapters, a distinct hyperref anchor namespace), `bookreferences`
+  (a contents-listed `thebibliography` that `\cite` resolves against) and
+  `bookglossary` with `\glossaryterm`. The title page, contents and
+  front/main-matter pagination are reused unchanged from
+  `reportkit-longform.sty` (`\RKTitlePage`, `\RKContents`,
+  `\RKFrontMatterBegin`, `\RKMainMatterBegin`); nothing else was added.
+- A fourth token contract in `reportkit-core.sty` ("Book-composition style
+  tokens", 29 `\RKTokBook...` tokens behind `\RKAssertBookTokens`), the same
+  pattern F1's presentation/feature contracts use, so no other paged theme
+  has to populate book-only values.
+- Registry: `book` publication type (renderer `paged`, paper `a4`, themes
+  `["default", "technical", "editorial"]`, experimental, since 1.10.0),
+  `publication_pipeline/templates/book.tex` (title page + imprint +
+  contents in a combined build, chapter numbering restored after
+  `paged-base.tex` disables it for reports), regenerated LaTeX registry.
+  `reportkit-theme-default-paged.sty` and
+  `reportkit-theme-editorial-paged.sty` each gained the full book-token set
+  (default: sans/LinkBlue chapter grammar restated at chapter scale;
+  editorial: display-serif titles, letter-spaced oxblood labels).
+  Registration happened only after both theme adapters compiled the
+  canonical fixture.
+- Fixture: `latex_templates/examples/book/` -- a fictional 11-page community-
+  microgrid handbook (`book-body.tex` shared body; `report.tex` for
+  `default`, `report-editorial.tex` for `editorial`) covering two parts,
+  three numbered chapters (one with a subsection and a table/metric), a
+  lettered appendix, a glossary and a `\cite`-driven reference list. Both
+  compile cleanly (no overfull boxes, no undefined references) on the local,
+  unpinned toolchain. `latex_templates/examples/book_acceptance_test.tex`
+  is a pdflatex-safe primitive smoke (every book primitive once, default
+  theme) wired into `scripts/acceptance_check.sh`'s fast compile loop.
+- Tests: `tests/test_book.py` -- registry shape and engine-per-theme
+  resolution; the deferred-scope assertion (no `reportkit-book.cls`, no
+  `\twoside`/`\cleardoublepage`/`makeidx`/crop-bleed-trim, no third
+  renderer); the structure/style boundary (every color is a `\RKTokBook...`
+  token, no literal font/size, no theme name in the package); the token
+  contract (declared == used == populated, for both canonical adapters);
+  primitive registration; the fixture's required structure; a compile gate
+  that builds the fixture once per registered theme (default, technical --
+  from the same body with only the class option swapped, and editorial),
+  checks page geometry/fonts/undefined-references/table-of-contents shape,
+  asserts the technical alias renders byte-for-byte the same page text as
+  default, and asserts editorial restyles the same content (letters compared
+  after clipping the running-header/footer band, since the opening-page
+  style token legitimately differs between the two themes); LaTeX-level
+  rejection of an unregistered theme and of a theme that has not populated
+  the book-token contract; and a real pipeline build per registered theme
+  (`reportkit build`), including that unset optional identity fields do not
+  print an empty imprint entry.
+- Remaining: pinned-toolchain visual review and checked-in page baselines
+  before promotion to stable (reviewed only on unpinned local TeX Live, same
+  as F1/Phase E); no cover-page or brand-override interaction has been
+  exercised for `book` yet (neither theme it registers opts into brand
+  overrides today).
+
 ### F3 — combination coverage
 
 Maintain two fixture layers:
@@ -1625,6 +1852,48 @@ Maintain two fixture layers:
 
 The test parameter list is derived from publications.py. Adding a compatible
 pair without either a showcase or a generated smoke case fails collection.
+
+**Status (2026-09-24): implemented.** `tests/test_publication_theme_coverage.py`
+computes the full pair set directly from `PUBLICATION_TYPES` at collection
+time (11 pairs today) and splits it into three explicit, non-overlapping
+layers, each checked against the live registry so a stale mapping (a pair
+that no longer exists, or a pair claimed by two layers at once) fails
+immediately:
+
+- `SHOWCASE_FIXTURES` (5): `technical-report/default` → `career_guide_en`,
+  `equity-research/institutional-research` → `equity-research`,
+  `presentation/executive` → `executive-presentation`,
+  `presentation/venture` → `venture-presentation`, `feature-article/editorial`
+  → `editorial-feature`. Each mapping is checked against its fixture's
+  actual `\documentclass` line; `career_guide_en` -- which predates the
+  theme/publication-type option syntax and had no compile test anywhere in
+  the suite before this -- gets one here (pdflatex, checks page count,
+  geometry, embedded fonts and absence of undefined references).
+- Dedicated coverage (5): `book/{default,technical,editorial}` and
+  `executive-brief/{executive,institutional-research}` are recorded as
+  already compiling their *canonical* fixture under every theme they
+  register (`tests/test_book.py`, `tests/test_executive_brief.py`), so this
+  module does not recompile them with a throwaway document.
+- Generated (the remainder, computed, not hand-copied): today exactly
+  `technical-report/technical` -- the alias pair had Python/LaTeX-registry
+  coverage (`test_publication_registry.py`, `test_latex_publication_registry.py`)
+  but no end-to-end compile anywhere. A parametrized test builds the
+  smallest possible manuscript for each generated pair through the real
+  `reportkit build` pipeline and checks the cross-cutting compile-matrix
+  items that are cheap to check per pair: resolved class/renderer, engine,
+  paper or canvas dimensions (from `RENDERERS`), embedded fonts, absence of
+  "There were undefined references", the resolved-selection marker matching
+  the request (reusing `inspect_pdf.py`'s existing selection-marker
+  inspection, the same mechanism `test_selection_marker_inspection.py`
+  exercises directly), and no default-theme leakage (the marker's own
+  `theme.passed` field).
+
+Because the generated layer is `ALL_PAIRS - SHOWCASE_FIXTURES.keys() -
+DEDICATED_TEST_MODULES.keys()`, a new theme added to an existing
+publication type automatically lands in the parametrize list on the next
+collection; the module's own drift assertion is what prevents a stale
+hand-maintained mapping from silently hiding a pair that belongs in one of
+the other two layers.
 
 ## 11. Phase D-prime — neutrality, progressive disclosure and i18n
 
@@ -1672,6 +1941,39 @@ reading `SKILL.md`.
 - Keep RTL explicitly unsupported.
 - Preserve Vietnamese as metadata-only until an actual typography fixture
   proves more.
+
+**Implemented 2026-09-23 (working tree):** `ScriptCoverageTokens` now
+requires `font_stacks` (one `ScriptFontStack(body, heading, mono)` per
+verified script), `verified_languages`, and `metadata_only_languages`, beside
+the existing `verified`, `metadata_only`, and `rtl` fields.
+`reportkit.languages.validate_script_coverage` enforces the contract through
+`validate_theme_contract`, and `check_publication_registry` does the same for
+every registered theme. All three canonical themes declare `Latn` only,
+`en` verified, `vi` metadata-only, and RTL unsupported. The registry derives
+each theme's `language_support` from its Python `Theme`, and every renderer
+declares LTR-only text, verified-only locale typography, and the
+missing-glyph policy. `selection.language_support` combines the two, and
+the `selection` slice carries it; `quickstart` gains one summary line at 274
+estimated tokens. The generated LaTeX registry carries the language tables.
+`\setreportkitlanguage` loads babel only for verified languages, sets only
+the catalog language for metadata-only languages, rejects RTL, and rejects
+undeclared languages under strict policy. `\setreportkitfontpolicy` moved
+into the core. `strict` sets `\tracinglostchars=3`, which makes missing
+glyphs fatal. The pipeline writes both setters into `metadata.tex`, and
+`reportkit check` and `build` emit `RK_LANGUAGE_*` diagnostics before TeX
+runs. pdfLaTeX's inputenc "Unicode character" error now classifies as
+`missing_glyph`. Real LuaLaTeX and pdfLaTeX compiles in
+`tests/test_language_script_truthfulness.py` prove these behaviours. The
+tests include end-to-end `reportkit build` runs (strict exits 4, fallback
+exits 3 through the log gate, both with `missing_glyph`) and the
+`career_guide_vi` fixture failing under pdfLaTeX at U+1EC0.
+
+**Verification limits:** regional English (for example `en-GB`) truthfully
+resolves to babel's `american` locale. The pinned format has no separate UK
+patterns, and babel logs `Hyphen rules for 'british' set to \l@english`.
+Vietnamese compiles without missing glyphs under LuaLaTeX, but no fixture
+proves its hyphenation or punctuation conventions, so it stays
+metadata-only. No non-Latin script is verified.
 
 ## 12. Cross-cutting automated acceptance
 

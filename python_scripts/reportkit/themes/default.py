@@ -15,6 +15,7 @@ from . import (
     GeometryTokens,
     RuleTokens,
     ScriptCoverageTokens,
+    ScriptFontStack,
     SpacingTokens,
     TableTokens,
     Theme,
@@ -69,7 +70,26 @@ CHARTS = ChartTokens(
     legend_style="above",
 )
 DIAGRAMS = DiagramTokens(node_font=8.1, node_padding=(5.0, 4.0), node_radius=1.2, edge_weight=0.8, label_font=6.8)
-SCRIPT_COVERAGE = ScriptCoverageTokens(verified=("Latn",), metadata_only=(), rtl="unsupported")
+# Language/script contract (agent-contract spec section 13). Latin is proven
+# by every default-theme fixture; the stacks are the Libertinus faces
+# reportkit-theme-default.sty loads through the `libertinus` package under
+# either engine. Vietnamese stays metadata-only: pdfLaTeX's T1 encoding
+# cannot set it at all (career_guide_vi stops at U+1EC0), and no fixture
+# has proven its locale typography.
+SCRIPT_COVERAGE = ScriptCoverageTokens(
+    verified=("Latn",),
+    metadata_only=(),
+    rtl="unsupported",
+    font_stacks={
+        "Latn": ScriptFontStack(
+            body=("Libertinus Serif",),
+            heading=("Libertinus Sans",),
+            mono=("Libertinus Mono",),
+        ),
+    },
+    verified_languages=("en",),
+    metadata_only_languages=("vi",),
+)
 
 THEME = Theme(
     name="default",

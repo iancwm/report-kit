@@ -26,6 +26,8 @@ from dataclasses import dataclass, fields
 import importlib
 from typing import Any, Mapping
 
+from ..languages import validate_script_coverage
+
 
 @dataclass(frozen=True)
 class TypographyTokens:
@@ -103,12 +105,43 @@ class DiagramTokens:
 
 
 @dataclass(frozen=True)
+class ScriptFontStack:
+    """Ordered font families (primary first) that set one script per role.
+
+    List exactly the families the theme's LaTeX package can select for that
+    script -- a fallback chain such as the institutional theme's
+    ``font_policy: fallback`` walk belongs here in the same order.
+    """
+
+    body: tuple[str, ...]
+    heading: tuple[str, ...]
+    mono: tuple[str, ...]
+
+
+@dataclass(frozen=True)
 class ScriptCoverageTokens:
-    """Declared text-script coverage for diagnostics and build contracts."""
+    """Declared language and script coverage (agent-contract spec §13).
+
+    Every field is required so a new theme cannot inherit a claim it has not
+    proven. ``reportkit.languages.validate_script_coverage`` states what each
+    field must contain; ``reportkit context`` publishes the result.
+
+    ``verified``: ISO 15924 scripts proven by a compiled fixture, e.g.
+    ``("Latn",)``. ``metadata_only``: scripts recorded only as metadata.
+    ``rtl``: must be ``"unsupported"``. ``font_stacks``: one
+    :class:`ScriptFontStack` per verified script. ``verified_languages``:
+    BCP 47 primary subtags whose locale typography (see
+    ``reportkit.languages.LOCALE_TYPOGRAPHY``) is loaded, e.g. ``("en",)``.
+    ``metadata_only_languages``: subtags that set only the PDF catalog
+    language, e.g. ``("vi",)``.
+    """
 
     verified: tuple[str, ...]
     metadata_only: tuple[str, ...]
     rtl: str
+    font_stacks: Mapping[str, ScriptFontStack]
+    verified_languages: tuple[str, ...]
+    metadata_only_languages: tuple[str, ...]
 
 
 @dataclass(frozen=True)
@@ -171,6 +204,8 @@ _MODULES = {
     "technical": "reportkit.themes.default",
     "institutional-research": "reportkit.themes.institutional_research",
     "executive": "reportkit.themes.executive",
+    "editorial": "reportkit.themes.editorial",
+    "venture": "reportkit.themes.venture",
 }
 
 
@@ -274,8 +309,5 @@ def validate_theme_contract(theme: Theme) -> list[str]:
         errors.append("geometry must declare paper or canvas_mm")
     if len(theme.geometry.margins_mm) != 4:
         errors.append("geometry.margins_mm must contain top/right/bottom/left")
-    if not theme.script_coverage.verified:
-        errors.append("script_coverage.verified must not be empty")
-    if theme.script_coverage.rtl not in {"supported", "unsupported", "partial"}:
-        errors.append("script_coverage.rtl must be supported, unsupported, or partial")
+    errors.extend(validate_script_coverage(theme))
     return errors
