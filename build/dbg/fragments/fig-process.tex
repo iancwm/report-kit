@@ -1,0 +1,14 @@
+\begin{diagram}[
+  type=flow,
+  description={Four ordered steps move from detection through explanation and decision to learning.}
+]
+  \begin{reportflow}
+    \step{detect}{Detect}
+    \step{explain}{Explain}
+    \step{decide}{Decide}
+    \step{learn}{Learn}
+    \flowedge{detect}{explain}
+    \flowedge{explain}{decide}
+    \flowedge{decide}{learn}
+  \end{reportflow}
+\end{diagram}

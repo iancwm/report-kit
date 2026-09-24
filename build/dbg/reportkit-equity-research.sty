@@ -1,0 +1,299 @@
+% ReportKit publication type: equity-research -- Step 3 of the institutional
+% research theme + equity-research profile spec
+% (docs/superpowers/specs/2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md).
+% Front page, rating strip, sidebar, "what changed", dense financial-model
+% mode, and risk/reward composition primitives (spec §7-§18, §23). The
+% exhibit system and table grammar live in the shared reportkit-exhibits.sty
+% (required below), which executive-brief also loads.
+%
+% Selected via `\documentclass[publication-type=equity-research]{reportkit}`,
+% loaded by reportkit.cls after the selected theme and before the four
+% always-on semantic modules (reportkit-boxes/-code/-diagrams/-grammar).
+% Per the architecture (spec §1), this file owns *structure* -- what an
+% equity-research page is made of -- not *style*: every size/color it uses
+% is a token the theme defines, never a literal \fontsize or \definecolor of
+% its own. That is what makes "publication-type=equity-research,
+% theme=institutional-research" and a hypothetical future
+% "publication-type=equity-research, theme=modern-minimal" both work without
+% rewriting this file.
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{reportkit-equity-research}[2026/09/13 v1.0.1 ReportKit equity-research publication type]
+
+\RequirePackage{xparse}
+\RequirePackage{pgfkeys}
+\RequirePackage{etoolbox}
+\RequirePackage{tabularx}
+\RequirePackage{array}
+\RequirePackage{ragged2e}
+
+% Only theme=institutional-research defines the twelve \rk...size type-scale
+% commands (spec §5) this file's primitives are built on -- see that theme's
+% "Type scale" section. Fail here, at load time, with a clear message,
+% rather than letting the first \researchheadline (or whichever primitive a
+% document happens to use first) hit a raw "Undefined control sequence
+% \rkheadlinesize" deep in the document body. This is a TeX-level guard in
+% the same spirit as the institutional theme's own \ifPDFTeX engine guard --
+% fail at the point the actual requirement is knowable, not later and
+% unclearly.
+\@ifundefined{rkheadlinesize}{%
+  \PackageError{reportkit-equity-research}%
+    {publication-type=equity-research requires a theme that defines the spec's \MessageBreak\string\rkheadlinesize\space type-scale commands (spec section 5) -- only theme=institutional-research does today}%
+    {Add theme=institutional-research to \string\documentclass's options.}%
+}{}
+
+% The exhibit system (spec §11-§12) and institutional table grammar (spec
+% §16) moved verbatim into reportkit-exhibits.sty so executive-brief can reuse
+% them without loading equity-research's front-page/sidebar structure. Loaded
+% at the same point their definitions previously occupied in this file.
+\RequirePackage{reportkit-exhibits}
+
+% -----------------------------------------------------------------------------
+% Research front page (spec §7)
+% -----------------------------------------------------------------------------
+% <reportkit-contract>
+% {"kind":"composition","description":"Researchfrontpage","arguments":[],"constraints":[],"example":"\\begin{researchfrontpage}\nExample content.\n\\end{researchfrontpage}","stability":"stable","since":"1.8.0"}
+% </reportkit-contract>
+\NewDocumentEnvironment{researchfrontpage}{}{%
+  \thispagestyle{fancy}%
+  \vspace*{1mm}%
+}{%
+  \par\vspace{6pt}%
+}
+
+\newcommand{\researchkicker}[1]{{\sffamily\bfseries\rksectorkickersize\color{Accent}#1\par}\vspace{5pt}}
+\newcommand{\researchheadline}[1]{{\sffamily\bfseries\rkheadlinesize\color{Ink}\RaggedRight #1\par}\vspace{6pt}}
+\newcommand{\researchdeck}[1]{{\rkdecksize\color{Ink}\RaggedRight #1\par}\vspace{7pt}}
+
+% -----------------------------------------------------------------------------
+% Rating strip (spec §9) -- a plain horizontal informational strip, not the
+% old dashboard-style BUY card: hairlines above/below, thin vertical
+% separators between items, no rounded rectangle, at most one accent color
+% (left to the caller -- wrap a value in \color{Accent} to use it), and the
+% price target is not rendered as a giant KPI (it shares \rkratingvaluesize
+% with every other item in the strip).
+% -----------------------------------------------------------------------------
+% Rating strip (spec §9) with dynamic item width support (spec §29.1).
+% Instead of hardcoded minipage widths, use pgfmathsetmacro to compute
+% 1/itemcount × \linewidth, supporting 3–4 items without overflow.
+\newcounter{rkratingitem}
+\newcounter{rk@ratingitemcount}
+\newlength{\rk@ratingitemwidth}
+\newlength{\rk@ratingseparatorwidth}
+
+% <reportkit-contract>
+% {"kind":"composition","description":"Ratingstrip","arguments":[{"name":"item_count","type":"options","description":"Item count."}],"constraints":[],"example":"\\begin{ratingstrip}[]\nExample content.\n\\end{ratingstrip}","stability":"stable","since":"1.8.0"}
+% </reportkit-contract>
+\NewDocumentEnvironment{ratingstrip}{o}{%
+  \par\RKReserveSpace{4\baselineskip}\noindent
+  \setcounter{rkratingitem}{0}%
+  % Optional parameter: [itemcount=N] for explicit N (3 or 4).
+  % Default: 3 (backward compatible with existing 3-item usage).
+  \IfNoValueTF{#1}{%
+    \setcounter{rk@ratingitemcount}{3}%
+  }{%
+    % Parse itemcount=N format by checking if the parameter contains '='
+    % If it does, extract the number after the '='; otherwise use it as-is.
+    \expandafter\@ratingstrip@parsecount#1=\relax
+  }%
+  {\color{Hairline}\hrule height 0.4pt}\par\vspace{5pt}\noindent\ignorespaces
+}{%
+  \par\vspace{3pt}{\color{Hairline}\hrule height 0.4pt}\par\vspace{6pt}%
+}
+
+\def\@ratingstrip@parsecount#1=#2\relax{%
+  \def\@ratingstrip@value{#2}%
+  \ifx\@ratingstrip@value\@empty
+    % No '=' found, #1 is the number directly
+    \setcounter{rk@ratingitemcount}{#1}%
+  \else
+    % '=' found, strip the sentinel '=' appended by the caller.
+    \edef\@ratingstrip@value{\expandafter\@ratingstrip@striptrailingeq#2\@nil}%
+    \setcounter{rk@ratingitemcount}{\@ratingstrip@value}%
+  \fi
+}
+\def\@ratingstrip@striptrailingeq#1=\@nil{#1}
+
+% <reportkit-contract>
+% {"kind":"command","description":"Ratingitem","arguments":[{"name":"label","type":"text","description":"Label."},{"name":"value","type":"text","description":"Value."}],"constraints":[],"example":"\\ratingitem{Example}{1}","stability":"stable","since":"1.8.0","parent":"ratingstrip"}
+% </reportkit-contract>
+\NewDocumentCommand{\ratingitem}{m m}{%
+  \stepcounter{rkratingitem}%
+  \ifnum\value{rkratingitem}>1\quad{\color{Hairline}\vrule width 0.4pt}\quad\fi
+  % Compute the item width after reserving space for every separator. The
+  % separator is two \quad spaces plus a 0.4pt rule, so N items occupy the
+  % full line without adding the separators on top of N equal-width boxes.
+  \settowidth{\rk@ratingseparatorwidth}{\quad}%
+  \addtolength{\rk@ratingseparatorwidth}{\rk@ratingseparatorwidth}%
+  \addtolength{\rk@ratingseparatorwidth}{0.4pt}%
+  \setlength{\rk@ratingitemwidth}{\linewidth}%
+  \@tempcnta=\value{rk@ratingitemcount}%
+  \advance\@tempcnta by -1
+  \@whilenum\@tempcnta>0\do{%
+    \addtolength{\rk@ratingitemwidth}{-\rk@ratingseparatorwidth}%
+    \advance\@tempcnta by -1
+  }%
+  \@tempcnta=\value{rk@ratingitemcount}%
+  \divide\rk@ratingitemwidth by \@tempcnta
+  \begin{minipage}[t]{\rk@ratingitemwidth}%
+    {\sffamily\rksidebarsize\color{Muted}\MakeUppercase{#1}\par}%
+    \vspace{1pt}{\sffamily\bfseries\rkratingvaluesize\color{Ink}#2\par}%
+  \end{minipage}\ignorespaces%
+}
+
+% -----------------------------------------------------------------------------
+% Two-column research body (spec §7) -- main ~68%, gutter ~4%, sidebar ~28%.
+% researchmain and researchsidebar are two *adjacent* minipages realized as
+% sibling environments, not one wrapper containing both: put
+% \end{researchmain} immediately before \begin{researchsidebar} with no
+% blank line between them in the source. A blank line starts a new
+% paragraph, which breaks LaTeX out of horizontal mode and moves the sidebar
+% below the main column instead of beside it -- the same constraint any
+% \hfill-separated pair of minipages has. The ~4% gutter is realized as
+% \hfill's stretch between two fixed-width boxes (0.68 + 0.28 = 0.96
+% \linewidth) rather than a hard-coded gutter width.
+% -----------------------------------------------------------------------------
+% <reportkit-contract>
+% {"kind":"composition","description":"Researchmain","arguments":[],"constraints":[{"code":"adjacent_environment","description":"researchmain must be immediately followed by researchsidebar.","value":"researchsidebar"}],"example":"\\begin{researchmain}\nExample content.\n\\end{researchmain}","stability":"stable","since":"1.8.0"}
+% </reportkit-contract>
+\NewDocumentEnvironment{researchmain}{}{%
+  \par\noindent\begin{minipage}[t]{0.68\linewidth}\RaggedRight%
+}{%
+  \end{minipage}%
+}
+% <reportkit-contract>
+% {"kind":"composition","description":"Researchsidebar","arguments":[],"constraints":[{"code":"adjacent_environment","description":"researchsidebar must immediately follow researchmain.","value":"researchmain"}],"example":"\\begin{researchsidebar}\nExample content.\n\\end{researchsidebar}","stability":"stable","since":"1.8.0"}
+% </reportkit-contract>
+\NewDocumentEnvironment{researchsidebar}{}{%
+  \hfill\begin{minipage}[t]{0.28\linewidth}\RaggedRight%
+}{%
+  \end{minipage}\par\vspace{8pt}%
+}
+
+% -----------------------------------------------------------------------------
+% Sidebar primitives (spec §8) -- small font, thin horizontal separators,
+% compact row spacing, no rounded boxes, no colored background by default;
+% labels muted, values Ink, accent reserved for important state (left to the
+% caller, same as \ratingitem).
+% -----------------------------------------------------------------------------
+\newcommand{\sidebarlabel}[1]{{\sffamily\fontsize{6.2pt}{7.4pt}\selectfont\color{Muted}\MakeUppercase{#1}}}
+\newcommand{\sidebarvalue}[1]{{\sffamily\rksidebarsize\bfseries\color{Ink}#1}}
+\newcommand{\sidebarrule}{\par\vspace{2pt}{\color{Hairline}\hrule height 0.4pt}\vspace{3pt}}
+% <reportkit-contract>
+% {"kind":"command","description":"Sidebarrow","arguments":[{"name":"label","type":"text","description":"Label."},{"name":"value","type":"text","description":"Value."}],"constraints":[],"example":"\\sidebarrow{Example}{1}","stability":"stable","since":"1.8.0","parent":"researchsidebar"}
+% </reportkit-contract>
+\NewDocumentCommand{\sidebarrow}{m m}{%
+  \par\noindent\sidebarlabel{#1}\hfill\sidebarvalue{#2}\par\vspace{2pt}%
+}
+
+% <reportkit-contract>
+% {"kind":"composition","description":"Analystblock","arguments":[],"constraints":[],"example":"\\begin{analystblock}\nExample content.\n\\end{analystblock}","stability":"stable","since":"1.8.0"}
+% </reportkit-contract>
+\NewDocumentEnvironment{analystblock}{}{%
+  \par\RKReserveSpace{4\baselineskip}\noindent\sffamily\rksidebarsize\color{Ink}\ignorespaces
+}{%
+  \par\vspace{6pt}%
+}
+% <reportkit-contract>
+% {"kind":"composition","description":"Marketdatablock","arguments":[],"constraints":[],"example":"\\begin{marketdatablock}\nExample content.\n\\end{marketdatablock}","stability":"stable","since":"1.8.0"}
+% </reportkit-contract>
+\NewDocumentEnvironment{marketdatablock}{}{%
+  \sidebarrule\noindent\sffamily\rksidebarsize\color{Ink}\ignorespaces
+}{%
+  \par\vspace{6pt}%
+}
+% <reportkit-contract>
+% {"kind":"composition","description":"Estimatesblock","arguments":[],"constraints":[],"example":"\\begin{estimatesblock}\nExample content.\n\\end{estimatesblock}","stability":"stable","since":"1.8.0"}
+% </reportkit-contract>
+\NewDocumentEnvironment{estimatesblock}{}{%
+  \sidebarrule\noindent\sffamily\rksidebarsize\color{Ink}%
+  \setlength{\tabcolsep}{2pt}\ignorespaces
+}{%
+  \par\vspace{6pt}%
+}
+
+% -----------------------------------------------------------------------------
+% "What Changed?" (spec §10) -- small accent label, From/To columns, minimal
+% rules, no card container. A reusable research primitive, not
+% equity-specific hand formatting.
+% -----------------------------------------------------------------------------
+% <reportkit-contract>
+% {"kind":"composition","description":"Whatschanged","arguments":[],"constraints":[],"example":"\\begin{whatschanged}\nExample content.\n\\end{whatschanged}","stability":"stable","since":"1.8.0"}
+% </reportkit-contract>
+\NewDocumentEnvironment{whatschanged}{}{%
+  \par\RKReserveSpace{5\baselineskip}\vspace{3pt}%
+  {\sffamily\bfseries\rksidebarsize\color{Accent}\MakeUppercase{What's Changed?}\par}%
+  \vspace{3pt}{\color{Hairline}\hrule height 0.4pt}\vspace{4pt}\noindent
+  \sffamily\rksidebarsize\color{Ink}\ignorespaces
+}{%
+  \par\vspace{2pt}{\color{Hairline}\hrule height 0.4pt}\vspace{6pt}%
+}
+% <reportkit-contract>
+% {"kind":"command","description":"Change","arguments":[{"name":"date","type":"text","description":"Date."},{"name":"headline","type":"text","description":"Headline."},{"name":"detail","type":"text","description":"Detail."}],"constraints":[],"example":"\\change{Example}{Example}{Example}","stability":"stable","since":"1.8.0","parent":"whatschanged"}
+% </reportkit-contract>
+\NewDocumentCommand{\change}{m m m}{%
+  \noindent#1\hfill\textcolor{Muted}{#2}\;$\to$\;\textbf{#3}\par\vspace{1.5pt}%
+}
+
+% -----------------------------------------------------------------------------
+% Financial model page (spec §17) -- editorial prose pages optimize reading;
+% model pages optimize scanning. Locally (not globally -- everything reverts
+% at \end{financialmodelpage}) drops to dense table type and tighter row
+% spacing, while keeping the same font family, palette, exhibit/title
+% grammar, and headers/footers as the rest of the document. True landscape
+% rotation (spec §17's "landscape if required") is deliberately not
+% implemented here: getting \newgeometry/\restoregeometry or pdflscape's
+% page-rotation semantics right is not something this change can verify
+% without a compiler, and a wide model table can usually be handled with
+% \rktablebodysize plus a resizebox instead. A page that genuinely needs
+% physical landscape can wrap itself in `pdflscape`'s `landscape`
+% environment around this one; that composition doesn't require anything
+% from this file.
+% -----------------------------------------------------------------------------
+% <reportkit-contract>
+% {"kind":"composition","description":"Financialmodelpage","arguments":[],"constraints":[],"example":"\\begin{financialmodelpage}\nExample content.\n\\end{financialmodelpage}","stability":"stable","since":"1.8.0"}
+% </reportkit-contract>
+\NewDocumentEnvironment{financialmodelpage}{}{%
+  \begingroup
+  \renewcommand{\arraystretch}{0.92}%
+  \setlength{\tabcolsep}{2.5pt}%
+  \sffamily\fontsize{7.6pt}{9pt}\selectfont
+}{%
+  \endgroup
+}
+
+% -----------------------------------------------------------------------------
+% Risk/reward primitive (spec §18). The chart itself is deliberately not
+% drawn here: spec §18 itself prefers generating it "through
+% reportkit_viz.py" (Step 4), and drawing it in raw TikZ/pgfplots here would
+% be exactly the "bespoke chart styling" spec §28's Definition of Done rules
+% out. Embed a reportkit_viz-generated chart the same way any other exhibit
+% embeds a figure: \begin{exhibit}[...]\includegraphics{...}\end{exhibit}.
+% The page composition around it -- Investment Thesis / Key Debates /
+% Catalysts / Risks beside the chart -- reuses researchmain/researchsidebar
+% (spec §7): Appendix A's risk/reward page uses the same ~68/28 column split
+% as its front page, so this file does not duplicate that layout under a
+% second name.
+% -----------------------------------------------------------------------------
+\newcommand{\rksubheading}[1]{\par\vspace{6pt}{\sffamily\bfseries\rksidebarsubheadingsize\color{Accent}\MakeUppercase{#1}\par}\vspace{3pt}}
+
+% <reportkit-contract>
+% {"kind":"command","description":"Rkscenario","arguments":[{"name":"label","type":"text","description":"Label."},{"name":"color","type":"text","description":"Color."},{"name":"value","type":"text","description":"Value."},{"name":"detail","type":"text","description":"Detail."}],"constraints":[],"example":"\\rkscenario{Example}{Accent}{1}{Example}","stability":"stable","since":"1.8.0","parent":"financialmodelpage"}
+% </reportkit-contract>
+\NewDocumentCommand{\rkscenario}{m m m m}{%
+  \par\noindent{\sffamily\bfseries\rksubsectionsize\color{Ink}#1\hfill\textcolor{#2}{#3}\par}%
+  \vspace{2pt}{\rkbodysize\color{Ink}#4\par}\vspace{6pt}%
+}
+% <reportkit-contract>
+% {"kind":"command","description":"Bullcase","arguments":[{"name":"value","type":"text","description":"Value."},{"name":"detail","type":"text","description":"Detail."}],"constraints":[],"example":"\\bullcase{1}{Example}","stability":"stable","since":"1.8.0","parent":"financialmodelpage"}
+% </reportkit-contract>
+\NewDocumentCommand{\bullcase}{m m}{\rkscenario{Bull}{SeriesGold}{#1}{#2}}
+% <reportkit-contract>
+% {"kind":"command","description":"Basecase","arguments":[{"name":"value","type":"text","description":"Value."},{"name":"detail","type":"text","description":"Detail."}],"constraints":[],"example":"\\basecase{1}{Example}","stability":"stable","since":"1.8.0","parent":"financialmodelpage"}
+% </reportkit-contract>
+\NewDocumentCommand{\basecase}{m m}{\rkscenario{Base}{Accent}{#1}{#2}}
+% <reportkit-contract>
+% {"kind":"command","description":"Bearcase","arguments":[{"name":"value","type":"text","description":"Value."},{"name":"detail","type":"text","description":"Detail."}],"constraints":[],"example":"\\bearcase{1}{Example}","stability":"stable","since":"1.8.0","parent":"financialmodelpage"}
+% </reportkit-contract>
+\NewDocumentCommand{\bearcase}{m m}{\rkscenario{Bear}{BearRed}{#1}{#2}}
+
+\endinput

@@ -1,0 +1,294 @@
+% ReportKit publication type: feature-article. Phase E of the multi-format
+% publication architecture spec
+% (docs/superpowers/specs/2026-09-09-reportkit-multi-format-publication-architecture-spec.md,
+% sections 2.2 and 15): the semantic structure of a designed long-form
+% narrative -- opening, headline, deck, byline, opening visual, pull quote,
+% sidebar, feature exhibit, section opener, image credit, drop cap,
+% two-column prose and references.
+%
+% This file owns structure only. Every family, size, weight, color, rule,
+% inset, spacing value, the opening page style and the credit alignment is
+% a token from reportkit-core.sty's "Feature-composition style tokens"
+% contract, populated by the selected theme's paged adapter. Nothing here
+% names a theme, defines a color, or sets a literal font size: the
+% Phase E acceptance gate swaps the shipped feature theme for
+% an unrelated probe theme and compiles the same article source unchanged.
+%
+% Layout rhythm is deliberately a closed vocabulary, not a positioning API:
+%   * one-column prose  -- the default flow;
+%   * two-column prose  -- the featurecolumns environment;
+%   * full-width visual -- openingvisual, or featureexhibit[span=full]
+%     outside featurecolumns.
+% featureexhibit accepts exactly span=column or span=full. There are no
+% coordinates, offsets, float specifiers or arbitrary widths; a composition
+% that needs one belongs in a figure fragment, not in a new option here.
+%
+% Loaded by reportkit.cls after the theme's common package and paged
+% adapter, before the always-on semantic modules.
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{reportkit-feature-article}[2026/09/23 v1.0.0 ReportKit feature-article publication type]
+
+\RequirePackage{xparse}
+\RequirePackage{etoolbox}
+\RequirePackage{pgfkeys}
+\RequirePackage{multicol}
+\RequirePackage[most]{tcolorbox}
+\RequirePackage{lettrine}
+\RequirePackage{enumitem}
+
+\RKAssertFeatureTokens
+
+% Structural vocabulary owned by the publication type (content, not style).
+% A document may renew these for another language.
+\newcommand{\RKFeatureExhibitName}{Exhibit}
+\newcommand{\RKFeatureReferencesName}{References}
+
+\newcounter{featureexhibit}
+\newif\ifrkfeature@incolumns
+\rkfeature@incolumnsfalse
+\newlength{\rkfeature@exhibitwidth}
+\newcommand{\rkfeature@span}{column}
+
+\pgfkeys{
+  /reportkit/featureexhibit/.is family,
+  /reportkit/featureexhibit/.cd,
+  span/.code={%
+    \ifstrequal{#1}{column}{\def\rkfeature@span{column}}{%
+      \ifstrequal{#1}{full}{\def\rkfeature@span{full}}{%
+        \PackageError{reportkit-feature-article}{FEATURE_EXHIBIT_UNKNOWN_SPAN: span=#1}%
+          {featureexhibit accepts only span=column or span=full; there is no free placement.}%
+      }%
+    }%
+  },
+}
+
+% Drop-cap hooks read the theme tokens at use time, so they are installed
+% once here rather than inside \dropcap (lettrine's \parshape is paragraph
+% state and must not be wrapped in a group).
+\renewcommand{\LettrineFontHook}{\RKTokFeatureDropCapFont\color{\RKTokFeatureDropCapColor}}
+\renewcommand{\LettrineTextFont}{\RKTokFeatureDropCapLeadFont}
+
+% Caption plus optional credit, shared by openingvisual and featureexhibit.
+\newcommand{\rkfeature@captionline}[2]{%
+  \par\raggedright
+  \ifblank{#1}{}{{\RKTokFeatureCaptionFont\color{\RKTokFeatureCaptionColor}#1\par}}%
+  \IfValueT{#2}{\imagecredit{#2}}%
+}
+
+% -----------------------------------------------------------------------------
+% Opening page
+% -----------------------------------------------------------------------------
+% <reportkit-contract>
+% {"kind":"composition","description":"Opening block of a feature article: groups the headline, deck, byline and opening visual on the first page and applies the theme's opening page style.","arguments":[],"constraints":[{"code":"once_per_article","description":"Use once, at the start of the article body, before any prose."},{"code":"theme_owned_page_style","description":"The opening page's running furniture comes from the theme; do not call \\thispagestyle yourself."}],"example":"\\begin{featureopening}\n\\featureheadline[Infrastructure]{The river that learned to count}\n\\featuredeck{How a fictional delta town rebuilt its flood defences around measurement.}\n\\featurebyline{By Mara Ellison}[Field report]\n\\end{featureopening}","stability":"experimental","since":"1.10.0"}
+% </reportkit-contract>
+\NewDocumentEnvironment{featureopening}{}{%
+  \par\thispagestyle{\RKTokFeatureOpeningPageStyle}%
+  \vspace*{\RKTokFeatureOpeningTopSkip}%
+}{%
+  \par\vspace{\RKTokFeatureOpeningAfterSkip}%
+  \noindent{\color{\RKTokFeatureOpeningRuleColor}\rule{\linewidth}{\RKTokFeatureOpeningRuleWidth}}\par
+  \vspace{\RKTokFeatureOpeningAfterSkip}%
+  \@afterindentfalse\@afterheading
+}
+
+% <reportkit-contract>
+% {"kind":"command","description":"Feature headline with an optional kicker (section or topic label) above it.","arguments":[{"name":"kicker","type":"text","description":"Optional short topic label shown above the headline."},{"name":"headline","type":"text","description":"The article headline; a complete, specific statement rather than a label."}],"constraints":[{"code":"one_headline","description":"Use one headline per article, normally inside featureopening."}],"example":"\\featureheadline[Infrastructure]{The river that learned to count}","stability":"experimental","since":"1.10.0"}
+% </reportkit-contract>
+\NewDocumentCommand{\featureheadline}{o m}{%
+  \par
+  \IfValueT{#1}{%
+    {\RKTokFeatureKickerFont\color{\RKTokFeatureKickerColor}\RKTokFeatureKickerTransform{#1}\par}%
+    \vspace{\RKTokFeatureElementSkip}%
+  }%
+  {\RKTokFeatureHeadlineFont\color{\RKTokFeatureHeadlineColor}#2\par}%
+  \vspace{\RKTokFeatureElementSkip}%
+}
+
+% <reportkit-contract>
+% {"kind":"command","description":"Feature deck (standfirst under the headline): one or two sentences that state what the article argues.","arguments":[{"name":"deck","type":"text","description":"Deck text."}],"constraints":[{"code":"short_deck","description":"Keep the deck to one or two sentences; it is not a summary section."}],"example":"\\featuredeck{How a fictional delta town rebuilt its flood defences around measurement.}","stability":"experimental","since":"1.10.0"}
+% </reportkit-contract>
+\NewDocumentCommand{\featuredeck}{m}{%
+  \par{\RKTokFeatureDeckFont\color{\RKTokFeatureDeckColor}#1\par}%
+  \vspace{\RKTokFeatureElementSkip}%
+}
+
+% <reportkit-contract>
+% {"kind":"command","description":"Feature byline with an optional dateline, role or reading-time detail.","arguments":[{"name":"byline","type":"text","description":"Author credit, e.g. By Name."},{"name":"detail","type":"text","description":"Optional dateline, role or reading-time detail."}],"constraints":[],"example":"\\featurebyline{By Mara Ellison}[Field report]","stability":"experimental","since":"1.10.0"}
+% </reportkit-contract>
+\NewDocumentCommand{\featurebyline}{m o}{%
+  \par{\RKTokFeatureBylineFont\color{\RKTokFeatureBylineColor}#1\IfValueT{#2}{\quad\textperiodcentered\quad#2}\par}%
+  \vspace{\RKTokFeatureElementSkip}%
+}
+
+% <reportkit-contract>
+% {"kind":"composition","description":"Full-width opening visual with a caption and optional image credit. The body is the visual itself (an \\includegraphics at \\linewidth or a trusted figure fragment).","arguments":[{"name":"caption","type":"text","description":"Caption describing what the visual shows."},{"name":"credit","type":"text","description":"Optional image credit or source."}],"constraints":[{"code":"full_width","description":"Always spans the full text width; size the body to \\linewidth."},{"code":"credit_required_for_external_images","description":"Credit every photograph or illustration not made for the article."}],"example":"\\begin{openingvisual}{The delta at low water, drawn from the town survey.}[Illustration: ReportKit example]\n\\rule{\\linewidth}{30mm}\n\\end{openingvisual}","stability":"experimental","since":"1.10.0"}
+% </reportkit-contract>
+\NewDocumentEnvironment{openingvisual}{m o}{%
+  \ifrkfeature@incolumns
+    \PackageError{reportkit-feature-article}{FEATURE_OPENING_VISUAL_IN_COLUMNS}%
+      {openingvisual always spans the full text width; place it outside featurecolumns.}%
+  \fi
+  \par\vspace{\RKTokFeatureElementSkip}%
+  \noindent\begin{minipage}{\linewidth}\centering
+}{%
+  \par\vspace{\RKTokFeatureElementSkip}%
+  \rkfeature@captionline{#1}{#2}%
+  \end{minipage}\par
+  \vspace{\RKTokFeatureElementSkip}%
+}
+
+% <reportkit-contract>
+% {"kind":"command","description":"Image credit line for a visual, exhibit or sidebar image.","arguments":[{"name":"credit","type":"text","description":"Credit text, e.g. Photograph: Name / Agency."}],"constraints":[],"example":"\\imagecredit{Illustration: ReportKit example}","stability":"experimental","since":"1.10.0"}
+% </reportkit-contract>
+\NewDocumentCommand{\imagecredit}{m}{%
+  \par{\RKTokFeatureCreditAlign\RKTokFeatureCreditFont\color{\RKTokFeatureCreditColor}#1\par}%
+}
+
+% -----------------------------------------------------------------------------
+% Body rhythm
+% -----------------------------------------------------------------------------
+% <reportkit-contract>
+% {"kind":"command","description":"Drop cap opening the first paragraph of the article or of a section.","arguments":[{"name":"initial","type":"text","description":"The single initial letter."},{"name":"lead","type":"text","description":"The rest of the first word or first few words, set in the lead-in style."}],"constraints":[{"code":"paragraph_start","description":"Use only at the very start of a paragraph, at most once per section."}],"example":"\\dropcap{T}{he river} rose twice that spring before anyone thought to measure it.","stability":"experimental","since":"1.10.0"}
+% </reportkit-contract>
+\NewDocumentCommand{\dropcap}{m m}{%
+  \lettrine[lines=\RKTokFeatureDropCapLines]{#1}{#2}%
+}
+
+% <reportkit-contract>
+% {"kind":"composition","description":"Two-column prose rhythm. Text outside this environment is one-column prose.","arguments":[],"constraints":[{"code":"no_nesting","description":"featurecolumns cannot be nested."},{"code":"no_full_span_inside","description":"featureexhibit[span=full] and openingvisual are not allowed inside; close the columns, place the full-width visual, then reopen."},{"code":"no_floats","description":"Do not place floating figure/table environments inside; use featureexhibit."}],"example":"\\begin{featurecolumns}\nThe survey began with a single gauge.\n\nWithin a year there were forty.\n\\end{featurecolumns}","stability":"experimental","since":"1.10.0"}
+% </reportkit-contract>
+\NewDocumentEnvironment{featurecolumns}{}{%
+  \ifrkfeature@incolumns
+    \PackageError{reportkit-feature-article}{FEATURE_COLUMNS_NESTED}%
+      {featurecolumns cannot be nested; close the current featurecolumns first.}%
+  \fi
+  \par
+  \setlength{\columnsep}{\RKTokFeatureColumnGutter}%
+  \setlength{\columnseprule}{\RKTokFeatureColumnRuleWidth}%
+  \renewcommand{\columnseprulecolor}{\color{\RKTokFeatureColumnRuleColor}}%
+  \rkfeature@incolumnstrue
+  % Ragged column bottoms: paragraphs keep their natural spacing instead of
+  % being stretched to square off each column.
+  \raggedcolumns
+  \begin{multicols}{2}%
+}{%
+  \end{multicols}%
+}
+
+% <reportkit-contract>
+% {"kind":"command","description":"Pull quote: a short line lifted from the article, set apart from the running text.","arguments":[{"name":"quote","type":"text","description":"The quoted line; it must appear in, or faithfully paraphrase, the article."},{"name":"attribution","type":"text","description":"Optional speaker or source."}],"constraints":[{"code":"short_quote","description":"Keep to roughly 10-35 words; a pull quote is not a callout or summary."},{"code":"no_invented_quotes","description":"Quote only text that exists in the article or its sources."}],"example":"\\pullquote{We stopped arguing about the river once we could see it.}[Harbour engineer]","stability":"experimental","since":"1.10.0"}
+% </reportkit-contract>
+\NewDocumentCommand{\pullquote}{m o}{%
+  \par\RKReserveSpace{7\baselineskip}%
+  \vspace{\RKTokFeaturePullQuoteSkip}%
+  % One unbreakable block: a pull quote never splits across a page or a
+  % featurecolumns column break.
+  \noindent\hfill\begin{minipage}{\dimexpr\linewidth-2\RKTokFeaturePullQuoteInset\relax}%
+    \noindent{\color{\RKTokFeaturePullQuoteRuleColor}\rule{\linewidth}{\RKTokFeaturePullQuoteRuleWidth}}\par
+    \vspace{\RKTokFeatureElementSkip}%
+    {\RKTokFeaturePullQuoteFont\color{\RKTokFeaturePullQuoteColor}#1\par}%
+    \IfValueT{#2}{%
+      \vspace{\RKTokFeatureElementSkip}%
+      {\RKTokFeaturePullQuoteAttributionFont\color{\RKTokFeatureCaptionColor}#2\par}%
+    }%
+    \vspace{\RKTokFeatureElementSkip}%
+    \noindent{\color{\RKTokFeaturePullQuoteRuleColor}\rule{\linewidth}{\RKTokFeaturePullQuoteRuleWidth}}\par
+  \end{minipage}\hfill\null\par
+  \vspace{\RKTokFeaturePullQuoteSkip}%
+  \@afterindentfalse\@afterheading
+}
+
+% <reportkit-contract>
+% {"kind":"composition","description":"Sidebar: a self-contained companion box (explainer, glossary, profile or method note) set apart from the main story.","arguments":[{"name":"title","type":"text","description":"Sidebar title."}],"constraints":[{"code":"self_contained","description":"The article must still read correctly if the sidebar is skipped."},{"code":"unbreakable","description":"A sidebar does not break across pages or columns; keep it under about half a page."}],"example":"\\begin{featuresidebar}{How the gauges work}\nEach gauge reports water height every ten minutes.\n\\end{featuresidebar}","stability":"experimental","since":"1.10.0"}
+% </reportkit-contract>
+\NewDocumentEnvironment{featuresidebar}{m}{%
+  \par\vspace{\RKTokFeatureExhibitSkip}%
+  \begin{tcolorbox}[
+    colback=\RKTokFeatureSidebarFill,
+    colframe=\RKTokFeatureSidebarRuleColor,
+    boxrule=\RKTokFeatureSidebarRuleWidth,
+    toprule=\RKTokFeatureSidebarAccentRuleWidth,
+    arc=0pt, outer arc=0pt, boxsep=0pt,
+    left=\RKTokFeatureSidebarPad, right=\RKTokFeatureSidebarPad,
+    top=\RKTokFeatureSidebarPad, bottom=\RKTokFeatureSidebarPad,
+    before skip=0pt, after skip=0pt, width=\linewidth,
+  ]
+  {\RKTokFeatureSidebarTitleFont\color{\RKTokFeatureSidebarTitleColor}#1\par}%
+  \vspace{\RKTokFeatureElementSkip}%
+  \RKTokFeatureSidebarBodyFont
+}{%
+  \end{tcolorbox}\par
+  \vspace{\RKTokFeatureExhibitSkip}%
+}
+
+% <reportkit-contract>
+% {"kind":"composition","description":"Numbered feature exhibit (chart, table, diagram or image) with a finding-first title and optional credit via \\imagecredit. span=column fits the current reading column (an inset in one-column prose, the column in featurecolumns); span=full spans the whole text block.","arguments":[{"name":"options","type":"options","description":"span=column (default) or span=full. No other keys exist."},{"name":"title","type":"text","description":"Exhibit title stating the finding, not only the metric."}],"constraints":[{"code":"span_vocabulary","description":"Only span=column and span=full are accepted; there are no coordinates, offsets or custom widths."},{"code":"full_span_outside_columns","description":"span=full inside featurecolumns fails with FEATURE_EXHIBIT_FULL_SPAN_IN_COLUMNS."},{"code":"not_a_float","description":"Exhibits stay where they are written; size the body to \\linewidth."}],"example":"\\begin{featureexhibit}[span=full]{Forty gauges halved the warning time}\n\\rule{\\linewidth}{25mm}\n\\imagecredit{Source: fictional town survey}\n\\end{featureexhibit}","stability":"experimental","since":"1.10.0"}
+% </reportkit-contract>
+\NewDocumentEnvironment{featureexhibit}{O{} m}{%
+  \def\rkfeature@span{column}%
+  \pgfkeys{/reportkit/featureexhibit/.cd,#1}%
+  \ifdefstring{\rkfeature@span}{full}{%
+    \ifrkfeature@incolumns
+      \PackageError{reportkit-feature-article}{FEATURE_EXHIBIT_FULL_SPAN_IN_COLUMNS}%
+        {span=full spans the whole text block; close featurecolumns before this exhibit and reopen it afterwards.}%
+    \fi
+    \setlength{\rkfeature@exhibitwidth}{\linewidth}%
+  }{%
+    \ifrkfeature@incolumns
+      \setlength{\rkfeature@exhibitwidth}{\linewidth}%
+    \else
+      \setlength{\rkfeature@exhibitwidth}{\RKTokFeatureExhibitInsetFraction\linewidth}%
+    \fi
+  }%
+  \par\RKReserveSpace{12\baselineskip}%
+  \vspace{\RKTokFeatureExhibitSkip}%
+  \refstepcounter{featureexhibit}%
+  \noindent\hfill\begin{minipage}{\rkfeature@exhibitwidth}%
+    \noindent{\color{\RKTokFeatureExhibitRuleColor}\rule{\linewidth}{\RKTokFeatureExhibitRuleWidth}}\par
+    \vspace{\RKTokFeatureElementSkip}%
+    {\RKTokFeatureExhibitLabelFont\color{\RKTokFeatureExhibitLabelColor}\RKFeatureExhibitName\ \thefeatureexhibit\par}%
+    {\RKTokFeatureExhibitTitleFont\color{\RKTokFeatureExhibitTitleColor}#2\par}%
+    \vspace{\RKTokFeatureElementSkip}%
+    \centering
+}{%
+    \par
+  \end{minipage}\hfill\null\par
+  \vspace{\RKTokFeatureExhibitSkip}%
+}
+
+% <reportkit-contract>
+% {"kind":"command","description":"Section opener: starts a new movement of the story with a title and an optional standfirst, and registers it in the PDF outline and running head.","arguments":[{"name":"title","type":"text","description":"Section title."},{"name":"standfirst","type":"text","description":"Optional one-sentence introduction to the section."}],"constraints":[{"code":"outside_columns","description":"Place section openers in one-column flow, between featurecolumns blocks."}],"example":"\\featuresection{Counting the water}[The first gauge cost less than a single sandbag wall.]","stability":"experimental","since":"1.10.0"}
+% </reportkit-contract>
+\NewDocumentCommand{\featuresection}{m o}{%
+  % The opener itself uses about seven body lines; reserve room for it plus
+  % the first lines of the movement so it is never stranded at a page foot.
+  \par\RKReserveSpace{16\baselineskip}%
+  \vspace{\RKTokFeatureSectionSkip}%
+  \noindent{\color{\RKTokFeatureSectionRuleColor}\rule{\linewidth}{\RKTokFeatureSectionRuleWidth}}\par
+  \vspace{\RKTokFeatureElementSkip}%
+  \phantomsection\addcontentsline{toc}{section}{#1}\markboth{#1}{#1}%
+  {\RKTokFeatureSectionFont\color{\RKTokFeatureSectionColor}#1\par}%
+  \IfValueT{#2}{%
+    \vspace{\RKTokFeatureElementSkip}%
+    {\RKTokFeatureStandfirstFont\color{\RKTokFeatureStandfirstColor}#2\par}%
+  }%
+  \vspace{\RKTokFeatureElementSkip}%
+  \@afterindentfalse\@afterheading
+}
+
+% <reportkit-contract>
+% {"kind":"composition","description":"Numbered references or endnotes closing the article; each entry is an \\item.","arguments":[{"name":"title","type":"text","description":"Heading for the list; defaults to the publication type's references name."}],"constraints":[{"code":"items_only","description":"Contains only \\item entries."},{"code":"outside_columns","description":"Place in one-column flow at the end of the article."}],"example":"\\begin{featurereferences}\n\\item Delta Town Council (2026), Flood gauge survey. \\url{https://example.com/survey}\n\\end{featurereferences}","stability":"experimental","since":"1.10.0"}
+% </reportkit-contract>
+\NewDocumentEnvironment{featurereferences}{O{\RKFeatureReferencesName}}{%
+  \par\RKReserveSpace{6\baselineskip}%
+  \vspace{\RKTokFeatureSectionSkip}%
+  \phantomsection\addcontentsline{toc}{section}{#1}%
+  {\RKTokFeatureReferenceTitleFont\color{\RKTokFeatureSectionColor}#1\par}%
+  \vspace{\RKTokFeatureElementSkip}%
+  \RKTokFeatureReferenceFont\color{\RKTokFeatureReferenceColor}%
+  \begin{enumerate}[label={\arabic*.},leftmargin=*,itemsep=\RKTokFeatureElementSkip,topsep=0pt]
+}{%
+  \end{enumerate}%
+}
+
+\endinput

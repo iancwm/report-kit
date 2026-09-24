@@ -1,0 +1,17 @@
+\documentclass{article}
+\usepackage{tikz}
+\makeatletter
+% stub tokens so the package loads standalone
+\newif\ifRKTokStructureLoaded \RKTokStructureLoadedtrue
+\makeatother
+\begin{document}
+\def\rk@structure@error#1#2{}
+\def\rk@structure@warning#1#2{}
+\tikzset{rk structure card/.style={},rk structure title/.style={},rk structure muted/.style={},rk structure arrow/.style={},rk timeline/.style={}}
+\input{reportkit-structure-stub}
+\begin{tikzpicture}
+\node (a) {x};
+\node[right=\rk@structure@ifnumber{3}{0.5cm}{1cm} of a] (b) {y};
+\end{tikzpicture}
+OK
+\end{document}

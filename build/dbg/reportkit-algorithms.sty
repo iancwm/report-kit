@@ -1,0 +1,148 @@
+% ReportKit v1.0.0 -- algorithm/pseudocode primitive
+%
+% A language-neutral algorithm/pseudocode reading unit, distinct from
+% reportkit-code.sty's codeblock (executable source, monospace, syntax
+% highlighted) and from reportkit-diagrams.sty's process primitives
+% (reportflow/reportstate, which show *relationships* between steps, not the
+% steps' own control flow). Routing:
+%
+%   Executable/source code                 -> codeblock
+%   Language-neutral algorithm/pseudocode   -> algorithmblock
+%   Process/decision relationships          -> reportflow / reportstate
+%
+% Deliberately its own file, not folded into reportkit-code.sty: source code
+% and algorithms are semantically different enough (monospace literal text
+% vs. proportional structured notation with its own keyword grammar) that
+% sharing one module would blur exactly the distinction this primitive
+% exists to make.
+%
+% Built on algorithmicx/algpseudocode, NOT the `algorithm` float package --
+% algorithms stay non-floating reading units, the same rule
+% reportkit-diagrams.sty already applies to conceptual diagrams. Space is
+% reserved with the \RKReserveSpace renderer hook (reportkit-core.sty /
+% reportkit-paged-core.sty) rather than a direct \Needspace call, so this
+% module carries the same renderer-neutrality every other semantic module
+% has had since the multi-format publication architecture's Phase A3.
+%
+% algpseudocode's own default keyword styling (bold roman "if"/"while"/...)
+% is replaced entirely: keywords render in LinkBlue bold sans, matching the
+% palette every other ReportKit primitive already uses for structural
+% emphasis, and statement text is left in the surrounding Ink body font
+% instead of algpseudocode's default. Line numbers are off by default
+% (algorithmicx only numbers lines when \begin{algorithmic}[<step>] is given
+% a numeric argument, so simply not supplying one is sufficient) and no
+% vertical block-guide rule is drawn -- algorithmicx does not draw one
+% itself, and this module does not add one, per the "quiet or omit" guidance
+% for that kind of structural guide line.
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{reportkit-algorithms}[2026/09/15 v1.0.0 ReportKit algorithm primitives]
+\RequirePackage{xparse}
+\RequirePackage{etoolbox}
+\RequirePackage{pgfkeys}
+\RequirePackage{xcolor}
+\RequirePackage[most]{tcolorbox}
+\RequirePackage{algorithmicx}
+\RequirePackage{algpseudocode}
+
+% -----------------------------------------------------------------------------
+% Keyword styling -- redefine algpseudocode's keyword macros instead of
+% accepting its default bold-roman styling. Kept as one small helper so every
+% keyword shares exactly the same treatment.
+% -----------------------------------------------------------------------------
+% algpseudocode composes each "end ..." keyword from \algorithmicend plus the
+% block's own opening keyword (e.g. \algdef's EndWhile expands to
+% \algorithmicend\ \algorithmicwhile) rather than a separate
+% \algorithmicendwhile/\algorithmicendif/\algorithmicendfor macro, so
+% restyling \algorithmicend once, alongside every opening keyword below,
+% covers every "end if"/"end while"/"end for"/"end loop" automatically.
+\newcommand{\rk@algkeyword}[1]{\textcolor{LinkBlue}{\sffamily\bfseries #1}}
+\algrenewcommand\algorithmicend{\rk@algkeyword{end}}
+\algrenewcommand\algorithmicif{\rk@algkeyword{if}}
+\algrenewcommand\algorithmicthen{\rk@algkeyword{then}}
+\algrenewcommand\algorithmicelse{\rk@algkeyword{else}}
+\algrenewcommand\algorithmicwhile{\rk@algkeyword{while}}
+\algrenewcommand\algorithmicdo{\rk@algkeyword{do}}
+\algrenewcommand\algorithmicfor{\rk@algkeyword{for}}
+\algrenewcommand\algorithmicforall{\rk@algkeyword{for all}}
+\algrenewcommand\algorithmicloop{\rk@algkeyword{loop}}
+\algrenewcommand\algorithmicrepeat{\rk@algkeyword{repeat}}
+\algrenewcommand\algorithmicuntil{\rk@algkeyword{until}}
+\algrenewcommand\algorithmicreturn{\rk@algkeyword{return}}
+% \Require/\Ensure are a second, compatibility entry point alongside this
+% module's own \AlgorithmInput/\AlgorithmOutput (below); styled the same
+% Muted small-caps-weight treatment so either spelling reads consistently.
+\algrenewcommand\algorithmicrequire{\textcolor{Muted}{\sffamily\bfseries Require:}}
+\algrenewcommand\algorithmicensure{\textcolor{Muted}{\sffamily\bfseries Ensure:}}
+
+% -----------------------------------------------------------------------------
+% Input/output metadata -- compact semantic lines above the pseudocode.
+% \Statex (algpseudocode's un-numbered auxiliary-line command) keeps these at
+% the current indent level without consuming a line number, so they render
+% correctly whether or not linenumbers= is set, and only inside algorithmic.
+% -----------------------------------------------------------------------------
+% <reportkit-contract>
+% {"kind":"command","description":"Compact INPUT metadata line rendered above an algorithmblock's pseudocode.","arguments":[{"name":"text","type":"text","description":"Input description."}],"constraints":[{"code":"inside_algorithmblock","description":"Use only inside algorithmblock, as with \\State."}],"example":"\\AlgorithmInput{Heights $h_0,\\ldots,h_{n-1}$}","stability":"stable","since":"1.0.0","parent":"algorithmblock"}
+% </reportkit-contract>
+\NewDocumentCommand{\AlgorithmInput}{m}{%
+  \Statex{\sffamily\fontsize{7.2}{8.4}\selectfont\bfseries\color{Muted}INPUT\quad}#1%
+}
+% <reportkit-contract>
+% {"kind":"command","description":"Compact OUTPUT metadata line rendered above an algorithmblock's pseudocode.","arguments":[{"name":"text","type":"text","description":"Output description."}],"constraints":[{"code":"inside_algorithmblock","description":"Use only inside algorithmblock, as with \\State."}],"example":"\\AlgorithmOutput{Maximum container area}","stability":"stable","since":"1.0.0","parent":"algorithmblock"}
+% </reportkit-contract>
+\NewDocumentCommand{\AlgorithmOutput}{m}{%
+  \Statex{\sffamily\fontsize{7.2}{8.4}\selectfont\bfseries\color{Muted}OUTPUT\quad}#1%
+}
+
+% -----------------------------------------------------------------------------
+% algorithmblock -- non-floating pseudocode reading unit
+% -----------------------------------------------------------------------------
+\newcommand{\rk@algcaption}{}
+\newcommand{\rk@alglabel}{}
+\newcommand{\rk@alglinenumbers}{}
+\pgfkeys{
+  /reportkit/algorithm/.is family,
+  /reportkit/algorithm,
+  caption/.store in=\rk@algcaption,
+  label/.store in=\rk@alglabel,
+  linenumbers/.store in=\rk@alglinenumbers,
+}
+
+% Same visual grammar as codeblock (Surface fill, Hairline rule, square
+% corners, boxed corner title, compact padding) so the two read as one
+% family; the differences that keep them from being mistaken for each other
+% are the title label (ALGORITHM vs. a language name), the algorithm's own
+% name in the header, and proportional Ink body text instead of monospace.
+% algorithmic is opened and closed here, not by the author -- see the module
+% banner comment above.
+% <reportkit-contract>
+% {"kind":"composition","description":"Language-neutral algorithm or pseudocode block. Non-floating; use for pseudocode, never for executable source (use codeblock) or for process/decision relationships (use reportflow/reportstate).","arguments":[{"name":"options","type":"options","description":"Optional label= and caption= (and linenumbers=<step>) keys."},{"name":"title","type":"text","description":"Algorithm name, shown after ALGORITHM in the box header."}],"constraints":[{"code":"nested_algorithmic","description":"Do not open or close the algorithmic environment directly inside algorithmblock; algorithmblock opens and closes it."},{"code":"non_floating","description":"Never floats; a long algorithm may break across a page instead of drifting away from its introducing prose."}],"example":"\\begin{algorithmblock}{Two-pointer elimination}\n\\AlgorithmInput{Heights $h_0,\\ldots,h_{n-1}$}\n\\AlgorithmOutput{Maximum container area}\n\\State $best \\gets 0$\n\\end{algorithmblock}","stability":"stable","since":"1.0.0"}
+% </reportkit-contract>
+\NewDocumentEnvironment{algorithmblock}{O{} m}{%
+  \pgfkeys{/reportkit/algorithm,caption={},label={},linenumbers={},#1}%
+  \par\RKReserveSpace{8\baselineskip}%
+  \begin{tcolorbox}[
+    enhanced,breakable,colback=Surface,colframe=Hairline,boxrule=.45pt,
+    arc=0pt,outer arc=0pt,left=8pt,right=8pt,top=9pt,bottom=8pt,
+    fontupper=\normalfont\fontsize{8.7}{11}\selectfont\color{Ink},
+    title={{\sffamily\fontsize{7.1}{8.2}\selectfont\color{Muted}ALGORITHM}\quad{\sffamily\fontsize{7.8}{9.4}\selectfont\bfseries\color{Ink}#2}},
+    coltitle=Ink,fonttitle=\sffamily,
+    attach boxed title to top left={xshift=1pt,yshift=-1pt},
+    boxed title style={colback=Surface,colframe=Surface,boxrule=0pt,left=1pt,right=1pt,top=2pt,bottom=2pt},
+    before skip=7pt,after skip=8pt
+  ]%
+  \ifx\rk@alglinenumbers\@empty
+    \begin{algorithmic}
+  \else
+    \begin{algorithmic}[\rk@alglinenumbers]
+  \fi
+}{%
+  \end{algorithmic}
+  \end{tcolorbox}%
+  \expandafter\ifstrempty\expandafter{\rk@algcaption}{}{%
+    \RKDiagramCaption{\rk@algcaption}%
+    \expandafter\ifstrempty\expandafter{\rk@alglabel}{}{\label{\rk@alglabel}}%
+  }%
+  \par\vspace{5pt}%
+}
+
+\endinput

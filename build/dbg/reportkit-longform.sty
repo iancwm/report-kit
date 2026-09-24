@@ -1,0 +1,120 @@
+% ReportKit long-form document helpers: front matter, contents, pagination,
+% breakable technical paths, and compact-listing controls.
+% v1.6.0 (Phase A3): section-opener space reservation now goes through the
+% renderer hook \RKReserveSpace instead of calling \Needspace directly; see
+% reportkit-core.sty/reportkit-paged-core.sty. This package is only ever
+% used inside a reportkit.cls document (`\documentclass{reportkit}` loads a
+% renderer core before the body's \usepackage{reportkit-longform} runs), so
+% it no longer requires titlesec/fancyhdr/needspace itself -- the loaded
+% renderer core already guarantees them.
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{reportkit-longform}[2026/09/13 v1.6.0 ReportKit long-form support]
+\RequirePackage{reportkit-pandoc}
+\RequirePackage{xparse}
+
+\makeatletter
+\newif\ifrk@longform@frontmatter
+\rk@longform@frontmatterfalse
+
+% Major sections start a fresh reading unit. The explicit mark update is
+% important: fancyhdr must not name a section before its heading begins.
+% Short publications (executive-brief) switch this off from their
+% entrypoint's front-matter hook with \RKSectionOpensPagefalse; the default
+% keeps every existing long-form build unchanged.
+\newif\ifRKSectionOpensPage
+\RKSectionOpensPagetrue
+\pretocmd{\section}{\ifRKSectionOpensPage\clearpage\fi}{}{}
+\renewcommand{\contentsname}{Contents}
+\setcounter{tocdepth}{1}
+\newcommand{\RKContents}{%
+  \clearpage\phantomsection\pdfbookmark[1]{Contents}{reportkit-contents}%
+  \thispagestyle{fancy}%
+  \begingroup\sffamily\tableofcontents\endgroup\clearpage
+}
+
+% Use these around publication preliminaries and the main matter. They are
+% intentionally explicit so a combined build can place a rights page between
+% the title and contents without class-level magic.
+\newcommand{\RKFrontMatterBegin}{%
+  \clearpage\pagenumbering{roman}\setcounter{page}{1}%
+  \pagestyle{fancy}%
+}
+\newcommand{\RKMainMatterBegin}{%
+  \clearpage\pagenumbering{arabic}\setcounter{page}{1}%
+  \pagestyle{fancy}%
+}
+
+% <reportkit-contract>
+% {"kind":"command","description":"Rktitlepage","arguments":[{"name":"options","type":"options","description":"Options."},{"name":"title","type":"text","description":"Title."}],"constraints":[],"example":"\\RKTitlePage[]{Example}","stability":"stable","since":"1.0.0"}
+% </reportkit-contract>
+\NewDocumentCommand{\RKTitlePage}{O{} m}{%
+  \thispagestyle{empty}%
+  \begin{center}
+    \vspace*{0.18\textheight}
+    {\sffamily\fontsize{9}{11}\selectfont\bfseries\color{LinkBlue}\MakeUppercase{\rk@leftheader}\par}
+    \vspace{10mm}
+    {\sffamily\bfseries\fontsize{27}{32}\selectfont\color{Ink}#2\par}
+    \ifstrempty{#1}{}{\vspace{4mm}{\sffamily\large\color{Muted}#1\par}}
+    \ifx\@author\@empty
+      \ifx\@date\@empty\else
+        \vspace{20mm}{\sffamily\color{Muted}\@date\par}
+      \fi
+    \else
+      \par\vspace{10mm}
+      {\color{Hairline}\rule{0.62\textwidth}{0.5pt}\par}
+      \vspace{8mm}
+      {\sffamily\color{Muted}\@author\par}
+      \ifx\@date\@empty\else
+        \vspace{2mm}{\sffamily\color{Muted}\@date\par}
+      \fi
+    \fi
+  \end{center}
+  \clearpage
+}
+
+% URL's native breakpoints cover '/', '=', and '_' while retaining a
+% searchable/clickable string. This is the supported path for long URIs.
+% <reportkit-contract>
+% {"kind":"command","description":"Rkpath","arguments":[{"name":"path","type":"text","description":"Path."}],"constraints":[],"example":"\\RKPath{https://example.com}","stability":"stable","since":"1.0.0"}
+% </reportkit-contract>
+\NewDocumentCommand{\RKPath}{m}{\begingroup\urlstyle{tt}\url{#1}\endgroup}
+
+% A condensed navigation panel for a compact-guide title page: unlike
+% \RKContents, it never clears to a dedicated page, and it has no
+% \tableofcontents typography or aux-file dependency -- it lists whatever
+% labels the caller gives it, so it renders correctly on the very first
+% compile (a real \tableofcontents entry does not exist until a second
+% pass has run).
+% <reportkit-contract>
+% {"kind":"command","description":"Rkcompactcontents","arguments":[{"name":"labels","type":"text","description":"Comma-separated section labels, listed in reading order."}],"constraints":[],"example":"\\RKCompactContents{Two pointers, Stack and queue, Topological sort}","stability":"experimental","since":"1.6.0"}
+% </reportkit-contract>
+\newcommand{\RKCompactContents}[1]{%
+  \begingroup
+  \sffamily\fontsize{8}{10}\selectfont\color{Muted}
+  \def\rk@compactcontents@sep{}%
+  \renewcommand{\do}[1]{\rk@compactcontents@sep\MakeUppercase{##1}\def\rk@compactcontents@sep{\quad\textbullet\quad}}%
+  \docsvlist{#1}%
+  \par
+  \endgroup
+}
+
+% Keep short listings with their lead-in. Longer listings may split normally;
+% authors can place the marker at a deliberate continuation boundary.
+% <reportkit-contract>
+% {"kind":"composition","description":"Rkshortlisting","arguments":[{"name":"options","type":"options","description":"Options."}],"constraints":[],"example":"\\begin{RKShortListing}[]\nExample content.\n\\end{RKShortListing}","stability":"stable","since":"1.0.0"}
+% </reportkit-contract>
+\NewDocumentEnvironment{RKShortListing}{O{}}{%
+  \begin{samepage}\begin{minipage}{\linewidth}\ifstrempty{#1}{}{\textbf{#1}\par\smallskip}%
+}{\end{minipage}\end{samepage}}
+\newcommand{\RKListingContinued}{\par\smallskip\hfill\footnotesize\color{Muted}(continued)\par\smallskip}
+
+% Give section openers a compact visual anchor in the whitespace recovered by
+% the page-break rule, without changing the document's semantic hierarchy.
+\newcommand{\RKSectionOpener}[1]{%
+  \par\RKReserveSpace{0.22\textheight}\vspace*{4mm}%
+  {\sffamily\fontsize{7.5}{9}\selectfont\bfseries\color{LinkBlue}\MakeUppercase{#1}\par\vspace{2mm}%
+  \color{Hairline}\rule{\linewidth}{0.45pt}\color{Ink}\vspace{4mm}}%
+}
+
+\makeatother
+\endinput

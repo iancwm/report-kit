@@ -1,0 +1,743 @@
+% ReportKit Core -- engine-neutral packages and structural mechanism shared by
+% every theme and every renderer. Extracted from reportkit.cls v1.5.0 by the
+% theme architecture in
+% docs/superpowers/specs/2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md.
+% Split again by the renderer architecture in
+% docs/superpowers/specs/2026-09-09-reportkit-multi-format-publication-architecture-spec.md
+% (Phase A3): paged-only mechanism -- geometry, fancyhdr, titlesec, needspace,
+% caption, and everything semantic modules used to call directly for page
+% break/placement/caption behavior -- moved to reportkit-paged-core.sty. A
+% future slides core supplies the same renderer hooks with frame-based
+% behavior. Visual identity -- typography, geometry, palette, running
+% furniture, and title layout -- is theme-owned; see latex_templates/themes/.
+% Nothing in this file may reference a theme color/length or a paged-only
+% package: reportkit.cls loads this before it loads a renderer core or the
+% selected theme.
+%
+% Phase A4 adds the style token contract below: the theme-owned values a
+% semantic module (reportkit-boxes.sty today) reads instead of branching on
+% \rk@theme. Mechanism only, same rule as the renderer hooks above -- no
+% visual value is defined here, only the sentinel that fires if a theme
+% forgot to populate one.
+%
+% hyperref is deliberately NOT required here even though this file owns
+% hyperref's *setup* (the metadata/catalog-language block below, and RKLink).
+% hyperref's own documentation asks to be loaded after other formatting
+% packages -- notably geometry -- and geometry is paged-only (a slides core
+% will size its canvas differently). Requiring hyperref from a renderer core,
+% right after that renderer's page/canvas package, keeps that contract true
+% for every renderer while this file keeps owning what hyperref is
+% configured to do. Verified empirically: requiring hyperref here instead
+% (before geometry) changes computed named-destination coordinates and
+% breaks the pinned default-theme PDF hash even though nothing else changed.
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{reportkit-core}[2026/09/13 v1.9.0 ReportKit engine-neutral core]
+
+\RequirePackage{iftex}
+\RequirePackage{microtype}
+\RequirePackage{xcolor}
+\RequirePackage{graphicx}
+\RequirePackage{booktabs}
+\RequirePackage{siunitx}
+\RequirePackage{enumitem}
+\RequirePackage{xparse}
+\RequirePackage{etoolbox}
+
+% <reportkit-contract>
+% {"kind":"command","description":"Render a safe named link from links.yaml.","arguments":[{"name":"key","type":"link-key","description":"Registered link key."}],"constraints":[{"code":"known_link","description":"Use a key declared in links.yaml; unknown values fall back to literal URLs."}],"example":"\\RKLink{project-home}","stability":"stable","since":"1.5.0"}
+% </reportkit-contract>
+\ProvideDocumentCommand{\RKLink}{m}{\href{#1}{#1}}
+
+% -----------------------------------------------------------------------------
+% Metadata and running furniture (mechanism; visual values live in the theme)
+% -----------------------------------------------------------------------------
+\newcommand{\rk@leftheader}{REPORTKIT}
+\newcommand{\rk@footer}{Technical report}
+\newcommand{\rk@version}{v1.0}
+\newcommand{\rk@subject}{Technical report}
+\newcommand{\rk@keywords}{ReportKit, technical report}
+\newcommand{\rk@language}{en-US}
+\newcommand{\setreportkitleftheader}[1]{\renewcommand{\rk@leftheader}{#1}}
+\newcommand{\setreportkitfooter}[1]{\renewcommand{\rk@footer}{#1}}
+\newcommand{\setreportkitversion}[1]{\renewcommand{\rk@version}{#1}}
+\newcommand{\setreportkitsubject}[1]{\renewcommand{\rk@subject}{#1}}
+\newcommand{\setreportkitkeywords}[1]{\renewcommand{\rk@keywords}{#1}}
+% -----------------------------------------------------------------------------
+% Language, script, and font-policy truthfulness (agent-contract spec section 13)
+% -----------------------------------------------------------------------------
+% \setreportkitlanguage{<BCP 47 tag>} always sets the PDF catalog language.
+% It loads locale-aware typography (babel: hyphenation, captions, quotation
+% and spacing conventions) only when the selected theme marks the language
+% verified in the generated publication registry. A metadata-only language
+% (Vietnamese today) sets the catalog language and nothing else; a
+% right-to-left language is always an error; an undeclared language is an
+% error under font policy strict and a warning otherwise. Call it once, in
+% the preamble. Without a call the catalog language stays en-US and no
+% locale package is loaded: the format's built-in hyphenation is already
+% US English, the same patterns babel's american selects.
+%
+% \setreportkitfontpolicy{strict|fallback} is shared by every theme. strict
+% makes a missing glyph fatal in the engine itself (\tracinglostchars=3);
+% fallback keeps the kernel default, which logs "Missing character" for the
+% build-log gate to report as a blocking missing_glyph diagnostic.
+\newcommand{\rk@fontpolicy}{fallback}
+\newcommand{\setreportkitfontpolicy}[1]{\renewcommand{\rk@fontpolicy}{#1}}
+\newcommand{\rk@languagestatus}{default}
+\newcommand{\rk@languageprimary}{en}
+\def\rk@languageprimary@split#1-#2\@nil{#1}
+\newcommand{\setreportkitlanguage}[1]{%
+  \renewcommand{\rk@language}{#1}%
+  \edef\rk@languagetag{#1}%
+  \edef\rk@languageprimary{\expandafter\rk@languageprimary@split\rk@languagetag-\@nil}%
+  \ifcsname RKRTLLanguage@\rk@languageprimary\endcsname
+    \def\rk@languagestatus{rtl}%
+    \PackageError{reportkit-core}%
+      {Language '\rk@languagetag' is right-to-left; RTL is explicitly unsupported by every ReportKit renderer and theme}%
+      {Remove the RTL language declaration. ReportKit does not typeset right-to-left text.}%
+  \else
+    \ifcsname RKThemeLanguage@\rk@theme\string @\rk@languageprimary\endcsname
+      \edef\rk@languagestatus{\csname RKThemeLanguage@\rk@theme\string @\rk@languageprimary\endcsname}%
+    \else
+      \def\rk@languagestatus{undeclared}%
+    \fi
+    \ifdefstring{\rk@languagestatus}{verified}{%
+      \ifcsname RKLocaleBabel@\rk@languagetag\endcsname
+        \edef\rk@localebabel{\csname RKLocaleBabel@\rk@languagetag\endcsname}%
+      \else
+        \edef\rk@localebabel{\csname RKLocaleBabel@\rk@languageprimary\endcsname}%
+      \fi
+      \PackageInfo{reportkit-core}{Language \rk@languagetag\space is verified for theme \rk@theme; loading babel locale \rk@localebabel}%
+      \expandafter\rk@loadlocaletypography\expandafter{\rk@localebabel}%
+    }{%
+      \ifdefstring{\rk@languagestatus}{metadata-only}{%
+        \PackageInfo{reportkit-core}{Language \rk@languagetag\space is metadata-only for theme \rk@theme; setting the PDF catalog language without locale typography}%
+      }{}%
+    }%
+  \fi
+}
+\@onlypreamble\setreportkitlanguage
+\newcommand{\rk@loadlocaletypography}[1]{\RequirePackage[#1]{babel}}
+\AtEndPreamble{%
+  \ifdefstring{\rk@languagestatus}{undeclared}{%
+    \ifdefstring{\rk@fontpolicy}{strict}{%
+      \PackageError{reportkit-core}%
+        {Language '\rk@languagetag' is not declared by theme \rk@theme\space and theme.font_policy is strict}%
+        {Choose a language the theme verifies (reportkit context --slice selection) or use font policy fallback.}%
+    }{%
+      \PackageWarningNoLine{reportkit-core}{Language '\rk@languagetag' is not declared by theme \rk@theme; only the PDF catalog language is set}%
+    }%
+  }{}%
+  \ifdefstring{\rk@fontpolicy}{strict}{\tracinglostchars=3\relax}{}%
+}
+
+% Keep PDF metadata coupled to the document's normal title and author fields.
+% hyperref performs the necessary PDF-string sanitisation for bookmarks and
+% metadata, so callers can continue using ordinary LaTeX in \title/\author.
+%
+% This is defined here (what to do) but scheduled with \AtBeginDocument by
+% the renderer core (when to do it; see reportkit-paged-core.sty), not here.
+% hyperref itself registers an \AtBeginDocument hook when it loads (for
+% /PageMode, /ViewerPreferences, ...), and \AtBeginDocument hooks run in
+% registration order: registering this one before a renderer core has
+% required hyperref put it ahead of hyperref's own hook and produced a
+% different /Catalog key order in the pinned default-theme PDF than before
+% this file existed, even though the visible document was unchanged.
+% Requiring hyperref right before scheduling this (both in the renderer
+% core, mirroring the original single-file load order exactly) reproduces
+% the pinned hash.
+\newcommand{\RKRegisterDocumentMetadata}{%
+  \hypersetup{
+    pdftitle={\@title},
+    pdfauthor={\@author},
+    pdfsubject={\rk@subject},
+    pdfkeywords={\rk@keywords},
+    pdfdisplaydoctitle=true
+  }%
+  % Write the catalog language directly; pdflang support varies by hyperref
+  % engine, while the PDF catalog requirement is stable.
+  \ifPDFTeX
+    \pdfcatalog{/Lang (\rk@language)}%
+  \else
+    \pdfextension catalog {/Lang (\rk@language)}%
+  \fi
+}
+
+% -----------------------------------------------------------------------------
+% Renderer hooks (mechanism only -- no visual behavior lives here)
+% -----------------------------------------------------------------------------
+% Every renderer core (reportkit-paged-core.sty today; a slides core in a
+% later phase) must define each hook below before any theme or semantic
+% module loads. Semantic modules call only these names, never a paged-only
+% package directly, so the same callout/code/diagram/section source compiles
+% under any renderer. Left here as loud sentinels: if a renderer core is
+% missing or a semantic module is loaded out of order, authoring fails
+% immediately instead of silently reserving no space or emitting no caption.
+\newcommand{\rk@rendererhookerror}[1]{%
+  \PackageError{reportkit-core}{No renderer core has defined \string#1}%
+    {Load a renderer core (e.g. reportkit-paged-core) right after reportkit-core, before any theme or semantic module.}%
+}
+% Renderer-implementation mechanism, not an authoring primitive -- no
+% <reportkit-contract> block, same as \Needspace itself never had one.
+\newcommand{\RKReserveSpace}[1]{\rk@rendererhookerror{\RKReserveSpace}}
+\newcommand{\RKDiagramPlacementBegin}{\rk@rendererhookerror{\RKDiagramPlacementBegin}}
+\newcommand{\RKDiagramPlacementEnd}{\rk@rendererhookerror{\RKDiagramPlacementEnd}}
+\newcommand{\RKDiagramCaption}[1]{\rk@rendererhookerror{\RKDiagramCaption}}
+\newcommand{\RKDiagramSource}[1]{\rk@rendererhookerror{\RKDiagramSource}}
+\newif\ifrk@rendererhooksloaded
+\rk@rendererhooksloadedfalse
+% Called by reportkit.cls (or a future slides class) immediately after its
+% renderer core loads, before any theme or semantic module.
+\newcommand{\RKAssertRendererHooks}{%
+  \ifrk@rendererhooksloaded\else
+    \PackageError{reportkit-core}{No renderer core was loaded}%
+      {Load a renderer core (e.g. reportkit-paged-core) right after reportkit-core.}%
+  \fi
+}
+
+% -----------------------------------------------------------------------------
+% Style token contract (mechanism only -- no visual value lives here)
+% -----------------------------------------------------------------------------
+% Phase A4 of the multi-format publication architecture spec (decision D2)
+% moves component appearance behind theme-owned tokens instead of a semantic
+% module branching on \rk@theme. The selected theme's common package (loaded
+% right after this file, before any semantic module) must renew every token
+% below and then set \rk@styletokensloadedtrue. Left here as loud sentinels,
+% the same pattern as the renderer hooks above: calling an unset token fails
+% immediately with a clear diagnostic instead of silently falling back to
+% some other theme's appearance.
+\newcommand{\rk@styletokenerror}[1]{%
+  \PackageError{reportkit-core}{No theme has defined \string#1}%
+    {Load a theme package (e.g. reportkit-theme-default) before any semantic module.}%
+}
+% Callout chrome (reportkit-boxes.sty's principle/decisionpoint/redflag/...).
+% Category colors (Principle, Decision, RedFlag, ...) are separate,
+% pre-existing named colors -- these tokens style the box itself.
+\newcommand{\RKTokCalloutColBack}{\rk@styletokenerror{\RKTokCalloutColBack}}
+\newcommand{\RKTokCalloutColFrame}{\rk@styletokenerror{\RKTokCalloutColFrame}}
+\newcommand{\RKTokCalloutBoxRule}{\rk@styletokenerror{\RKTokCalloutBoxRule}}
+\newcommand{\RKTokCalloutLeftRule}{\rk@styletokenerror{\RKTokCalloutLeftRule}}
+\newcommand{\RKTokCalloutArc}{\rk@styletokenerror{\RKTokCalloutArc}}
+\newcommand{\RKTokCalloutOuterArc}{\rk@styletokenerror{\RKTokCalloutOuterArc}}
+\newcommand{\RKTokCalloutPadLeft}{\rk@styletokenerror{\RKTokCalloutPadLeft}}
+\newcommand{\RKTokCalloutPadRight}{\rk@styletokenerror{\RKTokCalloutPadRight}}
+\newcommand{\RKTokCalloutPadTop}{\rk@styletokenerror{\RKTokCalloutPadTop}}
+\newcommand{\RKTokCalloutPadBottom}{\rk@styletokenerror{\RKTokCalloutPadBottom}}
+\newcommand{\RKTokCalloutBeforeSkip}{\rk@styletokenerror{\RKTokCalloutBeforeSkip}}
+\newcommand{\RKTokCalloutAfterSkip}{\rk@styletokenerror{\RKTokCalloutAfterSkip}}
+% A theme's font-role tokens are executed as ordinary TeX code (they sit
+% inside a tcolorbox title's token list, typeset when the box renders, not
+% parsed as a pgfkeys value), so each bundles its own \fontsize{}{}\selectfont
+% -- callers never guess a leading independently of its size.
+\newcommand{\RKTokCalloutTitleFont}{\rk@styletokenerror{\RKTokCalloutTitleFont}}
+% Metric card (reportkit-boxes.sty's \metric environment).
+\newcommand{\RKTokMetricColBack}{\rk@styletokenerror{\RKTokMetricColBack}}
+\newcommand{\RKTokMetricColFrame}{\rk@styletokenerror{\RKTokMetricColFrame}}
+\newcommand{\RKTokMetricBoxRule}{\rk@styletokenerror{\RKTokMetricBoxRule}}
+\newcommand{\RKTokMetricArc}{\rk@styletokenerror{\RKTokMetricArc}}
+\newcommand{\RKTokMetricOuterArc}{\rk@styletokenerror{\RKTokMetricOuterArc}}
+\newcommand{\RKTokMetricPadLeft}{\rk@styletokenerror{\RKTokMetricPadLeft}}
+\newcommand{\RKTokMetricPadRight}{\rk@styletokenerror{\RKTokMetricPadRight}}
+\newcommand{\RKTokMetricPadTop}{\rk@styletokenerror{\RKTokMetricPadTop}}
+\newcommand{\RKTokMetricPadBottom}{\rk@styletokenerror{\RKTokMetricPadBottom}}
+\newcommand{\RKTokMetricBeforeSkip}{\rk@styletokenerror{\RKTokMetricBeforeSkip}}
+\newcommand{\RKTokMetricAfterSkip}{\rk@styletokenerror{\RKTokMetricAfterSkip}}
+\newcommand{\RKTokMetricBorderLineWidth}{\rk@styletokenerror{\RKTokMetricBorderLineWidth}}
+\newcommand{\RKTokMetricLabelFont}{\rk@styletokenerror{\RKTokMetricLabelFont}}
+\newcommand{\RKTokMetricValueFont}{\rk@styletokenerror{\RKTokMetricValueFont}}
+\newcommand{\RKTokMetricSubtitleFont}{\rk@styletokenerror{\RKTokMetricSubtitleFont}}
+\newcommand{\RKTokMetricSubtitleSpacing}{\rk@styletokenerror{\RKTokMetricSubtitleSpacing}}
+\newcommand{\RKTokMetricWhyFont}{\rk@styletokenerror{\RKTokMetricWhyFont}}
+% Diagram chrome (reportkit-diagrams.sty, reportkit-structure.sty,
+% reportkit-process.sty and reportkit-spatial.sty -- the remaining A4 scope
+% the plan's own A4 section named as not-yet-started). Same contract, same
+% \ifrk@styletokensloaded gate as the callout/metric tokens above: every
+% semantic module in this style-token family is loaded after the theme
+% regardless of renderer, so one gate is enough (unlike the presentation
+% tokens below, which only ever load under the slides renderer). Only
+% appearance -- draw/fill colors, line weights, fonts/text colors, corner
+% rounding, padding -- is tokenized; authored geometry (node coordinates,
+% widths in cm, spacing constants) stays where each primitive already
+% computes it, per the plan's "themes may set defaults but do not fork
+% implementations" rule.
+% Generic node (\RKNode/\RKNodeRel and every primitive built on the shared
+% `rk node` TikZ style).
+\newcommand{\RKTokDiagramNodeDraw}{\rk@styletokenerror{\RKTokDiagramNodeDraw}}
+\newcommand{\RKTokDiagramNodeFill}{\rk@styletokenerror{\RKTokDiagramNodeFill}}
+\newcommand{\RKTokDiagramNodeText}{\rk@styletokenerror{\RKTokDiagramNodeText}}
+\newcommand{\RKTokDiagramNodeRounding}{\rk@styletokenerror{\RKTokDiagramNodeRounding}}
+\newcommand{\RKTokDiagramNodeMinHeight}{\rk@styletokenerror{\RKTokDiagramNodeMinHeight}}
+\newcommand{\RKTokDiagramNodeTextWidth}{\rk@styletokenerror{\RKTokDiagramNodeTextWidth}}
+\newcommand{\RKTokDiagramNodePadX}{\rk@styletokenerror{\RKTokDiagramNodePadX}}
+\newcommand{\RKTokDiagramNodePadY}{\rk@styletokenerror{\RKTokDiagramNodePadY}}
+\newcommand{\RKTokDiagramNodeFont}{\rk@styletokenerror{\RKTokDiagramNodeFont}}
+% Accent overlay (`rk accent`/`rk layer accent`) and the shared arrow tip
+% every `rk edge ...` style composes via the new `rk edge` base style.
+\newcommand{\RKTokDiagramAccentDraw}{\rk@styletokenerror{\RKTokDiagramAccentDraw}}
+\newcommand{\RKTokDiagramAccentFill}{\rk@styletokenerror{\RKTokDiagramAccentFill}}
+\newcommand{\RKTokDiagramAccentWidth}{\rk@styletokenerror{\RKTokDiagramAccentWidth}}
+\newcommand{\RKTokDiagramArrowLength}{\rk@styletokenerror{\RKTokDiagramArrowLength}}
+\newcommand{\RKTokDiagramArrowWidth}{\rk@styletokenerror{\RKTokDiagramArrowWidth}}
+% Per-relationship edge weight/color (`rk edge flow`, `... sequence`, ...).
+\newcommand{\RKTokDiagramEdgeFlowColor}{\rk@styletokenerror{\RKTokDiagramEdgeFlowColor}}
+\newcommand{\RKTokDiagramEdgeFlowWidth}{\rk@styletokenerror{\RKTokDiagramEdgeFlowWidth}}
+\newcommand{\RKTokDiagramEdgeSequenceColor}{\rk@styletokenerror{\RKTokDiagramEdgeSequenceColor}}
+\newcommand{\RKTokDiagramEdgeSequenceWidth}{\rk@styletokenerror{\RKTokDiagramEdgeSequenceWidth}}
+\newcommand{\RKTokDiagramEdgeDependencyColor}{\rk@styletokenerror{\RKTokDiagramEdgeDependencyColor}}
+\newcommand{\RKTokDiagramEdgeDependencyWidth}{\rk@styletokenerror{\RKTokDiagramEdgeDependencyWidth}}
+\newcommand{\RKTokDiagramEdgeHandoffColor}{\rk@styletokenerror{\RKTokDiagramEdgeHandoffColor}}
+\newcommand{\RKTokDiagramEdgeHandoffWidth}{\rk@styletokenerror{\RKTokDiagramEdgeHandoffWidth}}
+\newcommand{\RKTokDiagramEdgeCausalColor}{\rk@styletokenerror{\RKTokDiagramEdgeCausalColor}}
+\newcommand{\RKTokDiagramEdgeCausalWidth}{\rk@styletokenerror{\RKTokDiagramEdgeCausalWidth}}
+\newcommand{\RKTokDiagramEdgeOptionalColor}{\rk@styletokenerror{\RKTokDiagramEdgeOptionalColor}}
+\newcommand{\RKTokDiagramEdgeOptionalWidth}{\rk@styletokenerror{\RKTokDiagramEdgeOptionalWidth}}
+% Edge label (`rk edge label`).
+\newcommand{\RKTokDiagramEdgeLabelFill}{\rk@styletokenerror{\RKTokDiagramEdgeLabelFill}}
+\newcommand{\RKTokDiagramEdgeLabelPad}{\rk@styletokenerror{\RKTokDiagramEdgeLabelPad}}
+\newcommand{\RKTokDiagramEdgeLabelText}{\rk@styletokenerror{\RKTokDiagramEdgeLabelText}}
+\newcommand{\RKTokDiagramEdgeLabelFont}{\rk@styletokenerror{\RKTokDiagramEdgeLabelFont}}
+% Layered architecture (`\RKLayer`) -- title/body chrome.
+\newcommand{\RKTokDiagramLayerDraw}{\rk@styletokenerror{\RKTokDiagramLayerDraw}}
+\newcommand{\RKTokDiagramLayerFill}{\rk@styletokenerror{\RKTokDiagramLayerFill}}
+\newcommand{\RKTokDiagramLayerWidth}{\rk@styletokenerror{\RKTokDiagramLayerWidth}}
+\newcommand{\RKTokDiagramLayerTitleFont}{\rk@styletokenerror{\RKTokDiagramLayerTitleFont}}
+\newcommand{\RKTokDiagramLayerTitleText}{\rk@styletokenerror{\RKTokDiagramLayerTitleText}}
+\newcommand{\RKTokDiagramLayerBodyFont}{\rk@styletokenerror{\RKTokDiagramLayerBodyFont}}
+\newcommand{\RKTokDiagramLayerBodyText}{\rk@styletokenerror{\RKTokDiagramLayerBodyText}}
+% Evidence stack / conversion funnel tiers -- share one chrome contract
+% because both are already the same fill/rule/font, just different shapes.
+\newcommand{\RKTokDiagramTierDraw}{\rk@styletokenerror{\RKTokDiagramTierDraw}}
+\newcommand{\RKTokDiagramTierFill}{\rk@styletokenerror{\RKTokDiagramTierFill}}
+\newcommand{\RKTokDiagramTierWidth}{\rk@styletokenerror{\RKTokDiagramTierWidth}}
+\newcommand{\RKTokDiagramTierLabelFont}{\rk@styletokenerror{\RKTokDiagramTierLabelFont}}
+\newcommand{\RKTokDiagramTierLabelText}{\rk@styletokenerror{\RKTokDiagramTierLabelText}}
+\newcommand{\RKTokDiagramStackArrowColor}{\rk@styletokenerror{\RKTokDiagramStackArrowColor}}
+\newcommand{\RKTokDiagramStackArrowWidth}{\rk@styletokenerror{\RKTokDiagramStackArrowWidth}}
+% Cyclic flow (`\RKCycleNode`/`\RKCycleEdge`) -- overrides `rk node`'s font
+% (a smaller compact label) and its own edge weight.
+\newcommand{\RKTokDiagramCycleNodeFont}{\rk@styletokenerror{\RKTokDiagramCycleNodeFont}}
+\newcommand{\RKTokDiagramCycleEdgeColor}{\rk@styletokenerror{\RKTokDiagramCycleEdgeColor}}
+\newcommand{\RKTokDiagramCycleEdgeWidth}{\rk@styletokenerror{\RKTokDiagramCycleEdgeWidth}}
+% 2x2 matrix (`\RKMatrix`/`\RKMatrixCell`, and reportkit-spatial.sty's
+% `reportmatrix`/`\quadrant`/`\point`, which draw the same axis/cell chrome).
+\newcommand{\RKTokDiagramMatrixAxisColor}{\rk@styletokenerror{\RKTokDiagramMatrixAxisColor}}
+\newcommand{\RKTokDiagramMatrixAxisWidth}{\rk@styletokenerror{\RKTokDiagramMatrixAxisWidth}}
+\newcommand{\RKTokDiagramMatrixAxisLabelFont}{\rk@styletokenerror{\RKTokDiagramMatrixAxisLabelFont}}
+\newcommand{\RKTokDiagramMatrixAxisLabelText}{\rk@styletokenerror{\RKTokDiagramMatrixAxisLabelText}}
+\newcommand{\RKTokDiagramMatrixEndpointFont}{\rk@styletokenerror{\RKTokDiagramMatrixEndpointFont}}
+\newcommand{\RKTokDiagramMatrixEndpointText}{\rk@styletokenerror{\RKTokDiagramMatrixEndpointText}}
+\newcommand{\RKTokDiagramMatrixAccentColor}{\rk@styletokenerror{\RKTokDiagramMatrixAccentColor}}
+\newcommand{\RKTokDiagramMatrixCellFont}{\rk@styletokenerror{\RKTokDiagramMatrixCellFont}}
+\newcommand{\RKTokDiagramMatrixCellText}{\rk@styletokenerror{\RKTokDiagramMatrixCellText}}
+\newcommand{\RKTokDiagramMatrixPointColor}{\rk@styletokenerror{\RKTokDiagramMatrixPointColor}}
+\newcommand{\RKTokDiagramMatrixPointRadius}{\rk@styletokenerror{\RKTokDiagramMatrixPointRadius}}
+\newcommand{\RKTokDiagramMatrixPointLabelFont}{\rk@styletokenerror{\RKTokDiagramMatrixPointLabelFont}}
+\newcommand{\RKTokDiagramMatrixPointLabelText}{\rk@styletokenerror{\RKTokDiagramMatrixPointLabelText}}
+% Swimlanes (reportkit-diagrams.sty's `\RKLane` and reportkit-process.sty's
+% `reportswimlane` lane rule/label -- both draw the same lane chrome).
+\newcommand{\RKTokDiagramLaneDividerColor}{\rk@styletokenerror{\RKTokDiagramLaneDividerColor}}
+\newcommand{\RKTokDiagramLaneDividerWidth}{\rk@styletokenerror{\RKTokDiagramLaneDividerWidth}}
+\newcommand{\RKTokDiagramLaneLabelFont}{\rk@styletokenerror{\RKTokDiagramLaneLabelFont}}
+\newcommand{\RKTokDiagramLaneLabelText}{\rk@styletokenerror{\RKTokDiagramLaneLabelText}}
+% Dated roadmap axis (reportkit-structure.sty's `reportroadmap` mode=dated --
+% the spec's "timeline" view; its period cards/connectors already read the
+% `rk structure card`/`rk structure arrow` tokens below).
+\newcommand{\RKTokDiagramTimelineAxisColor}{\rk@styletokenerror{\RKTokDiagramTimelineAxisColor}}
+\newcommand{\RKTokDiagramTimelineAxisWidth}{\rk@styletokenerror{\RKTokDiagramTimelineAxisWidth}}
+\newcommand{\RKTokDiagramTimelineDotColor}{\rk@styletokenerror{\RKTokDiagramTimelineDotColor}}
+\newcommand{\RKTokDiagramTimelineDotRadius}{\rk@styletokenerror{\RKTokDiagramTimelineDotRadius}}
+% Horizon-mode roadmap accent (the bold "theme" line under each horizon
+% label) -- a distinct roadmap element from the dated-mode axis/dot above.
+\newcommand{\RKTokDiagramRoadmapAccentColor}{\rk@styletokenerror{\RKTokDiagramRoadmapAccentColor}}
+\newcommand{\RKTokDiagramRoadmapAccentFont}{\rk@styletokenerror{\RKTokDiagramRoadmapAccentFont}}
+% reportkit-structure.sty's own semantic layer (`rk structure card/title/
+% muted/arrow`) -- reportarchitecture, reportroadmap, strategicpillars,
+% maturitymodel, continuum, capabilitymap and reporttree are all built on it.
+\newcommand{\RKTokDiagramStructureCardDraw}{\rk@styletokenerror{\RKTokDiagramStructureCardDraw}}
+\newcommand{\RKTokDiagramStructureCardFill}{\rk@styletokenerror{\RKTokDiagramStructureCardFill}}
+\newcommand{\RKTokDiagramStructureCardRounding}{\rk@styletokenerror{\RKTokDiagramStructureCardRounding}}
+\newcommand{\RKTokDiagramStructureCardWidth}{\rk@styletokenerror{\RKTokDiagramStructureCardWidth}}
+\newcommand{\RKTokDiagramStructureCardPadX}{\rk@styletokenerror{\RKTokDiagramStructureCardPadX}}
+\newcommand{\RKTokDiagramStructureCardPadY}{\rk@styletokenerror{\RKTokDiagramStructureCardPadY}}
+\newcommand{\RKTokDiagramStructureCardFont}{\rk@styletokenerror{\RKTokDiagramStructureCardFont}}
+\newcommand{\RKTokDiagramStructureCardText}{\rk@styletokenerror{\RKTokDiagramStructureCardText}}
+\newcommand{\RKTokDiagramStructureTitleFont}{\rk@styletokenerror{\RKTokDiagramStructureTitleFont}}
+\newcommand{\RKTokDiagramStructureTitleText}{\rk@styletokenerror{\RKTokDiagramStructureTitleText}}
+\newcommand{\RKTokDiagramStructureMutedFont}{\rk@styletokenerror{\RKTokDiagramStructureMutedFont}}
+\newcommand{\RKTokDiagramStructureMutedText}{\rk@styletokenerror{\RKTokDiagramStructureMutedText}}
+\newcommand{\RKTokDiagramStructureArrowColor}{\rk@styletokenerror{\RKTokDiagramStructureArrowColor}}
+\newcommand{\RKTokDiagramStructureArrowWidth}{\rk@styletokenerror{\RKTokDiagramStructureArrowWidth}}
+\newcommand{\RKTokDiagramStructureArrowTip}{\rk@styletokenerror{\RKTokDiagramStructureArrowTip}}
+% Algorithm-visualization state grammar (reportkit-algorithm-viz.sty and the
+% primitive families built on it -- arraystate, windowstate, algorithmtrace,
+% and any later stackstate/queuestate/graphstate/gridstate/dagstate/
+% heapstate/intervalstate/dptable module that composes the same shared
+% `rk algo state <name>` overlay styles). One Draw/Fill/Text/LineStyle group
+% per semantic state, plus an unmarked-cell default group, so state meaning
+% never depends on fill color alone (LineStyle is a real tikz style value --
+% solid/dashed/dotted -- not just a color swap). Same sentinel/assertion
+% pattern as the diagram-chrome family above.
+\newcommand{\RKTokAlgorithmCellDraw}{\rk@styletokenerror{\RKTokAlgorithmCellDraw}}
+\newcommand{\RKTokAlgorithmCellFill}{\rk@styletokenerror{\RKTokAlgorithmCellFill}}
+\newcommand{\RKTokAlgorithmCellText}{\rk@styletokenerror{\RKTokAlgorithmCellText}}
+\newcommand{\RKTokAlgorithmCellLineStyle}{\rk@styletokenerror{\RKTokAlgorithmCellLineStyle}}
+\newcommand{\RKTokAlgorithmCurrentDraw}{\rk@styletokenerror{\RKTokAlgorithmCurrentDraw}}
+\newcommand{\RKTokAlgorithmCurrentFill}{\rk@styletokenerror{\RKTokAlgorithmCurrentFill}}
+\newcommand{\RKTokAlgorithmCurrentText}{\rk@styletokenerror{\RKTokAlgorithmCurrentText}}
+\newcommand{\RKTokAlgorithmCurrentLineStyle}{\rk@styletokenerror{\RKTokAlgorithmCurrentLineStyle}}
+\newcommand{\RKTokAlgorithmActiveDraw}{\rk@styletokenerror{\RKTokAlgorithmActiveDraw}}
+\newcommand{\RKTokAlgorithmActiveFill}{\rk@styletokenerror{\RKTokAlgorithmActiveFill}}
+\newcommand{\RKTokAlgorithmActiveText}{\rk@styletokenerror{\RKTokAlgorithmActiveText}}
+\newcommand{\RKTokAlgorithmActiveLineStyle}{\rk@styletokenerror{\RKTokAlgorithmActiveLineStyle}}
+\newcommand{\RKTokAlgorithmCandidateDraw}{\rk@styletokenerror{\RKTokAlgorithmCandidateDraw}}
+\newcommand{\RKTokAlgorithmCandidateFill}{\rk@styletokenerror{\RKTokAlgorithmCandidateFill}}
+\newcommand{\RKTokAlgorithmCandidateText}{\rk@styletokenerror{\RKTokAlgorithmCandidateText}}
+\newcommand{\RKTokAlgorithmCandidateLineStyle}{\rk@styletokenerror{\RKTokAlgorithmCandidateLineStyle}}
+\newcommand{\RKTokAlgorithmFrontierDraw}{\rk@styletokenerror{\RKTokAlgorithmFrontierDraw}}
+\newcommand{\RKTokAlgorithmFrontierFill}{\rk@styletokenerror{\RKTokAlgorithmFrontierFill}}
+\newcommand{\RKTokAlgorithmFrontierText}{\rk@styletokenerror{\RKTokAlgorithmFrontierText}}
+\newcommand{\RKTokAlgorithmFrontierLineStyle}{\rk@styletokenerror{\RKTokAlgorithmFrontierLineStyle}}
+\newcommand{\RKTokAlgorithmVisitedDraw}{\rk@styletokenerror{\RKTokAlgorithmVisitedDraw}}
+\newcommand{\RKTokAlgorithmVisitedFill}{\rk@styletokenerror{\RKTokAlgorithmVisitedFill}}
+\newcommand{\RKTokAlgorithmVisitedText}{\rk@styletokenerror{\RKTokAlgorithmVisitedText}}
+\newcommand{\RKTokAlgorithmVisitedLineStyle}{\rk@styletokenerror{\RKTokAlgorithmVisitedLineStyle}}
+\newcommand{\RKTokAlgorithmResolvedDraw}{\rk@styletokenerror{\RKTokAlgorithmResolvedDraw}}
+\newcommand{\RKTokAlgorithmResolvedFill}{\rk@styletokenerror{\RKTokAlgorithmResolvedFill}}
+\newcommand{\RKTokAlgorithmResolvedText}{\rk@styletokenerror{\RKTokAlgorithmResolvedText}}
+\newcommand{\RKTokAlgorithmResolvedLineStyle}{\rk@styletokenerror{\RKTokAlgorithmResolvedLineStyle}}
+\newcommand{\RKTokAlgorithmDiscardedDraw}{\rk@styletokenerror{\RKTokAlgorithmDiscardedDraw}}
+\newcommand{\RKTokAlgorithmDiscardedFill}{\rk@styletokenerror{\RKTokAlgorithmDiscardedFill}}
+\newcommand{\RKTokAlgorithmDiscardedText}{\rk@styletokenerror{\RKTokAlgorithmDiscardedText}}
+\newcommand{\RKTokAlgorithmDiscardedLineStyle}{\rk@styletokenerror{\RKTokAlgorithmDiscardedLineStyle}}
+\newcommand{\RKTokAlgorithmBlockedDraw}{\rk@styletokenerror{\RKTokAlgorithmBlockedDraw}}
+\newcommand{\RKTokAlgorithmBlockedFill}{\rk@styletokenerror{\RKTokAlgorithmBlockedFill}}
+\newcommand{\RKTokAlgorithmBlockedText}{\rk@styletokenerror{\RKTokAlgorithmBlockedText}}
+\newcommand{\RKTokAlgorithmBlockedLineStyle}{\rk@styletokenerror{\RKTokAlgorithmBlockedLineStyle}}
+\newcommand{\RKTokAlgorithmUnseenDraw}{\rk@styletokenerror{\RKTokAlgorithmUnseenDraw}}
+\newcommand{\RKTokAlgorithmUnseenFill}{\rk@styletokenerror{\RKTokAlgorithmUnseenFill}}
+\newcommand{\RKTokAlgorithmUnseenText}{\rk@styletokenerror{\RKTokAlgorithmUnseenText}}
+\newcommand{\RKTokAlgorithmUnseenLineStyle}{\rk@styletokenerror{\RKTokAlgorithmUnseenLineStyle}}
+% Structural chrome shared by every algorithm-state primitive: cell/node
+% geometry, index labels, pointers, container rules, annotations, row
+% labels (multi-row arraystate), and algorithmtrace's snapshot furniture.
+\newcommand{\RKTokAlgorithmCellFont}{\rk@styletokenerror{\RKTokAlgorithmCellFont}}
+\newcommand{\RKTokAlgorithmCellMinSize}{\rk@styletokenerror{\RKTokAlgorithmCellMinSize}}
+\newcommand{\RKTokAlgorithmCellPad}{\rk@styletokenerror{\RKTokAlgorithmCellPad}}
+\newcommand{\RKTokAlgorithmCellRounding}{\rk@styletokenerror{\RKTokAlgorithmCellRounding}}
+\newcommand{\RKTokAlgorithmIndexFont}{\rk@styletokenerror{\RKTokAlgorithmIndexFont}}
+\newcommand{\RKTokAlgorithmIndexText}{\rk@styletokenerror{\RKTokAlgorithmIndexText}}
+% Vertical clearance between a cell's own bottom border and its index
+% label, anchored via tikz's "below=<gap> of <cell node>" positioning so
+% index_x is always exactly the cell's horizontal center (spec sec 2.1,
+% A1's coordinate contract) and index_y is a themed, guide-scale-minimum
+% gap below the cell's real rendered edge rather than a hardcoded fraction
+% of row height.
+\newcommand{\RKTokAlgorithmIndexGap}{\rk@styletokenerror{\RKTokAlgorithmIndexGap}}
+\newcommand{\RKTokAlgorithmPointerColor}{\rk@styletokenerror{\RKTokAlgorithmPointerColor}}
+\newcommand{\RKTokAlgorithmPointerFont}{\rk@styletokenerror{\RKTokAlgorithmPointerFont}}
+\newcommand{\RKTokAlgorithmPointerWidth}{\rk@styletokenerror{\RKTokAlgorithmPointerWidth}}
+\newcommand{\RKTokAlgorithmContainerDraw}{\rk@styletokenerror{\RKTokAlgorithmContainerDraw}}
+\newcommand{\RKTokAlgorithmContainerWidth}{\rk@styletokenerror{\RKTokAlgorithmContainerWidth}}
+\newcommand{\RKTokAlgorithmAnnotationFont}{\rk@styletokenerror{\RKTokAlgorithmAnnotationFont}}
+\newcommand{\RKTokAlgorithmAnnotationText}{\rk@styletokenerror{\RKTokAlgorithmAnnotationText}}
+\newcommand{\RKTokAlgorithmRowLabelFont}{\rk@styletokenerror{\RKTokAlgorithmRowLabelFont}}
+\newcommand{\RKTokAlgorithmRowLabelText}{\rk@styletokenerror{\RKTokAlgorithmRowLabelText}}
+\newcommand{\RKTokAlgorithmTraceLabelFont}{\rk@styletokenerror{\RKTokAlgorithmTraceLabelFont}}
+\newcommand{\RKTokAlgorithmTraceLabelText}{\rk@styletokenerror{\RKTokAlgorithmTraceLabelText}}
+\newcommand{\RKTokAlgorithmTraceSeparatorColor}{\rk@styletokenerror{\RKTokAlgorithmTraceSeparatorColor}}
+\newcommand{\RKTokAlgorithmTraceSeparatorWidth}{\rk@styletokenerror{\RKTokAlgorithmTraceSeparatorWidth}}
+% graphstate/gridstate chrome (reportkit-algorithm-graph.sty). graphstate
+% nodes reuse the shared rk algo cell base plus the rk algo state overlay
+% for coloring (see \rk@setalgostate), so the only new node chrome needed
+% is a text width; edges are not part of the shared state vocabulary, so
+% they get their own small color/width pair rather than a hard-coded color.
+% gridstate reuses rk algo cell and rk algo container outright and needs no
+% tokens of its own.
+\newcommand{\RKTokAlgorithmGraphNodeWidth}{\rk@styletokenerror{\RKTokAlgorithmGraphNodeWidth}}
+\newcommand{\RKTokAlgorithmGraphEdgeColor}{\rk@styletokenerror{\RKTokAlgorithmGraphEdgeColor}}
+\newcommand{\RKTokAlgorithmGraphEdgeWidth}{\rk@styletokenerror{\RKTokAlgorithmGraphEdgeWidth}}
+% dagstate chrome (reportkit-algorithm-graph.sty's Phase 3 extension, spec
+% section 10). dagstate nodes reuse graphstate's node/edge tokens above
+% unchanged (a DAG node is a graph node; \dependency reuses
+% reportkit-diagrams.sty's existing rk edge dependency style outright, so it
+% needs no token here either). The only genuinely new chrome is the small
+% indegree badge drawn at a node's corner -- font/fill/text/draw/size, kept
+% deliberately unobtrusive. dptable (reportkit-algorithm-dp.sty, spec
+% section 13) needs no tokens of its own: its cells reuse rk algo cell + the
+% shared state overlay and its border reuses rk algo container outright,
+% exactly like gridstate.
+\newcommand{\RKTokAlgorithmDagBadgeDraw}{\rk@styletokenerror{\RKTokAlgorithmDagBadgeDraw}}
+\newcommand{\RKTokAlgorithmDagBadgeFill}{\rk@styletokenerror{\RKTokAlgorithmDagBadgeFill}}
+\newcommand{\RKTokAlgorithmDagBadgeText}{\rk@styletokenerror{\RKTokAlgorithmDagBadgeText}}
+\newcommand{\RKTokAlgorithmDagBadgeFont}{\rk@styletokenerror{\RKTokAlgorithmDagBadgeFont}}
+\newcommand{\RKTokAlgorithmDagBadgeSize}{\rk@styletokenerror{\RKTokAlgorithmDagBadgeSize}}
+% dagstate's ready-queue box (2026-09-18 sprint, spec section 4/C2): the
+% queue border reuses RKTokAlgorithmContainerDraw/Width outright (the same
+% generic bordering-rectangle tokens gridstate already uses), so the only
+% genuinely new chrome is the small "READY" label above the box.
+\newcommand{\RKTokAlgorithmReadyQueueLabelFont}{\rk@styletokenerror{\RKTokAlgorithmReadyQueueLabelFont}}
+\newcommand{\RKTokAlgorithmReadyQueueLabelText}{\rk@styletokenerror{\RKTokAlgorithmReadyQueueLabelText}}
+% intervalstate/heapstate chrome (reportkit-algorithm-order.sty, spec
+% sections 11-12). Both families reuse `rk algo cell` and the shared
+% `rk algo state <name>` overlay outright for their bars/nodes (an interval
+% bar is an arraystate cell given an explicit width; a heap node is an
+% arraystate cell placed on a computed coordinate), so the only new chrome
+% is intervalstate's shared-axis line and heapstate's tree-edge line.
+\newcommand{\RKTokAlgorithmIntervalAxisColor}{\rk@styletokenerror{\RKTokAlgorithmIntervalAxisColor}}
+\newcommand{\RKTokAlgorithmIntervalAxisWidth}{\rk@styletokenerror{\RKTokAlgorithmIntervalAxisWidth}}
+\newcommand{\RKTokAlgorithmHeapEdgeColor}{\rk@styletokenerror{\RKTokAlgorithmHeapEdgeColor}}
+\newcommand{\RKTokAlgorithmHeapEdgeWidth}{\rk@styletokenerror{\RKTokAlgorithmHeapEdgeWidth}}
+\newif\ifrk@styletokensloaded
+\rk@styletokensloadedfalse
+% Called by reportkit-boxes.sty (or any future style-token consumer)
+% immediately before defining anything that reads a token above.
+\newcommand{\RKAssertStyleTokens}{%
+  \ifrk@styletokensloaded\else
+    \PackageError{reportkit-core}{No theme has populated the required style tokens}%
+      {Load a theme package (e.g. reportkit-theme-default) before any semantic module.}%
+  \fi
+}
+
+% -----------------------------------------------------------------------------
+% Presentation-composition style tokens (Phase B, decision D2 extended to the
+% slides renderer)
+% -----------------------------------------------------------------------------
+% A separate contract and assertion gate from the callout/metric tokens
+% above, not folded into \RKAssertStyleTokens/\ifrk@styletokensloaded: these
+% tokens are only ever read by reportkit-presentation.sty (loaded only when
+% publication-type=presentation, which only ever pairs with a slides-only
+% theme). Sharing one gate would force every paged theme (default,
+% institutional-research, neither of which ever loads
+% reportkit-presentation.sty) to populate slide-only tokens just to keep
+% passing reportkit-boxes.sty's assertion. Populated by a slides-compatible
+% theme's -slides adapter package (renderer-specific, like paged's geometry
+% and running furniture -- not the common package), since composition
+% spacing/type is exactly the kind of per-renderer component value D11
+% assigns to the adapter layer. Font-role tokens bundle their own
+% \fontsize{}{}\selectfont for the same reason the callout/metric ones do
+% (executed as ordinary TeX, not parsed as a pgfkeys value). Colors are not
+% tokenized here: every slides-compatible theme's common package is expected
+% to define the same semantic color names paged themes already do (Ink,
+% Muted, Hairline, Surface) plus Accent, and reportkit-presentation.sty
+% refers to those names directly -- the same pattern reportkit-boxes.sty
+% already uses for category colors.
+\newcommand{\RKTokPresentationKickerFont}{\rk@styletokenerror{\RKTokPresentationKickerFont}}
+\newcommand{\RKTokPresentationTitleFont}{\rk@styletokenerror{\RKTokPresentationTitleFont}}
+\newcommand{\RKTokPresentationSubtitleFont}{\rk@styletokenerror{\RKTokPresentationSubtitleFont}}
+\newcommand{\RKTokPresentationDividerTitleFont}{\rk@styletokenerror{\RKTokPresentationDividerTitleFont}}
+\newcommand{\RKTokPresentationMessageFont}{\rk@styletokenerror{\RKTokPresentationMessageFont}}
+\newcommand{\RKTokPresentationAssertionFont}{\rk@styletokenerror{\RKTokPresentationAssertionFont}}
+\newcommand{\RKTokPresentationAssertionCompactFont}{\rk@styletokenerror{\RKTokPresentationAssertionCompactFont}}
+\newcommand{\RKTokPresentationAssertionDeckFont}{\rk@styletokenerror{\RKTokPresentationAssertionDeckFont}}
+\newcommand{\RKTokPresentationAssertionHeaderMaxHeight}{\rk@styletokenerror{\RKTokPresentationAssertionHeaderMaxHeight}}
+\newcommand{\RKTokPresentationDenseBodyFont}{\rk@styletokenerror{\RKTokPresentationDenseBodyFont}}
+\newcommand{\RKTokPresentationAnnotationFont}{\rk@styletokenerror{\RKTokPresentationAnnotationFont}}
+\newcommand{\RKTokPresentationSourceFont}{\rk@styletokenerror{\RKTokPresentationSourceFont}}
+\newcommand{\RKTokPresentationCardGutter}{\rk@styletokenerror{\RKTokPresentationCardGutter}}
+\newcommand{\RKTokPresentationCardPadding}{\rk@styletokenerror{\RKTokPresentationCardPadding}}
+\newcommand{\RKTokPresentationCardMinHeight}{\rk@styletokenerror{\RKTokPresentationCardMinHeight}}
+\newcommand{\RKTokPresentationCardRuleWidth}{\rk@styletokenerror{\RKTokPresentationCardRuleWidth}}
+\newcommand{\RKTokPresentationProseWidth}{\rk@styletokenerror{\RKTokPresentationProseWidth}}
+\newcommand{\RKTokPresentationBodyFont}{\rk@styletokenerror{\RKTokPresentationBodyFont}}
+\newcommand{\RKTokPresentationCaptionFont}{\rk@styletokenerror{\RKTokPresentationCaptionFont}}
+\newcommand{\RKTokPresentationHeroValueFont}{\rk@styletokenerror{\RKTokPresentationHeroValueFont}}
+\newcommand{\RKTokPresentationHeroLabelFont}{\rk@styletokenerror{\RKTokPresentationHeroLabelFont}}
+\newcommand{\RKTokPresentationColumnHeadingFont}{\rk@styletokenerror{\RKTokPresentationColumnHeadingFont}}
+\newcommand{\RKTokPresentationClosingFont}{\rk@styletokenerror{\RKTokPresentationClosingFont}}
+\newcommand{\RKTokPresentationRuleWidth}{\rk@styletokenerror{\RKTokPresentationRuleWidth}}
+% Frame-surface role hook (Phase D). Every frame-level composition in
+% reportkit-presentation.sty calls this once, inside its own group, with one
+% renderer-neutral semantic role: opening, divider, statement, metric,
+% closing, or content. The composition layer never decides what a role looks
+% like; a slides adapter may ignore the role (executive: a no-op) or map it to
+% a surface treatment such as an inverse (dark) frame by locally re-pointing
+% the semantic color names the compositions already use. This keeps "light
+% and dark frames" a theme decision without venture-only composition names
+% or a second copy of the composition layer.
+\newcommand{\RKTokPresentationSurface}[1]{\rk@styletokenerror{\RKTokPresentationSurface}}
+\newif\ifrk@presentationtokensloaded
+\rk@presentationtokensloadedfalse
+% Called by reportkit-presentation.sty immediately before defining anything
+% that reads a token above.
+\newcommand{\RKAssertPresentationTokens}{%
+  \ifrk@presentationtokensloaded\else
+    \PackageError{reportkit-core}{No theme has populated the required presentation style tokens}%
+      {Load a slides-compatible theme's adapter (e.g. reportkit-theme-executive-slides) before reportkit-presentation.}%
+  \fi
+}
+
+% -----------------------------------------------------------------------------
+% Feature-composition style tokens (Phase E, decision D2 extended to the
+% feature-article publication type)
+% -----------------------------------------------------------------------------
+% A third contract with its own gate, for the same reason the presentation
+% tokens above have one: these are only ever read by
+% reportkit-feature-article.sty (loaded only when
+% publication-type=feature-article). Folding them into
+% \RKAssertStyleTokens would force every other paged theme to populate
+% feature-only values it never uses. Populated by a feature-compatible
+% theme's -paged adapter (composition spacing/type is a per-renderer
+% component value under D11). Every visual decision a feature composition
+% makes -- family, size, weight, color, rule, inset, spacing, the opening
+% page style and the credit alignment -- is one of these tokens, so a
+% second feature-compatible theme restyles the same article structure
+% without touching the publication type. Font tokens bundle their own
+% family/weight/\fontsize{}{}\selectfont; color tokens hold an xcolor
+% expression; length tokens hold a TeX dimension; ExhibitInsetFraction is
+% a bare number (a fraction of \linewidth) and DropCapLines a bare integer;
+% CreditAlign holds \raggedright, \raggedleft or \centering; KickerTransform
+% holds a one-argument macro (\MakeUppercase or \@firstofone).
+\newcommand{\RKTokFeatureOpeningPageStyle}{\rk@styletokenerror{\RKTokFeatureOpeningPageStyle}}
+\newcommand{\RKTokFeatureOpeningTopSkip}{\rk@styletokenerror{\RKTokFeatureOpeningTopSkip}}
+\newcommand{\RKTokFeatureOpeningRuleColor}{\rk@styletokenerror{\RKTokFeatureOpeningRuleColor}}
+\newcommand{\RKTokFeatureOpeningRuleWidth}{\rk@styletokenerror{\RKTokFeatureOpeningRuleWidth}}
+\newcommand{\RKTokFeatureOpeningAfterSkip}{\rk@styletokenerror{\RKTokFeatureOpeningAfterSkip}}
+\newcommand{\RKTokFeatureKickerFont}{\rk@styletokenerror{\RKTokFeatureKickerFont}}
+\newcommand{\RKTokFeatureKickerColor}{\rk@styletokenerror{\RKTokFeatureKickerColor}}
+\newcommand{\RKTokFeatureKickerTransform}{\rk@styletokenerror{\RKTokFeatureKickerTransform}}
+\newcommand{\RKTokFeatureHeadlineFont}{\rk@styletokenerror{\RKTokFeatureHeadlineFont}}
+\newcommand{\RKTokFeatureHeadlineColor}{\rk@styletokenerror{\RKTokFeatureHeadlineColor}}
+\newcommand{\RKTokFeatureDeckFont}{\rk@styletokenerror{\RKTokFeatureDeckFont}}
+\newcommand{\RKTokFeatureDeckColor}{\rk@styletokenerror{\RKTokFeatureDeckColor}}
+\newcommand{\RKTokFeatureBylineFont}{\rk@styletokenerror{\RKTokFeatureBylineFont}}
+\newcommand{\RKTokFeatureBylineColor}{\rk@styletokenerror{\RKTokFeatureBylineColor}}
+\newcommand{\RKTokFeatureElementSkip}{\rk@styletokenerror{\RKTokFeatureElementSkip}}
+\newcommand{\RKTokFeatureCaptionFont}{\rk@styletokenerror{\RKTokFeatureCaptionFont}}
+\newcommand{\RKTokFeatureCaptionColor}{\rk@styletokenerror{\RKTokFeatureCaptionColor}}
+\newcommand{\RKTokFeatureCreditFont}{\rk@styletokenerror{\RKTokFeatureCreditFont}}
+\newcommand{\RKTokFeatureCreditColor}{\rk@styletokenerror{\RKTokFeatureCreditColor}}
+\newcommand{\RKTokFeatureCreditAlign}{\rk@styletokenerror{\RKTokFeatureCreditAlign}}
+\newcommand{\RKTokFeaturePullQuoteFont}{\rk@styletokenerror{\RKTokFeaturePullQuoteFont}}
+\newcommand{\RKTokFeaturePullQuoteColor}{\rk@styletokenerror{\RKTokFeaturePullQuoteColor}}
+\newcommand{\RKTokFeaturePullQuoteAttributionFont}{\rk@styletokenerror{\RKTokFeaturePullQuoteAttributionFont}}
+\newcommand{\RKTokFeaturePullQuoteRuleColor}{\rk@styletokenerror{\RKTokFeaturePullQuoteRuleColor}}
+\newcommand{\RKTokFeaturePullQuoteRuleWidth}{\rk@styletokenerror{\RKTokFeaturePullQuoteRuleWidth}}
+\newcommand{\RKTokFeaturePullQuoteInset}{\rk@styletokenerror{\RKTokFeaturePullQuoteInset}}
+\newcommand{\RKTokFeaturePullQuoteSkip}{\rk@styletokenerror{\RKTokFeaturePullQuoteSkip}}
+\newcommand{\RKTokFeatureSidebarTitleFont}{\rk@styletokenerror{\RKTokFeatureSidebarTitleFont}}
+\newcommand{\RKTokFeatureSidebarTitleColor}{\rk@styletokenerror{\RKTokFeatureSidebarTitleColor}}
+\newcommand{\RKTokFeatureSidebarBodyFont}{\rk@styletokenerror{\RKTokFeatureSidebarBodyFont}}
+\newcommand{\RKTokFeatureSidebarFill}{\rk@styletokenerror{\RKTokFeatureSidebarFill}}
+\newcommand{\RKTokFeatureSidebarRuleColor}{\rk@styletokenerror{\RKTokFeatureSidebarRuleColor}}
+\newcommand{\RKTokFeatureSidebarRuleWidth}{\rk@styletokenerror{\RKTokFeatureSidebarRuleWidth}}
+\newcommand{\RKTokFeatureSidebarAccentRuleWidth}{\rk@styletokenerror{\RKTokFeatureSidebarAccentRuleWidth}}
+\newcommand{\RKTokFeatureSidebarPad}{\rk@styletokenerror{\RKTokFeatureSidebarPad}}
+\newcommand{\RKTokFeatureExhibitLabelFont}{\rk@styletokenerror{\RKTokFeatureExhibitLabelFont}}
+\newcommand{\RKTokFeatureExhibitLabelColor}{\rk@styletokenerror{\RKTokFeatureExhibitLabelColor}}
+\newcommand{\RKTokFeatureExhibitTitleFont}{\rk@styletokenerror{\RKTokFeatureExhibitTitleFont}}
+\newcommand{\RKTokFeatureExhibitTitleColor}{\rk@styletokenerror{\RKTokFeatureExhibitTitleColor}}
+\newcommand{\RKTokFeatureExhibitRuleColor}{\rk@styletokenerror{\RKTokFeatureExhibitRuleColor}}
+\newcommand{\RKTokFeatureExhibitRuleWidth}{\rk@styletokenerror{\RKTokFeatureExhibitRuleWidth}}
+\newcommand{\RKTokFeatureExhibitInsetFraction}{\rk@styletokenerror{\RKTokFeatureExhibitInsetFraction}}
+\newcommand{\RKTokFeatureExhibitSkip}{\rk@styletokenerror{\RKTokFeatureExhibitSkip}}
+\newcommand{\RKTokFeatureSectionFont}{\rk@styletokenerror{\RKTokFeatureSectionFont}}
+\newcommand{\RKTokFeatureSectionColor}{\rk@styletokenerror{\RKTokFeatureSectionColor}}
+\newcommand{\RKTokFeatureSectionRuleColor}{\rk@styletokenerror{\RKTokFeatureSectionRuleColor}}
+\newcommand{\RKTokFeatureSectionRuleWidth}{\rk@styletokenerror{\RKTokFeatureSectionRuleWidth}}
+\newcommand{\RKTokFeatureStandfirstFont}{\rk@styletokenerror{\RKTokFeatureStandfirstFont}}
+\newcommand{\RKTokFeatureStandfirstColor}{\rk@styletokenerror{\RKTokFeatureStandfirstColor}}
+\newcommand{\RKTokFeatureSectionSkip}{\rk@styletokenerror{\RKTokFeatureSectionSkip}}
+\newcommand{\RKTokFeatureColumnGutter}{\rk@styletokenerror{\RKTokFeatureColumnGutter}}
+\newcommand{\RKTokFeatureColumnRuleWidth}{\rk@styletokenerror{\RKTokFeatureColumnRuleWidth}}
+\newcommand{\RKTokFeatureColumnRuleColor}{\rk@styletokenerror{\RKTokFeatureColumnRuleColor}}
+\newcommand{\RKTokFeatureDropCapFont}{\rk@styletokenerror{\RKTokFeatureDropCapFont}}
+\newcommand{\RKTokFeatureDropCapColor}{\rk@styletokenerror{\RKTokFeatureDropCapColor}}
+\newcommand{\RKTokFeatureDropCapLeadFont}{\rk@styletokenerror{\RKTokFeatureDropCapLeadFont}}
+\newcommand{\RKTokFeatureDropCapLines}{\rk@styletokenerror{\RKTokFeatureDropCapLines}}
+\newcommand{\RKTokFeatureReferenceTitleFont}{\rk@styletokenerror{\RKTokFeatureReferenceTitleFont}}
+\newcommand{\RKTokFeatureReferenceFont}{\rk@styletokenerror{\RKTokFeatureReferenceFont}}
+\newcommand{\RKTokFeatureReferenceColor}{\rk@styletokenerror{\RKTokFeatureReferenceColor}}
+\newif\ifrk@featuretokensloaded
+\rk@featuretokensloadedfalse
+% Called by reportkit-feature-article.sty immediately before defining
+% anything that reads a token above.
+\newcommand{\RKAssertFeatureTokens}{%
+  \ifrk@featuretokensloaded\else
+    \PackageError{reportkit-core}{No theme has populated the required feature-composition style tokens}%
+      {Select a feature-compatible theme whose paged adapter populates the RKTokFeature tokens before reportkit-feature-article loads.}%
+  \fi
+}
+
+% -----------------------------------------------------------------------------
+% Book-composition style tokens (Phase F2, decision D2 extended to the book
+% publication type)
+% -----------------------------------------------------------------------------
+% A fourth contract with its own gate, for the same reason the presentation
+% and feature tokens have one: these are only ever read by
+% reportkit-book.sty (loaded only when publication-type=book), so folding
+% them into \RKAssertStyleTokens would force every other paged theme to
+% populate book-only values. Populated by a book-compatible theme's -paged
+% adapter. Every visual decision a book opener, imprint page, reference list
+% or glossary makes is one of these tokens: font tokens bundle their own
+% family/weight/\fontsize{}{}\selectfont; color tokens hold an xcolor
+% expression; length tokens hold a TeX dimension; OpeningPageStyle holds
+% the page-style name used on part-opener and publication-details pages;
+% LabelTransform holds a one-argument macro (\MakeUppercase or
+% \@firstofone) applied to part, chapter and details labels.
+\newcommand{\RKTokBookOpeningPageStyle}{\rk@styletokenerror{\RKTokBookOpeningPageStyle}}
+\newcommand{\RKTokBookPartTopSkip}{\rk@styletokenerror{\RKTokBookPartTopSkip}}
+\newcommand{\RKTokBookPartLabelFont}{\rk@styletokenerror{\RKTokBookPartLabelFont}}
+\newcommand{\RKTokBookPartLabelColor}{\rk@styletokenerror{\RKTokBookPartLabelColor}}
+\newcommand{\RKTokBookPartTitleFont}{\rk@styletokenerror{\RKTokBookPartTitleFont}}
+\newcommand{\RKTokBookPartTitleColor}{\rk@styletokenerror{\RKTokBookPartTitleColor}}
+\newcommand{\RKTokBookPartRuleColor}{\rk@styletokenerror{\RKTokBookPartRuleColor}}
+\newcommand{\RKTokBookPartRuleWidth}{\rk@styletokenerror{\RKTokBookPartRuleWidth}}
+\newcommand{\RKTokBookElementSkip}{\rk@styletokenerror{\RKTokBookElementSkip}}
+\newcommand{\RKTokBookChapterTopSkip}{\rk@styletokenerror{\RKTokBookChapterTopSkip}}
+\newcommand{\RKTokBookChapterLabelFont}{\rk@styletokenerror{\RKTokBookChapterLabelFont}}
+\newcommand{\RKTokBookChapterLabelColor}{\rk@styletokenerror{\RKTokBookChapterLabelColor}}
+\newcommand{\RKTokBookLabelTransform}{\rk@styletokenerror{\RKTokBookLabelTransform}}
+\newcommand{\RKTokBookChapterTitleFont}{\rk@styletokenerror{\RKTokBookChapterTitleFont}}
+\newcommand{\RKTokBookChapterTitleColor}{\rk@styletokenerror{\RKTokBookChapterTitleColor}}
+\newcommand{\RKTokBookChapterRuleColor}{\rk@styletokenerror{\RKTokBookChapterRuleColor}}
+\newcommand{\RKTokBookChapterRuleWidth}{\rk@styletokenerror{\RKTokBookChapterRuleWidth}}
+\newcommand{\RKTokBookChapterAfterSkip}{\rk@styletokenerror{\RKTokBookChapterAfterSkip}}
+\newcommand{\RKTokBookDetailsTitleFont}{\rk@styletokenerror{\RKTokBookDetailsTitleFont}}
+\newcommand{\RKTokBookDetailsLabelFont}{\rk@styletokenerror{\RKTokBookDetailsLabelFont}}
+\newcommand{\RKTokBookDetailsLabelColor}{\rk@styletokenerror{\RKTokBookDetailsLabelColor}}
+\newcommand{\RKTokBookDetailsBodyFont}{\rk@styletokenerror{\RKTokBookDetailsBodyFont}}
+\newcommand{\RKTokBookDetailsSkip}{\rk@styletokenerror{\RKTokBookDetailsSkip}}
+\newcommand{\RKTokBookReferenceFont}{\rk@styletokenerror{\RKTokBookReferenceFont}}
+\newcommand{\RKTokBookReferenceColor}{\rk@styletokenerror{\RKTokBookReferenceColor}}
+\newcommand{\RKTokBookGlossaryTermFont}{\rk@styletokenerror{\RKTokBookGlossaryTermFont}}
+\newcommand{\RKTokBookGlossaryTermColor}{\rk@styletokenerror{\RKTokBookGlossaryTermColor}}
+\newcommand{\RKTokBookGlossaryBodyFont}{\rk@styletokenerror{\RKTokBookGlossaryBodyFont}}
+\newcommand{\RKTokBookGlossarySkip}{\rk@styletokenerror{\RKTokBookGlossarySkip}}
+\newif\ifrk@booktokensloaded
+\rk@booktokensloadedfalse
+% Called by reportkit-book.sty immediately before defining anything that
+% reads a token above.
+\newcommand{\RKAssertBookTokens}{%
+  \ifrk@booktokensloaded\else
+    \PackageError{reportkit-core}{No theme has populated the required book-composition style tokens}%
+      {Select a book-compatible theme whose paged adapter populates the RKTokBook tokens before reportkit-book loads.}%
+  \fi
+}
+
+% -----------------------------------------------------------------------------
+% Anti-stranding page-break mechanism (structural, not visual -- every theme
+% shares the same heuristic fractions of \textheight)
+% -----------------------------------------------------------------------------
+% Use this when a section opens with a conceptual diagram after a short setup
+% paragraph. It reserves the whole reading unit: heading + setup + compact
+% diagram/caption. If insufficient space remains, the section starts next page.
+% <reportkit-contract>
+% {"kind":"command","description":"Rkdiagramsection","arguments":[{"name":"title","type":"text","description":"Title."}],"constraints":[],"example":"\\RKDiagramSection{Example}","stability":"stable","since":"1.0.0"}
+% </reportkit-contract>
+\NewDocumentCommand{\RKDiagramSection}{m}{%
+  \par\RKReserveSpace{0.46\textheight}%
+  \section{#1}%
+}
+
+% Smaller variant for a subsection that opens with a diagram.
+% <reportkit-contract>
+% {"kind":"command","description":"Rkdiagramsubsection","arguments":[{"name":"title","type":"text","description":"Title."}],"constraints":[],"example":"\\RKDiagramSubsection{Example}","stability":"stable","since":"1.0.0"}
+% </reportkit-contract>
+\NewDocumentCommand{\RKDiagramSubsection}{m}{%
+  \par\RKReserveSpace{0.38\textheight}%
+  \subsection{#1}%
+}
+
+% Inline code helper; full code blocks live in reportkit-code.sty.
+\newcommand{\code}[1]{\texttt{#1}}
+
+\endinput

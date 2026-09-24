@@ -1,0 +1,456 @@
+% ReportKit theme: institutional-research -- Step 2 of the institutional
+% research theme + equity-research profile spec
+% (docs/superpowers/specs/2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md).
+% Owns typography, geometry, palette, and running furniture for the
+% institutional-research theme, per the theme/publication-type split
+% established in Step 1 (reportkit-core.sty + themes/reportkit-theme-default.sty).
+%
+% Selected via `\documentclass[theme=institutional-research]{reportkit}`.
+% This file does NOT implement the equity-research publication-type
+% primitives (researchfrontpage, exhibit, ratingstrip, etc.) -- those are
+% Step 3. A document that loads this theme alone (e.g.
+% publication-type=strategy-report, once that exists) gets institutional
+% typography/geometry/palette/furniture and plain \maketitle/\section/
+% \execsummary, exactly as theme=default gives today.
+%
+% Filename note: the spec's §2 target tree lists this file as
+% "reportkit-theme-institutional.sty", but reportkit.cls (Step 1) resolves
+% `theme=NAME` to package `reportkit-theme-NAME` by literal, regular
+% substitution (`\edef\rk@themepackage{reportkit-theme-\rk@theme}`), and
+% reportkit_viz.py's `check-theme --theme NAME` does the same
+% (`theme_file_for`). The theme identifier used everywhere else in the spec
+% and in Step 1 is `institutional-research`, not `institutional`. Special-
+% casing one theme's filename against that regular mapping would need a
+% carve-out in reportkit.cls, reportkit_viz.py, and (Step 3) the
+% publication-type loader -- three places -- to save one word in a file
+% name. This file is therefore named reportkit-theme-institutional-research.sty
+% to keep the identifier-to-filename mapping regular for every theme,
+% present and future. Recorded here, not just in the plan, because the
+% mismatch is easy to "fix" by accident later.
+%
+% Phase A4 (decision D11) split this file again: geometry, running
+% furniture, section-heading placement, and \maketitle -- all page-specific --
+% moved verbatim to reportkit-theme-institutional-research-paged.sty, loaded
+% by reportkit.cls immediately after this file. What remains here is
+% renderer-neutral: fonts, palette, the type scale, the semantic style-token
+% contract (see reportkit-core.sty's "Style token contract" section) that
+% reportkit-boxes.sty now reads instead of branching on \rk@theme,
+% execsummary (an ordinary list environment, not page machinery), and the
+% source helper.
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{reportkit-theme-institutional-research}[2026/09/13 v1.9.0 ReportKit institutional-research theme]
+
+% -----------------------------------------------------------------------------
+% Engine guard (spec §4 / open question 1)
+% -----------------------------------------------------------------------------
+% config.py's theme_engine_conflict() already refuses to build this theme
+% under an engine other than lualatex (checked by `reportkit check` and
+% `reportkit build` before any compiler runs). This is the same rule
+% enforced a second time, at the TeX level, for anyone who invokes lualatex/
+% pdflatex directly on a document without going through the reportkit CLI.
+% Defense in depth, not a substitute for the Python-side check: see the
+% institutional-theme implementation plan, Step 1, OQ1.
+\RequirePackage{iftex}
+\RequirePackage{etoolbox}
+\ifPDFTeX
+  \PackageError{reportkit-theme-institutional-research}%
+    {The institutional-research theme requires LuaLaTeX (Google Sans is loaded via fontspec)}%
+    {Compile with lualatex, or set document.engine: lualatex in publication.yaml.}
+\fi
+
+% -----------------------------------------------------------------------------
+% Fonts (spec §4) -- Google Sans via fontspec, with a configurable local path
+% and fallback policy.
+% -----------------------------------------------------------------------------
+\RequirePackage{fontspec}
+
+% theme.font_family / theme.font_path / theme.font_policy from publication.yaml
+% (spec §3). These are ordinary macros, not class options, because they are
+% free-form strings/paths rather than an enumerated set, and because a
+% \documentclass option cannot carry a directory path cleanly. Set them with
+% the setter commands below, in the preamble, before \begin{document}: font
+% resolution runs in \AtBeginDocument (the same deferral reportkit-core.sty
+% already uses for hyperref's PDF-metadata block), so any setter call anywhere
+% in the preamble -- including one written by a future publication_build.py
+% integration -- takes effect no matter where in the preamble it runs.
+\newcommand{\rk@fontfamily}{Google Sans}
+\newcommand{\rk@fontpath}{}
+\newcommand{\setreportkitfontfamily}[1]{\renewcommand{\rk@fontfamily}{#1}}
+% font_path is a directory containing static Google Sans faces named
+% GoogleSans-Regular.ttf / GoogleSans-Bold.ttf, matching Appendix A's
+% \GoogleSansPath convention -- not an arbitrary single font file. Include
+% the trailing slash, e.g. \setreportkitfontpath{assets/fonts/}.
+\newcommand{\setreportkitfontpath}[1]{\renewcommand{\rk@fontpath}{#1}}
+% font_policy: strict (fail if Google Sans cannot be resolved) or fallback
+% (use the Inter / Noto Sans / TeX Gyre Heros chain and warn). See spec §4.
+% \rk@fontpolicy and \setreportkitfontpolicy are defined by reportkit-core.sty
+% because strict also makes missing glyphs fatal under every theme.
+
+\newcommand{\rk@installfont}[1]{\setmainfont{#1}\setsansfont{#1}}
+
+\newcommand{\rk@institutionalfontfallback}{%
+  \ifdefstring{\rk@fontpolicy}{strict}{%
+    \PackageError{reportkit-theme-institutional-research}%
+      {FAIL institutional-research requires \rk@fontfamily}%
+      {Install \rk@fontfamily\space system-wide, set theme.font_path to a directory containing it, or set theme.font_policy: fallback.}%
+  }{%
+    \IfFontExistsTF{Inter}{%
+      \rk@installfont{Inter}%
+      \PackageWarningNoLine{reportkit-theme-institutional-research}{WARN \rk@fontfamily\space unavailable; using Inter}%
+    }{%
+      \IfFontExistsTF{Noto Sans}{%
+        \rk@installfont{Noto Sans}%
+        \PackageWarningNoLine{reportkit-theme-institutional-research}{WARN \rk@fontfamily\space unavailable; using Noto Sans}%
+      }{%
+        \IfFontExistsTF{TeX Gyre Heros}{%
+          \rk@installfont{TeX Gyre Heros}%
+          \PackageWarningNoLine{reportkit-theme-institutional-research}{WARN \rk@fontfamily\space unavailable; using TeX Gyre Heros}%
+        }{%
+          \PackageError{reportkit-theme-institutional-research}%
+            {No usable font found (\rk@fontfamily\space and every fallback -- Inter, Noto Sans, TeX Gyre Heros -- are all unavailable)}%
+            {Install Google Sans, Inter, Noto Sans, or TeX Gyre Heros, or set theme.font_path.}%
+        }%
+      }%
+    }%
+  }%
+}
+
+\newcommand{\rk@resolveinstitutionalfont}{%
+  \edef\rk@fontpathval{\rk@fontpath}%
+  \ifx\rk@fontpathval\@empty
+    \IfFontExistsTF{\rk@fontfamily}{%
+      \rk@installfont{\rk@fontfamily}%
+      \PackageInfo{reportkit-theme-institutional-research}{PASS institutional-research font: \rk@fontfamily}%
+    }{%
+      \rk@institutionalfontfallback
+    }%
+  \else
+    \IfFileExists{\rk@fontpath GoogleSans-Regular.ttf}{%
+      \setmainfont{GoogleSans}[
+        Path=\rk@fontpath,Extension=.ttf,UprightFont=*-Regular,BoldFont=*-Bold,
+      ]%
+      \setsansfont{GoogleSans}[
+        Path=\rk@fontpath,Extension=.ttf,UprightFont=*-Regular,BoldFont=*-Bold,
+      ]%
+      \PackageInfo{reportkit-theme-institutional-research}{PASS institutional-research font: \rk@fontfamily\space (local path \rk@fontpath)}%
+    }{%
+      \PackageError{reportkit-theme-institutional-research}%
+        {theme.font_path \rk@fontpath\space does not contain GoogleSans-Regular.ttf}%
+        {Check theme.font_path in publication.yaml, or clear it to resolve \rk@fontfamily\space by name instead.}%
+    }%
+  \fi
+}
+\AtBeginDocument{\rk@resolveinstitutionalfont}
+
+% -----------------------------------------------------------------------------
+% Palette (spec §20) -- deliberately different hex values from the default
+% theme's palette (Ink #24272D / Muted #687386 / Hairline #D9DEE5 /
+% Surface #F7F8FA); both must coexist per-theme, which is why check-theme
+% became theme-parameterized in Step 1 (open question 2).
+% -----------------------------------------------------------------------------
+\definecolor{Ink}{HTML}{202124}
+\definecolor{Muted}{HTML}{6B7075}
+\definecolor{Hairline}{HTML}{D9DDE1}
+\definecolor{LightHairline}{HTML}{E6E8EA}
+\definecolor{Surface}{HTML}{F7F8F8}
+\definecolor{Accent}{HTML}{18A999}
+\definecolor{AccentPale}{HTML}{E8F7F4}
+% Secondary chart/exhibit series colors, named after Appendix A so the Step 4
+% Python chart theme and Step 3 risk/reward primitive can share these names.
+\definecolor{SeriesBlue}{HTML}{2477A7}
+\definecolor{SeriesGold}{HTML}{D6A84B}
+\definecolor{BullGreen}{HTML}{2C6E49}
+\definecolor{BearRed}{HTML}{A94343}
+\definecolor{LinkBlue}{HTML}{2477A7}
+
+% Semantic callout and metric colors (reportkit-boxes.sty). Kept at the same
+% hex values as the default theme deliberately: §21 asks the institutional
+% theme to restyle the *box chrome* (background, frame, rule weight) more
+% quietly, not to recolor each callout category -- the category colors are
+% still what a reader scans for once the box background is gone. See
+% reportkit-boxes.sty's \ifdefstring{\rk@theme}{institutional-research}
+% branch for the chrome change itself.
+\definecolor{Principle}{HTML}{2C5E78}
+\definecolor{Decision}{HTML}{68558A}
+\definecolor{Research}{HTML}{2B7074}
+\definecolor{Tip}{HTML}{3F6D54}
+\definecolor{RedFlag}{HTML}{A14B45}
+\definecolor{Assumption}{HTML}{8A6A24}
+\definecolor{Evidence}{HTML}{4B6472}
+\definecolor{Limitation}{HTML}{6E6A67}
+\definecolor{Deliverable}{HTML}{2C6E49}
+\definecolor{MetricAccent}{HTML}{18A999}
+
+\color{Ink}
+\hypersetup{colorlinks=true,linkcolor=LinkBlue,urlcolor=LinkBlue,citecolor=LinkBlue,pdfborder={0 0 0},pdfdisplaydoctitle=true}
+
+% -----------------------------------------------------------------------------
+% Type scale (spec §5)
+% -----------------------------------------------------------------------------
+% Base font size: article's `10pt` \LoadClass option (Step 1 left this
+% unsolved for institutional use -- see the implementation plan's "base
+% font size" deferred item) is overridden directly here rather than by
+% redirecting \LoadClass options, per the plan's recommendation: every other
+% element below already sets an explicit \fontsize, so \normalsize is the
+% only class-relative size institutional body text actually depends on.
+\renewcommand{\normalsize}{\@setfontsize{\normalsize}{10.7pt}{14.6pt}}
+\normalsize
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{5.5pt plus 1pt minus .5pt}
+\setlist{nosep,leftmargin=1.3em,topsep=3pt}
+\sisetup{detect-all=true,group-separator={,}}
+\captionsetup{font=small,labelfont=bf,labelsep=period,singlelinecheck=false,skip=4pt}
+\renewcommand{\arraystretch}{1.05}
+
+% Named size commands for the full §5 scale. Main-narrative body text never
+% inherits sidebar sizing (and vice versa) because every consumer -- Step 3's
+% equity-research primitives, in particular -- selects one of these
+% explicitly rather than relying on \normalsize/\small/\footnotesize, whose
+% relative-to-10pt scaling from the \LoadClass option above was not
+% individually re-tuned for this theme.
+\newcommand{\rkmastheadsize}{\fontsize{8pt}{10pt}\selectfont}
+\newcommand{\rksectorkickersize}{\fontsize{9pt}{11pt}\selectfont}
+\newcommand{\rkheadlinesize}{\fontsize{23pt}{26pt}\selectfont}
+\newcommand{\rkdecksize}{\fontsize{11.5pt}{15pt}\selectfont}
+\newcommand{\rkratingvaluesize}{\fontsize{12pt}{14pt}\selectfont}
+\newcommand{\rksectionheadingsize}{\fontsize{15pt}{18pt}\selectfont}
+\newcommand{\rksubsectionsize}{\fontsize{12pt}{15pt}\selectfont}
+\newcommand{\rkbodysize}{\fontsize{10.7pt}{14.6pt}\selectfont}
+\newcommand{\rkexhibitheadlinesize}{\fontsize{9.5pt}{12pt}\selectfont}
+\newcommand{\rksidebarsize}{\fontsize{7.6pt}{9.5pt}\selectfont}
+\newcommand{\rksidebarsubheadingsize}{\fontsize{6.7pt}{8.1pt}\selectfont}
+\newcommand{\rktablebodysize}{\fontsize{8pt}{10pt}\selectfont}
+\newcommand{\rksourcesize}{\fontsize{7pt}{8.5pt}\selectfont}
+\newcommand{\rkdisclosuresize}{\fontsize{6.75pt}{8.2pt}\selectfont}
+
+% -----------------------------------------------------------------------------
+% Style tokens (reportkit-core.sty's contract) -- callout and metric chrome.
+% Quiet variant (spec §21): no fill, no frame -- only the thin left rule and
+% the small uppercase label carry the semantic marker. This was
+% reportkit-boxes.sty's \ifdefstring{\rk@theme}{institutional-research}
+% branch before Phase A4; category colors (Principle, Decision, RedFlag, ...)
+% are unaffected, and the metric card is not restyled by this theme (§21
+% only asks for quieter callout chrome), so its tokens match the default
+% theme's values exactly.
+% -----------------------------------------------------------------------------
+\renewcommand{\RKTokCalloutColBack}{white}
+\renewcommand{\RKTokCalloutColFrame}{white}
+\renewcommand{\RKTokCalloutBoxRule}{0pt}
+\renewcommand{\RKTokCalloutLeftRule}{1.1pt}
+\renewcommand{\RKTokCalloutArc}{0pt}
+\renewcommand{\RKTokCalloutOuterArc}{0pt}
+\renewcommand{\RKTokCalloutPadLeft}{9pt}
+\renewcommand{\RKTokCalloutPadRight}{0pt}
+\renewcommand{\RKTokCalloutPadTop}{3pt}
+\renewcommand{\RKTokCalloutPadBottom}{3pt}
+\renewcommand{\RKTokCalloutBeforeSkip}{6pt}
+\renewcommand{\RKTokCalloutAfterSkip}{7pt}
+\renewcommand{\RKTokCalloutTitleFont}{\fontsize{7}{8.4}\selectfont}
+\renewcommand{\RKTokMetricColBack}{white}
+\renewcommand{\RKTokMetricColFrame}{Hairline}
+\renewcommand{\RKTokMetricBoxRule}{.45pt}
+\renewcommand{\RKTokMetricArc}{0pt}
+\renewcommand{\RKTokMetricOuterArc}{0pt}
+\renewcommand{\RKTokMetricPadLeft}{10pt}
+\renewcommand{\RKTokMetricPadRight}{10pt}
+\renewcommand{\RKTokMetricPadTop}{8pt}
+\renewcommand{\RKTokMetricPadBottom}{8pt}
+\renewcommand{\RKTokMetricBeforeSkip}{7pt}
+\renewcommand{\RKTokMetricAfterSkip}{8pt}
+\renewcommand{\RKTokMetricBorderLineWidth}{2.4pt}
+\renewcommand{\RKTokMetricLabelFont}{\fontsize{7.3}{8.5}\selectfont}
+\renewcommand{\RKTokMetricValueFont}{\fontsize{21}{23}\selectfont}
+\renewcommand{\RKTokMetricSubtitleFont}{\fontsize{8.3}{10}\selectfont}
+\renewcommand{\RKTokMetricSubtitleSpacing}{4pt}
+\renewcommand{\RKTokMetricWhyFont}{\fontsize{7.2}{8.4}\selectfont}
+% Diagram chrome (reportkit-core.sty's "Diagram chrome" contract, Phase A4's
+% implemented diagram work). Matches the default theme's values exactly --
+% §21 only asks for quieter callout chrome and the institutional type
+% scale above; it does not ask diagrams to be restyled, so these tokens
+% preserve the pre-Phase-A4 hardcoded appearance (see
+% reportkit-theme-default.sty for the same block with the same rationale).
+\renewcommand{\RKTokDiagramNodeDraw}{Hairline}
+\renewcommand{\RKTokDiagramNodeFill}{Surface}
+\renewcommand{\RKTokDiagramNodeText}{Ink}
+\renewcommand{\RKTokDiagramNodeRounding}{1.2pt}
+\renewcommand{\RKTokDiagramNodeMinHeight}{10mm}
+\renewcommand{\RKTokDiagramNodeTextWidth}{28mm}
+\renewcommand{\RKTokDiagramNodePadX}{5pt}
+\renewcommand{\RKTokDiagramNodePadY}{4pt}
+\renewcommand{\RKTokDiagramNodeFont}{\sffamily\fontsize{8.1}{9.7}\selectfont}
+\renewcommand{\RKTokDiagramAccentDraw}{LinkBlue}
+\renewcommand{\RKTokDiagramAccentFill}{Surface}
+\renewcommand{\RKTokDiagramAccentWidth}{.8pt}
+\renewcommand{\RKTokDiagramArrowLength}{4pt}
+\renewcommand{\RKTokDiagramArrowWidth}{4pt}
+\renewcommand{\RKTokDiagramEdgeFlowColor}{Evidence}
+\renewcommand{\RKTokDiagramEdgeFlowWidth}{.8pt}
+\renewcommand{\RKTokDiagramEdgeSequenceColor}{Evidence}
+\renewcommand{\RKTokDiagramEdgeSequenceWidth}{.8pt}
+\renewcommand{\RKTokDiagramEdgeDependencyColor}{LinkBlue}
+\renewcommand{\RKTokDiagramEdgeDependencyWidth}{.75pt}
+\renewcommand{\RKTokDiagramEdgeHandoffColor}{Muted}
+\renewcommand{\RKTokDiagramEdgeHandoffWidth}{.75pt}
+\renewcommand{\RKTokDiagramEdgeCausalColor}{Research}
+\renewcommand{\RKTokDiagramEdgeCausalWidth}{.9pt}
+\renewcommand{\RKTokDiagramEdgeOptionalColor}{Muted}
+\renewcommand{\RKTokDiagramEdgeOptionalWidth}{.7pt}
+\renewcommand{\RKTokDiagramEdgeLabelFill}{white}
+\renewcommand{\RKTokDiagramEdgeLabelPad}{1.5pt}
+\renewcommand{\RKTokDiagramEdgeLabelText}{Muted}
+\renewcommand{\RKTokDiagramEdgeLabelFont}{\sffamily\fontsize{6.8}{8}\selectfont}
+\renewcommand{\RKTokDiagramLayerDraw}{Hairline}
+\renewcommand{\RKTokDiagramLayerFill}{white}
+\renewcommand{\RKTokDiagramLayerWidth}{.5pt}
+\renewcommand{\RKTokDiagramLayerTitleFont}{\sffamily\bfseries\fontsize{7.7}{9}\selectfont}
+\renewcommand{\RKTokDiagramLayerTitleText}{Ink}
+\renewcommand{\RKTokDiagramLayerBodyFont}{\sffamily\fontsize{7.2}{8.5}\selectfont}
+\renewcommand{\RKTokDiagramLayerBodyText}{Muted}
+\renewcommand{\RKTokDiagramTierDraw}{Hairline}
+\renewcommand{\RKTokDiagramTierFill}{Surface}
+\renewcommand{\RKTokDiagramTierWidth}{.5pt}
+\renewcommand{\RKTokDiagramTierLabelFont}{\sffamily\fontsize{7.5}{9}\selectfont}
+\renewcommand{\RKTokDiagramTierLabelText}{Ink}
+\renewcommand{\RKTokDiagramStackArrowColor}{Evidence}
+\renewcommand{\RKTokDiagramStackArrowWidth}{.7pt}
+\renewcommand{\RKTokDiagramCycleNodeFont}{\sffamily\fontsize{7.4}{8.8}\selectfont}
+\renewcommand{\RKTokDiagramCycleEdgeColor}{Evidence}
+\renewcommand{\RKTokDiagramCycleEdgeWidth}{.8pt}
+\renewcommand{\RKTokDiagramMatrixAxisColor}{Hairline}
+\renewcommand{\RKTokDiagramMatrixAxisWidth}{.55pt}
+\renewcommand{\RKTokDiagramMatrixAxisLabelFont}{\sffamily\fontsize{7.2}{8.6}\selectfont}
+\renewcommand{\RKTokDiagramMatrixAxisLabelText}{Muted}
+\renewcommand{\RKTokDiagramMatrixEndpointFont}{\sffamily\fontsize{6.8}{8}\selectfont}
+\renewcommand{\RKTokDiagramMatrixEndpointText}{Muted}
+\renewcommand{\RKTokDiagramMatrixAccentColor}{LinkBlue}
+\renewcommand{\RKTokDiagramMatrixCellFont}{\sffamily\fontsize{8}{9.5}\selectfont}
+\renewcommand{\RKTokDiagramMatrixCellText}{Ink}
+\renewcommand{\RKTokDiagramMatrixPointColor}{LinkBlue}
+\renewcommand{\RKTokDiagramMatrixPointRadius}{1.55pt}
+\renewcommand{\RKTokDiagramMatrixPointLabelFont}{\sffamily\fontsize{6.9}{8.2}\selectfont}
+\renewcommand{\RKTokDiagramMatrixPointLabelText}{Ink}
+\renewcommand{\RKTokDiagramLaneDividerColor}{Hairline}
+\renewcommand{\RKTokDiagramLaneDividerWidth}{.5pt}
+\renewcommand{\RKTokDiagramLaneLabelFont}{\sffamily\fontsize{7.2}{8.5}\selectfont}
+\renewcommand{\RKTokDiagramLaneLabelText}{Muted}
+\renewcommand{\RKTokDiagramTimelineAxisColor}{Evidence}
+\renewcommand{\RKTokDiagramTimelineAxisWidth}{.8pt}
+\renewcommand{\RKTokDiagramTimelineDotColor}{LinkBlue}
+\renewcommand{\RKTokDiagramTimelineDotRadius}{2.1pt}
+\renewcommand{\RKTokDiagramRoadmapAccentColor}{LinkBlue}
+\renewcommand{\RKTokDiagramRoadmapAccentFont}{\sffamily\bfseries\fontsize{7.1}{8.5}\selectfont}
+\renewcommand{\RKTokDiagramStructureCardDraw}{Hairline}
+\renewcommand{\RKTokDiagramStructureCardFill}{Surface}
+\renewcommand{\RKTokDiagramStructureCardRounding}{1.2pt}
+\renewcommand{\RKTokDiagramStructureCardWidth}{.5pt}
+\renewcommand{\RKTokDiagramStructureCardPadX}{4pt}
+\renewcommand{\RKTokDiagramStructureCardPadY}{3.5pt}
+\renewcommand{\RKTokDiagramStructureCardFont}{\sffamily\fontsize{7.4}{8.8}\selectfont}
+\renewcommand{\RKTokDiagramStructureCardText}{Ink}
+\renewcommand{\RKTokDiagramStructureTitleFont}{\sffamily\bfseries\fontsize{7.7}{9.2}\selectfont}
+\renewcommand{\RKTokDiagramStructureTitleText}{Ink}
+\renewcommand{\RKTokDiagramStructureMutedFont}{\sffamily\fontsize{6.8}{8.1}\selectfont}
+\renewcommand{\RKTokDiagramStructureMutedText}{Muted}
+\renewcommand{\RKTokDiagramStructureArrowColor}{Evidence}
+\renewcommand{\RKTokDiagramStructureArrowWidth}{.7pt}
+\renewcommand{\RKTokDiagramStructureArrowTip}{3.6pt}
+% Algorithm-visualization state grammar (reportkit-algorithm-viz.sty family).
+% Reuses this theme's existing semantic colors rather than introducing new
+% ones; LineStyle tokens carry a real tikz fragment (width/dash), not just a
+% color, so state meaning survives grayscale printing.
+\renewcommand{\RKTokAlgorithmCellDraw}{Hairline}
+\renewcommand{\RKTokAlgorithmCellFill}{white}
+\renewcommand{\RKTokAlgorithmCellText}{Ink}
+\renewcommand{\RKTokAlgorithmCellLineStyle}{solid}
+\renewcommand{\RKTokAlgorithmCurrentDraw}{LinkBlue}
+\renewcommand{\RKTokAlgorithmCurrentFill}{LinkBlue!14}
+\renewcommand{\RKTokAlgorithmCurrentText}{Ink}
+\renewcommand{\RKTokAlgorithmCurrentLineStyle}{line width=1.15pt}
+\renewcommand{\RKTokAlgorithmActiveDraw}{LinkBlue}
+\renewcommand{\RKTokAlgorithmActiveFill}{LinkBlue!8}
+\renewcommand{\RKTokAlgorithmActiveText}{Ink}
+\renewcommand{\RKTokAlgorithmActiveLineStyle}{solid}
+\renewcommand{\RKTokAlgorithmCandidateDraw}{Muted}
+\renewcommand{\RKTokAlgorithmCandidateFill}{Surface}
+\renewcommand{\RKTokAlgorithmCandidateText}{Ink}
+\renewcommand{\RKTokAlgorithmCandidateLineStyle}{dash pattern=on 2.4pt off 1.6pt}
+\renewcommand{\RKTokAlgorithmFrontierDraw}{Research}
+\renewcommand{\RKTokAlgorithmFrontierFill}{Research!10}
+\renewcommand{\RKTokAlgorithmFrontierText}{Ink}
+\renewcommand{\RKTokAlgorithmFrontierLineStyle}{solid}
+\renewcommand{\RKTokAlgorithmVisitedDraw}{Muted}
+\renewcommand{\RKTokAlgorithmVisitedFill}{Hairline!55!white}
+\renewcommand{\RKTokAlgorithmVisitedText}{Muted}
+\renewcommand{\RKTokAlgorithmVisitedLineStyle}{solid}
+\renewcommand{\RKTokAlgorithmResolvedDraw}{Deliverable}
+\renewcommand{\RKTokAlgorithmResolvedFill}{Deliverable!12}
+\renewcommand{\RKTokAlgorithmResolvedText}{Ink}
+\renewcommand{\RKTokAlgorithmResolvedLineStyle}{line width=0.9pt}
+\renewcommand{\RKTokAlgorithmDiscardedDraw}{RedFlag}
+\renewcommand{\RKTokAlgorithmDiscardedFill}{RedFlag!8}
+\renewcommand{\RKTokAlgorithmDiscardedText}{Muted}
+\renewcommand{\RKTokAlgorithmDiscardedLineStyle}{dashed}
+\renewcommand{\RKTokAlgorithmBlockedDraw}{RedFlag}
+\renewcommand{\RKTokAlgorithmBlockedFill}{Hairline}
+\renewcommand{\RKTokAlgorithmBlockedText}{Muted}
+\renewcommand{\RKTokAlgorithmBlockedLineStyle}{densely dotted}
+\renewcommand{\RKTokAlgorithmUnseenDraw}{Hairline}
+\renewcommand{\RKTokAlgorithmUnseenFill}{white}
+\renewcommand{\RKTokAlgorithmUnseenText}{Muted}
+\renewcommand{\RKTokAlgorithmUnseenLineStyle}{solid}
+\renewcommand{\RKTokAlgorithmCellFont}{\sffamily\fontsize{8}{9.5}\selectfont}
+\renewcommand{\RKTokAlgorithmCellMinSize}{7mm}
+\renewcommand{\RKTokAlgorithmCellPad}{2pt}
+\renewcommand{\RKTokAlgorithmCellRounding}{1pt}
+\renewcommand{\RKTokAlgorithmIndexFont}{\sffamily\fontsize{6.6}{7.9}\selectfont}
+\renewcommand{\RKTokAlgorithmIndexText}{Muted}
+\renewcommand{\RKTokAlgorithmIndexGap}{2.4pt}
+\renewcommand{\RKTokAlgorithmPointerColor}{LinkBlue}
+\renewcommand{\RKTokAlgorithmPointerFont}{\sffamily\bfseries\fontsize{7}{8.4}\selectfont}
+\renewcommand{\RKTokAlgorithmPointerWidth}{.9pt}
+\renewcommand{\RKTokAlgorithmContainerDraw}{Hairline}
+\renewcommand{\RKTokAlgorithmContainerWidth}{.5pt}
+\renewcommand{\RKTokAlgorithmAnnotationFont}{\sffamily\fontsize{7.6}{9.1}\selectfont}
+\renewcommand{\RKTokAlgorithmAnnotationText}{Muted}
+\renewcommand{\RKTokAlgorithmRowLabelFont}{\sffamily\fontsize{7.2}{8.5}\selectfont}
+\renewcommand{\RKTokAlgorithmRowLabelText}{Muted}
+\renewcommand{\RKTokAlgorithmTraceLabelFont}{\sffamily\bfseries\fontsize{7.4}{8.8}\selectfont}
+\renewcommand{\RKTokAlgorithmTraceLabelText}{Ink}
+\renewcommand{\RKTokAlgorithmTraceSeparatorColor}{Hairline}
+\renewcommand{\RKTokAlgorithmTraceSeparatorWidth}{.5pt}
+\renewcommand{\RKTokAlgorithmGraphNodeWidth}{14mm}
+\renewcommand{\RKTokAlgorithmGraphEdgeColor}{Muted}
+\renewcommand{\RKTokAlgorithmGraphEdgeWidth}{.7pt}
+\renewcommand{\RKTokAlgorithmDagBadgeDraw}{Hairline}
+\renewcommand{\RKTokAlgorithmDagBadgeFill}{white}
+\renewcommand{\RKTokAlgorithmDagBadgeText}{Muted}
+\renewcommand{\RKTokAlgorithmDagBadgeFont}{\sffamily\bfseries\fontsize{5.4}{6.4}\selectfont}
+\renewcommand{\RKTokAlgorithmDagBadgeSize}{3.4mm}
+\renewcommand{\RKTokAlgorithmReadyQueueLabelFont}{\sffamily\bfseries\fontsize{6.6}{7.9}\selectfont}
+\renewcommand{\RKTokAlgorithmReadyQueueLabelText}{Muted}
+% intervalstate/heapstate chrome (reportkit-algorithm-order.sty). Reuses
+% this theme's existing named colors: the axis line matches the weight of
+% the existing container/trace-separator hairline, and the tree-edge line
+% matches the existing graph-edge weight.
+\renewcommand{\RKTokAlgorithmIntervalAxisColor}{Hairline}
+\renewcommand{\RKTokAlgorithmIntervalAxisWidth}{.5pt}
+\renewcommand{\RKTokAlgorithmHeapEdgeColor}{Muted}
+\renewcommand{\RKTokAlgorithmHeapEdgeWidth}{.7pt}
+\rk@styletokensloadedtrue
+
+% <reportkit-contract>
+% {"kind":"callout","description":"Execsummary","arguments":[],"constraints":[],"example":"\\begin{execsummary}\nExample content.\n\\end{execsummary}","stability":"stable","since":"1.7.0"}
+% </reportkit-contract>
+\NewDocumentEnvironment{execsummary}{}{%
+  \par\RKReserveSpace{7\baselineskip}%
+  \begin{list}{}{\setlength{\leftmargin}{0pt}\setlength{\rightmargin}{0pt}}\item\relax
+  \color{Ink}\sffamily\rksubsectionsize\textbf{EXECUTIVE SUMMARY}\par\vspace{2pt}\rmfamily\rkbodysize
+}{%
+  \end{list}\vspace{3pt}
+}
+
+% Figure/table provenance helper -- quieter than the default theme's, per
+% §16's "muted source line" table rule (applies equally to figures).
+\newcommand{\source}[1]{\par\vspace{1pt}{\sffamily\rksourcesize\color{Muted}Source: #1}\par}
+
+\endinput

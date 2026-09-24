@@ -1,0 +1,530 @@
+% ReportKit v1.1.0 -- native conceptual diagram grammar
+% v1.1 structural fix:
+%   * conceptual diagrams are non-floating reading units;
+%   * diagrams reserve vertical space before they begin;
+%   * section-opening diagrams can use \RKDiagramSection from reportkit-core.sty;
+%   * node labels are native LaTeX text with align=center and explicit \\ breaks;
+%   * dashed lines are reserved for typed handoff/optional semantics.
+% v1.6.0 (Phase A3): space reservation, diagram placement, caption, and
+% source now go through renderer hooks (\RKReserveSpace,
+% \RKDiagramPlacementBegin/End, \RKDiagramCaption, \RKDiagramSource) instead
+% of calling needspace/caption/center/\source directly, so this module no
+% longer requires needspace or caption itself and compiles unchanged under
+% any renderer core.
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{reportkit-diagrams}[2026/09/13 v1.7.0 ReportKit diagrams]
+\RequirePackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,calc,fit,backgrounds}
+\RequirePackage{xparse}
+\RequirePackage{pgfkeys}
+\RequirePackage{etoolbox}
+\RequirePackage{pdftexcmds}
+
+% Phase A4 (decision D2), diagram chrome: the styles below no longer
+% hardcode appearance -- they read reportkit-core.sty's diagram style-token
+% contract, populated by whichever theme package loaded before this one.
+% Same assertion pattern reportkit-boxes.sty already uses; see that file's
+% own note and reportkit-core.sty's "Diagram chrome" contract section.
+\RKAssertStyleTokens
+
+% -----------------------------------------------------------------------------
+% Common semantic styles
+% -----------------------------------------------------------------------------
+\tikzset{
+  rk node/.style={
+    draw=\RKTokDiagramNodeDraw,fill=\RKTokDiagramNodeFill,text=\RKTokDiagramNodeText,
+    rectangle,rounded corners=\RKTokDiagramNodeRounding,
+    minimum height=\RKTokDiagramNodeMinHeight,text width=\RKTokDiagramNodeTextWidth,
+    inner xsep=\RKTokDiagramNodePadX,inner ysep=\RKTokDiagramNodePadY,
+    align=center,
+    font=\RKTokDiagramNodeFont
+  },
+  rk accent/.style={draw=\RKTokDiagramAccentDraw,line width=\RKTokDiagramAccentWidth,fill=\RKTokDiagramAccentFill},
+  rk layer accent/.style={draw=\RKTokDiagramAccentDraw,line width=\RKTokDiagramAccentWidth,fill=\RKTokDiagramAccentFill},
+  rk edge/.style={-{Stealth[length=\RKTokDiagramArrowLength,width=\RKTokDiagramArrowWidth]}},
+  rk edge flow/.style={rk edge,draw=\RKTokDiagramEdgeFlowColor,line width=\RKTokDiagramEdgeFlowWidth},
+  rk edge sequence/.style={rk edge,draw=\RKTokDiagramEdgeSequenceColor,line width=\RKTokDiagramEdgeSequenceWidth},
+  rk edge dependency/.style={rk edge,draw=\RKTokDiagramEdgeDependencyColor,line width=\RKTokDiagramEdgeDependencyWidth},
+  rk edge handoff/.style={rk edge,draw=\RKTokDiagramEdgeHandoffColor,line width=\RKTokDiagramEdgeHandoffWidth,dashed},
+  rk edge causal/.style={rk edge,draw=\RKTokDiagramEdgeCausalColor,line width=\RKTokDiagramEdgeCausalWidth},
+  rk edge optional/.style={rk edge,draw=\RKTokDiagramEdgeOptionalColor,line width=\RKTokDiagramEdgeOptionalWidth,dashed},
+  rk edge label/.style={fill=\RKTokDiagramEdgeLabelFill,inner sep=\RKTokDiagramEdgeLabelPad,text=\RKTokDiagramEdgeLabelText,font=\RKTokDiagramEdgeLabelFont},
+  rk matrix axis/.style={draw=\RKTokDiagramMatrixAxisColor,line width=\RKTokDiagramMatrixAxisWidth},
+  rk matrix axis label/.style={font=\RKTokDiagramMatrixAxisLabelFont,text=\RKTokDiagramMatrixAxisLabelText},
+  rk matrix cell/.style={font=\RKTokDiagramMatrixCellFont,text=\RKTokDiagramMatrixCellText}
+}
+
+% Use this for literal technical tokens inside semantic node labels. The macro
+% is deliberately robust because structure primitives can store a label for
+% deferred rendering. It is not a general verbatim environment: keep commas
+% outside it when they delimit a primitive's item list.
+\DeclareRobustCommand{\rkcode}[1]{\texttt{\detokenize{#1}}}
+
+% -----------------------------------------------------------------------------
+% Diagram wrapper metadata and placement
+% -----------------------------------------------------------------------------
+\newcommand{\rk@diagramtype}{network}
+\newcommand{\rk@diagramcaption}{}
+\newcommand{\rk@diagramlabel}{}
+\newcommand{\rk@diagramsource}{Conceptual diagram.}
+\newcommand{\rk@diagramdescription}{}
+\newcommand{\rk@diagramminspace}{0.27\textheight}
+% Optional figure-level sizing. If both are supplied, width= wins over scale=.
+\newcommand{\rk@diagramwidth}{}
+\newcommand{\rk@diagramscale}{}
+\newsavebox{\rk@diagrambox}
+
+\pgfkeys{
+  /reportkit/diagram/.is family,
+  /reportkit/diagram,
+  type/.store in=\rk@diagramtype,
+  caption/.store in=\rk@diagramcaption,
+  label/.store in=\rk@diagramlabel,
+  source/.store in=\rk@diagramsource,
+  description/.store in=\rk@diagramdescription,
+  minspace/.store in=\rk@diagramminspace,
+  width/.store in=\rk@diagramwidth,
+  scale/.store in=\rk@diagramscale,
+}
+
+% Emit a PDF marked-content span without adding a system-level dependency.
+% accsupp is not available in every supported TinyTeX installation; the
+% primitive is sufficient for the plain-text descriptions ReportKit accepts.
+\newcommand{\rk@actualtextbegin}[1]{%
+  \begingroup
+  % Keep ordinary descriptions as readable PDF strings so inspection tools can
+  % find them directly. Parentheses are valid prose punctuation in guide alt
+  % text, so switch those cases to a hex string rather than corrupting the PDF
+  % literal; the decoded PDF alternative is identical.
+  \edef\rk@actualtextvalue{\expandafter\detokenize\expandafter{#1}}%
+  \edef\rk@actualtextprobe{\noexpand\in@{(}{\rk@actualtextvalue}}\rk@actualtextprobe
+  \ifin@
+    \edef\rk@actualtextvalue{\expandafter\pdf@escapehex\expandafter{\rk@actualtextvalue}}%
+    \ifPDFTeX
+      \pdfliteral direct { /Span << /ActualText <\rk@actualtextvalue> >> BDC }%
+    \else
+      \pdfextension literal direct { /Span << /ActualText <\rk@actualtextvalue> >> BDC }%
+    \fi
+  \else
+    \edef\rk@actualtextprobe{\noexpand\in@{)}{\rk@actualtextvalue}}\rk@actualtextprobe
+    \ifin@
+      \edef\rk@actualtextvalue{\expandafter\pdf@escapehex\expandafter{\rk@actualtextvalue}}%
+      \ifPDFTeX
+        \pdfliteral direct { /Span << /ActualText <\rk@actualtextvalue> >> BDC }%
+      \else
+        \pdfextension literal direct { /Span << /ActualText <\rk@actualtextvalue> >> BDC }%
+      \fi
+    \else
+      \ifPDFTeX
+        \pdfliteral direct { /Span << /ActualText (\rk@actualtextvalue) >> BDC }%
+      \else
+        \pdfextension literal direct { /Span << /ActualText (\rk@actualtextvalue) >> BDC }%
+      \fi
+    \fi
+  \fi
+  \endgroup
+}
+\newcommand{\rk@actualtextend}{%
+  \ifPDFTeX
+    \pdfliteral direct { EMC }%
+  \else
+    \pdfextension literal direct { EMC }%
+  \fi
+}
+
+% Keep the accessibility description in the PDF as a zero-width marked
+% content marker rather than wrapping the visible diagram box.  PyMuPDF and
+% similar text extractors correctly prefer /ActualText over the glyphs inside
+% a marked span; wrapping the box therefore hides every node label from the
+% renderer's text-based acceptance checks.  The marker preserves the
+% description for PDF consumers without replacing the diagram's visible text.
+\newcommand{\rk@actualtextmarker}[1]{%
+  \rk@actualtextbegin{#1}%
+  \kern0pt%
+  \rk@actualtextend%
+}
+
+% Non-floating by design. A conceptual diagram should not drift away from the
+% prose that introduces it. \RKReserveSpace moves the entire diagram/caption
+% block to the next page (under the paged renderer) when the remaining space
+% is too small.
+% <reportkit-contract>
+% {"kind":"composition","description":"Diagram","arguments":[{"name":"options","type":"options","description":"Options."}],"constraints":[],"example":"\\begin{diagram}[]\nExample content.\n\\end{diagram}","stability":"stable","since":"1.0.0"}
+% </reportkit-contract>
+\NewDocumentEnvironment{diagram}{O{}}{%
+  \pgfkeys{/reportkit/diagram,
+    type=network,caption={},label={},source={Conceptual diagram.},description={},
+    minspace={0.27\textheight},width={},scale={},#1}%
+  \typeout{ReportKit diagram type: \rk@diagramtype}%
+  \par\RKReserveSpace{\rk@diagramminspace}%
+  \vspace{4pt}%
+  \RKDiagramPlacementBegin%
+  \begin{lrbox}{\rk@diagrambox}%
+  \begin{tikzpicture}[x=1cm,y=1cm]
+}{%
+  \end{tikzpicture}%
+  \end{lrbox}%
+  \ifx\rk@diagramdescription\@empty
+    \PackageWarning{reportkit-diagrams}{diagram has no description= and will expose no alt text}%
+  \fi
+  \ifx\rk@diagramwidth\@empty
+    \ifx\rk@diagramscale\@empty
+      \usebox{\rk@diagrambox}%
+    \else
+      \scalebox{\rk@diagramscale}{\usebox{\rk@diagrambox}}%
+    \fi
+  \else
+    \resizebox{\rk@diagramwidth}{!}{\usebox{\rk@diagrambox}}%
+  \fi
+  \ifx\rk@diagramdescription\@empty\else
+    \rk@actualtextmarker{\rk@diagramdescription}%
+  \fi
+  \RKDiagramPlacementEnd%
+  \vspace{-2pt}%
+  \expandafter\ifstrempty\expandafter{\rk@diagramcaption}{}{%
+    \RKDiagramCaption{\rk@diagramcaption}%
+    \expandafter\ifstrempty\expandafter{\rk@diagramlabel}{}{\label{\rk@diagramlabel}}%
+  }%
+  \expandafter\ifstrempty\expandafter{\rk@diagramsource}{}{\RKDiagramSource{\rk@diagramsource}}%
+  \par\vspace{5pt}%
+}
+
+% -----------------------------------------------------------------------------
+% Generic nodes and edges
+% -----------------------------------------------------------------------------
+% <reportkit-contract>
+% {"kind":"command","description":"Rknode","arguments":[{"name":"options","type":"options","description":"Options."},{"name":"id","type":"text","description":"Id."},{"name":"x","type":"text","description":"X."},{"name":"y","type":"text","description":"Y."},{"name":"label","type":"text","description":"Label."}],"constraints":[],"example":"\\RKNode[]{a}{1}{1}{Example}","stability":"stable","since":"1.0.0"}
+% </reportkit-contract>
+\NewDocumentCommand{\RKNode}{O{} m m m m}{%
+  \node[rk node,#1] (#2) at (#3,#4) {\strut #5};%
+}
+
+% <reportkit-contract>
+% {"kind":"command","description":"Rknoderel","arguments":[{"name":"options","type":"options","description":"Options."},{"name":"id","type":"text","description":"Id."},{"name":"position","type":"text","description":"Position."},{"name":"label","type":"text","description":"Label."}],"constraints":[],"example":"\\RKNodeRel[]{a}{1}{Example}","stability":"stable","since":"1.0.0"}
+% </reportkit-contract>
+\NewDocumentCommand{\RKNodeRel}{O{} m m m}{%
+  \node[rk node,#1,#3] (#2) {\strut #4};%
+}
+
+\newcommand{\rk@drawedge}[5]{%
+  % #1 type, #2 from, #3 to, #4 label, #5 style
+  \ifstrempty{#4}{\draw[#5] (#2) -- (#3);}{\draw[#5] (#2) -- node[midway,rk edge label]{#4} (#3);}%
+}
+
+% <reportkit-contract>
+% {"kind":"command","description":"Rkedge","arguments":[{"name":"options","type":"options","description":"Options."},{"name":"kind","type":"text","description":"Kind."},{"name":"source","type":"text","description":"Source."},{"name":"target","type":"text","description":"Target."}],"constraints":[],"example":"\\RKEdge[]{Example}{a}{b}","stability":"stable","since":"1.0.0"}
+% </reportkit-contract>
+\NewDocumentCommand{\RKEdge}{O{} m m m}{%
+  \ifstrequal{#2}{flow}{\rk@drawedge{#2}{#3}{#4}{#1}{rk edge flow}}{%
+  \ifstrequal{#2}{sequence}{\rk@drawedge{#2}{#3}{#4}{#1}{rk edge sequence}}{%
+  \ifstrequal{#2}{dependency}{\rk@drawedge{#2}{#3}{#4}{#1}{rk edge dependency}}{%
+  \ifstrequal{#2}{handoff}{\rk@drawedge{#2}{#3}{#4}{#1}{rk edge handoff}}{%
+  \ifstrequal{#2}{causal}{\rk@drawedge{#2}{#3}{#4}{#1}{rk edge causal}}{%
+  \ifstrequal{#2}{optional}{\rk@drawedge{#2}{#3}{#4}{#1}{rk edge optional}}{%
+    \PackageError{reportkit-diagrams}{Unknown edge type '#2'}{Use flow, sequence, dependency, handoff, causal, or optional.}%
+  }}}}}}%
+}
+
+% -----------------------------------------------------------------------------
+% 2 x 2 matrices
+% -----------------------------------------------------------------------------
+\newcommand{\rk@matrixw}{12.2}
+\newcommand{\rk@matrixh}{6.1}
+% <reportkit-contract>
+% {"kind":"command","description":"Rkmatrixsetup","arguments":[{"name":"width","type":"text","description":"Width."},{"name":"height","type":"text","description":"Height."}],"constraints":[],"example":"\\RKMatrixSetup{1}{1}","stability":"stable","since":"1.0.0"}
+% </reportkit-contract>
+\NewDocumentCommand{\RKMatrixSetup}{m m}{\renewcommand{\rk@matrixw}{#1}\renewcommand{\rk@matrixh}{#2}}
+% <reportkit-contract>
+% {"kind":"command","description":"Rkmatrix","arguments":[{"name":"x_label","type":"text","description":"X label."},{"name":"y_label","type":"text","description":"Y label."}],"constraints":[],"example":"\\RKMatrix{Example}{Example}","stability":"stable","since":"1.0.0"}
+% </reportkit-contract>
+\NewDocumentCommand{\RKMatrix}{m m}{%
+  \draw[rk matrix axis] (0,0) rectangle (\rk@matrixw,\rk@matrixh);
+  \draw[rk matrix axis] ({\rk@matrixw/2},0) -- ({\rk@matrixw/2},\rk@matrixh);
+  \draw[rk matrix axis] (0,{\rk@matrixh/2}) -- (\rk@matrixw,{\rk@matrixh/2});
+  \node[rk matrix axis label] at ({\rk@matrixw/2},-0.48) {#1 $\longrightarrow$};
+  \node[rk matrix axis label,rotate=90] at (-0.58,{\rk@matrixh/2}) {#2 $\longrightarrow$};
+}
+% <reportkit-contract>
+% {"kind":"command","description":"Rkmatrixcell","arguments":[{"name":"options","type":"options","description":"Options."},{"name":"column","type":"text","description":"Column."},{"name":"row","type":"text","description":"Row."},{"name":"label","type":"text","description":"Label."}],"constraints":[],"example":"\\RKMatrixCell[]{1}{1}{Example}","stability":"stable","since":"1.0.0"}
+% </reportkit-contract>
+\NewDocumentCommand{\RKMatrixCell}{O{} m m m}{%
+  \def\rk@cx{0}\def\rk@cy{0}%
+  \ifstrequal{#2}{nw}{\def\rk@cx{0.25*\rk@matrixw}\def\rk@cy{0.75*\rk@matrixh}}{}%
+  \ifstrequal{#2}{ne}{\def\rk@cx{0.75*\rk@matrixw}\def\rk@cy{0.75*\rk@matrixh}}{}%
+  \ifstrequal{#2}{sw}{\def\rk@cx{0.25*\rk@matrixw}\def\rk@cy{0.25*\rk@matrixh}}{}%
+  \ifstrequal{#2}{se}{\def\rk@cx{0.75*\rk@matrixw}\def\rk@cy{0.25*\rk@matrixh}}{}%
+  \ifstrequal{#1}{accent}{%
+    \fill[\RKTokDiagramMatrixAccentColor!6] ({\rk@cx-0.25*\rk@matrixw},{\rk@cy-0.25*\rk@matrixh}) rectangle ({\rk@cx+0.25*\rk@matrixw},{\rk@cy+0.25*\rk@matrixh});
+  }{}%
+  \pgfmathsetlengthmacro{\rk@cellw}{0.39*\rk@matrixw cm}%
+  \node[rk matrix cell,align=center,text width=\rk@cellw] at (\rk@cx,\rk@cy) {\textbf{#3}\\[2pt]#4};
+}
+
+% -----------------------------------------------------------------------------
+% Swimlanes
+% -----------------------------------------------------------------------------
+\newcommand{\rk@lanew}{12.4}
+\newcommand{\rk@laneh}{1.25}
+% <reportkit-contract>
+% {"kind":"command","description":"Rkswimlanesetup","arguments":[{"name":"width","type":"text","description":"Width."},{"name":"lane_height","type":"text","description":"Lane height."}],"constraints":[],"example":"\\RKSwimlaneSetup{1}{1}","stability":"stable","since":"1.0.0"}
+% </reportkit-contract>
+\NewDocumentCommand{\RKSwimlaneSetup}{m m}{\renewcommand{\rk@lanew}{#1}\renewcommand{\rk@laneh}{#2}}
+% <reportkit-contract>
+% {"kind":"command","description":"Rklane","arguments":[{"name":"row","type":"text","description":"Row."},{"name":"label","type":"text","description":"Label."}],"constraints":[],"example":"\\RKLane{1}{Example}","stability":"stable","since":"1.0.0"}
+% </reportkit-contract>
+\NewDocumentCommand{\RKLane}{m m}{%
+  \pgfmathsetmacro{\rky}{-#1*\rk@laneh}
+  \draw[draw=\RKTokDiagramLaneDividerColor,line width=\RKTokDiagramLaneDividerWidth] (0,{\rky-0.5*\rk@laneh}) -- (\rk@lanew,{\rky-0.5*\rk@laneh});
+  \node[anchor=east,font=\RKTokDiagramLaneLabelFont,text=\RKTokDiagramLaneLabelText] at (-0.3,\rky) {#2};
+}
+% <reportkit-contract>
+% {"kind":"command","description":"Rklanenode","arguments":[{"name":"options","type":"options","description":"Options."},{"name":"id","type":"text","description":"Id."},{"name":"column","type":"text","description":"Column."},{"name":"row","type":"text","description":"Row."},{"name":"label","type":"text","description":"Label."}],"constraints":[],"example":"\\RKLaneNode[]{a}{1}{1}{Example}","stability":"stable","since":"1.0.0"}
+% </reportkit-contract>
+\NewDocumentCommand{\RKLaneNode}{O{} m m m m}{%
+  \pgfmathsetmacro{\rky}{-#3*\rk@laneh}
+  \node[rk node,text width=22mm,minimum height=8mm,#1] (#2) at (#4,\rky) {\strut #5};
+}
+
+% -----------------------------------------------------------------------------
+% Layered architecture
+% -----------------------------------------------------------------------------
+\newcommand{\rk@layerw}{12.2}
+\newcommand{\rk@layerh}{1.0}
+% <reportkit-contract>
+% {"kind":"command","description":"Rklayersetup","arguments":[{"name":"width","type":"text","description":"Width."},{"name":"layer_height","type":"text","description":"Layer height."}],"constraints":[],"example":"\\RKLayerSetup{1}{Example}","stability":"stable","since":"1.0.0"}
+% </reportkit-contract>
+\NewDocumentCommand{\RKLayerSetup}{m m}{\renewcommand{\rk@layerw}{#1}\renewcommand{\rk@layerh}{#2}}
+% <reportkit-contract>
+% {"kind":"command","description":"Rklayer","arguments":[{"name":"options","type":"options","description":"Options."},{"name":"row","type":"text","description":"Row."},{"name":"label","type":"text","description":"Label."},{"name":"detail","type":"text","description":"Detail."}],"constraints":[],"example":"\\RKLayer[]{1}{Example}{Example}","stability":"stable","since":"1.0.0"}
+% </reportkit-contract>
+\NewDocumentCommand{\RKLayer}{O{} m m m}{%
+  \pgfmathsetmacro{\rky}{-#2*\rk@layerh}
+  \draw[draw=\RKTokDiagramLayerDraw,line width=\RKTokDiagramLayerWidth,fill=\RKTokDiagramLayerFill,#1] (0,{\rky-0.46*\rk@layerh}) rectangle (\rk@layerw,{\rky+0.46*\rk@layerh});
+  \node[anchor=west,font=\RKTokDiagramLayerTitleFont,text=\RKTokDiagramLayerTitleText] at (0.25,\rky) {#3};
+  \pgfmathsetlengthmacro{\rk@layerdescw}{0.62*\rk@layerw cm}%
+  \node[anchor=west,font=\RKTokDiagramLayerBodyFont,text=\RKTokDiagramLayerBodyText,text width=\rk@layerdescw,align=left] at ({0.34*\rk@layerw},\rky) {#4};
+}
+
+% -----------------------------------------------------------------------------
+% Evidence/accumulation stack (v1.2 addition)
+%
+% For content where tiers represent increasing rigor, rarity, or strength of
+% evidence rather than sequence or hierarchy of ownership (e.g. credential ->
+% assessment -> project -> external validation -> measured impact). Tiers
+% narrow going upward like a pyramid: broad, common tiers at the base,
+% narrow, rare tiers at the top. This is a distinct shape from \RKLayer
+% (which shows separation of concerns at *equal* visual weight) and from
+% \RKLane (which shows ownership, not rigor).
+% -----------------------------------------------------------------------------
+\newcommand{\rk@stackw}{10}
+\newcommand{\rk@stackh}{1.05}
+\newcommand{\rk@stackn}{6}
+% <reportkit-contract>
+% {"kind":"command","description":"Rkstacksetup","arguments":[{"name":"width","type":"text","description":"Width."},{"name":"tier_height","type":"text","description":"Tier height."},{"name":"tier_count","type":"text","description":"Tier count."}],"constraints":[],"example":"\\RKStackSetup{1}{1}{1}","stability":"stable","since":"1.0.0"}
+% </reportkit-contract>
+\NewDocumentCommand{\RKStackSetup}{m m m}{%
+  \renewcommand{\rk@stackw}{#1}\renewcommand{\rk@stackh}{#2}\renewcommand{\rk@stackn}{#3}%
+}
+% \RKStackTier[accent]{index}{label}
+% index: 0 = bottom tier (widest, weakest evidence), rising to \rk@stackn - 1
+% at the top (narrowest, strongest evidence). Draws the connecting upward
+% arrow automatically for every tier above the base.
+% <reportkit-contract>
+% {"kind":"command","description":"Rkstacktier","arguments":[{"name":"options","type":"options","description":"Options."},{"name":"row","type":"text","description":"Row."},{"name":"label","type":"text","description":"Label."}],"constraints":[],"example":"\\RKStackTier[]{1}{Example}","stability":"stable","since":"1.0.0"}
+% </reportkit-contract>
+\NewDocumentCommand{\RKStackTier}{O{} m m}{%
+  \pgfmathsetmacro{\rk@sdenom}{\rk@stackn-1}%
+  \pgfmathsetmacro{\rk@sfrac}{1 - (0.60*#2/\rk@sdenom)}%
+  \pgfmathsetmacro{\rk@scx}{0.5*\rk@stackw}%
+  \pgfmathsetmacro{\rk@scy}{#2*\rk@stackh}%
+  \pgfmathsetmacro{\rk@shw}{0.5*\rk@sfrac*\rk@stackw}%
+  \draw[draw=\RKTokDiagramTierDraw,line width=\RKTokDiagramTierWidth,fill=\RKTokDiagramTierFill,#1]
+    ({\rk@scx-\rk@shw},{\rk@scy-0.42*\rk@stackh}) rectangle ({\rk@scx+\rk@shw},{\rk@scy+0.42*\rk@stackh});
+  \node[font=\RKTokDiagramTierLabelFont,text=\RKTokDiagramTierLabelText,align=center,
+        text width={0.9*\rk@sfrac*\rk@stackw cm}] at (\rk@scx,\rk@scy) {#3};
+  \ifnum#2>0
+    \pgfmathsetmacro{\rk@sprevy}{(#2-1)*\rk@stackh}
+    \draw[-{Stealth[length=3.5pt,width=3.5pt]},draw=\RKTokDiagramStackArrowColor,line width=\RKTokDiagramStackArrowWidth]
+      (\rk@scx,{\rk@sprevy+0.42*\rk@stackh+0.02}) -- (\rk@scx,{\rk@scy-0.42*\rk@stackh-0.02});
+  \fi
+}
+
+% -----------------------------------------------------------------------------
+% Cyclic flow (v1.2 addition)
+%
+% For genuinely cyclic processes with no dominant start/end (e.g. a
+% continuous feedback loop that repeats indefinitely). A \flow or \sequence
+% chain of \RKNode/\RKEdge implies a terminus; \RKCycle explicitly does not.
+% Nodes are placed by explicit angle so irregular stage counts and uneven
+% label lengths stay controllable, consistent with \RKNode's explicit
+% placement rather than automatic layout.
+% -----------------------------------------------------------------------------
+\newcommand{\rk@cycler}{4.4}
+% <reportkit-contract>
+% {"kind":"command","description":"Rkcyclesetup","arguments":[{"name":"radius","type":"text","description":"Radius."}],"constraints":[],"example":"\\RKCycleSetup{1}","stability":"stable","since":"1.0.0"}
+% </reportkit-contract>
+\NewDocumentCommand{\RKCycleSetup}{m}{\renewcommand{\rk@cycler}{#1}}
+% \RKCycleNode[accent]{id}{angle-degrees}{label}  (0 = east, 90 = north, CCW)
+% <reportkit-contract>
+% {"kind":"command","description":"Rkcyclenode","arguments":[{"name":"options","type":"options","description":"Options."},{"name":"id","type":"text","description":"Id."},{"name":"angle","type":"text","description":"Angle."},{"name":"label","type":"text","description":"Label."}],"constraints":[],"example":"\\RKCycleNode[]{a}{1}{Example}","stability":"stable","since":"1.0.0"}
+% </reportkit-contract>
+\NewDocumentCommand{\RKCycleNode}{O{} m m m}{%
+  \node[rk node,text width=19mm,minimum height=8.5mm,font=\RKTokDiagramCycleNodeFont,#1]
+    (#2) at ({\rk@cycler*cos(#3)},{\rk@cycler*sin(#3)}) {\strut #4};%
+}
+% \RKCycleEdge[label]{from}{to}  -- bends outward (away from the ring center)
+% so consecutive arcs approximate the true circular arc between adjacent
+% nodes and the whole loop reads as one smooth ring. NOTE: "bend left" is
+% correct here, not "bend right" -- for nodes walking clockwise around a
+% circle, TikZ's "right" relative to travel direction points toward the
+% center, so bend right pulls every arc inward and produces a six-pointed
+% "snowflake" instead of a ring. Bend left bulges each arc outward instead.
+% <reportkit-contract>
+% {"kind":"command","description":"Rkcycleedge","arguments":[{"name":"options","type":"options","description":"Options."},{"name":"source","type":"text","description":"Source."},{"name":"target","type":"text","description":"Target."}],"constraints":[],"example":"\\RKCycleEdge[]{a}{b}","stability":"stable","since":"1.0.0"}
+% </reportkit-contract>
+\NewDocumentCommand{\RKCycleEdge}{O{} m m}{%
+  \draw[rk edge,draw=\RKTokDiagramCycleEdgeColor,line width=\RKTokDiagramCycleEdgeWidth] (#2) to[bend left=15] (#3);%
+  \ifstrempty{#1}{}{\node[rk edge label] at ($(#2)!0.5!(#3)$) {#1};}%
+}
+
+% -----------------------------------------------------------------------------
+% Conversion funnel (v1.2 addition)
+%
+% For staged conversion where each stage retains a subset of the previous
+% stage's population (e.g. applications -> screens -> interviews -> offers).
+% Distinct from \RKMatrix (two independent axes) and \RKLayer (equal-weight
+% separation of concerns): a funnel's defining feature is monotonic
+% narrowing, and each trapezoid's own top/bottom widths are supplied
+% explicitly rather than computed, since real conversion is not evenly
+% spaced. This diagram is structural/illustrative by default -- if a report
+% encodes real measured conversion rates, generate the chart with
+% reportkit_viz.py (e.g. rkv.bar_chart) instead and mark this native form
+% conceptual in its \source note.
+% -----------------------------------------------------------------------------
+\newcommand{\rk@funnelw}{10}
+\newcommand{\rk@funnelh}{1.2}
+% <reportkit-contract>
+% {"kind":"command","description":"Rkfunnelsetup","arguments":[{"name":"width","type":"text","description":"Width."},{"name":"stage_height","type":"text","description":"Stage height."}],"constraints":[],"example":"\\RKFunnelSetup{1}{1}","stability":"stable","since":"1.0.0"}
+% </reportkit-contract>
+\NewDocumentCommand{\RKFunnelSetup}{m m}{\renewcommand{\rk@funnelw}{#1}\renewcommand{\rk@funnelh}{#2}}
+% \RKFunnelStage[accent]{index}{top-width-frac}{bottom-width-frac}{label}
+% index 0 = top stage (widest); width fractions are of \rk@funnelw, in (0,1].
+% <reportkit-contract>
+% {"kind":"command","description":"Rkfunnelstage","arguments":[{"name":"options","type":"options","description":"Options."},{"name":"row","type":"text","description":"Row."},{"name":"width","type":"text","description":"Width."},{"name":"label","type":"text","description":"Label."},{"name":"detail","type":"text","description":"Detail."}],"constraints":[],"example":"\\RKFunnelStage[]{1}{1}{Example}{Example}","stability":"stable","since":"1.0.0"}
+% </reportkit-contract>
+\NewDocumentCommand{\RKFunnelStage}{O{} m m m m}{%
+  \pgfmathsetmacro{\rk@fcx}{0.5*\rk@funnelw}%
+  \pgfmathsetmacro{\rk@fy}{-#2*\rk@funnelh}%
+  \pgfmathsetmacro{\rk@ftw}{0.5*#3*\rk@funnelw}%
+  \pgfmathsetmacro{\rk@fbw}{0.5*#4*\rk@funnelw}%
+  \draw[draw=\RKTokDiagramTierDraw,line width=\RKTokDiagramTierWidth,fill=\RKTokDiagramTierFill,#1]
+    ({\rk@fcx-\rk@ftw},{\rk@fy}) -- ({\rk@fcx+\rk@ftw},{\rk@fy})
+    -- ({\rk@fcx+\rk@fbw},{\rk@fy-\rk@funnelh}) -- ({\rk@fcx-\rk@fbw},{\rk@fy-\rk@funnelh}) -- cycle;%
+  \node[font=\RKTokDiagramTierLabelFont,text=\RKTokDiagramTierLabelText,align=center,
+        text width={0.85*#3*\rk@funnelw cm}] at (\rk@fcx,{\rk@fy-0.5*\rk@funnelh}) {#5};%
+}
+
+% -----------------------------------------------------------------------------
+% Semantic wrappers for the v1.2 stack, cycle, and funnel primitives
+% -----------------------------------------------------------------------------
+% The low-level RK commands remain stable for custom diagrams. These wrappers
+% provide declaration-order placement for ordinary report authors.
+\newcommand{\rk@semanticstackw}{10}
+\newcommand{\rk@semanticstackh}{1.05}
+\newcommand{\rk@semanticstackn}{5}
+\newcount\rk@semanticstackindex
+\pgfkeys{
+  /reportkit/evidence stack/.is family,
+  /reportkit/evidence stack,
+  width/.store in=\rk@semanticstackw,
+  tier height/.store in=\rk@semanticstackh,
+  tiers/.store in=\rk@semanticstackn,
+}
+% <reportkit-contract>
+% {"kind":"figure","description":"Ordered evidence tiers increasing in rigor.","arguments":[{"name":"options","type":"options","description":"Evidence-stack layout keys."}],"constraints":[],"example":"\\begin{diagram}[caption={Evidence stack.},description={Three tiers increase in rigor.}]\n\\begin{evidencestack}\n\\evidencetier{Credential}\n\\evidencetier{Project}\n\\evidencetier{Measured impact}\n\\end{evidencestack}\n\\end{diagram}","stability":"stable","since":"1.0.0"}
+% </reportkit-contract>
+\NewDocumentEnvironment{evidencestack}{O{}}{%
+  \begingroup
+  \pgfkeys{/reportkit/evidence stack,width=10,tier height=1.05,tiers=5,#1}%
+  \ifnum\rk@semanticstackn<2
+    \PackageError{reportkit-diagrams}{evidencestack requires at least two tiers}{Set tiers to an integer of 2 or greater.}%
+  \fi
+  \RKStackSetup{\rk@semanticstackw}{\rk@semanticstackh}{\rk@semanticstackn}%
+  \rk@semanticstackindex=0\relax
+}{\endgroup}
+% <reportkit-contract>
+% {"kind":"command","description":"Evidencetier","arguments":[{"name":"options","type":"options","description":"Options."},{"name":"label","type":"text","description":"Label."}],"constraints":[],"example":"\\evidencetier[]{Example}","stability":"stable","since":"1.0.0","parent":"evidencestack"}
+% </reportkit-contract>
+\NewDocumentCommand{\evidencetier}{O{} m}{%
+  \ifnum\rk@semanticstackindex>\numexpr\rk@semanticstackn-1\relax
+    \PackageError{reportkit-diagrams}{Too many evidencestack tiers}{Increase the tiers key or remove a \string\evidencetier command.}%
+  \fi
+  \RKStackTier[#1]{\the\rk@semanticstackindex}{#2}%
+  \advance\rk@semanticstackindex by 1\relax
+}
+
+\newcommand{\rk@semanticcycler}{4.4}
+\newcommand{\rk@semanticcyclen}{6}
+\newcount\rk@semanticcycleindex
+\pgfkeys{
+  /reportkit/cycle/.is family,
+  /reportkit/cycle,
+  radius/.store in=\rk@semanticcycler,
+  stages/.store in=\rk@semanticcyclen,
+}
+% <reportkit-contract>
+% {"kind":"figure","description":"Closed semantic feedback cycle.","arguments":[{"name":"options","type":"options","description":"Cycle layout keys."}],"constraints":[],"example":"\\begin{diagram}[caption={Learning cycle.},description={Four stages form a closed cycle.}]\n\\begin{reportcycle}\n\\cyclestage{observe}{Observe}\n\\cyclestage{learn}{Learn}\n\\cyclestage{act}{Act}\n\\cyclestage{measure}{Measure}\n\\cycleedge{observe}{learn}\n\\cycleedge{learn}{act}\n\\cycleedge{act}{measure}\n\\cycleedge{measure}{observe}\n\\end{reportcycle}\n\\end{diagram}","stability":"stable","since":"1.0.0"}
+% </reportkit-contract>
+\NewDocumentEnvironment{reportcycle}{O{}}{%
+  \begingroup
+  \pgfkeys{/reportkit/cycle,radius=4.4,stages=6,#1}%
+  \ifnum\rk@semanticcyclen<3
+    \PackageError{reportkit-diagrams}{reportcycle requires at least three stages}{Set stages to an integer of 3 or greater.}%
+  \fi
+  \RKCycleSetup{\rk@semanticcycler}\rk@semanticcycleindex=0\relax
+}{\endgroup}
+% <reportkit-contract>
+% {"kind":"command","description":"Cyclestage","arguments":[{"name":"options","type":"options","description":"Options."},{"name":"id","type":"text","description":"Id."},{"name":"label","type":"text","description":"Label."}],"constraints":[],"example":"\\cyclestage[]{a}{Example}","stability":"stable","since":"1.0.0","parent":"reportcycle"}
+% </reportkit-contract>
+\NewDocumentCommand{\cyclestage}{O{} m m}{%
+  \pgfmathsetmacro{\rk@semanticcycleangle}{90-\the\rk@semanticcycleindex*360/\rk@semanticcyclen}%
+  \RKCycleNode[#1]{#2}{\rk@semanticcycleangle}{#3}%
+  \advance\rk@semanticcycleindex by 1\relax
+}
+% <reportkit-contract>
+% {"kind":"command","description":"Cycleedge","arguments":[{"name":"options","type":"options","description":"Options."},{"name":"source","type":"text","description":"Source."},{"name":"target","type":"text","description":"Target."}],"constraints":[],"example":"\\cycleedge[]{a}{b}","stability":"stable","since":"1.0.0","parent":"reportcycle"}
+% </reportkit-contract>
+\NewDocumentCommand{\cycleedge}{O{} m m}{\RKCycleEdge[#1]{#2}{#3}}
+
+\newcommand{\rk@semanticfunnelw}{10}
+\newcommand{\rk@semanticfunnelh}{1.2}
+\newcount\rk@semanticfunnelindex
+\pgfkeys{
+  /reportkit/funnel/.is family,
+  /reportkit/funnel,
+  width/.store in=\rk@semanticfunnelw,
+  stage height/.store in=\rk@semanticfunnelh,
+}
+% <reportkit-contract>
+% {"kind":"figure","description":"Conceptual narrowing across ordered funnel stages.","arguments":[{"name":"options","type":"options","description":"Funnel layout keys."}],"constraints":[],"example":"\\begin{diagram}[caption={Conversion funnel.},description={Four stages narrow from applications to offers.}]\n\\begin{reportfunnel}\n\\funnelstage{1.0}{.7}{Applications}\n\\funnelstage{.7}{.4}{Screens}\n\\funnelstage{.4}{.2}{Interviews}\n\\funnelstage{.2}{.1}{Offers}\n\\end{reportfunnel}\n\\end{diagram}","stability":"stable","since":"1.0.0"}
+% </reportkit-contract>
+\NewDocumentEnvironment{reportfunnel}{O{}}{%
+  \begingroup
+  \pgfkeys{/reportkit/funnel,width=10,stage height=1.2,#1}%
+  \RKFunnelSetup{\rk@semanticfunnelw}{\rk@semanticfunnelh}\rk@semanticfunnelindex=0\relax
+}{\endgroup}
+% <reportkit-contract>
+% {"kind":"command","description":"Funnelstage","arguments":[{"name":"options","type":"options","description":"Options."},{"name":"width","type":"text","description":"Width."},{"name":"label","type":"text","description":"Label."},{"name":"detail","type":"text","description":"Detail."}],"constraints":[],"example":"\\funnelstage[]{1}{Example}{Example}","stability":"stable","since":"1.0.0","parent":"reportfunnel"}
+% </reportkit-contract>
+\NewDocumentCommand{\funnelstage}{O{} m m m}{%
+  \RKFunnelStage[#1]{\the\rk@semanticfunnelindex}{#2}{#3}{#4}%
+  \advance\rk@semanticfunnelindex by 1\relax
+}
+
+% Semantic modules are separated by visual reasoning family but loaded from
+% this public entry point, so report authors continue to need one package.
+\RequirePackage{reportkit-spatial}
+\RequirePackage{reportkit-process}
+\RequirePackage{reportkit-structure}
+
+\endinput
