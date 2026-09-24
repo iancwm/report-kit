@@ -1,6 +1,6 @@
 # Callout titles and image slots
 
-**Status:** Proposed · 24 September 2026
+**Status:** Implementation complete in merged PR #54 (`f6293d4`) · verification pending · 24 September 2026
 **Scope:** Reusable ReportKit engine and authoring guidance; publication-specific image choices and files stay in consumer repositories.
 
 ## Problem and evidence

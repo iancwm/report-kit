@@ -48,6 +48,13 @@ tags on this repository, not a published package registry.
 - `reportkit render` now supports selected page/range rendering with DPI
   control, atomic output replacement, a JSON manifest, toolchain fingerprint,
   and structured missing-PyMuPDF diagnostics for the authoring feedback loop.
+- Semantic callouts now accept optional replacement headings in safe Markdown
+  directives and retain the legacy braced suffix form for TeX authors; the
+  generated contract records both forms.
+- Markdown publications can declare local replaceable image slots in
+  `image-slots.yaml`. Supplied assets render with captions and provenance,
+  missing draft assets render as explicit placeholders, and unresolved slots
+  are recorded in the build report and blocked by final/release profiles.
 
 ### Changed
 - Pinned compatibility baselines for the career-guide and equity-research

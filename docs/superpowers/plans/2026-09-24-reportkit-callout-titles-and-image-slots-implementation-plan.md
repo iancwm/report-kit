@@ -1,6 +1,6 @@
 # ReportKit callout titles and image slots implementation plan
 
-**Status:** Implementation complete · verification pending · 24 September 2026
+**Status:** Implementation complete in merged PR #54 (`f6293d4`) · verification pending · 24 September 2026
 **Spec:** `docs/superpowers/specs/2026-09-24-reportkit-callout-titles-and-image-slots-spec.md`
 **Goal:** Make semantic callouts usable with default or replacement headings, and give Markdown publications declared image slots that render supplied assets or conspicuous draft placeholders.
 

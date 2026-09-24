@@ -32,7 +32,8 @@ Migrating an existing content branch out of this repo is covered in
   `reportkit-pandoc.sty`, and `reportkit-longform.sty` — the core document
   class and style files. The public diagram DSL covers positioning, risk,
   process, architecture, hierarchy, planning, strategy, state, comparison,
-  and timeline visuals; existing low-level primitives remain available for
+  and timeline visuals; semantic callouts support default, replacement, and
+  legacy suffix headings; existing low-level primitives remain available for
   custom composition.
 - `themes/` — visual identity (typography, geometry, palette, running
   furniture), selected via `\documentclass[theme=<name>]{reportkit}`.
@@ -102,9 +103,12 @@ Migrating an existing content branch out of this repo is covered in
 Reusable build/validate/inspect harness for a consumer publication project —
 Pandoc → LaTeX compilation, the strict diagnostic gate, page rendering, and
 PDF inspection. Takes no fixed publication as input: point it at any project
-  with `--source-root`/`--output-root`. Use `./reportkit` as the stable command
-  interface; `example_publication/` is a small generic fixture used only by
-  this repo's own tests, not a real publication.
+with `--source-root`/`--output-root`. Use `./reportkit` as the stable command
+interface; `example_publication/` is a small generic fixture used only by
+this repo's own tests, not a real publication. Markdown publications may also
+declare local, replaceable image slots in `image-slots.yaml`; supplied assets
+render as captioned image units and missing draft assets render as explicit
+placeholders. See [`references/callouts-and-image-slots.md`](references/callouts-and-image-slots.md).
 See [`publication_pipeline/README.md`](publication_pipeline/README.md).
 
 ## 4. font_data/
@@ -131,6 +135,8 @@ See [`publication_pipeline/README.md`](publication_pipeline/README.md).
 - [`agent-contract.md`](references/agent-contract.md) — the v1.9 contract
   versioning policy, diagnostic exits, pinned toolchain, and security/trust
   boundary.
+- [`callouts-and-image-slots.md`](references/callouts-and-image-slots.md) —
+  semantic callout selection and replacement-image authoring guidance.
 - [`documentation-status.md`](references/documentation-status.md) — the
   required PR-time workflow for keeping specs, plans, and the work index current.
 

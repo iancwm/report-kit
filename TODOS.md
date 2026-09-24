@@ -21,11 +21,20 @@ and [references/documentation-status.md](references/documentation-status.md).
 | [2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md](docs/superpowers/specs/2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md) | A′/B′, constrained authoring, standalone render, progressive-disclosure budgets, the generated OpenAI adapter, and per-script font stacks/language-support truthfulness (D-prime 3) are implemented. Tagged-PDF remains deferred. | P2 |
 | [2026-09-22-reportkit-presentation-typography-and-composition-refinement-spec.md](docs/superpowers/specs/2026-09-22-reportkit-presentation-typography-and-composition-refinement-spec.md) | Core implementation is merged; native density/canonical visual release validation remains. | P2 |
 | [2026-09-22-reportkit-presentation-typography-and-composition-refinement.md](docs/superpowers/plans/2026-09-22-reportkit-presentation-typography-and-composition-refinement.md) | Workstreams A/B/D and the semantic fixture source are merged; dense/reference authoring expansion and native C/E release gates remain. | P2 |
+| [2026-09-24-reportkit-callout-titles-and-image-slots-spec.md](docs/superpowers/specs/2026-09-24-reportkit-callout-titles-and-image-slots-spec.md) | Implementation merged in PR #54 at `f6293d4`; focused contract/validation tests, mixed supplied/missing-image pipeline coverage, and native visual/release verification remain. | P2 |
+| [2026-09-24-reportkit-callout-titles-and-image-slots-implementation-plan.md](docs/superpowers/plans/2026-09-24-reportkit-callout-titles-and-image-slots-implementation-plan.md) | Implementation complete in the merged mainline; the plan's unchecked focused tests, full acceptance/build gates, and visual review remain. | P2 |
 | [2026-09-24-reportkit-code-quality-review-spec.md](docs/superpowers/specs/2026-09-24-reportkit-code-quality-review-spec.md) | §A (CI ruff gate blind spot) and §B (duplicate `_tex_escape` in `theme_overrides.py`) landed. §C (`build()` size), §D (partial `viz/` split), and §E (dead `line-length` config) are open, unscheduled cleanup. | P3 |
 
 ## Open work
 
 - **Presentation refinement — native visual release gate.** The assertion hierarchy, dense compositions, references composition, constrained-authoring preflight, and density fixture source are merged. Complete the target-aware native build of both canonical and density executive fixtures, 140-DPI visual review, mechanical envelope/safe-area checks, grayscale review, and canonical hero-closing regression. Do not claim release completion from static tests alone.
+
+- **Callout titles and image slots — verification and release gate.** PR #54
+  merged the optional replacement/legacy callout heading forms, safe Markdown
+  directives, declared local image slots, supplied-image rendering, draft
+  placeholders, and build-report state. Complete the unchecked focused contract
+  and validation tests, mixed supplied/missing-image pipeline checks, default
+  and institutional visual review, and final/release-profile rejection checks.
 
 ### P2
 
@@ -164,6 +173,11 @@ verification notes are retained in `History` below.
   page/range selection, DPI control, atomic output, a JSON manifest, a
   toolchain fingerprint, structured missing-PyMuPDF failure, focused tests,
   and contract/skill documentation.
+- **Callout titles and image slots** are implemented in PR #54: semantic
+  callouts support replacement headings and legacy suffixes, safe directives
+  validate the distinction, Markdown image slots render supplied assets or
+  explicit draft placeholders, and build reports record image state and
+  unresolved slots. Focused and native release verification remains open.
 
 
 ## Environment notes
@@ -219,6 +233,13 @@ from a session provisioned this way.
   explicitly open; no baseline pixels were changed.
 
 ## History
+
+- 2026-09-24: synchronized the post-merge documentation after PR #54 landed on
+  `main` at `f6293d4`. The callout-title and image-slot implementation is now
+  recorded in the spec, plan, README, changelog, and this work index. The docs
+  drift gate passes, but the feature remains verification-pending: focused
+  contract/validation tests, mixed supplied/missing-image pipeline coverage,
+  native visual review, and final/release image-slot gates are still open.
 
 - 2026-09-21: synchronized the post-merge implementation records after runner
   fix PR #44 landed on `main` at `f5f5a6b`. Pinned workflow run 65 for the
