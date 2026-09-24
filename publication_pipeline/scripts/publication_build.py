@@ -99,6 +99,10 @@ from reportkit.toolchain import toolchain_context  # noqa: E402
 from reportkit.toolchain import version_line  # noqa: E402
 from reportkit.version import BUILD_REPORT_SCHEMA_VERSION  # noqa: E402
 from reportkit.license_metadata import load_license_metadata, validate_license_metadata  # noqa: E402
+try:
+    from image_rendering import image_field, image_state, replace_image_sentinel
+except ImportError:  # imported as publication_pipeline.scripts.publication_build
+    from .image_rendering import image_field, image_state, replace_image_sentinel
 
 
 def sha256(path: Path) -> str:
@@ -184,6 +188,7 @@ def render_markdown(
     theme: str | None = None,
     renderer: str | None = None,
     links: list[str] | None = None,
+    image_slots: dict[str, object] | None = None,
     timeout: int = 120,
     memory_limit_mb: int = 2048,
 ) -> None:
@@ -294,6 +299,7 @@ def render_markdown(
     lines: list[str] = []
     fragments: list[dict[str, object]] = []
     directives: list[dict[str, object]] = []
+    images: list[dict[str, object]] = []
     for line in pandoc_text.splitlines():
         directive_marker = next((marker for marker in replacements if marker in line), None)
         if directive_marker is not None:
@@ -315,6 +321,29 @@ def render_markdown(
                 "primitive": node.primitive,
                 "path": node.fragment,
                 "trusted_fragment": bool(node.fragment),
+            })
+            continue
+        image_match = replace_image_sentinel(line, image_slots or {}, root)
+        if image_match is not None:
+            slug, replacement = image_match
+            generated_start = len(lines) + 1
+            replacement_lines = replacement.splitlines()
+            lines.extend(replacement_lines)
+            generated_end = generated_start + max(0, len(replacement_lines) - 1)
+            slot = (image_slots or {})[slug]
+            source_file = image_field(slot, "manuscript_file", None)
+            source_line = image_field(slot, "manuscript_line", None)
+            images.append({
+                "start": generated_start,
+                "end": generated_end,
+                "generated_start": generated_start,
+                "generated_end": generated_end,
+                "source_file": source_file,
+                "source_start": source_line,
+                "source_end": source_line,
+                "slug": slug,
+                "path": image_field(slot, "path", ""),
+                "state": image_state(slot, root),
             })
             continue
         match = re.fullmatch(
@@ -345,7 +374,12 @@ def render_markdown(
             lines.append(line)
     output.write_text("\n".join(lines) + "\n", encoding="utf-8")
     sidecar = map_path or output.with_name(f"{output.stem}.map.json")
-    sidecar.write_text(json.dumps({"source": str(manuscript.relative_to(root)), "fragments": fragments, "directives": directives}, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    sidecar.write_text(json.dumps({
+        "source": str(manuscript.relative_to(root)),
+        "fragments": fragments,
+        "directives": directives,
+        "images": images,
+    }, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
 def _resolve_publication_date(value: str, *, now: datetime | None = None) -> str:
@@ -483,7 +517,10 @@ def build(args: argparse.Namespace) -> int:
     if resource is None or not hasattr(resource, "RLIMIT_AS"):
         print("environment: this platform cannot enforce the required compile memory limit", file=sys.stderr)
         return 5
-    validation = validate_publication(source_root)
+    validation = validate_publication(source_root, profile=profile or "draft")
+    for diagnostic in validation.diagnostics:
+        if diagnostic.get("severity") == "warning":
+            print(f"publication validation warning: {diagnostic['message']}", file=sys.stderr)
     if not validation.ok:
         for error in validation.errors:
             print(f"publication validation: {error}", file=sys.stderr)
@@ -592,6 +629,15 @@ def build(args: argparse.Namespace) -> int:
         if not (source_root / "manuscript" / manuscript).is_file():
             print(f"missing manuscript: {manuscript}", file=sys.stderr)
             return 3
+    selected_manuscript_files = {f"manuscript/{path.as_posix()}" for path in manuscripts}
+    used_image_slots = {
+        slug: slot for slug, slot in validation.image_slots.items()
+        if image_field(slot, "manuscript_file", None) in selected_manuscript_files
+    }
+    unresolved_used_slots = [
+        slot for slot in validation.unresolved_image_slots
+        if image_field(slot, "manuscript_file", None) in selected_manuscript_files
+    ]
     stamp = time.strftime("%Y%m%d-%H%M%S")
     history_root = output_root / "history"
     # F2 bounded parallelism: two sections built concurrently can resolve the
@@ -676,6 +722,7 @@ def build(args: argparse.Namespace) -> int:
                 theme=target.requested_theme,
                 renderer=target.renderer,
                 links=authoring.links,
+                image_slots=used_image_slots,
                 timeout=timeout,
                 memory_limit_mb=memory_limit_mb,
             )
@@ -714,7 +761,51 @@ def build(args: argparse.Namespace) -> int:
     log = output / "publication.log"
     validation_config = resolve_validation(config, profile)
     figure_count = sum(len(re.findall(r"REPORTKIT-VISUAL:fig:[a-z0-9]+(?:-[a-z0-9]+)*", text)) for text in ((source_root / "manuscript" / path).read_text(encoding="utf-8") for path in manuscripts))
+    image_report_items = []
+    for slug, slot in sorted(used_image_slots.items()):
+        asset_state = image_state(slot, source_root)
+        source_file = image_field(slot, "manuscript_file", None)
+        source_line = image_field(slot, "manuscript_line", None)
+        unresolved_reason = image_field(slot, "unresolved_reason", None)
+        image_report_items.append({
+            "slug": slug,
+            "declaration_path": "image-slots.yaml",
+            "asset_state": asset_state,
+            "replacement_path": image_field(slot, "path", ""),
+            "source_location": {"file": source_file, "line": source_line},
+            "purpose": image_field(slot, "purpose", ""),
+            "caption": image_field(slot, "caption", ""),
+            "alt": image_field(slot, "alt", ""),
+            "aspect_ratio": image_field(slot, "aspect_ratio", ""),
+            "source": image_field(slot, "source", ""),
+            "creator": image_field(slot, "creator", ""),
+            "license": image_field(slot, "license", ""),
+            "attribution": image_field(slot, "attribution", ""),
+            "restrictions": image_field(slot, "restrictions", ""),
+            "unresolved": bool(unresolved_reason),
+            "unresolved_reason": unresolved_reason,
+        })
+    unresolved_image_report_items = [
+        {
+            "slug": image_field(slot, "slug", ""),
+            "asset_state": image_state(slot, source_root),
+            "replacement_path": image_field(slot, "path", ""),
+            "source_location": {
+                "file": image_field(slot, "manuscript_file", None),
+                "line": image_field(slot, "manuscript_line", None),
+            },
+            "reason": image_field(slot, "unresolved_reason", ""),
+        }
+    for slot in unresolved_used_slots
+    ]
     table_count = len(re.findall(r"(?m)^\s*\|.*\n\s*\|?\s*:?-{3,}", manuscript_text))
+    report_inputs = [
+        {"path": str(path), "sha256": sha256(source_root / "manuscript" / path)}
+        for path in manuscripts
+    ]
+    image_manifest = source_root / "image-slots.yaml"
+    if used_image_slots and image_manifest.is_file():
+        report_inputs.append({"path": image_manifest.name, "sha256": sha256(image_manifest)})
     report = {
         "schema_version": BUILD_REPORT_SCHEMA_VERSION,
         "build_id": build_id,
@@ -724,7 +815,7 @@ def build(args: argparse.Namespace) -> int:
         "commit": git_value(["rev-parse", "HEAD"]),
         "status": "running",
         "started_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-        "inputs": [{"path": str(path), "sha256": sha256(source_root / "manuscript" / path)} for path in manuscripts],
+        "inputs": report_inputs,
         "templates": [{"path": str(path.relative_to(REPO_ROOT)), "sha256": sha256(path)} for path in (template_files() + [entrypoint, LICENSE_FILE])],
         "assets": staged_assets,
         "tool_versions": {"python": sys.version.split()[0], "pandoc": version_line("pandoc") or "not found", "tex": version_line(engine) or "not found"},
@@ -739,7 +830,11 @@ def build(args: argparse.Namespace) -> int:
         # (null when publication.yaml declares none and en-US applies).
         "language": resolve_language(declared_language, target.requested_theme).as_dict() if declared_language else None,
         "font_policy": font_policy,
-        "commands": [], "exit_codes": [], "diagnostics": {}, "figures": figure_count, "tables": table_count, "pdf_sha256": None,
+        "commands": [], "exit_codes": [], "diagnostics": {}, "figures": figure_count,
+        "images": image_report_items,
+        "unresolved_image_count": len(unresolved_image_report_items),
+        "unresolved_image_slots": unresolved_image_report_items,
+        "tables": table_count, "pdf_sha256": None,
     }
     report_path = output / "build-report.json"
     templates_root = REPO_ROOT / "latex_templates"

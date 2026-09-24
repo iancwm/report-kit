@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate manuscript order, visual sentinels, fragments, and labels."""
+"""Validate manuscript order, diagram/image sentinels, declarations, and labels."""
 from __future__ import annotations
 
 import argparse
@@ -24,14 +24,23 @@ def main() -> int:
         default=Path(__file__).resolve().parents[1] / "example_publication",
         help="consumer publication project (default: the pipeline's generic example)",
     )
+    parser.add_argument(
+        "--profile",
+        choices=("draft", "final", "release"),
+        default="draft",
+        help="validation profile; final and release require supplied images and resolved rights",
+    )
     args = parser.parse_args()
-    result = validate_publication(args.root)
+    result = validate_publication(args.root, profile=args.profile)
     if result.ok:
-        print(f"PASS: publication validation ({len(result.manuscript_files)} manuscripts, {len(result.slugs)} visuals, {len(result.labels)} labels)")
+        print(f"PASS: publication validation ({len(result.manuscript_files)} manuscripts, {len(result.slugs)} visuals, {len(result.image_slots)} image slots, {len(result.labels)} labels)")
+        for diagnostic in result.diagnostics:
+            if diagnostic["severity"] == "warning":
+                print(f"WARN [{diagnostic['code']}]: {diagnostic['message']}", file=sys.stderr)
         return 0
     print("FAIL: publication validation", file=sys.stderr)
-    for error in result.errors:
-        print(f"- {error}", file=sys.stderr)
+    for diagnostic in result.diagnostics:
+        print(f"- [{diagnostic['severity'].upper()} {diagnostic['code']}] {diagnostic['message']}", file=sys.stderr)
     return 1
 
 

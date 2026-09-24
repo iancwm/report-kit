@@ -42,6 +42,15 @@ def _argument_text(argument: Mapping[str, Any], supplied: Mapping[str, str]) -> 
 def _render_arguments(node: DirectiveNode, record: Mapping[str, Any]) -> str:
     values: list[str] = []
     supplied = dict(node.arguments)
+    declared_names = {
+        str(argument.get("name"))
+        for argument in record.get("arguments", [])
+        if isinstance(argument, Mapping) and argument.get("name")
+    }
+    if {"title", "legacy_suffix"}.issubset(declared_names) and {"title", "legacy_suffix"}.issubset(supplied):
+        raise ValueError(
+            f"callout {node.primitive!r} cannot set both replacement 'title' and legacy 'legacy_suffix'"
+        )
     # Keep the Markdown surface ergonomic while rendering the exact LaTeX
     # options slot expected by the presentation composition.
     if node.primitive == "assertionslide" and "kicker" in supplied and "options" not in supplied:

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+from dataclasses import asdict
 import json
 import os
 from pathlib import Path
@@ -314,7 +315,7 @@ def _run_check(args: argparse.Namespace) -> int:
         if not args.json:
             print(payload["errors"][0], file=sys.stderr)
         return version_exit
-    result = validate_publication(root)
+    result = validate_publication(root, profile=args.profile or "draft")
     authoring = validate_authoring(root)
     diagnostics.extend(result.diagnostics)
     diagnostics.extend(authoring.diagnostics)
@@ -358,6 +359,9 @@ def _run_check(args: argparse.Namespace) -> int:
         manuscript_files=result.manuscript_files,
         visuals=result.slugs,
         labels=result.labels,
+        profile=result.profile,
+        image_slots={slug: asdict(slot) for slug, slot in result.image_slots.items()},
+        unresolved_image_slots=[asdict(slot) for slot in result.unresolved_image_slots],
         sources=authoring.sources,
         chapters=authoring.chapters,
         links=authoring.links,
@@ -365,7 +369,10 @@ def _run_check(args: argparse.Namespace) -> int:
     if args.json:
         _json_or_print(payload, True)
     elif not errors:
-        print(f"PASS: publication validation ({len(result.manuscript_files)} manuscripts, {len(result.slugs)} visuals, {len(result.labels)} labels)")
+        print(f"PASS: publication validation ({len(result.manuscript_files)} manuscripts, {len(result.slugs)} visuals, {len(result.image_slots)} image slots, {len(result.labels)} labels)")
+        for diagnostic in diagnostics:
+            if diagnostic["severity"] == "warning":
+                print(f"WARN [{diagnostic['code']}]: {diagnostic['message']}", file=sys.stderr)
     else:
         print("FAIL: publication validation", file=sys.stderr)
         for error in errors:

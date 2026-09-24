@@ -1,0 +1,23 @@
+images:
+  fixture-object:
+    purpose: Exercise a supplied image slot with a generic object drawing
+    caption: Generic object drawing used to exercise image replacement.
+    alt: A blue square with a white circle in its center.
+    aspect_ratio: square
+    path: assets/images/fixture-object.png
+    source: Created in this repository for the generic publication fixture.
+    creator: ReportKit contributors
+    license: CC0-1.0
+    attribution: No external attribution required.
+    restrictions: None.
+  field-photo:
+    purpose: Show the observed condition at the field inspection point
+    caption: Field inspection photograph; source to be selected.
+    alt: Photograph of the field inspection point, not yet supplied.
+    aspect_ratio: landscape
+    path: assets/images/field-photo.jpg
+    source: Pending selection of a licensable source.
+    creator: Pending source selection.
+    license: Pending source selection.
+    attribution: Pending source selection.
+    restrictions: Pending source selection.

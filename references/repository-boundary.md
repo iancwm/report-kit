@@ -26,6 +26,7 @@ Before editing anything, know which side of the line you are on:
 | `references/`, `metadata/` | `publication.yaml` — title, author, version, identity |
 | `tests/` — engine regression suites | `build/`, `output/` — build artefacts, QA logs, final PDF |
 | `font_data/` | `reportkit.lock` — pinned engine ref + toolchain versions |
+|  | `image-slots.yaml` — image purpose, replacement path, and rights metadata |
 
 `publication_pipeline/example_publication/` is the one exception: a small,
 generic fixture used by this repo's own tests and pre-commit hook to exercise
@@ -40,6 +41,7 @@ my-publication/
   fragments/            # fig-<slug>.tex, one per [[REPORTKIT-VISUAL:fig:<slug>]] sentinel
   assets/                # cover art, source data, anything referenced by name
   figures/              # generated chart PDF/PNG (reportkit_viz.py output)
+  image-slots.yaml      # declarations for [[REPORTKIT-IMAGE:img:<slug>]] slots
   publication.yaml       # title (required), subtitle, author, version, ...
   build/                 # gitignored — compiler output, logs, page renders
   output/                # gitignored — final release PDF + QA manifest

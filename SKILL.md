@@ -95,6 +95,7 @@ For a multi-chapter publication that needs parts, appendices, a reference list o
 - Separate facts, interpretation, uncertainty, and recommendation. Never invent citations, data, or spurious precision.
 - Make the executive summary a short narrative: problem, strongest evidence, conclusion, and implication.
 - Use semantic callouts only when their meaning matters: `principle`, `decisionpoint`, `researchproblem`, `assumption`, `redflag`, `evidencenote`, `limitationnote`, `tipnote`, `deliverablenote`, and `metric`.
+- A callout helps when a discrete principle, decision, research problem, assumption, risk, evidence caveat, limitation, tip, or deliverable should stand apart from nearby prose. The nine single-title callouts accept an optional replacement heading such as `title: Weak` on `redflag` or `title: Strong` on `tipnote`; omit `title` to use the semantic default. Keep supporting explanation outside the box. Do not box routine paragraphs, every list item, numerical evidence better shown in a table or chart, or prose to fill a page. There is no callout quota. `metric` keeps its separate label/value contract. See [references/callouts-and-image-slots.md](references/callouts-and-image-slots.md) for selection examples and image slots.
 - Use `\source{...}` for every figure and diagram. A conceptual visual may explicitly use `Conceptual diagram.` as its source.
 
 ## Visual grammar

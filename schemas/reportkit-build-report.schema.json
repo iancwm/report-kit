@@ -5,7 +5,62 @@
   "required": ["schema_version", "build_id", "status", "toolchain", "diagnostics"],
   "properties": {
     "schema_version": {"const": 3}, "build_id": {"type": "string"}, "status": {"type": "string"},
-    "toolchain": {"type": "object"}, "diagnostics": {"type": "object"}
+    "toolchain": {"type": "object"}, "diagnostics": {"type": "object"},
+    "images": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["slug", "declaration_path", "asset_state", "replacement_path", "source_location"],
+        "properties": {
+          "slug": {"type": "string"},
+          "declaration_path": {"type": "string"},
+          "asset_state": {"enum": ["supplied", "placeholder"]},
+          "replacement_path": {"type": "string"},
+          "source_location": {
+            "type": "object",
+            "required": ["file", "line"],
+            "properties": {"file": {"type": "string"}, "line": {"type": "integer", "minimum": 1}},
+            "additionalProperties": false
+          },
+          "purpose": {"type": "string"},
+          "caption": {"type": "string"},
+          "alt": {"type": "string"},
+          "aspect_ratio": {"enum": ["wide", "landscape", "square", "portrait"]},
+          "source": {"type": "string"},
+          "creator": {"type": "string"},
+          "license": {"type": "string"},
+          "attribution": {"type": "string"},
+          "restrictions": {"type": "string"},
+          "unresolved": {"type": "boolean"},
+          "unresolved_reason": {"type": ["string", "null"]}
+        },
+        "additionalProperties": true
+      }
+    },
+    "unresolved_image_count": {"type": "integer", "minimum": 0},
+    "unresolved_image_slots": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["slug", "asset_state", "replacement_path", "source_location", "reason"],
+        "properties": {
+          "slug": {"type": "string"},
+          "asset_state": {"enum": ["supplied", "placeholder"]},
+          "replacement_path": {"type": "string"},
+          "source_location": {"$ref": "#/$defs/source_location"},
+          "reason": {"type": "string"}
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "$defs": {
+    "source_location": {
+      "type": "object",
+      "required": ["file", "line"],
+      "properties": {"file": {"type": "string"}, "line": {"type": "integer", "minimum": 1}},
+      "additionalProperties": false
+    }
   },
   "additionalProperties": true
 }
