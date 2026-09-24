@@ -1,0 +1,300 @@
+% ReportKit theme: default -- the original ReportKit visual identity, moved
+% verbatim out of reportkit.cls v1.5.0 by the theme architecture in
+% docs/superpowers/specs/2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md.
+% This file owns fonts, palette, and renderer-neutral semantic appearance.
+% reportkit.cls loads reportkit-core.sty (engine-neutral mechanism) before
+% this file, so core's macros and packages are available here.
+%
+% Selected automatically by `\documentclass{reportkit}` (no theme= option) or
+% `\documentclass[theme=default]{reportkit}`. Every existing ReportKit
+% publication uses this theme; its output is unchanged by the theme split --
+% nothing below was rewritten, only relocated.
+%
+% Phase A4 (decision D11) split this file again: geometry, running
+% furniture, section-heading placement, and \maketitle -- all page-specific --
+% moved verbatim to reportkit-theme-default-paged.sty, loaded by reportkit.cls
+% immediately after this file. What remains here is renderer-neutral: fonts,
+% palette, typography defaults, the semantic style-token contract (see
+% reportkit-core.sty's "Style token contract" section) that
+% reportkit-boxes.sty now reads instead of branching on \rk@theme, execsummary
+% (an ordinary list environment, not page machinery), and the source helper.
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{reportkit-theme-default}[2026/09/13 v1.8.0 ReportKit default theme]
+
+% -----------------------------------------------------------------------------
+% Fonts
+% -----------------------------------------------------------------------------
+% v1.2.1 fix: fontenc/inputenc and libertinust1math are pdfTeX-only concerns.
+% Under luaTeX/XeTeX, libertinus.sty already auto-loads correct OpenType math
+% support via unicode-math; separately loading the legacy T1 math companion
+% package on top of that clobbers operator glyph mappings (observed: \times
+% rendered as the wrong glyph -- resembling \propto -- once both were loaded
+% together under lualatex). Guard both by engine so each engine gets exactly
+% the math setup it needs, and no more.
+\ifPDFTeX
+  \RequirePackage[T1]{fontenc}
+  \RequirePackage[utf8]{inputenc}
+\fi
+\RequirePackage{libertinus}
+\ifPDFTeX
+  \RequirePackage{libertinust1math}
+\fi
+
+% -----------------------------------------------------------------------------
+% Canonical ReportKit palette. Kept in sync with reportkit_viz.py
+% (`reportkit_viz.py check-theme --theme default`).
+% -----------------------------------------------------------------------------
+\definecolor{Ink}{HTML}{24272D}
+\definecolor{Muted}{HTML}{687386}
+\definecolor{Hairline}{HTML}{D9DEE5}
+\definecolor{LinkBlue}{HTML}{2C5E78}
+\definecolor{Principle}{HTML}{2C5E78}
+\definecolor{Decision}{HTML}{68558A}
+\definecolor{Research}{HTML}{2B7074}
+\definecolor{Tip}{HTML}{3F6D54}
+\definecolor{RedFlag}{HTML}{A14B45}
+\definecolor{Assumption}{HTML}{8A6A24}
+\definecolor{Evidence}{HTML}{4B6472}
+\definecolor{Limitation}{HTML}{6E6A67}
+\definecolor{MetricAccent}{HTML}{315E86}
+\definecolor{Surface}{HTML}{F7F8FA}
+% v1.2 addition, paired with the \deliverablenote callout in
+% reportkit-boxes.sty. Mirrored in reportkit_viz.py's LATEX_THEME_COLORS.
+\definecolor{Deliverable}{HTML}{2C6E49}
+
+\color{Ink}
+\hypersetup{colorlinks=true,linkcolor=LinkBlue,urlcolor=LinkBlue,citecolor=LinkBlue,pdfborder={0 0 0},pdfdisplaydoctitle=true}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{4.5pt plus 1pt minus .5pt}
+\setlist{nosep,leftmargin=1.45em,topsep=3pt}
+\sisetup{detect-all=true,group-separator={,}}
+\captionsetup{font=small,labelfont=bf,labelsep=period,singlelinecheck=false,skip=4pt}
+
+% -----------------------------------------------------------------------------
+% Style tokens (reportkit-core.sty's contract) -- callout and metric chrome.
+% This is the pre-v1.3.0 callout chrome and the metric card's only styling
+% (both were hardcoded in reportkit-boxes.sty before Phase A4; see that
+% file's own note). Category colors (Principle, Decision, RedFlag, ...) and
+% MetricAccent above are unaffected -- these tokens style the box itself.
+% -----------------------------------------------------------------------------
+\renewcommand{\RKTokCalloutColBack}{Surface}
+\renewcommand{\RKTokCalloutColFrame}{Hairline}
+\renewcommand{\RKTokCalloutBoxRule}{.45pt}
+\renewcommand{\RKTokCalloutLeftRule}{2.2pt}
+\renewcommand{\RKTokCalloutArc}{0pt}
+\renewcommand{\RKTokCalloutOuterArc}{0pt}
+\renewcommand{\RKTokCalloutPadLeft}{8pt}
+\renewcommand{\RKTokCalloutPadRight}{8pt}
+\renewcommand{\RKTokCalloutPadTop}{6pt}
+\renewcommand{\RKTokCalloutPadBottom}{6pt}
+\renewcommand{\RKTokCalloutBeforeSkip}{6pt}
+\renewcommand{\RKTokCalloutAfterSkip}{7pt}
+\renewcommand{\RKTokCalloutTitleFont}{\fontsize{7.3}{8.5}\selectfont}
+\renewcommand{\RKTokMetricColBack}{white}
+\renewcommand{\RKTokMetricColFrame}{Hairline}
+\renewcommand{\RKTokMetricBoxRule}{.45pt}
+\renewcommand{\RKTokMetricArc}{0pt}
+\renewcommand{\RKTokMetricOuterArc}{0pt}
+\renewcommand{\RKTokMetricPadLeft}{10pt}
+\renewcommand{\RKTokMetricPadRight}{10pt}
+\renewcommand{\RKTokMetricPadTop}{8pt}
+\renewcommand{\RKTokMetricPadBottom}{8pt}
+\renewcommand{\RKTokMetricBeforeSkip}{7pt}
+\renewcommand{\RKTokMetricAfterSkip}{8pt}
+\renewcommand{\RKTokMetricBorderLineWidth}{2.4pt}
+\renewcommand{\RKTokMetricLabelFont}{\fontsize{7.3}{8.5}\selectfont}
+\renewcommand{\RKTokMetricValueFont}{\fontsize{21}{23}\selectfont}
+\renewcommand{\RKTokMetricSubtitleFont}{\fontsize{8.3}{10}\selectfont}
+\renewcommand{\RKTokMetricSubtitleSpacing}{4pt}
+\renewcommand{\RKTokMetricWhyFont}{\fontsize{7.2}{8.4}\selectfont}
+% Diagram chrome (reportkit-core.sty's "Diagram chrome" contract, Phase A4's
+% implemented diagram work). All themes populate these with the
+% exact pre-Phase-A4 hardcoded values -- appearance is unchanged, only
+% relocated, the same rule the theme/adapter split above already follows.
+% Category/semantic colors (Hairline, Surface, Ink, Muted, LinkBlue,
+% Evidence, Research, ...) are unaffected and already vary per theme via
+% \definecolor above; these tokens style weight/rounding/padding/font.
+\renewcommand{\RKTokDiagramNodeDraw}{Hairline}
+\renewcommand{\RKTokDiagramNodeFill}{Surface}
+\renewcommand{\RKTokDiagramNodeText}{Ink}
+\renewcommand{\RKTokDiagramNodeRounding}{1.2pt}
+\renewcommand{\RKTokDiagramNodeMinHeight}{10mm}
+\renewcommand{\RKTokDiagramNodeTextWidth}{28mm}
+\renewcommand{\RKTokDiagramNodePadX}{5pt}
+\renewcommand{\RKTokDiagramNodePadY}{4pt}
+\renewcommand{\RKTokDiagramNodeFont}{\sffamily\fontsize{8.1}{9.7}\selectfont}
+\renewcommand{\RKTokDiagramAccentDraw}{LinkBlue}
+\renewcommand{\RKTokDiagramAccentFill}{Surface}
+\renewcommand{\RKTokDiagramAccentWidth}{.8pt}
+\renewcommand{\RKTokDiagramArrowLength}{4pt}
+\renewcommand{\RKTokDiagramArrowWidth}{4pt}
+\renewcommand{\RKTokDiagramEdgeFlowColor}{Evidence}
+\renewcommand{\RKTokDiagramEdgeFlowWidth}{.8pt}
+\renewcommand{\RKTokDiagramEdgeSequenceColor}{Evidence}
+\renewcommand{\RKTokDiagramEdgeSequenceWidth}{.8pt}
+\renewcommand{\RKTokDiagramEdgeDependencyColor}{LinkBlue}
+\renewcommand{\RKTokDiagramEdgeDependencyWidth}{.75pt}
+\renewcommand{\RKTokDiagramEdgeHandoffColor}{Muted}
+\renewcommand{\RKTokDiagramEdgeHandoffWidth}{.75pt}
+\renewcommand{\RKTokDiagramEdgeCausalColor}{Research}
+\renewcommand{\RKTokDiagramEdgeCausalWidth}{.9pt}
+\renewcommand{\RKTokDiagramEdgeOptionalColor}{Muted}
+\renewcommand{\RKTokDiagramEdgeOptionalWidth}{.7pt}
+\renewcommand{\RKTokDiagramEdgeLabelFill}{white}
+\renewcommand{\RKTokDiagramEdgeLabelPad}{1.5pt}
+\renewcommand{\RKTokDiagramEdgeLabelText}{Muted}
+\renewcommand{\RKTokDiagramEdgeLabelFont}{\sffamily\fontsize{6.8}{8}\selectfont}
+\renewcommand{\RKTokDiagramLayerDraw}{Hairline}
+\renewcommand{\RKTokDiagramLayerFill}{white}
+\renewcommand{\RKTokDiagramLayerWidth}{.5pt}
+\renewcommand{\RKTokDiagramLayerTitleFont}{\sffamily\bfseries\fontsize{7.7}{9}\selectfont}
+\renewcommand{\RKTokDiagramLayerTitleText}{Ink}
+\renewcommand{\RKTokDiagramLayerBodyFont}{\sffamily\fontsize{7.2}{8.5}\selectfont}
+\renewcommand{\RKTokDiagramLayerBodyText}{Muted}
+\renewcommand{\RKTokDiagramTierDraw}{Hairline}
+\renewcommand{\RKTokDiagramTierFill}{Surface}
+\renewcommand{\RKTokDiagramTierWidth}{.5pt}
+\renewcommand{\RKTokDiagramTierLabelFont}{\sffamily\fontsize{7.5}{9}\selectfont}
+\renewcommand{\RKTokDiagramTierLabelText}{Ink}
+\renewcommand{\RKTokDiagramStackArrowColor}{Evidence}
+\renewcommand{\RKTokDiagramStackArrowWidth}{.7pt}
+\renewcommand{\RKTokDiagramCycleNodeFont}{\sffamily\fontsize{7.4}{8.8}\selectfont}
+\renewcommand{\RKTokDiagramCycleEdgeColor}{Evidence}
+\renewcommand{\RKTokDiagramCycleEdgeWidth}{.8pt}
+\renewcommand{\RKTokDiagramMatrixAxisColor}{Hairline}
+\renewcommand{\RKTokDiagramMatrixAxisWidth}{.55pt}
+\renewcommand{\RKTokDiagramMatrixAxisLabelFont}{\sffamily\fontsize{7.2}{8.6}\selectfont}
+\renewcommand{\RKTokDiagramMatrixAxisLabelText}{Muted}
+\renewcommand{\RKTokDiagramMatrixEndpointFont}{\sffamily\fontsize{6.8}{8}\selectfont}
+\renewcommand{\RKTokDiagramMatrixEndpointText}{Muted}
+\renewcommand{\RKTokDiagramMatrixAccentColor}{LinkBlue}
+\renewcommand{\RKTokDiagramMatrixCellFont}{\sffamily\fontsize{8}{9.5}\selectfont}
+\renewcommand{\RKTokDiagramMatrixCellText}{Ink}
+\renewcommand{\RKTokDiagramMatrixPointColor}{LinkBlue}
+\renewcommand{\RKTokDiagramMatrixPointRadius}{1.55pt}
+\renewcommand{\RKTokDiagramMatrixPointLabelFont}{\sffamily\fontsize{6.9}{8.2}\selectfont}
+\renewcommand{\RKTokDiagramMatrixPointLabelText}{Ink}
+\renewcommand{\RKTokDiagramLaneDividerColor}{Hairline}
+\renewcommand{\RKTokDiagramLaneDividerWidth}{.5pt}
+\renewcommand{\RKTokDiagramLaneLabelFont}{\sffamily\fontsize{7.2}{8.5}\selectfont}
+\renewcommand{\RKTokDiagramLaneLabelText}{Muted}
+\renewcommand{\RKTokDiagramTimelineAxisColor}{Evidence}
+\renewcommand{\RKTokDiagramTimelineAxisWidth}{.8pt}
+\renewcommand{\RKTokDiagramTimelineDotColor}{LinkBlue}
+\renewcommand{\RKTokDiagramTimelineDotRadius}{2.1pt}
+\renewcommand{\RKTokDiagramRoadmapAccentColor}{LinkBlue}
+\renewcommand{\RKTokDiagramRoadmapAccentFont}{\sffamily\bfseries\fontsize{7.1}{8.5}\selectfont}
+\renewcommand{\RKTokDiagramStructureCardDraw}{Hairline}
+\renewcommand{\RKTokDiagramStructureCardFill}{Surface}
+\renewcommand{\RKTokDiagramStructureCardRounding}{1.2pt}
+\renewcommand{\RKTokDiagramStructureCardWidth}{.5pt}
+\renewcommand{\RKTokDiagramStructureCardPadX}{4pt}
+\renewcommand{\RKTokDiagramStructureCardPadY}{3.5pt}
+\renewcommand{\RKTokDiagramStructureCardFont}{\sffamily\fontsize{7.4}{8.8}\selectfont}
+\renewcommand{\RKTokDiagramStructureCardText}{Ink}
+\renewcommand{\RKTokDiagramStructureTitleFont}{\sffamily\bfseries\fontsize{7.7}{9.2}\selectfont}
+\renewcommand{\RKTokDiagramStructureTitleText}{Ink}
+\renewcommand{\RKTokDiagramStructureMutedFont}{\sffamily\fontsize{6.8}{8.1}\selectfont}
+\renewcommand{\RKTokDiagramStructureMutedText}{Muted}
+\renewcommand{\RKTokDiagramStructureArrowColor}{Evidence}
+\renewcommand{\RKTokDiagramStructureArrowWidth}{.7pt}
+\renewcommand{\RKTokDiagramStructureArrowTip}{3.6pt}
+% Algorithm-visualization state grammar (reportkit-algorithm-viz.sty family).
+% Reuses this theme's existing semantic colors rather than introducing new
+% ones; LineStyle tokens carry a real tikz fragment (width/dash), not just a
+% color, so state meaning survives grayscale printing.
+\renewcommand{\RKTokAlgorithmCellDraw}{Hairline}
+\renewcommand{\RKTokAlgorithmCellFill}{white}
+\renewcommand{\RKTokAlgorithmCellText}{Ink}
+\renewcommand{\RKTokAlgorithmCellLineStyle}{solid}
+\renewcommand{\RKTokAlgorithmCurrentDraw}{LinkBlue}
+\renewcommand{\RKTokAlgorithmCurrentFill}{LinkBlue!14}
+\renewcommand{\RKTokAlgorithmCurrentText}{Ink}
+\renewcommand{\RKTokAlgorithmCurrentLineStyle}{line width=1.15pt}
+\renewcommand{\RKTokAlgorithmActiveDraw}{LinkBlue}
+\renewcommand{\RKTokAlgorithmActiveFill}{LinkBlue!8}
+\renewcommand{\RKTokAlgorithmActiveText}{Ink}
+\renewcommand{\RKTokAlgorithmActiveLineStyle}{solid}
+\renewcommand{\RKTokAlgorithmCandidateDraw}{Muted}
+\renewcommand{\RKTokAlgorithmCandidateFill}{Surface}
+\renewcommand{\RKTokAlgorithmCandidateText}{Ink}
+\renewcommand{\RKTokAlgorithmCandidateLineStyle}{dash pattern=on 2.4pt off 1.6pt}
+\renewcommand{\RKTokAlgorithmFrontierDraw}{Research}
+\renewcommand{\RKTokAlgorithmFrontierFill}{Research!10}
+\renewcommand{\RKTokAlgorithmFrontierText}{Ink}
+\renewcommand{\RKTokAlgorithmFrontierLineStyle}{solid}
+\renewcommand{\RKTokAlgorithmVisitedDraw}{Muted}
+\renewcommand{\RKTokAlgorithmVisitedFill}{Hairline!55!white}
+\renewcommand{\RKTokAlgorithmVisitedText}{Muted}
+\renewcommand{\RKTokAlgorithmVisitedLineStyle}{solid}
+\renewcommand{\RKTokAlgorithmResolvedDraw}{Deliverable}
+\renewcommand{\RKTokAlgorithmResolvedFill}{Deliverable!12}
+\renewcommand{\RKTokAlgorithmResolvedText}{Ink}
+\renewcommand{\RKTokAlgorithmResolvedLineStyle}{line width=0.9pt}
+\renewcommand{\RKTokAlgorithmDiscardedDraw}{RedFlag}
+\renewcommand{\RKTokAlgorithmDiscardedFill}{RedFlag!8}
+\renewcommand{\RKTokAlgorithmDiscardedText}{Muted}
+\renewcommand{\RKTokAlgorithmDiscardedLineStyle}{dashed}
+\renewcommand{\RKTokAlgorithmBlockedDraw}{RedFlag}
+\renewcommand{\RKTokAlgorithmBlockedFill}{Hairline}
+\renewcommand{\RKTokAlgorithmBlockedText}{Muted}
+\renewcommand{\RKTokAlgorithmBlockedLineStyle}{densely dotted}
+\renewcommand{\RKTokAlgorithmUnseenDraw}{Hairline}
+\renewcommand{\RKTokAlgorithmUnseenFill}{white}
+\renewcommand{\RKTokAlgorithmUnseenText}{Muted}
+\renewcommand{\RKTokAlgorithmUnseenLineStyle}{solid}
+\renewcommand{\RKTokAlgorithmCellFont}{\sffamily\fontsize{8}{9.5}\selectfont}
+\renewcommand{\RKTokAlgorithmCellMinSize}{7mm}
+\renewcommand{\RKTokAlgorithmCellPad}{2pt}
+\renewcommand{\RKTokAlgorithmCellRounding}{1pt}
+\renewcommand{\RKTokAlgorithmIndexFont}{\sffamily\fontsize{6.6}{7.9}\selectfont}
+\renewcommand{\RKTokAlgorithmIndexText}{Muted}
+\renewcommand{\RKTokAlgorithmIndexGap}{2.4pt}
+\renewcommand{\RKTokAlgorithmPointerColor}{LinkBlue}
+\renewcommand{\RKTokAlgorithmPointerFont}{\sffamily\bfseries\fontsize{7}{8.4}\selectfont}
+\renewcommand{\RKTokAlgorithmPointerWidth}{.9pt}
+\renewcommand{\RKTokAlgorithmContainerDraw}{Hairline}
+\renewcommand{\RKTokAlgorithmContainerWidth}{.5pt}
+\renewcommand{\RKTokAlgorithmAnnotationFont}{\sffamily\fontsize{7.6}{9.1}\selectfont}
+\renewcommand{\RKTokAlgorithmAnnotationText}{Muted}
+\renewcommand{\RKTokAlgorithmRowLabelFont}{\sffamily\fontsize{7.2}{8.5}\selectfont}
+\renewcommand{\RKTokAlgorithmRowLabelText}{Muted}
+\renewcommand{\RKTokAlgorithmTraceLabelFont}{\sffamily\bfseries\fontsize{7.4}{8.8}\selectfont}
+\renewcommand{\RKTokAlgorithmTraceLabelText}{Ink}
+\renewcommand{\RKTokAlgorithmTraceSeparatorColor}{Hairline}
+\renewcommand{\RKTokAlgorithmTraceSeparatorWidth}{.5pt}
+\renewcommand{\RKTokAlgorithmGraphNodeWidth}{14mm}
+\renewcommand{\RKTokAlgorithmGraphEdgeColor}{Muted}
+\renewcommand{\RKTokAlgorithmGraphEdgeWidth}{.7pt}
+\renewcommand{\RKTokAlgorithmDagBadgeDraw}{Hairline}
+\renewcommand{\RKTokAlgorithmDagBadgeFill}{white}
+\renewcommand{\RKTokAlgorithmDagBadgeText}{Muted}
+\renewcommand{\RKTokAlgorithmDagBadgeFont}{\sffamily\bfseries\fontsize{5.4}{6.4}\selectfont}
+\renewcommand{\RKTokAlgorithmDagBadgeSize}{3.4mm}
+\renewcommand{\RKTokAlgorithmReadyQueueLabelFont}{\sffamily\bfseries\fontsize{6.6}{7.9}\selectfont}
+\renewcommand{\RKTokAlgorithmReadyQueueLabelText}{Muted}
+% intervalstate/heapstate chrome (reportkit-algorithm-order.sty). Reuses
+% this theme's existing named colors: the axis line matches the weight of
+% the existing container/trace-separator hairline, and the tree-edge line
+% matches the existing graph-edge weight.
+\renewcommand{\RKTokAlgorithmIntervalAxisColor}{Hairline}
+\renewcommand{\RKTokAlgorithmIntervalAxisWidth}{.5pt}
+\renewcommand{\RKTokAlgorithmHeapEdgeColor}{Muted}
+\renewcommand{\RKTokAlgorithmHeapEdgeWidth}{.7pt}
+\rk@styletokensloadedtrue
+
+% <reportkit-contract>
+% {"kind":"callout","description":"Execsummary","arguments":[],"constraints":[],"example":"\\begin{execsummary}\nExample content.\n\\end{execsummary}","stability":"stable","since":"1.0.0"}
+% </reportkit-contract>
+\NewDocumentEnvironment{execsummary}{}{%
+  \par\RKReserveSpace{8\baselineskip}%
+  \begin{list}{}{\setlength{\leftmargin}{0pt}\setlength{\rightmargin}{0pt}}\item\relax
+  \color{Ink}\sffamily\small\textbf{EXECUTIVE SUMMARY}\par\vspace{2pt}\rmfamily\normalsize
+}{%
+  \end{list}\vspace{3pt}
+}
+
+% Figure/table provenance helper.
+\newcommand{\source}[1]{\par\vspace{1pt}{\sffamily\fontsize{7.4}{9}\selectfont\color{Muted}\textit{Source:} #1}\par}
+
+\endinput

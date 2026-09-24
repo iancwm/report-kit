@@ -1,0 +1,482 @@
+% ReportKit v1.10.0 -- graphstate/gridstate/dagstate algorithm-visualization
+% primitives
+%
+% Implements Phase 2's graph/grid pair (spec sections 8-9) and Phase 3's
+% dagstate (spec section 10) of
+% docs/superpowers/specs/2026-09-16-reportkit-algorithm-visualization-primitives-spec.md:
+%   (1) `graphstate` -- graph TRAVERSAL state (node visitation status plus
+%       directed edges), distinct from reportkit-process.sty's `reportnetwork`
+%       which is relationship-centric, not algorithm-state-centric;
+%   (2) `gridstate` -- 2D grid algorithms (flood fill, maze traversal, matrix
+%       DP, connected cells), with deterministic 1-based row/column placement;
+%   (3) `dagstate` -- dependency-graph state for topological sorting, DAG
+%       scheduling, and data-pipeline execution, built directly on
+%       graphstate's automatic grid layout (see that section's own note,
+%       below, for why it is a thin extension rather than a new renderer).
+%
+% This module is \RequirePackage'd by reportkit-algorithm-viz.sty itself,
+% right before that file's own \endinput, exactly as reportkit-diagrams.sty
+% loads reportkit-structure.sty from within itself: it draws into the same
+% already-open `diagram` tikzpicture and reuses reportkit-algorithm-viz.sty's
+% already-asserted style-token contract and its `rk algo state <name>` /
+% `rk algo cell` / `rk algo container` styles and \rk@setalgostate helper, so
+% it must NOT call \RKAssertStyleTokens or \RequirePackage{reportkit-algorithm-viz}
+% itself -- by the time this file is read, both have already happened.
+%
+% Per the spec's section 2.3 (composition before specialization), graphstate
+% is deliberately standalone: BFS/DFS explanations are left to a document
+% author pairing graphstate with queuestate/stackstate inside the same
+% `diagram` or `algorithmtrace` snapshot, not a separate BFS/DFS primitive.
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{reportkit-algorithm-graph}[2026/09/17 v1.0.0 ReportKit graphstate/gridstate algorithm-visualization primitives]
+\RequirePackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,calc,backgrounds}
+\RequirePackage{xparse}
+\RequirePackage{pgfkeys}
+\RequirePackage{etoolbox}
+
+\makeatletter
+
+% -----------------------------------------------------------------------------
+% graphstate -- graph traversal state: node visitation status + directed
+% edges, automatically laid out on a grid (mirrors reportkit-process.sty's
+% \networknode grid layout). Node coloring reuses the shared
+% `rk algo state <name>` overlay via \rk@setalgostate, exactly like
+% arraystate's \cell; edges get their own small token-driven style rather
+% than a hard-coded color, since "edge" is not part of the shared state
+% vocabulary.
+% -----------------------------------------------------------------------------
+\tikzset{
+  rk algo graph node/.style={
+    draw=\RKTokAlgorithmCellDraw,fill=\RKTokAlgorithmCellFill,text=\RKTokAlgorithmCellText,\RKTokAlgorithmCellLineStyle,
+    rectangle,rounded corners=\RKTokAlgorithmCellRounding,
+    minimum height=\RKTokAlgorithmCellMinSize,text width=\RKTokAlgorithmGraphNodeWidth,
+    inner sep=\RKTokAlgorithmCellPad,font=\RKTokAlgorithmCellFont,align=center
+  },
+  rk algo graph edge/.style={rk edge,draw=\RKTokAlgorithmGraphEdgeColor,line width=\RKTokAlgorithmGraphEdgeWidth},
+}
+
+\newcount\rk@graphindex
+\newcommand{\rk@graphcolumns}{4}
+\newcommand{\rk@graphxstep}{3.3}
+\newcommand{\rk@graphystep}{2.1}
+\pgfkeys{
+  /reportkit/graphstate/.is family,
+  /reportkit/graphstate,
+  columns/.store in=\rk@graphcolumns,
+  x spacing/.store in=\rk@graphxstep,
+  y spacing/.store in=\rk@graphystep,
+}
+
+% Automatic grid layout is deliberately the only placement strategy in this
+% first implementation (spec section 8.3: "the first implementation can
+% reuse ReportKit's existing semantic node and edge styles"). Authors do not
+% supply coordinates; \graphedge resolves source/target purely by the node
+% ids \graphnode already declared, which TikZ can resolve anywhere later in
+% the same picture regardless of TeX grouping (see \networkedge).
+% <reportkit-contract>
+% {"kind":"figure","description":"Graph traversal state -- node visitation status and directed edges -- distinct from reportnetwork's static relationship structure.","arguments":[{"name":"options","type":"options","description":"columns=, x spacing=, and y spacing= automatic grid-layout keys."}],"constraints":[],"example":"\\begin{diagram}[type=graph,caption={BFS frontier.},description={A start node has been visited, its current neighbor is being processed, one neighbor is queued as frontier, and one neighbor is unseen.}]\n\\begin{graphstate}\n\\graphnode[state=visited]{A}{Start}\n\\graphnode[state=current]{B}{Current}\n\\graphnode[state=frontier]{C}{Queued}\n\\graphnode[state=unseen]{D}{Unseen}\n\\graphedge{A}{B}\n\\graphedge{B}{C}\n\\graphedge{B}{D}\n\\end{graphstate}\n\\end{diagram}","stability":"experimental","since":"1.10.0"}
+% </reportkit-contract>
+\NewDocumentEnvironment{graphstate}{O{}}{%
+  \begingroup
+  \pgfkeys{/reportkit/graphstate,columns=4,x spacing=3.3,y spacing=2.1,#1}%
+  \rk@graphindex=0\relax
+}{%
+  \endgroup
+}
+
+% <reportkit-contract>
+% {"kind":"command","description":"Place one graph node on the automatic layout grid with a shared algorithm state.","arguments":[{"name":"options","type":"options","description":"state= one of the nine shared algorithm states."},{"name":"id","type":"text","description":"Node id, referenced later by graphedge."},{"name":"label","type":"text","description":"Node label."}],"constraints":[{"code": "inside_graphstate", "description": "Only valid inside graphstate."}],"example":"\\graphnode[state=current]{B}{Current}","stability":"experimental","since":"1.10.0","parent":"graphstate"}
+% </reportkit-contract>
+\NewDocumentCommand{\graphnode}{O{} m m}{%
+  \pgfkeys{/reportkit/algocell,state={},#1}%
+  \rk@setalgostate{\rk@algocellstate}%
+  \pgfmathsetmacro{\rk@graphx}{mod(\the\rk@graphindex,\rk@graphcolumns)*\rk@graphxstep}%
+  \pgfmathsetmacro{\rk@graphy}{-floor(\the\rk@graphindex/\rk@graphcolumns)*\rk@graphystep}%
+  \node[rk algo graph node,\rk@algostateoverlay] (#2) at (\rk@graphx,\rk@graphy) {\strut #3};%
+  \advance\rk@graphindex by 1\relax
+}
+
+% <reportkit-contract>
+% {"kind":"command","description":"Draw a directed edge between two previously declared graph node ids.","arguments":[{"name":"source","type":"text","description":"Source node id."},{"name":"target","type":"text","description":"Target node id."}],"constraints":[{"code": "inside_graphstate", "description": "Only valid inside graphstate."}, {"code": "known_node_ids", "description": "Both ids must already be declared with graphnode."}],"example":"\\graphedge{A}{B}","stability":"experimental","since":"1.10.0","parent":"graphstate"}
+% </reportkit-contract>
+\NewDocumentCommand{\graphedge}{m m}{%
+  \draw[rk algo graph edge] (#1) -- (#2);%
+}
+
+% -----------------------------------------------------------------------------
+% gridstate -- 2D grid algorithms (flood fill, maze traversal, matrix DP,
+% connected cells). Cells reuse `rk algo cell` and the shared state overlay
+% outright -- a grid cell is structurally the same as an arraystate cell,
+% just placed on two arithmetic axes instead of one -- so this family needs
+% no chrome tokens of its own. The optional bordering rectangle reuses the
+% existing `rk algo container` style.
+% -----------------------------------------------------------------------------
+\newcommand{\rk@gridrowsvalue}{}
+\newcommand{\rk@gridcolumnsvalue}{}
+\newcommand{\rk@gridcellsize}{1.05}
+\pgfkeys{
+  /reportkit/gridstate/.is family,
+  /reportkit/gridstate,
+  rows/.store in=\rk@gridrowsvalue,
+  columns/.store in=\rk@gridcolumnsvalue,
+  cell size/.store in=\rk@gridcellsize,
+}
+
+% #1 the 1-based index being checked, #2 the declared row/column count
+% (itself a plain digit-text macro, so it also prints correctly inside the
+% error message), #3 the axis name used in the error message.
+\newcommand{\rk@gridcheckindex}[3]{%
+  \ifnum#1<1\relax
+    \PackageError{reportkit-algorithm-graph}{gridstate #3 index #1 is out of range}{Use a 1-based #3 between 1 and #2.}%
+  \fi
+  \ifnum#1>#2\relax
+    \PackageError{reportkit-algorithm-graph}{gridstate #3 index #1 exceeds the declared #3 count #2}{Increase #3= in gridstate's options, or use a smaller index.}%
+  \fi
+}
+
+% <reportkit-contract>
+% {"kind":"figure","description":"2D grid of cells for flood fill, maze traversal, matrix DP, and connected-cell algorithms, with deterministic 1-based row/column placement.","arguments":[{"name":"options","type":"options","description":"rows= and columns= (required) plus cell size= layout keys."}],"constraints":[{"code": "requires_rows_columns", "description": "rows= and columns= must be provided."}],"example":"\\begin{diagram}[type=grid,caption={Flood fill.},description={A four by five grid with a flood-fill frontier expanding from the top-left corner.}]\n\\begin{gridstate}[rows=4,columns=5]\n\\gridcell{1}{1}[state=visited]\n\\gridcell{1}{2}[state=current]\n\\gridcell{2}{2}[state=frontier]\n\\gridcell{3}{3}[state=blocked]\n\\end{gridstate}\n\\end{diagram}","stability":"experimental","since":"1.10.0"}
+% </reportkit-contract>
+\NewDocumentEnvironment{gridstate}{O{}}{%
+  \begingroup
+  \pgfkeys{/reportkit/gridstate,rows={},columns={},cell size=1.05,#1}%
+  \ifstrempty{\rk@gridrowsvalue}{%
+    \PackageError{reportkit-algorithm-graph}{gridstate requires rows=}{Provide rows=<n>, the number of grid rows.}%
+    \def\rk@gridrowsvalue{1}%
+  }{}%
+  \ifstrempty{\rk@gridcolumnsvalue}{%
+    \PackageError{reportkit-algorithm-graph}{gridstate requires columns=}{Provide columns=<n>, the number of grid columns.}%
+    \def\rk@gridcolumnsvalue{1}%
+  }{}%
+  \pgfmathsetmacro{\rk@gridxmin}{-0.5*\rk@gridcellsize}%
+  \pgfmathsetmacro{\rk@gridxmax}{(\rk@gridcolumnsvalue-1)*\rk@gridcellsize+0.5*\rk@gridcellsize}%
+  \pgfmathsetmacro{\rk@gridymin}{-(\rk@gridrowsvalue-1)*\rk@gridcellsize-0.5*\rk@gridcellsize}%
+  \pgfmathsetmacro{\rk@gridymax}{0.5*\rk@gridcellsize}%
+  \begin{pgfonlayer}{background}
+    \draw[rk algo container] (\rk@gridxmin,\rk@gridymin) rectangle (\rk@gridxmax,\rk@gridymax);
+  \end{pgfonlayer}
+}{%
+  \endgroup
+}
+
+% <reportkit-contract>
+% {"kind":"command","description":"Place one grid cell at a 1-based row/column position with an optional shared algorithm state.","arguments":[{"name":"row","type":"text","description":"1-based row index."},{"name":"column","type":"text","description":"1-based column index."},{"name":"options","type":"options","description":"state= one of the nine shared algorithm states."}],"constraints":[{"code": "inside_gridstate", "description": "Only valid inside gridstate."}, {"code": "index_within_bounds", "description": "row and column must fall within the declared rows= and columns=."}],"example":"\\gridcell{1}{2}[state=current]","stability":"experimental","since":"1.10.0","parent":"gridstate"}
+% </reportkit-contract>
+\NewDocumentCommand{\gridcell}{m m O{}}{%
+  \pgfkeys{/reportkit/algocell,state={},#3}%
+  \rk@setalgostate{\rk@algocellstate}%
+  \rk@gridcheckindex{#1}{\rk@gridrowsvalue}{row}%
+  \rk@gridcheckindex{#2}{\rk@gridcolumnsvalue}{column}%
+  \pgfmathsetmacro{\rk@gridx}{(#2-1)*\rk@gridcellsize}%
+  \pgfmathsetmacro{\rk@gridy}{-(#1-1)*\rk@gridcellsize}%
+  \edef\rk@gridcellname{rkgridcell-#1-#2}%
+  \node[rk algo cell,\rk@algostateoverlay] (\rk@gridcellname) at (\rk@gridx,\rk@gridy) {\strut};%
+}
+
+% -----------------------------------------------------------------------------
+% dagstate -- dependency-graph state for topological sorting, DAG scheduling,
+% and data-pipeline execution (spec section 10). Reuses graphstate's own
+% pgfkeys family (/reportkit/graphstate) and its \rk@graphindex/
+% \rk@graphcolumns/\rk@graphxstep/\rk@graphystep automatic-grid-layout
+% counters and macros directly -- a dagstate node is placed exactly like a
+% graphstate node, just with an added indegree badge -- rather than declaring
+% a parallel set of layout state for what is structurally the same grid.
+%
+% State mapping (spec section 10.2 lists `ready`, `processed`, and `blocked`
+% -- only `blocked` is part of the shared nine-state vocabulary; design
+% principle 2.2 rules out inventing primitive-local states):
+%   * `ready`     -> state=frontier (discovered, indegree satisfied, can
+%                    execute -- "frontier" is the shared word for "known and
+%                    actionable but not yet processed")
+%   * `processed` -> state=resolved (the node's dependency chain is complete)
+%   * `blocked`   -> state=blocked  (already a shared state; used as-is)
+%
+% `\dependency` reuses reportkit-diagrams.sty's existing `rk edge dependency`
+% style directly, so dagstate needs no edge token of its own, mirroring how
+% graphstate above needed its own edge token only because "edge" itself is
+% not part of the shared state vocabulary -- dependency-edge semantics
+% already exist upstream.
+%
+% `\readyqueue{id1,id2,...}` marks already-placed nodes as ready by redrawing
+% them with the frontier overlay at their original position. To do that
+% without the author repeating coordinates, `\dagnode` records each node's
+% grid position and label in a lookup keyed by its id (via `\@namedef`/
+% `\@nameuse`, LaTeX's kernel-provided named-macro-table primitives) rather
+% than a linear id-list scan like arraystate's \rk@findalgorow: dagstate
+% looks a node up by id, not by position in a declared sequence, so a direct
+% keyed lookup is both simpler and robust to any declaration order.
+%
+% layout=dependency (spec 2026-09-18 sprint, section 4/C1) assigns each
+% node's column to its longest-prerequisite-distance ("topological level":
+% a node with no declared \dependency targeting it is level 0; otherwise
+% it is 1 + the maximum level among the nodes its incoming \dependency
+% edges come from) instead of the default automatic grid index. Nodes at
+% the same level occupy rows in declaration order. Since a node's final
+% level can depend on a \dependency declared later in the same dagstate
+% body (dependencies and nodes may interleave in any order), \dagnode
+% under layout=dependency defers actual coordinate assignment -- and
+% \dependency defers actually drawing its edge -- until \end{dagstate},
+% exactly the same "record now, resolve at \end" shape \readyqueue already
+% uses for its own redraw. `layout=grid` (the default) preserves today's
+% immediate-placement behaviour unchanged for backward compatibility.
+% dagstate gets its own thin pgfkeys family here rather than extending
+% /reportkit/graphstate directly, so a plain graphstate is untouched by
+% this dagstate-only key; the family still stores into the very same
+% \rk@graphcolumns/\rk@graphxstep/\rk@graphystep macros graphstate uses,
+% since both layouts share one grid pitch.
+% -----------------------------------------------------------------------------
+\newcommand{\rk@dagindegreevalue}{}
+\pgfkeys{
+  /reportkit/dagnode/.is family,
+  /reportkit/dagnode,
+  state/.store in=\rk@algocellstate,
+  indegree/.store in=\rk@dagindegreevalue,
+}
+\newcommand{\rk@daglayout}{grid}
+\newcommand{\rk@dagnodelist}{}
+\newcommand{\rk@dagminy}{0}
+\newcount\rk@dagnodecount
+\newcount\rk@dagedgecount
+\newcount\rk@dagreliter
+\newcount\rk@dagedgeidx
+\newcount\rk@dagreadycallcount
+\newcount\rk@dagreadycallidx
+\newcount\rk@dagreadyitemidx
+\newcommand{\rk@dagqueuespacing}{1.9}
+\pgfkeys{
+  /reportkit/dagstate/.is family,
+  /reportkit/dagstate,
+  columns/.store in=\rk@graphcolumns,
+  x spacing/.store in=\rk@graphxstep,
+  y spacing/.store in=\rk@graphystep,
+  layout/.store in=\rk@daglayout,
+}
+
+\tikzset{
+  rk algo dag indegree badge/.style={
+    circle,draw=\RKTokAlgorithmDagBadgeDraw,fill=\RKTokAlgorithmDagBadgeFill,
+    text=\RKTokAlgorithmDagBadgeText,font=\RKTokAlgorithmDagBadgeFont,
+    minimum size=\RKTokAlgorithmDagBadgeSize,inner sep=0pt,line width=.5pt
+  },
+  rk algo dag readyqueue label/.style={
+    font=\RKTokAlgorithmReadyQueueLabelFont,text=\RKTokAlgorithmReadyQueueLabelText
+  },
+}
+
+% Remember a placed dagnode's grid position, label, and declared indegree,
+% keyed by its id, so \readyqueue can look the node up and redraw it later
+% without the author repeating coordinates. #1 id, #2 x, #3 y, #4 label,
+% #5 indegree (may be empty if the author never gave indegree=). Internal
+% helper: plain \newcommand, not part of the public contract.
+%
+% #2/#3 are stored via \edef (not \@namedef's plain \def) so the numeric
+% value itself is captured now, not a live alias to whichever scratch
+% macro (\rk@dagx/\rk@dagy, reused by every node placed) happens to hold
+% at the time a *later* node is looked up.
+%
+% Also tracks \rk@dagminy, the lowest (most negative) y used by any placed
+% node so far, so \readyqueue can position its FIFO box below the whole
+% DAG without the author or this file hard-coding a row count.
+\newcommand{\rk@dagrecordnode}[5]{%
+  \expandafter\edef\csname rk@dagx@#1\endcsname{#2}%
+  \expandafter\edef\csname rk@dagy@#1\endcsname{#3}%
+  \expandafter\edef\csname rk@daglabel@#1\endcsname{#4}%
+  \expandafter\edef\csname rk@dagindegreeof@#1\endcsname{#5}%
+  \pgfmathsetmacro{\rk@dagminy}{min(\rk@dagminy,#3)}%
+}
+
+% Deferred renderer for layout=dependency, run once at \end{dagstate} after
+% every \dagnode/\dependency in the body has been recorded. Internal
+% helper: plain \newcommand, not part of the public contract.
+%
+% Pass 1: seed every declared node's level at 0 (a node with no incoming
+% \dependency edge is a source, longest-path level 0 by definition).
+% Pass 2: relax the recorded edges Bellman-Ford style -- level(target) is
+% raised to level(source)+1 whenever that is larger -- repeated once per
+% declared node, which is always enough passes for a DAG's longest path to
+% converge (a cycle would never converge, but dagstate documents a DAG).
+% Pass 3: walk nodes in declaration order, assigning each the next unused
+% row within its now-final level, then draw it (reusing \rk@dagrecordnode
+% so \readyqueue keeps working unchanged).
+% Pass 4: draw every deferred \dependency edge now that every node id has
+% a real TikZ position.
+\newcommand{\rk@dagbuilddependencylayout}{%
+  \@for\rk@dagid:=\rk@dagnodelist\do{%
+    \expandafter\def\csname rk@daglevel@\rk@dagid\endcsname{0}%
+  }%
+  \rk@dagreliter=0\relax
+  \@whilenum\rk@dagreliter<\rk@dagnodecount\relax\do{%
+    \rk@dagedgeidx=0\relax
+    \@whilenum\rk@dagedgeidx<\rk@dagedgecount\relax\do{%
+      \edef\rk@dagesrc{\@nameuse{rk@dagedgesrc@\the\rk@dagedgeidx}}%
+      \edef\rk@dagetgt{\@nameuse{rk@dagedgetgt@\the\rk@dagedgeidx}}%
+      \expandafter\ifx\csname rk@daglevel@\rk@dagesrc\endcsname\relax
+        \PackageError{reportkit-algorithm-graph}{\string\dependency\space references unknown DAG node id '\rk@dagesrc'}{Declare it first with \string\dagnode{\rk@dagesrc}{...}.}%
+      \else
+        \expandafter\ifx\csname rk@daglevel@\rk@dagetgt\endcsname\relax
+          \PackageError{reportkit-algorithm-graph}{\string\dependency\space references unknown DAG node id '\rk@dagetgt'}{Declare it first with \string\dagnode{\rk@dagetgt}{...}.}%
+        \else
+          \pgfmathtruncatemacro{\rk@dagcandidate}{\@nameuse{rk@daglevel@\rk@dagesrc}+1}%
+          \pgfmathtruncatemacro{\rk@dagcurrent}{\@nameuse{rk@daglevel@\rk@dagetgt}}%
+          \ifnum\rk@dagcandidate>\rk@dagcurrent\relax
+            \expandafter\edef\csname rk@daglevel@\rk@dagetgt\endcsname{\rk@dagcandidate}%
+          \fi
+        \fi
+      \fi
+      \advance\rk@dagedgeidx by 1\relax
+    }%
+    \advance\rk@dagreliter by 1\relax
+  }%
+  \@for\rk@dagid:=\rk@dagnodelist\do{%
+    \edef\rk@daglevelvalue{\@nameuse{rk@daglevel@\rk@dagid}}%
+    \expandafter\ifx\csname rk@daglevelcount@\rk@daglevelvalue\endcsname\relax
+      \expandafter\def\csname rk@daglevelcount@\rk@daglevelvalue\endcsname{0}%
+    \fi
+    \edef\rk@dagrowvalue{\@nameuse{rk@daglevelcount@\rk@daglevelvalue}}%
+    \pgfmathtruncatemacro{\rk@dagrownext}{\rk@dagrowvalue+1}%
+    \expandafter\edef\csname rk@daglevelcount@\rk@daglevelvalue\endcsname{\rk@dagrownext}%
+    \pgfmathsetmacro{\rk@dagx}{\rk@daglevelvalue*\rk@graphxstep}%
+    \pgfmathsetmacro{\rk@dagy}{-\rk@dagrowvalue*\rk@graphystep}%
+    \edef\rk@daglabelvalue{\@nameuse{rk@dagpendinglabel@\rk@dagid}}%
+    \node[rk algo graph node,\@nameuse{rk@dagoverlay@\rk@dagid}] (\rk@dagid) at (\rk@dagx,\rk@dagy) {\strut \rk@daglabelvalue};%
+    \edef\rk@dagindegreeshowvalue{\@nameuse{rk@dagindegreeshow@\rk@dagid}}%
+    \ifstrempty{\rk@dagindegreeshowvalue}{}{%
+      \node[rk algo dag indegree badge] at (\rk@dagid.north east) {\rk@dagindegreeshowvalue};%
+    }%
+    \rk@dagrecordnode{\rk@dagid}{\rk@dagx}{\rk@dagy}{\rk@daglabelvalue}{\rk@dagindegreeshowvalue}%
+  }%
+  \rk@dagedgeidx=0\relax
+  \@whilenum\rk@dagedgeidx<\rk@dagedgecount\relax\do{%
+    \edef\rk@dagesrc{\@nameuse{rk@dagedgesrc@\the\rk@dagedgeidx}}%
+    \edef\rk@dagetgt{\@nameuse{rk@dagedgetgt@\the\rk@dagedgeidx}}%
+    \draw[rk edge dependency] (\rk@dagesrc) -- (\rk@dagetgt);%
+    \advance\rk@dagedgeidx by 1\relax
+  }%
+}
+
+% <reportkit-contract>
+% {"kind":"figure","description":"Dependency-graph state for topological sorting, DAG scheduling, and data-pipeline execution -- graphstate's automatic grid layout plus an indegree badge per node, or (layout=dependency) a pipeline-oriented column-per-topological-level layout.","arguments":[{"name":"options","type":"options","description":"columns=, x spacing=, and y spacing= automatic grid-layout keys, as graphstate, plus layout=grid (default) or layout=dependency."}],"constraints":[],"example":"\\begin{diagram}[type=dag,caption={Data-pipeline dependencies.},description={Three pipeline stages: the raw stage is ready with indegree zero, the clean stage depends on raw, and the features stage depends on clean.}]\n\\begin{dagstate}[layout=dependency]\n\\dagnode[indegree=0]{raw}{Raw}\n\\dagnode[indegree=1]{clean}{Clean}\n\\dagnode[indegree=1]{features}{Features}\n\\dependency{raw}{clean}\n\\dependency{clean}{features}\n\\readyqueue{raw}\n\\end{dagstate}\n\\end{diagram}","stability":"experimental","since":"1.10.0"}
+% </reportkit-contract>
+\NewDocumentEnvironment{dagstate}{O{}}{%
+  \begingroup
+  \def\rk@daglayout{grid}%
+  \pgfkeys{/reportkit/dagstate,columns=4,x spacing=3.3,y spacing=2.1,layout=grid,#1}%
+  \rk@graphindex=0\relax
+  \rk@dagnodecount=0\relax
+  \rk@dagedgecount=0\relax
+  \rk@dagreadycallcount=0\relax
+  \def\rk@dagnodelist{}%
+  \def\rk@dagminy{0}%
+}{%
+  \ifdefstring{\rk@daglayout}{dependency}{\rk@dagbuilddependencylayout}{}%
+  \rk@dagbuildreadyqueues%
+  \endgroup
+}
+
+% <reportkit-contract>
+% {"kind":"command","description":"Place one DAG node with an optional indegree badge and shared algorithm state. Under the default layout=grid this places immediately on the automatic layout grid; under layout=dependency, placement is deferred to \\end{dagstate} once every node's topological level is known.","arguments":[{"name":"options","type":"options","description":"indegree= (a small integer badge drawn at the node's corner) and state= one of the nine shared algorithm states."},{"name":"id","type":"text","description":"Node id, referenced later by dependency and readyqueue."},{"name":"label","type":"text","description":"Node label."}],"constraints":[{"code":"inside_dagstate","description":"Only valid inside dagstate."}],"example":"\\dagnode[indegree=0,state=frontier]{raw}{Raw}","stability":"experimental","since":"1.10.0","parent":"dagstate"}
+% </reportkit-contract>
+\NewDocumentCommand{\dagnode}{O{} m m}{%
+  \pgfkeys{/reportkit/dagnode,state={},indegree={},#1}%
+  \rk@setalgostate{\rk@algocellstate}%
+  \ifdefstring{\rk@daglayout}{dependency}{%
+    \expandafter\def\csname rk@dagpendinglabel@#2\endcsname{#3}%
+    \expandafter\edef\csname rk@dagoverlay@#2\endcsname{\rk@algostateoverlay}%
+    \expandafter\edef\csname rk@dagindegreeshow@#2\endcsname{\rk@dagindegreevalue}%
+    \ifx\rk@dagnodelist\@empty
+      \edef\rk@dagnodelist{#2}%
+    \else
+      \edef\rk@dagnodelist{\rk@dagnodelist,#2}%
+    \fi
+    \advance\rk@dagnodecount by 1\relax
+  }{%
+    \pgfmathsetmacro{\rk@dagx}{mod(\the\rk@graphindex,\rk@graphcolumns)*\rk@graphxstep}%
+    \pgfmathsetmacro{\rk@dagy}{-floor(\the\rk@graphindex/\rk@graphcolumns)*\rk@graphystep}%
+    \node[rk algo graph node,\rk@algostateoverlay] (#2) at (\rk@dagx,\rk@dagy) {\strut #3};%
+    \ifstrempty{\rk@dagindegreevalue}{}{%
+      \node[rk algo dag indegree badge] at (#2.north east) {\rk@dagindegreevalue};%
+    }%
+    \rk@dagrecordnode{#2}{\rk@dagx}{\rk@dagy}{#3}{\rk@dagindegreevalue}%
+    \advance\rk@graphindex by 1\relax
+  }%
+}
+
+% <reportkit-contract>
+% {"kind":"command","description":"Draw a dependency edge from one previously declared DAG node id to another, reusing ReportKit's existing dependency-edge style unchanged. Under layout=dependency, the edge is recorded and drawn once every node's final position is known at \\end{dagstate}, and also drives that node's topological-level placement.","arguments":[{"name":"source","type":"text","description":"Upstream node id (the dependency)."},{"name":"target","type":"text","description":"Downstream node id (the dependent)."}],"constraints":[{"code":"inside_dagstate","description":"Only valid inside dagstate."},{"code":"known_node_ids","description":"Both ids must already be declared with dagnode."}],"example":"\\dependency{raw}{clean}","stability":"experimental","since":"1.10.0","parent":"dagstate"}
+% </reportkit-contract>
+\NewDocumentCommand{\dependency}{m m}{%
+  \ifdefstring{\rk@daglayout}{dependency}{%
+    \expandafter\def\csname rk@dagedgesrc@\the\rk@dagedgecount\endcsname{#1}%
+    \expandafter\def\csname rk@dagedgetgt@\the\rk@dagedgecount\endcsname{#2}%
+    \advance\rk@dagedgecount by 1\relax
+  }{%
+    \draw[rk edge dependency] (#1) -- (#2);%
+  }%
+}
+
+% \readyqueue only *records* its id list at call time (spec 2026-09-18
+% sprint, section 4/C2). Under layout=dependency, every node's final
+% position (and hence \rk@dagminy, which the queue box is positioned
+% below) is only known once \rk@dagbuilddependencylayout has run at
+% \end{dagstate} -- and the spec's own target figure calls \readyqueue
+% before \end{dagstate}, interleaved with \dependency. Deferring the
+% actual draw uniformly (for both layout=grid and layout=dependency)
+% keeps one code path and lets multiple \readyqueue calls in one
+% dagstate stack their queue boxes below each other in call order.
+% Internal helpers: plain \newcommand, not part of the public contract.
+\newcommand{\rk@dagbuildreadyqueues}{%
+  \rk@dagreadycallidx=0\relax
+  \@whilenum\rk@dagreadycallidx<\rk@dagreadycallcount\relax\do{%
+    \edef\rk@dagreadyidlist{\@nameuse{rk@dagreadycall@\the\rk@dagreadycallidx}}%
+    \rk@dagdrawreadyqueue{\rk@dagreadyidlist}{\the\rk@dagreadycallidx}%
+    \advance\rk@dagreadycallidx by 1\relax
+  }%
+}
+
+% #1 the comma-separated id list, #2 this call's index (used only to keep
+% each call's TikZ node names unique across multiple \readyqueue calls).
+\newcommand{\rk@dagdrawreadyqueue}[2]{%
+  \rk@dagreadyitemidx=0\relax
+  \@for\rk@dagreadyid:=#1\do{\advance\rk@dagreadyitemidx by 1\relax}%
+  \pgfmathsetmacro{\rk@dagqueuey}{\rk@dagminy-\rk@graphystep}%
+  \pgfmathsetmacro{\rk@dagqueuewidth}{\the\rk@dagreadyitemidx*\rk@dagqueuespacing}%
+  \pgfmathsetmacro{\rk@dagqueueboxxmin}{-0.5*\rk@dagqueuespacing-0.15}%
+  \pgfmathsetmacro{\rk@dagqueueboxxmax}{\rk@dagqueuewidth-0.5*\rk@dagqueuespacing+0.15}%
+  \pgfmathsetmacro{\rk@dagqueueboxymin}{\rk@dagqueuey-0.7}%
+  \pgfmathsetmacro{\rk@dagqueueboxymax}{\rk@dagqueuey+0.85}%
+  \begin{pgfonlayer}{background}
+    \draw[rk algo container] (\rk@dagqueueboxxmin,\rk@dagqueueboxymin) rectangle (\rk@dagqueueboxxmax,\rk@dagqueueboxymax);
+  \end{pgfonlayer}
+  \node[rk algo dag readyqueue label,anchor=south west] at (\rk@dagqueueboxxmin,\rk@dagqueueboxymax) {\strut READY};%
+  \rk@dagreadyitemidx=0\relax
+  \@for\rk@dagreadyid:=#1\do{%
+    \expandafter\ifx\csname rk@dagx@\rk@dagreadyid\endcsname\relax
+      \PackageError{reportkit-algorithm-graph}{\string\readyqueue\space references unknown DAG node id '\rk@dagreadyid'}{Declare it first with \string\dagnode{\rk@dagreadyid}{...}.}%
+    \else
+      \edef\rk@dagreadyindegree{\@nameuse{rk@dagindegreeof@\rk@dagreadyid}}%
+      \ifstrempty{\rk@dagreadyindegree}{}{%
+        \ifnum\rk@dagreadyindegree>0\relax
+          \PackageError{reportkit-algorithm-graph}{\string\readyqueue\space requires a zero indegree, but '\rk@dagreadyid' has indegree \rk@dagreadyindegree}{Only pass \string\readyqueue\space ids declared with indegree=0 -- a node with unresolved dependencies is not ready to execute.}%
+        \fi
+      }%
+      \pgfmathsetmacro{\rk@dagqueueitemx}{\the\rk@dagreadyitemidx*\rk@dagqueuespacing}%
+      \edef\rk@dagreadylabel{\@nameuse{rk@daglabel@\rk@dagreadyid}}%
+      \node[rk algo graph node,rk algo state frontier] (rk-dag-ready-#2-\the\rk@dagreadyitemidx) at (\rk@dagqueueitemx,\rk@dagqueuey) {\strut \rk@dagreadylabel};%
+      \node[rk algo dag indegree badge] at (rk-dag-ready-#2-\the\rk@dagreadyitemidx.north east) {0};%
+      \advance\rk@dagreadyitemidx by 1\relax
+    \fi
+  }%
+  \pgfmathsetmacro{\rk@dagminy}{\rk@dagqueueboxymin}%
+}
+
+% <reportkit-contract>
+% {"kind":"command","description":"Mark previously placed, zero-indegree DAG nodes as ready to execute by rendering a compact FIFO queue box, labelled READY, below the DAG. Each queued node keeps its zero indegree badge and its state changes to frontier.","arguments":[{"name":"ids","type":"text","description":"Comma-separated list of node ids already declared with dagnode."}],"constraints":[{"code":"inside_dagstate","description":"Only valid inside dagstate."},{"code":"known_node_ids","description":"Every id must already be declared with dagnode."},{"code":"zero_indegree_only","description":"Every id must have been declared with indegree=0 (or no indegree= at all); a nonzero-indegree id is a validation error."}],"example":"\\readyqueue{raw,clean}","stability":"experimental","since":"1.10.0","parent":"dagstate"}
+% </reportkit-contract>
+\NewDocumentCommand{\readyqueue}{m}{%
+  \expandafter\def\csname rk@dagreadycall@\the\rk@dagreadycallcount\endcsname{#1}%
+  \advance\rk@dagreadycallcount by 1\relax
+}
+
+\makeatother
+\endinput

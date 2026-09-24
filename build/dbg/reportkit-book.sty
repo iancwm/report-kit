@@ -1,0 +1,183 @@
+% ReportKit publication type: book -- Phase F2 of the multi-format
+% publication architecture plan (spec section 16). A long-form, multi-
+% chapter publication on the existing paged renderer: reportkit.cls,
+% reportkit-paged-core.sty and reportkit-longform.sty. There is no book
+% class, no third renderer, and no print production: recto/verso openings,
+% signatures, indexing and trim/bleed are deferred until a real publication
+% needs them (spec section 16; plan section 14 stop condition).
+%
+% Reuse first. The title page (\RKTitlePage), contents (\RKContents) and
+% front/main-matter pagination (\RKFrontMatterBegin, \RKMainMatterBegin)
+% come from reportkit-longform.sty unchanged. This file adds only what the
+% canonical book fixture (latex_templates/examples/book/) exercises and
+% longform does not cover:
+%   * chapter openers    -- every \section opens a page with a numbered
+%                           "Chapter N" label (Markdown # headings in the
+%                           pipeline become chapters the same way);
+%   * part openers       -- \bookpart, a divider page grouping chapters;
+%   * publication details-- bookdetails / \bookdetail, the imprint page;
+%   * appendices         -- \bookappendix, lettered chapters after it;
+%   * bibliography hook  -- bookreferences, a contents-listed thebibliography;
+%   * glossary hook      -- bookglossary / \glossaryterm.
+%
+% Structure, not style: every family, size, color, rule, spacing value and
+% the opener page style is a token from reportkit-core.sty's
+% "Book-composition style tokens" contract, populated by the selected
+% theme's paged adapter. Nothing here names a theme or defines a color.
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{reportkit-book}[2026/09/23 v1.0.0 ReportKit book publication type]
+
+\RequirePackage{xparse}
+\RequirePackage{etoolbox}
+\RequirePackage{enumitem}
+\RequirePackage{reportkit-longform}
+
+\RKAssertBookTokens
+
+% Structural vocabulary owned by the publication type (content, not style).
+% A document may renew these for another language.
+\newcommand{\RKBookPartName}{Part}
+\newcommand{\RKBookChapterName}{Chapter}
+\newcommand{\RKBookAppendixName}{Appendix}
+\newcommand{\RKBookAppendicesName}{Appendices}
+\newcommand{\RKBookDetailsName}{Publication details}
+\newcommand{\RKBookReferencesName}{References}
+\newcommand{\RKBookGlossaryName}{Glossary}
+\newcommand{\rkbook@chaptername}{\RKBookChapterName}
+
+% Chapters are numbered; their subsections are not. The pipeline's
+% paged-base.tex resets secnumdepth after the class loads, so the book
+% entrypoint restores this value in its front-matter hook.
+\setcounter{secnumdepth}{1}
+\setcounter{tocdepth}{1}
+
+% -----------------------------------------------------------------------------
+% Chapter openers. A book chapter is a \section: that keeps hand-written TeX,
+% Pandoc's Markdown headings and every existing section-level helper on one
+% heading level. reportkit-longform.sty already clears the page before each
+% section; \sectionbreak (titlesec's documented hook, used instead of the
+% default before-space) re-asserts the page break and adds the opener's
+% top space, which a plain before-skip would lose at the top of a page.
+% -----------------------------------------------------------------------------
+\newcommand{\sectionbreak}{\clearpage\vspace*{\RKTokBookChapterTopSkip}}
+\titleformat{\section}[display]
+  {\RKTokBookChapterTitleFont\color{\RKTokBookChapterTitleColor}\raggedright}
+  {{\RKTokBookChapterLabelFont\color{\RKTokBookChapterLabelColor}\RKTokBookLabelTransform{\rkbook@chaptername\ \thesection}}}
+  {\RKTokBookElementSkip}
+  {}
+  [{\vspace{\RKTokBookElementSkip}\color{\RKTokBookChapterRuleColor}\titlerule[\RKTokBookChapterRuleWidth]}]
+\titlespacing*{\section}{0pt}{0pt}{\RKTokBookChapterAfterSkip}
+
+% An unnumbered chapter opener that is still listed in the contents, for
+% the back-matter hooks below.
+% reportkit-contract: internal
+\newcommand{\rkbook@unnumbered}[1]{%
+  \section*{#1}%
+  \phantomsection\addcontentsline{toc}{section}{#1}%
+  \markboth{#1}{}%
+}
+
+% -----------------------------------------------------------------------------
+% Part openers
+% -----------------------------------------------------------------------------
+% <reportkit-contract>
+% {"kind":"command","description":"Book part opener: a divider page with a numbered part label and title, listed in the contents above its chapters.","arguments":[{"name":"title","type":"text","description":"Part title."}],"constraints":[],"example":"\\bookpart{Foundations}","stability":"experimental","since":"1.10.0"}
+% </reportkit-contract>
+\NewDocumentCommand{\bookpart}{m}{%
+  \clearpage
+  \thispagestyle{\RKTokBookOpeningPageStyle}%
+  \refstepcounter{part}%
+  \addcontentsline{toc}{part}{\RKBookPartName\ \thepart\hspace{1em}#1}%
+  \markboth{}{}%
+  \vspace*{\RKTokBookPartTopSkip}%
+  {\noindent\RKTokBookPartLabelFont\color{\RKTokBookPartLabelColor}\RKTokBookLabelTransform{\RKBookPartName\ \thepart}\par}%
+  \vspace{\RKTokBookElementSkip}%
+  {\noindent\color{\RKTokBookPartRuleColor}\rule{\linewidth}{\RKTokBookPartRuleWidth}\par}%
+  \vspace{\RKTokBookElementSkip}%
+  {\noindent\RKTokBookPartTitleFont\color{\RKTokBookPartTitleColor}\raggedright#1\par}%
+  \clearpage
+}
+
+% -----------------------------------------------------------------------------
+% Publication details (imprint) page
+% -----------------------------------------------------------------------------
+% <reportkit-contract>
+% {"kind":"composition","description":"Book publication-details (imprint) page: a heading followed by labelled details such as edition, licence and disclaimer, on its own page.","arguments":[{"name":"heading","type":"text","description":"Page heading, usually the book title or subtitle."}],"constraints":[{"code":"child_command","description":"Each detail is one bookdetail.","value":"bookdetail"}],"example":"\\begin{bookdetails}{Field handbook}\n\\bookdetail{Edition}{First edition}\n\\end{bookdetails}","stability":"experimental","since":"1.10.0"}
+% </reportkit-contract>
+\NewDocumentEnvironment{bookdetails}{m}{%
+  \clearpage
+  \thispagestyle{\RKTokBookOpeningPageStyle}%
+  \phantomsection\pdfbookmark[1]{\RKBookDetailsName}{reportkit-book-details}%
+  \vspace*{\RKTokBookChapterTopSkip}%
+  {\noindent\RKTokBookDetailsTitleFont\color{\RKTokBookChapterTitleColor}\raggedright#1\par}%
+  \vspace{\RKTokBookDetailsSkip}%
+}{%
+  \par\clearpage
+}
+
+% <reportkit-contract>
+% {"kind":"command","description":"One labelled publication detail (edition, licence, classification, disclaimer, source) inside bookdetails.","arguments":[{"name":"label","type":"text","description":"Short detail label."},{"name":"text","type":"text","description":"Detail text."}],"constraints":[],"example":"\\bookdetail{Licence}{Original prose is licensed under CC BY 4.0.}","stability":"experimental","since":"1.10.0","parent":"bookdetails"}
+% </reportkit-contract>
+\NewDocumentCommand{\bookdetail}{m m}{%
+  \par{\noindent\RKTokBookDetailsLabelFont\color{\RKTokBookDetailsLabelColor}\RKTokBookLabelTransform{#1}\par}%
+  \vspace{\RKTokBookElementSkip}%
+  {\noindent\RKTokBookDetailsBodyFont#2\par}%
+  \vspace{\RKTokBookDetailsSkip}%
+}
+
+% -----------------------------------------------------------------------------
+% Appendices
+% -----------------------------------------------------------------------------
+% <reportkit-contract>
+% {"kind":"command","description":"Start the book's appendices: later chapters are lettered (Appendix A, B, ...) and grouped under an Appendices contents entry.","arguments":[],"constraints":[],"example":"\\bookappendix","stability":"experimental","since":"1.10.0"}
+% </reportkit-contract>
+\NewDocumentCommand{\bookappendix}{}{%
+  \clearpage
+  \phantomsection\addcontentsline{toc}{part}{\RKBookAppendicesName}%
+  \setcounter{section}{0}%
+  \renewcommand{\thesection}{\Alph{section}}%
+  % Distinct hyperref anchors: Appendix A must not reuse Chapter 1's.
+  \def\theHsection{appendix.\Alph{section}}%
+  \renewcommand{\rkbook@chaptername}{\RKBookAppendixName}%
+}
+
+% -----------------------------------------------------------------------------
+% Bibliography hook: thebibliography with a contents-listed chapter opener.
+% Cite entries with \cite{key}; the widest label sizes the hanging indent.
+% -----------------------------------------------------------------------------
+% <reportkit-contract>
+% {"kind":"composition","description":"Book reference list: an unnumbered, contents-listed chapter holding thebibliography entries (\\bibitem) that \\cite resolves.","arguments":[{"name":"title","type":"options","description":"Heading; defaults to References.","default":"\\RKBookReferencesName"},{"name":"widest","type":"text","description":"Widest label, e.g. 9 for up to nine entries."}],"constraints":[],"example":"\\begin{bookreferences}{9}\n\\bibitem{example} Example Author. A fictional source. 2026.\n\\end{bookreferences}","stability":"experimental","since":"1.10.0"}
+% </reportkit-contract>
+\NewDocumentEnvironment{bookreferences}{O{\RKBookReferencesName} m}{%
+  \rkbook@unnumbered{#1}%
+  % thebibliography opens with its own \section*{\refname} and marks; the
+  % chapter opener above replaces both.
+  \let\section\@gobbletwo
+  \let\@mkboth\@gobbletwo
+  \RKTokBookReferenceFont\color{\RKTokBookReferenceColor}%
+  \begin{thebibliography}{#2}%
+}{%
+  \end{thebibliography}%
+}
+
+% -----------------------------------------------------------------------------
+% Glossary hook
+% -----------------------------------------------------------------------------
+% <reportkit-contract>
+% {"kind":"composition","description":"Book glossary: an unnumbered, contents-listed chapter of defined terms.","arguments":[{"name":"title","type":"options","description":"Heading; defaults to Glossary.","default":"\\RKBookGlossaryName"}],"constraints":[{"code":"child_command","description":"Each entry is one glossaryterm.","value":"glossaryterm"}],"example":"\\begin{bookglossary}\n\\glossaryterm{Feeder}{A distribution line leaving a substation.}\n\\end{bookglossary}","stability":"experimental","since":"1.10.0"}
+% </reportkit-contract>
+\NewDocumentEnvironment{bookglossary}{O{\RKBookGlossaryName}}{%
+  \rkbook@unnumbered{#1}%
+  \begin{description}[font=\normalfont\RKTokBookGlossaryTermFont\color{\RKTokBookGlossaryTermColor},
+    leftmargin=0pt, labelindent=0pt, itemsep=\RKTokBookGlossarySkip]%
+  \RKTokBookGlossaryBodyFont
+}{%
+  \end{description}%
+}
+
+% <reportkit-contract>
+% {"kind":"command","description":"One glossary entry: a term and its definition, inside bookglossary.","arguments":[{"name":"term","type":"text","description":"The defined term."},{"name":"definition","type":"text","description":"Its definition."}],"constraints":[],"example":"\\glossaryterm{Feeder}{A distribution line leaving a substation.}","stability":"experimental","since":"1.10.0","parent":"bookglossary"}
+% </reportkit-contract>
+\NewDocumentCommand{\glossaryterm}{m m}{\item[{#1}]#2\par}
+
+\endinput

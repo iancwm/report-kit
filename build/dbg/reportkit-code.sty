@@ -1,0 +1,202 @@
+% ReportKit v1.3.0 -- code and output blocks
+% v1.2.0: both space-reservation calls now go through the renderer hook
+% \RKReserveSpace (see reportkit-core.sty/reportkit-paged-core.sty) instead
+% of calling \Needspace directly. A3 (Phase A of the multi-format
+% publication architecture spec) migrated every other semantic module to
+% this hook but missed this file -- caught while preparing Phase B, since a
+% slides core cannot implement \Needspace (there is no page flow inside a
+% Beamer frame to reserve space in) and this module would have been the one
+% thing still requiring needspace directly under \documentclass{reportkit-slides}.
+% No fixture exercised codeblock/outputblock before this change (see the
+% new coverage added to primitive_acceptance_test.tex), so there was no
+% byte-hash baseline to preserve; the paged hook expands to exactly the
+% \Needspace call it replaces, so paged output is unaffected by construction.
+% v1.3.0 (2026 algorithm-visuals-fix-sprint, Workstream D): codeblock's fixed
+% \RKReserveSpace{8\baselineskip} guess only guards against zero space; a
+% block taller than 8 lines but shorter than a fresh page still starts on a
+% page it cannot finish and splits mid-listing (spec Page 9/heap row). Adds
+% an opt-in `keep=auto` value (given via the environment's second, new
+% optional argument) that measures the block's actual rendered height
+% first, then reserves exactly that much space so the whole unit either
+% fits or moves to a fresh page together; a block taller than one fresh
+% page still splits, repeating a small "(continued)" label. Omitting the
+% second bracket preserves the exact 8\baselineskip reservation unchanged --
+% this is why the original NewTCBListing definition is kept intact below
+% (renamed internally) rather than folded into the new dispatcher's own
+% tcolorbox call.
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{reportkit-code}[2026/09/18 v1.3.0 ReportKit code blocks]
+\RequirePackage{listings}
+\RequirePackage[most]{tcolorbox}
+\RequirePackage{xparse}
+\RequirePackage{xcolor}
+\RequirePackage{etoolbox}
+\RequirePackage{pgfkeys}
+\RequirePackage{fancyvrb}
+
+\lstdefinestyle{reportkit}{%
+  basicstyle=\ttfamily\fontsize{8.2}{10}\selectfont,
+  keywordstyle=\color{LinkBlue}\bfseries,
+  commentstyle=\color{Muted}\itshape,
+  stringstyle=\color{Tip},
+  showstringspaces=false,
+  columns=fullflexible,
+  keepspaces=true,
+  breaklines=true,
+  breakatwhitespace=false,
+  tabsize=2,
+  frame=none,
+  xleftmargin=0pt,
+  xrightmargin=0pt,
+  aboveskip=0pt,
+  belowskip=0pt
+}
+
+\newcommand{\rk@lstlang}[1]{%
+  \def\rk@lang{#1}%
+  \ifdefstring{\rk@lang}{Python}{Python}{%
+  \ifdefstring{\rk@lang}{SQL}{SQL}{%
+  \ifdefstring{\rk@lang}{HTML}{HTML}{}}}%
+}
+
+% The pre-existing codeblock, registered under an internal name and never
+% invoked via \begin{rk@codeblock@fixed}: only its begin/end macros are
+% reused directly (\let below), so \@currenvir stays "codeblock" for
+% listings' verbatim scan and \end{codeblock} in the caller's source
+% correctly terminates it. This keeps the keep-omitted path byte-identical
+% to the pre-1.3.0 behaviour.
+\NewTCBListing{rk@codeblock@fixed}{O{} m}{%
+  listing only,
+  listing options={style=reportkit,language=#2},
+  enhanced,breakable,colback=Surface,colframe=Hairline,boxrule=.45pt,
+  arc=0pt,outer arc=0pt,left=7pt,right=7pt,top=8pt,bottom=7pt,
+  before upper={\RKReserveSpace{8\baselineskip}},
+  title={\sffamily\fontsize{7.1}{8.2}\selectfont\color{Muted}\IfNoValueTF{#1}{}{#1\hfill}\MakeUppercase{#2}},
+  coltitle=Muted,fonttitle=\sffamily,
+  attach boxed title to top left={xshift=0pt,yshift=-1pt},
+  boxed title style={colback=Surface,colframe=Surface,boxrule=0pt,left=1pt,right=1pt,top=1pt,bottom=1pt},
+  before skip=7pt,after skip=8pt
+}
+\let\rk@codeblock@fixedbegin\rk@codeblock@fixed
+\let\rk@codeblock@fixedend\endrk@codeblock@fixed
+
+\newwrite\rk@codeblock@outfile
+\newcounter{rk@codeblockcount}
+\newsavebox{\rk@codeblock@measurebox}
+\newif\ifrk@codeblock@auto
+
+% Re-invoke the fixed path with fully-expanded title/language text (not the
+% bare control sequences), since a bare macro reference at the "language="
+% key position defeats listings' language-file autoload check even when it
+% names an already-loaded language.
+\newcommand{\rk@codeblock@fixedwrap}{%
+  \edef\rk@codeblock@fixedcall{\noexpand\rk@codeblock@fixedbegin[\rk@codeblock@title]{\rk@codeblock@lang}}%
+  \rk@codeblock@fixedcall
+}
+
+\newcommand{\rk@codeblock@setlanguage}{%
+  \edef\rk@codeblock@setlanguage@do{\noexpand\lstset{language=\rk@codeblock@lang}}%
+  \rk@codeblock@setlanguage@do
+}
+
+% A macro that itself expands to a comma-separated key list cannot be
+% dropped inline into another key list (pgfkeys splits on commas in the
+% *unexpanded* token stream, so it would look up the whole expansion as one
+% key name); registering it as a tcolorbox style makes pgfkeys re-split the
+% expansion correctly instead.
+\newcommand{\rk@codeblock@definebaseopts}{%
+  \tcbset{rk@codeblock@baseopts/.style={%
+    listing only,listing options={style=reportkit},%
+    listing file=\rk@codeblock@tmpfile,%
+    enhanced,colback=Surface,colframe=Hairline,boxrule=.45pt,%
+    arc=0pt,outer arc=0pt,left=7pt,right=7pt,top=8pt,bottom=7pt,%
+    title={\sffamily\fontsize{7.1}{8.2}\selectfont\color{Muted}\ifstrempty{\rk@codeblock@title}{}{\rk@codeblock@title\hfill}\MakeUppercase{\rk@codeblock@lang}},%
+    title after break={\sffamily\fontsize{7.1}{8.2}\selectfont\itshape\color{Muted}(continued)},%
+    coltitle=Muted,fonttitle=\sffamily,%
+    attach boxed title to top left={xshift=0pt,yshift=-1pt},%
+    boxed title style={colback=Surface,colframe=Surface,boxrule=0pt,left=1pt,right=1pt,top=1pt,bottom=1pt},%
+    before skip=7pt,after skip=8pt%
+  }}%
+}
+
+\pgfkeys{/reportkit/codeblock/.cd,
+  keep/.store in=\rk@codeblock@keeptext,
+  keep=off,
+}
+
+% <reportkit-contract>
+% {"kind":"composition","description":"Executable, syntax-highlighted source listing. The optional keep=auto value (given in the environment's second, independent optional argument) measures the block's rendered height and reserves exactly that much space so the title, language badge, and code move to a fresh page as one unit when they do not fit in what remains of the current page. A block taller than one fresh page still splits, repeating a small \"(continued)\" label at the top of the next part. Omitting the second bracket (or any keep value other than auto) preserves the fixed 8-line reservation used before keep=auto existed.","arguments":[{"name":"title","type":"text","description":"Optional free-text label shown left of the language badge."},{"name":"options","type":"options","description":"keep=auto opts into measured, whole-unit pagination; omitted, behaviour is unchanged."},{"name":"language","type":"text","description":"Listings language name, e.g. Python, SQL, HTML."}],"constraints":[{"code":"keep_auto_opt_in","description":"keep=auto must be requested explicitly via the second optional argument; the default reservation is unchanged when it is omitted."}],"example":"\\begin{codeblock}[Two-pointer scan][keep=auto]{Python}\ndef solve(nums):\n    return nums\n\\end{codeblock}","stability":"experimental","since":"1.3.0"}
+% </reportkit-contract>
+\NewDocumentEnvironment{codeblock}{O{} O{} m}{%
+  \pgfkeys{/reportkit/codeblock/.cd,keep=off,#2}%
+  \ifdefstring{\rk@codeblock@keeptext}{auto}{\rk@codeblock@autotrue}{\rk@codeblock@autofalse}%
+  \def\rk@codeblock@title{#1}%
+  \def\rk@codeblock@lang{#3}%
+  \ifrk@codeblock@auto
+    \stepcounter{rk@codeblockcount}%
+    \edef\rk@codeblock@tmpfile{\jobname-codeblock-\therk@codeblockcount.tmp}%
+    % Capture the body verbatim to a file using fancyvrb's low-level
+    % primitives directly (not \begin{VerbatimOut}, a differently-named
+    % environment whose own \end{VerbatimOut} would never appear in the
+    % caller's source). \@currenvir is already "codeblock" here, so
+    % \FV@Scan's \VerbatimEnvironment fallback (\@currenvir when
+    % \FV@EnvironName is \relax) makes it look for the caller's own
+    % \end{codeblock} -- confirmed by direct compilation, since the
+    % alternative (nesting a differently-named verbatim environment) always
+    % scans for that environment's own name instead.
+    \@bsphack
+    \begingroup
+      \let\FV@EnvironName\relax
+      \def\FV@KeyValues{}%
+      \FV@UseKeyValues
+      \FV@DefineWhiteSpace
+      \def\FV@Space{\space}%
+      \FV@DefineTabOut
+      \def\FV@ProcessLine{\immediate\write\rk@codeblock@outfile}%
+      \immediate\openout\rk@codeblock@outfile\rk@codeblock@tmpfile\relax
+      \let\FV@FontScanPrep\relax
+      \let\@noligs\relax
+      % Defer the actual scan-starting call to after \fi below: a verbatim
+      % scan consumes every subsequent token (including a trailing \fi)
+      % looking for its end marker, so it cannot be the last token inside
+      % an \if branch.
+      \let\rk@codeblock@next\FV@Scan
+  \else
+    \let\rk@codeblock@next\rk@codeblock@fixedwrap
+  \fi
+  \rk@codeblock@next
+}{%
+  \ifrk@codeblock@auto
+    \immediate\closeout\rk@codeblock@outfile\endgroup\@esphack
+    \rk@codeblock@setlanguage
+    \rk@codeblock@definebaseopts
+    % Hidden, non-breakable duplicate: total rendered height (title bar +
+    % all code lines + padding) with no page-flow interaction.
+    \sbox{\rk@codeblock@measurebox}{\tcbinputlisting{rk@codeblock@baseopts,breakable=false}}%
+    \dimen0=\ht\rk@codeblock@measurebox
+    \advance\dimen0 by \dp\rk@codeblock@measurebox
+    \ifdim\dimen0>\dimexpr\textheight-\topskip\relax
+      % Genuinely oversize: let today's breakable splitting proceed
+      % unchanged, with only a minimal continuation label added.
+    \else
+      \RKReserveSpace{\dimen0}%
+    \fi
+    \tcbinputlisting{rk@codeblock@baseopts,breakable=true}%
+  \else
+    \rk@codeblock@fixedend
+  \fi
+}
+
+% <reportkit-contract>
+% {"kind":"composition","description":"Outputblock","arguments":[],"constraints":[],"example":"\\begin{outputblock}\nExample content.\n\\end{outputblock}","stability":"stable","since":"1.0.0"}
+% </reportkit-contract>
+\NewDocumentEnvironment{outputblock}{}{%
+  \par\RKReserveSpace{6\baselineskip}%
+  \begin{tcolorbox}[enhanced,breakable,colback=Surface,colframe=Hairline,boxrule=.45pt,
+    arc=0pt,outer arc=0pt,left=8pt,right=8pt,top=7pt,bottom=7pt,
+    title={\sffamily\fontsize{7.1}{8.2}\selectfont\bfseries\color{Muted}OUTPUT},
+    coltitle=Muted,fontupper=\ttfamily\fontsize{8.2}{10}\selectfont,
+    before skip=7pt,after skip=8pt]
+}{\end{tcolorbox}}
+
+\endinput
