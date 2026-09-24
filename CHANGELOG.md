@@ -57,8 +57,6 @@ tags on this repository, not a published package registry.
   are recorded in the build report and blocked by final/release profiles.
 
 ### Changed
-- Callout title forms and replaceable image slots now have focused contract,
-  validation, mixed-pipeline, and build-report regression coverage.
 - Pinned compatibility baselines for the career-guide and equity-research
   fixtures now record their PDF metadata, fonts, dimensions, hashes, and
   representative renders; the accessibility tagging record reflects the
@@ -94,6 +92,10 @@ tags on this repository, not a published package registry.
   legacy `reportkit_viz.py` import remains compatible.
 - Failed build stages now produce one consistent structured report shape, and
   the doctor includes actionable Python dependency remediation.
+
+### For contributors
+- Callout title forms and replaceable image slots now have focused contract,
+  validation, mixed-pipeline, and build-report regression coverage.
 
 ### Fixed
 - Algorithm visualization annotations now support the documented `row=` target,
