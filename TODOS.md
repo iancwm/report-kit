@@ -21,6 +21,7 @@ and [references/documentation-status.md](references/documentation-status.md).
 | [2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md](docs/superpowers/specs/2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md) | A′/B′, constrained authoring, standalone render, progressive-disclosure budgets, the generated OpenAI adapter, and per-script font stacks/language-support truthfulness (D-prime 3) are implemented. Tagged-PDF remains deferred. | P2 |
 | [2026-09-22-reportkit-presentation-typography-and-composition-refinement-spec.md](docs/superpowers/specs/2026-09-22-reportkit-presentation-typography-and-composition-refinement-spec.md) | Core implementation is merged; native density/canonical visual release validation remains. | P2 |
 | [2026-09-22-reportkit-presentation-typography-and-composition-refinement.md](docs/superpowers/plans/2026-09-22-reportkit-presentation-typography-and-composition-refinement.md) | Workstreams A/B/D and the semantic fixture source are merged; dense/reference authoring expansion and native C/E release gates remain. | P2 |
+| [2026-09-24-reportkit-code-quality-review-spec.md](docs/superpowers/specs/2026-09-24-reportkit-code-quality-review-spec.md) | §A (CI ruff gate blind spot) and §B (duplicate `_tex_escape` in `theme_overrides.py`) landed. §C (`build()` size), §D (partial `viz/` split), and §E (dead `line-length` config) are open, unscheduled cleanup. | P3 |
 
 ## Open work
 
@@ -50,6 +51,13 @@ and [references/documentation-status.md](references/documentation-status.md).
 - **vNext consumer-project template.** Add a Copier template only after
   `publication.yaml` settles and there is more than one consumer content
   repository to keep synchronized.
+
+- **Code quality review follow-ups (§C–§E).** `publication_build.build()` is
+  now 424 lines despite the `_fail()` helper from the prior remediation
+  landing (§C); the `reportkit/viz/` package split still re-exports all
+  chart constructors from one 1512-line `core.py` rather than splitting them
+  out (§D); `pyproject.toml`'s `line-length = 120` does nothing because
+  `E501` is globally ignored (§E). None are defects; pick up opportunistically.
 
 ## Completed work
 

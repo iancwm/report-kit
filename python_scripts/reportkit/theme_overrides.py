@@ -21,6 +21,7 @@ import re
 from types import MappingProxyType
 from typing import Any, Mapping
 
+from .latex import tex_escape as _tex_escape
 from .themes import Theme, get_theme, theme_supports_brand_overrides
 
 
@@ -443,22 +444,6 @@ def resolve_effective_theme(
         font_configured=bool(_profile_section(dict(config), "theme", profile)),
         registry=registry,
     )
-
-
-def _tex_escape(value: str) -> str:
-    replacements = {
-        "\\": r"\textbackslash{}",
-        "{": r"\{",
-        "}": r"\}",
-        "#": r"\#",
-        "$": r"\$",
-        "%": r"\%",
-        "&": r"\&",
-        "_": r"\_",
-        "~": r"\textasciitilde{}",
-        "^": r"\textasciicircum{}",
-    }
-    return "".join(replacements.get(char, char) for char in value)
 
 
 def render_tex_overrides(effective: EffectiveTheme) -> str:

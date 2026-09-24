@@ -10,6 +10,7 @@ import pytest
 from reportkit.authoring import render_links_tex, tex_escape as authoring_tex_escape
 from reportkit.cli import build_parser, main
 from reportkit.latex import tex_escape
+from reportkit.theme_overrides import _tex_escape as theme_overrides_tex_escape
 from reportkit.toolchain import version_line
 from publication_build import resolve_roots, tex_escape as build_tex_escape
 import reportkit_doctor
@@ -20,7 +21,7 @@ REPO = Path(__file__).resolve().parents[1]
 
 @pytest.mark.parametrize("value", ["\\", "&", "%", "$", "#", "_", "{", "}", "~", "^"])
 def test_all_latex_text_callers_share_the_same_escaper(value: str, tmp_path: Path) -> None:
-    assert build_tex_escape is authoring_tex_escape is tex_escape
+    assert build_tex_escape is authoring_tex_escape is tex_escape is theme_overrides_tex_escape
     links = tmp_path / "links.yaml"
     links.write_text(f"links:\n  item:\n    url: https://example.com/a%20b\n    label: A{value}B\n    type: documentation\n", encoding="utf-8")
     output = tmp_path / "links.tex"

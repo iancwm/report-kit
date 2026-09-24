@@ -1,4 +1,3 @@
-from pathlib import Path
 from reportkit.diagnostics import inspect_log as inspect_diagnostics
 
 
