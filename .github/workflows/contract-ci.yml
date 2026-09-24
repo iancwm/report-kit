@@ -48,7 +48,7 @@ jobs:
           ./reportkit docs --check --json &&
           python -m pytest tests publication_pipeline/tests -q &&
           python -m pip install --disable-pip-version-check --no-cache-dir ruff &&
-          ruff check python_scripts publication_pipeline/scripts scripts tests &&
+          ruff check python_scripts publication_pipeline scripts tests adapters &&
           python -m pip install --disable-pip-version-check --no-cache-dir pip-audit &&
           (pip-audit -r toolchain/requirements.lock || true) &&
           bash scripts/acceptance_check.sh --require-tex &&
