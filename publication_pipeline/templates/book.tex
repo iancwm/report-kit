@@ -1,0 +1,36 @@
+% ReportKit entrypoint: book. The builder replaces these explicit
+% placeholders from the resolved BuildTarget; no unrestricted TeX formatting
+% is applied to this source. A combined build opens with the long-form title
+% page, the book's publication-details page, and contents; every Markdown
+% top-level heading then opens a numbered chapter (reportkit-book.sty). A
+% section build previews one chapter without front matter.
+\documentclass[theme=%%REPORTKIT_THEME%%,publication-type=%%REPORTKIT_PUBLICATION_TYPE%%]{%%REPORTKIT_CLASS%%}
+% Optional identity fields become imprint details only when publication.yaml
+% sets them.
+\newcommand{\RKBookDetailIfSet}[3]{%
+  \if\relax\detokenize\expandafter{#2}\relax\else\bookdetail{#1}{#3}\fi
+}
+\newcommand{\RKFrontMatter}{%
+  % paged-base.tex turns section numbering off for reports; book chapters
+  % are numbered, so restore the book package's chapter depth here.
+  \setcounter{secnumdepth}{1}%
+  \ifRKPubHasCover
+    \clearpage\thispagestyle{empty}\noindent
+    \makebox[\textwidth][c]{\includegraphics[page=1,width=\textwidth,height=\textheight,keepaspectratio]{\RKPubCoverPath}}\clearpage
+  \fi
+  \ifRKPubIsCombined
+    \RKFrontMatterBegin
+    \RKTitlePage[\RKPubSubtitle]{\RKPubTitle}
+    \begin{bookdetails}{\RKPubTitle}
+      \bookdetail{Licence}{Original prose and diagrams in this publication are licensed under
+        \href{\RKPubContentLicenseURL}{\RKPubContentLicense}. Code examples and
+        third-party assets retain their separate licences.}
+      \RKBookDetailIfSet{Classification}{\RKPubClassification}{\RKPubClassification}
+      \RKBookDetailIfSet{Disclaimer}{\RKPubDisclaimer}{\RKPubDisclaimer}
+      \RKBookDetailIfSet{Source}{\RKPubProjectURL}{\RKPath{\RKPubProjectURL}}
+    \end{bookdetails}
+    \RKContents
+    \RKMainMatterBegin
+  \fi
+}
+\input{paged-base.tex}

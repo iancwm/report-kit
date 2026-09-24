@@ -1,0 +1,46 @@
+% Phase F2 compile smoke test: every reportkit-book.sty primitive once,
+% under the default theme (pdflatex-safe -- book does not require
+% LuaLaTeX). Not a real book -- the reviewed fictional handbook lives in
+% latex_templates/examples/book/. scripts/acceptance_check.sh compiles this
+% in its pdflatex block.
+\documentclass[theme=default,publication-type=book]{reportkit}
+\setreportkitleftheader{ReportKit acceptance}
+\setreportkitfooter{Book smoke test}
+\title{Book acceptance test}
+\author{ReportKit}
+\date{}
+
+\begin{document}
+\RKFrontMatterBegin
+\RKTitlePage{Book acceptance test}
+
+\begin{bookdetails}{Book acceptance test}
+\bookdetail{Edition}{Compile smoke test only.}
+\end{bookdetails}
+
+\RKContents
+\RKMainMatterBegin
+
+\bookpart{A part}
+
+\section{A chapter}
+\label{ch:one}
+Chapter body text.
+
+\section{Another chapter}
+See Chapter~\ref{ch:one}.
+
+\bookappendix
+
+\section{An appendix}
+Appendix body text.
+
+\begin{bookglossary}
+\glossaryterm{Term}{A definition.}
+\end{bookglossary}
+
+\begin{bookreferences}{9}
+\bibitem{example} ReportKit (2026), book smoke test.
+\end{bookreferences}
+
+\end{document}

@@ -62,6 +62,11 @@ Migrating an existing content branch out of this repo is covered in
   quote, sidebar, feature exhibit, image credit, and references primitives;
   see `references/feature-article-authoring.md` and
   `examples/editorial-feature/` (6-page fictional feature).
+  `reportkit-book.sty` (`publication-type=book`, experimental, `theme=default`,
+  `theme=technical` or `theme=editorial`) builds a multi-chapter book on the
+  same paged class and long-form helpers: numbered chapter openers, part
+  openers, a publication-details page, appendices, a reference list and a
+  glossary; see `examples/book/` (11-page fictional handbook).
 - `REPORT_TEMPLATE.tex` — minimal report skeleton.
 - `examples/{primitive_acceptance_test,visual_grammar_acceptance_test}.tex` —
   compile the legacy and v1.4 public APIs respectively; use the acceptance

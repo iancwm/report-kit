@@ -1779,6 +1779,68 @@ trim/bleed or a third renderer.
 Register book with default/technical and editorial. The alias pair shares one
 visual baseline; editorial receives a distinct compatibility smoke.
 
+**Status (2026-09-24): implemented as experimental; pinned visual review
+remains.** What landed:
+
+- `latex_templates/publication_types/reportkit-book.sty` adds only what the
+  canonical fixture exercises: `\bookpart` (a divider page), `bookdetails`
+  with `\bookdetail` (the imprint page), numbered chapter openers (every
+  `\section` -- so hand-written TeX, Pandoc's Markdown headings, and every
+  existing section-level helper stay on one heading level), `\bookappendix`
+  (lettered chapters, a distinct hyperref anchor namespace), `bookreferences`
+  (a contents-listed `thebibliography` that `\cite` resolves against) and
+  `bookglossary` with `\glossaryterm`. The title page, contents and
+  front/main-matter pagination are reused unchanged from
+  `reportkit-longform.sty` (`\RKTitlePage`, `\RKContents`,
+  `\RKFrontMatterBegin`, `\RKMainMatterBegin`); nothing else was added.
+- A fourth token contract in `reportkit-core.sty` ("Book-composition style
+  tokens", 29 `\RKTokBook...` tokens behind `\RKAssertBookTokens`), the same
+  pattern F1's presentation/feature contracts use, so no other paged theme
+  has to populate book-only values.
+- Registry: `book` publication type (renderer `paged`, paper `a4`, themes
+  `["default", "technical", "editorial"]`, experimental, since 1.10.0),
+  `publication_pipeline/templates/book.tex` (title page + imprint +
+  contents in a combined build, chapter numbering restored after
+  `paged-base.tex` disables it for reports), regenerated LaTeX registry.
+  `reportkit-theme-default-paged.sty` and
+  `reportkit-theme-editorial-paged.sty` each gained the full book-token set
+  (default: sans/LinkBlue chapter grammar restated at chapter scale;
+  editorial: display-serif titles, letter-spaced oxblood labels).
+  Registration happened only after both theme adapters compiled the
+  canonical fixture.
+- Fixture: `latex_templates/examples/book/` -- a fictional 11-page community-
+  microgrid handbook (`book-body.tex` shared body; `report.tex` for
+  `default`, `report-editorial.tex` for `editorial`) covering two parts,
+  three numbered chapters (one with a subsection and a table/metric), a
+  lettered appendix, a glossary and a `\cite`-driven reference list. Both
+  compile cleanly (no overfull boxes, no undefined references) on the local,
+  unpinned toolchain. `latex_templates/examples/book_acceptance_test.tex`
+  is a pdflatex-safe primitive smoke (every book primitive once, default
+  theme) wired into `scripts/acceptance_check.sh`'s fast compile loop.
+- Tests: `tests/test_book.py` -- registry shape and engine-per-theme
+  resolution; the deferred-scope assertion (no `reportkit-book.cls`, no
+  `\twoside`/`\cleardoublepage`/`makeidx`/crop-bleed-trim, no third
+  renderer); the structure/style boundary (every color is a `\RKTokBook...`
+  token, no literal font/size, no theme name in the package); the token
+  contract (declared == used == populated, for both canonical adapters);
+  primitive registration; the fixture's required structure; a compile gate
+  that builds the fixture once per registered theme (default, technical --
+  from the same body with only the class option swapped, and editorial),
+  checks page geometry/fonts/undefined-references/table-of-contents shape,
+  asserts the technical alias renders byte-for-byte the same page text as
+  default, and asserts editorial restyles the same content (letters compared
+  after clipping the running-header/footer band, since the opening-page
+  style token legitimately differs between the two themes); LaTeX-level
+  rejection of an unregistered theme and of a theme that has not populated
+  the book-token contract; and a real pipeline build per registered theme
+  (`reportkit build`), including that unset optional identity fields do not
+  print an empty imprint entry.
+- Remaining: pinned-toolchain visual review and checked-in page baselines
+  before promotion to stable (reviewed only on unpinned local TeX Live, same
+  as F1/Phase E); no cover-page or brand-override interaction has been
+  exercised for `book` yet (neither theme it registers opts into brand
+  overrides today).
+
 ### F3 — combination coverage
 
 Maintain two fixture layers:
@@ -1790,6 +1852,48 @@ Maintain two fixture layers:
 
 The test parameter list is derived from publications.py. Adding a compatible
 pair without either a showcase or a generated smoke case fails collection.
+
+**Status (2026-09-24): implemented.** `tests/test_publication_theme_coverage.py`
+computes the full pair set directly from `PUBLICATION_TYPES` at collection
+time (11 pairs today) and splits it into three explicit, non-overlapping
+layers, each checked against the live registry so a stale mapping (a pair
+that no longer exists, or a pair claimed by two layers at once) fails
+immediately:
+
+- `SHOWCASE_FIXTURES` (5): `technical-report/default` → `career_guide_en`,
+  `equity-research/institutional-research` → `equity-research`,
+  `presentation/executive` → `executive-presentation`,
+  `presentation/venture` → `venture-presentation`, `feature-article/editorial`
+  → `editorial-feature`. Each mapping is checked against its fixture's
+  actual `\documentclass` line; `career_guide_en` -- which predates the
+  theme/publication-type option syntax and had no compile test anywhere in
+  the suite before this -- gets one here (pdflatex, checks page count,
+  geometry, embedded fonts and absence of undefined references).
+- Dedicated coverage (5): `book/{default,technical,editorial}` and
+  `executive-brief/{executive,institutional-research}` are recorded as
+  already compiling their *canonical* fixture under every theme they
+  register (`tests/test_book.py`, `tests/test_executive_brief.py`), so this
+  module does not recompile them with a throwaway document.
+- Generated (the remainder, computed, not hand-copied): today exactly
+  `technical-report/technical` -- the alias pair had Python/LaTeX-registry
+  coverage (`test_publication_registry.py`, `test_latex_publication_registry.py`)
+  but no end-to-end compile anywhere. A parametrized test builds the
+  smallest possible manuscript for each generated pair through the real
+  `reportkit build` pipeline and checks the cross-cutting compile-matrix
+  items that are cheap to check per pair: resolved class/renderer, engine,
+  paper or canvas dimensions (from `RENDERERS`), embedded fonts, absence of
+  "There were undefined references", the resolved-selection marker matching
+  the request (reusing `inspect_pdf.py`'s existing selection-marker
+  inspection, the same mechanism `test_selection_marker_inspection.py`
+  exercises directly), and no default-theme leakage (the marker's own
+  `theme.passed` field).
+
+Because the generated layer is `ALL_PAIRS - SHOWCASE_FIXTURES.keys() -
+DEDICATED_TEST_MODULES.keys()`, a new theme added to an existing
+publication type automatically lands in the parametrize list on the next
+collection; the module's own drift assertion is what prevents a stale
+hand-maintained mapping from silently hiding a pair that belongs in one of
+the other two layers.
 
 ## 11. Phase D-prime — neutrality, progressive disclosure and i18n
 

@@ -1,0 +1,177 @@
+% Shared body of the Phase F2 book fixture (report.tex, report-editorial.tex).
+% Fictional content: the Tessaly Valley Energy Cooperative, its sites and
+% every figure below are invented for this demonstration. The body uses only
+% book, long-form and shared semantic primitives -- no font, color or
+% spacing commands -- so the selected theme alone decides how it looks.
+
+\RKFrontMatterBegin
+\RKTitlePage[A field handbook for community microgrids]{The Quiet Grid}
+
+\begin{bookdetails}{The Quiet Grid: a field handbook for community microgrids}
+\bookdetail{Edition}{First edition, March 2027. Prepared by the fictional Tessaly
+Valley Energy Cooperative as a demonstration of the ReportKit book publication type.}
+\bookdetail{Licence}{Original prose in this demonstration is licensed under
+\href{https://creativecommons.org/licenses/by/4.0/}{CC BY 4.0}. The cooperative, its
+sites, people and measurements are fictional.}
+\bookdetail{Disclaimer}{This handbook is not engineering advice. Every figure in it is
+invented to exercise the book structure: part and chapter openers, appendices, a
+glossary and a reference list.}
+\bookdetail{Source}{\RKPath{https://example.org/quiet-grid-handbook}}
+\end{bookdetails}
+
+\RKContents
+\RKMainMatterBegin
+
+\bookpart{Foundations}
+
+\section{Why small grids fail quietly}
+\label{ch:quiet-failure}
+
+A community microgrid rarely fails with a bang. It fails with a slow drift: a battery
+bank that holds a little less each winter, an inverter that trips once a month and is
+reset by whoever notices first, a load that nobody measured because it arrived after
+commissioning. The cooperative's first three sites all ran for more than a year before
+anyone called them unreliable, and all three had been unreliable for most of that year.
+
+This handbook is written for the people who inherit those systems: the volunteer
+operator, the district engineer who visits twice a year, and the committee that must
+decide whether to extend a grid or replace it. It assumes no specialist training, only
+the patience to measure before deciding \cite{valley-survey}.
+
+\subsection{Three kinds of quiet failure}
+
+The failures we saw fall into three groups. \emph{Capacity drift} is the gradual gap
+between what a system was sized for and what it now serves. \emph{Maintenance debt} is
+the accumulation of small deferred tasks, each harmless alone. \emph{Knowledge loss}
+happens when the one person who understood the system moves away and nobody wrote down
+what they knew.
+
+\begin{principle}{Measure the load you have, not the load you planned}
+Every sizing decision in this handbook starts from a measured load profile. A plan
+written at commissioning describes a village that no longer exists.
+\end{principle}
+
+Each group has a different remedy, and the chapters that follow take them in order:
+measurement first (Chapter~\ref{ch:measuring-load}), then commissioning and handover
+(Chapter~\ref{ch:handover}), which is where knowledge loss is prevented or caused.
+
+\subsection{What this handbook does not cover}
+
+Grid-tied systems, protection design and tariff setting are outside its scope. They
+matter, but they are decisions for a qualified engineer, and the cooperative's own
+guidance on them is referenced rather than repeated here \cite{coop-protection}.
+
+\section{Measuring load before building}
+\label{ch:measuring-load}
+
+Load measurement is the least glamorous part of microgrid work and the part most often
+skipped. A two-week logging campaign costs less than one replacement battery module and
+answers questions that no survey can: when the evening peak begins, how deep it runs,
+and which loads are truly continuous.
+
+\subsection{A two-week logging campaign}
+
+The cooperative logs every feeder at one-minute resolution for fourteen days, spanning
+at least one market day and one holiday. Shorter campaigns miss the weekly rhythm;
+longer ones rarely change the design decision. Table~\ref{tab:load-summary} summarises
+the campaign at the fictional Orrin Ford site.
+
+\begin{table}[h]
+\centering
+\caption{Fictional fourteen-day load summary for the Orrin Ford site.}
+\label{tab:load-summary}
+\begin{tabular}{lrrr}
+\toprule
+Feeder & Mean (kW) & Peak (kW) & Night share \\
+\midrule
+Clinic & 1.8 & 4.2 & 38\% \\
+School & 2.6 & 7.9 & 6\% \\
+Market row & 3.1 & 11.4 & 12\% \\
+Households & 5.7 & 14.8 & 29\% \\
+\midrule
+Site total & 13.2 & 31.6 & 22\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{metric}{31.6 kW}{Measured site peak, fourteen-day campaign}
+The original design assumed a 22 kW peak. The measured figure is what the battery
+and inverter sizing in the next step must serve.
+\end{metric}
+
+\subsection{From profile to sizing}
+
+The measured profile feeds three numbers: the inverter's continuous rating, the
+battery's usable energy, and the generation needed to refill that energy on a poor
+day. The worked method, with the cooperative's safety margins, is in the planning
+guide \cite{coop-sizing}; this handbook only insists that the inputs be measured.
+
+\bookpart{Practice}
+
+\section{Commissioning and handover}
+\label{ch:handover}
+
+Commissioning is the moment a microgrid is best understood, and handover is the moment
+that understanding is most easily lost. The cooperative treats them as one step: a
+system is not commissioned until the person who will operate it has run it, alone, for
+a week.
+
+\subsection{The handover week}
+
+During the handover week the installer stays on call but does not touch the system.
+The incoming operator performs every routine task at least once, records each one in
+the site log, and raises every question in writing. Appendix~\ref{app:checklist} lists
+the tasks; the glossary defines the terms the log uses.
+
+\begin{itemize}
+\item Read and record every meter at the same time each day.
+\item Perform one controlled shutdown and restart of the inverter.
+\item Walk every feeder and confirm its labels match the single-line diagram.
+\item Hand-write the three most likely faults and their first response.
+\end{itemize}
+
+\subsection{Keeping the knowledge local}
+
+The site log is the grid's memory. A log that lives on the installer's laptop is not a
+log; it is a liability. The cooperative keeps a paper copy on site and a scanned copy
+with the district office, and reviews both at every visit \cite{valley-survey}.
+
+\bookappendix
+
+\section{Commissioning checklist}
+\label{app:checklist}
+
+The checklist below is the minimum the cooperative accepts before a site is handed
+over. Each item is signed by both the installer and the incoming operator.
+
+\begin{enumerate}
+\item The measured load profile is attached to the site log.
+\item Inverter, battery and generation ratings match the approved sizing sheet.
+\item Every feeder is labelled at both ends and on the single-line diagram.
+\item A controlled shutdown and restart has been performed by the operator.
+\item Earth and insulation test results are recorded and within limits.
+\item The three most likely faults and their first responses are posted on site.
+\item The district office holds a scanned copy of the complete site log.
+\end{enumerate}
+
+\begin{bookglossary}
+\glossaryterm{Capacity drift}{The gradual gap between the load a system was sized for
+and the load it now serves.}
+\glossaryterm{Feeder}{A distribution line leaving the site's main board and serving one
+group of loads.}
+\glossaryterm{Handover week}{The week in which the incoming operator runs the system
+alone while the installer remains on call.}
+\glossaryterm{Maintenance debt}{The accumulation of small deferred maintenance tasks,
+each harmless on its own.}
+\glossaryterm{Site log}{The written record of readings, tasks, faults and questions that
+serves as the grid's memory.}
+\end{bookglossary}
+
+\begin{bookreferences}{9}
+\bibitem{valley-survey} Tessaly Valley Energy Cooperative. \emph{Survey of three
+community microgrids, 2023--2026}. Fictional internal report, 2026.
+\bibitem{coop-protection} Tessaly Valley Energy Cooperative. \emph{Protection and
+earthing guidance for isolated grids}. Fictional guidance note, 2025.
+\bibitem{coop-sizing} Tessaly Valley Energy Cooperative. \emph{Planning guide: sizing
+storage and generation from measured load}. Fictional planning guide, 2026.
+\end{bookreferences}

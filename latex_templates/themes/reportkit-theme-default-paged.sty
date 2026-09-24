@@ -69,4 +69,42 @@
   \par\vspace{7mm}\color{Hairline}\hrule\color{Ink}\vspace{7mm}%
 }
 
+% -----------------------------------------------------------------------------
+% Book-composition tokens (reportkit-core.sty's contract, read only by
+% reportkit-book.sty when publication-type=book). Phase F2. They restate the
+% default report grammar at chapter scale -- sans bold headings, a LinkBlue
+% uppercase label, hairline rules -- and change nothing for any other
+% publication type.
+% -----------------------------------------------------------------------------
+\renewcommand{\RKTokBookOpeningPageStyle}{empty}
+\renewcommand{\RKTokBookPartTopSkip}{0.28\textheight}
+\renewcommand{\RKTokBookPartLabelFont}{\sffamily\bfseries\fontsize{9}{11}\selectfont}
+\renewcommand{\RKTokBookPartLabelColor}{LinkBlue}
+\renewcommand{\RKTokBookPartTitleFont}{\sffamily\bfseries\fontsize{27}{32}\selectfont}
+\renewcommand{\RKTokBookPartTitleColor}{Ink}
+\renewcommand{\RKTokBookPartRuleColor}{Hairline}
+\renewcommand{\RKTokBookPartRuleWidth}{0.5pt}
+\renewcommand{\RKTokBookElementSkip}{3mm}
+\renewcommand{\RKTokBookChapterTopSkip}{14mm}
+\renewcommand{\RKTokBookChapterLabelFont}{\sffamily\bfseries\fontsize{8.5}{10}\selectfont}
+\renewcommand{\RKTokBookChapterLabelColor}{LinkBlue}
+\renewcommand{\RKTokBookLabelTransform}{\MakeUppercase}
+\renewcommand{\RKTokBookChapterTitleFont}{\sffamily\bfseries\fontsize{22}{26}\selectfont}
+\renewcommand{\RKTokBookChapterTitleColor}{Ink}
+\renewcommand{\RKTokBookChapterRuleColor}{Hairline}
+\renewcommand{\RKTokBookChapterRuleWidth}{0.45pt}
+\renewcommand{\RKTokBookChapterAfterSkip}{9mm}
+\renewcommand{\RKTokBookDetailsTitleFont}{\sffamily\bfseries\fontsize{18}{22}\selectfont}
+\renewcommand{\RKTokBookDetailsLabelFont}{\sffamily\bfseries\fontsize{7.5}{9}\selectfont}
+\renewcommand{\RKTokBookDetailsLabelColor}{Muted}
+\renewcommand{\RKTokBookDetailsBodyFont}{\normalfont\fontsize{9.5}{12.5}\selectfont}
+\renewcommand{\RKTokBookDetailsSkip}{5mm}
+\renewcommand{\RKTokBookReferenceFont}{\normalfont\fontsize{9}{12}\selectfont}
+\renewcommand{\RKTokBookReferenceColor}{Ink}
+\renewcommand{\RKTokBookGlossaryTermFont}{\sffamily\bfseries}
+\renewcommand{\RKTokBookGlossaryTermColor}{Ink}
+\renewcommand{\RKTokBookGlossaryBodyFont}{\normalfont}
+\renewcommand{\RKTokBookGlossarySkip}{3pt}
+\rk@booktokensloadedtrue
+
 \endinput

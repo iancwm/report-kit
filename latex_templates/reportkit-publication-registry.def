@@ -2,7 +2,7 @@
 % Regenerate with: python -c 'from reportkit.publications import write_latex_registry; write_latex_registry(...)'
 \def\RKPublicationRegistryVersion{1}
 \def\RKValidThemes{default,editorial,executive,institutional-research,technical,venture}
-\def\RKValidPublicationTypes{equity-research,executive-brief,feature-article,presentation,technical-report}
+\def\RKValidPublicationTypes{book,equity-research,executive-brief,feature-article,presentation,technical-report}
 \def\RKValidRenderers{paged,slides}
 \expandafter\def\csname RKRendererClass@paged\endcsname{reportkit}
 \expandafter\def\csname RKRendererClassFile@paged\endcsname{latex_templates/reportkit.cls}
@@ -51,6 +51,15 @@
 \expandafter\def\csname RKThemeRequiredEngine@venture\endcsname{lualatex}
 \expandafter\def\csname RKThemeAdapter@venture@slides\endcsname{reportkit-theme-venture-slides}
 \DeclareOption{theme=venture}{\RKSetTheme{venture}{venture}}
+\expandafter\def\csname RKPublicationRenderer@book\endcsname{paged}
+\expandafter\def\csname RKPublicationClass@book\endcsname{reportkit}
+\expandafter\def\csname RKPublicationThemes@book\endcsname{default,technical,editorial}
+\expandafter\def\csname RKPublicationDefaultTheme@book\endcsname{default}
+\expandafter\def\csname RKPublicationPackage@book\endcsname{reportkit-book}
+\DeclareOption{publication-type=book}{\RKSetPublicationType{book}}
+\expandafter\def\csname RKPublicationTheme@book@default\endcsname{1}
+\expandafter\def\csname RKPublicationTheme@book@technical\endcsname{1}
+\expandafter\def\csname RKPublicationTheme@book@editorial\endcsname{1}
 \expandafter\def\csname RKPublicationRenderer@equity-research\endcsname{paged}
 \expandafter\def\csname RKPublicationClass@equity-research\endcsname{reportkit}
 \expandafter\def\csname RKPublicationThemes@equity-research\endcsname{institutional-research}

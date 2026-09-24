@@ -349,6 +349,25 @@ PUBLICATION_TYPES: dict[str, dict[str, Any]] = {
         "stability": "experimental",
         "since": "1.10.0",
     },
+    # Phase F2. A long-form multi-chapter publication on the paged renderer
+    # (reportkit.cls + reportkit-longform.sty; no book class, no third
+    # renderer). Registered with default/technical and editorial only after
+    # the canonical fixture (latex_templates/examples/book/) compiled under
+    # both canonical themes. Structure only (reportkit-book.sty); every
+    # visual value comes from the theme's book-composition tokens.
+    # Experimental until the pinned-toolchain visual review approves it.
+    "book": {
+        "name": "book",
+        "renderer": "paged",
+        "paper": "a4",
+        "themes": ["default", "technical", "editorial"],
+        "default_target": {"theme": "default", "paper": "a4"},
+        "template": "book.tex",
+        "package": "reportkit-book",
+        "selection_criteria": "Multi-chapter long-form publications: handbooks, guides and books with parts, appendices, references and a glossary.",
+        "stability": "experimental",
+        "since": "1.10.0",
+    },
     "presentation": {
         "name": "presentation",
         "renderer": "slides",

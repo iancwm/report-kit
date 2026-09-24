@@ -658,6 +658,62 @@
 }
 
 % -----------------------------------------------------------------------------
+% Book-composition style tokens (Phase F2, decision D2 extended to the book
+% publication type)
+% -----------------------------------------------------------------------------
+% A fourth contract with its own gate, for the same reason the presentation
+% and feature tokens have one: these are only ever read by
+% reportkit-book.sty (loaded only when publication-type=book), so folding
+% them into \RKAssertStyleTokens would force every other paged theme to
+% populate book-only values. Populated by a book-compatible theme's -paged
+% adapter. Every visual decision a book opener, imprint page, reference list
+% or glossary makes is one of these tokens: font tokens bundle their own
+% family/weight/\fontsize{}{}\selectfont; color tokens hold an xcolor
+% expression; length tokens hold a TeX dimension; OpeningPageStyle holds
+% the page-style name used on part-opener and publication-details pages;
+% LabelTransform holds a one-argument macro (\MakeUppercase or
+% \@firstofone) applied to part, chapter and details labels.
+\newcommand{\RKTokBookOpeningPageStyle}{\rk@styletokenerror{\RKTokBookOpeningPageStyle}}
+\newcommand{\RKTokBookPartTopSkip}{\rk@styletokenerror{\RKTokBookPartTopSkip}}
+\newcommand{\RKTokBookPartLabelFont}{\rk@styletokenerror{\RKTokBookPartLabelFont}}
+\newcommand{\RKTokBookPartLabelColor}{\rk@styletokenerror{\RKTokBookPartLabelColor}}
+\newcommand{\RKTokBookPartTitleFont}{\rk@styletokenerror{\RKTokBookPartTitleFont}}
+\newcommand{\RKTokBookPartTitleColor}{\rk@styletokenerror{\RKTokBookPartTitleColor}}
+\newcommand{\RKTokBookPartRuleColor}{\rk@styletokenerror{\RKTokBookPartRuleColor}}
+\newcommand{\RKTokBookPartRuleWidth}{\rk@styletokenerror{\RKTokBookPartRuleWidth}}
+\newcommand{\RKTokBookElementSkip}{\rk@styletokenerror{\RKTokBookElementSkip}}
+\newcommand{\RKTokBookChapterTopSkip}{\rk@styletokenerror{\RKTokBookChapterTopSkip}}
+\newcommand{\RKTokBookChapterLabelFont}{\rk@styletokenerror{\RKTokBookChapterLabelFont}}
+\newcommand{\RKTokBookChapterLabelColor}{\rk@styletokenerror{\RKTokBookChapterLabelColor}}
+\newcommand{\RKTokBookLabelTransform}{\rk@styletokenerror{\RKTokBookLabelTransform}}
+\newcommand{\RKTokBookChapterTitleFont}{\rk@styletokenerror{\RKTokBookChapterTitleFont}}
+\newcommand{\RKTokBookChapterTitleColor}{\rk@styletokenerror{\RKTokBookChapterTitleColor}}
+\newcommand{\RKTokBookChapterRuleColor}{\rk@styletokenerror{\RKTokBookChapterRuleColor}}
+\newcommand{\RKTokBookChapterRuleWidth}{\rk@styletokenerror{\RKTokBookChapterRuleWidth}}
+\newcommand{\RKTokBookChapterAfterSkip}{\rk@styletokenerror{\RKTokBookChapterAfterSkip}}
+\newcommand{\RKTokBookDetailsTitleFont}{\rk@styletokenerror{\RKTokBookDetailsTitleFont}}
+\newcommand{\RKTokBookDetailsLabelFont}{\rk@styletokenerror{\RKTokBookDetailsLabelFont}}
+\newcommand{\RKTokBookDetailsLabelColor}{\rk@styletokenerror{\RKTokBookDetailsLabelColor}}
+\newcommand{\RKTokBookDetailsBodyFont}{\rk@styletokenerror{\RKTokBookDetailsBodyFont}}
+\newcommand{\RKTokBookDetailsSkip}{\rk@styletokenerror{\RKTokBookDetailsSkip}}
+\newcommand{\RKTokBookReferenceFont}{\rk@styletokenerror{\RKTokBookReferenceFont}}
+\newcommand{\RKTokBookReferenceColor}{\rk@styletokenerror{\RKTokBookReferenceColor}}
+\newcommand{\RKTokBookGlossaryTermFont}{\rk@styletokenerror{\RKTokBookGlossaryTermFont}}
+\newcommand{\RKTokBookGlossaryTermColor}{\rk@styletokenerror{\RKTokBookGlossaryTermColor}}
+\newcommand{\RKTokBookGlossaryBodyFont}{\rk@styletokenerror{\RKTokBookGlossaryBodyFont}}
+\newcommand{\RKTokBookGlossarySkip}{\rk@styletokenerror{\RKTokBookGlossarySkip}}
+\newif\ifrk@booktokensloaded
+\rk@booktokensloadedfalse
+% Called by reportkit-book.sty immediately before defining anything that
+% reads a token above.
+\newcommand{\RKAssertBookTokens}{%
+  \ifrk@booktokensloaded\else
+    \PackageError{reportkit-core}{No theme has populated the required book-composition style tokens}%
+      {Select a book-compatible theme whose paged adapter populates the RKTokBook tokens before reportkit-book loads.}%
+  \fi
+}
+
+% -----------------------------------------------------------------------------
 % Anti-stranding page-break mechanism (structural, not visual -- every theme
 % shares the same heuristic fractions of \textheight)
 % -----------------------------------------------------------------------------

@@ -24,8 +24,9 @@ Contract version `1.1.0` describes the combinations registered today:
 `technical-report/{default,technical}/paged`,
 `equity-research/institutional-research/paged`,
 `presentation/executive/slides`, and the experimental
-`executive-brief/{executive,institutional-research}/paged` and
-`feature-article/editorial/paged` targets. Theme entries expose semantic
+`executive-brief/{executive,institutional-research}/paged`,
+`feature-article/editorial/paged` and `book/{default,technical,editorial}/paged`
+targets. Theme entries expose semantic
 capability names, not visual values; `technical` resolves to the same
 implementation as `default`. English with Latin script is verified;
 Vietnamese is metadata-only, and RTL is unsupported.

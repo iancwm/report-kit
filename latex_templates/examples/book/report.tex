@@ -1,0 +1,22 @@
+% ReportKit example: book publication type under the default theme. Phase F2
+% of the multi-format publication architecture plan. The body lives in
+% book-body.tex so report-editorial.tex can prove the same book structure
+% compiles, unchanged, under the other registered canonical theme. The
+% technical alias resolves to this exact target (theme=technical loads the
+% default packages), so it shares this fixture rather than duplicating it.
+% All content is fictional.
+\documentclass[theme=default,publication-type=book]{reportkit}
+
+\setreportkitleftheader{Quiet Grid Handbook}
+\setreportkitfooter{Tessaly Valley Energy Cooperative -- fictional demonstration handbook}
+\setreportkitversion{First edition}
+\setreportkitsubject{A field handbook for community microgrids}
+\setreportkitkeywords{ReportKit, book, default theme, fictional}
+
+\title{The Quiet Grid}
+\author{Tessaly Valley Energy Cooperative}
+\date{March 2027}
+
+\begin{document}
+\input{book-body.tex}
+\end{document}

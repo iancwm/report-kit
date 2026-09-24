@@ -135,4 +135,41 @@
 \renewcommand{\RKTokFeatureReferenceColor}{Ink}
 \rk@featuretokensloadedtrue
 
+% -----------------------------------------------------------------------------
+% Book-composition tokens (reportkit-core.sty's contract, read only by
+% reportkit-book.sty when publication-type=book). Phase F2. Display-serif
+% part and chapter titles, letter-spaced oxblood sans labels, an ink rule
+% under chapter openings and a quiet opening page style.
+% -----------------------------------------------------------------------------
+\renewcommand{\RKTokBookOpeningPageStyle}{rkeditorialopening}
+\renewcommand{\RKTokBookPartTopSkip}{0.26\textheight}
+\renewcommand{\RKTokBookPartLabelFont}{\sffamily\bfseries\fontsize{8.6}{10}\selectfont\addfontfeatures{LetterSpace=8}}
+\renewcommand{\RKTokBookPartLabelColor}{Accent}
+\renewcommand{\RKTokBookPartTitleFont}{\rkeditorialdisplay\fontsize{36}{40}\selectfont}
+\renewcommand{\RKTokBookPartTitleColor}{Ink}
+\renewcommand{\RKTokBookPartRuleColor}{Accent}
+\renewcommand{\RKTokBookPartRuleWidth}{1.4pt}
+\renewcommand{\RKTokBookElementSkip}{3mm}
+\renewcommand{\RKTokBookChapterTopSkip}{16mm}
+\renewcommand{\RKTokBookChapterLabelFont}{\sffamily\bfseries\fontsize{8.4}{10}\selectfont\addfontfeatures{LetterSpace=8}}
+\renewcommand{\RKTokBookChapterLabelColor}{Accent}
+\renewcommand{\RKTokBookLabelTransform}{\MakeUppercase}
+\renewcommand{\RKTokBookChapterTitleFont}{\rkeditorialdisplay\fontsize{28}{32}\selectfont}
+\renewcommand{\RKTokBookChapterTitleColor}{Ink}
+\renewcommand{\RKTokBookChapterRuleColor}{Ink}
+\renewcommand{\RKTokBookChapterRuleWidth}{.8pt}
+\renewcommand{\RKTokBookChapterAfterSkip}{10mm}
+\renewcommand{\RKTokBookDetailsTitleFont}{\rkeditorialdisplay\fontsize{22}{26}\selectfont}
+\renewcommand{\RKTokBookDetailsLabelFont}{\sffamily\bfseries\fontsize{7.4}{9}\selectfont\addfontfeatures{LetterSpace=6}}
+\renewcommand{\RKTokBookDetailsLabelColor}{Accent}
+\renewcommand{\RKTokBookDetailsBodyFont}{\rmfamily\fontsize{9.5}{12.5}\selectfont}
+\renewcommand{\RKTokBookDetailsSkip}{5mm}
+\renewcommand{\RKTokBookReferenceFont}{\sffamily\fontsize{8.4}{11}\selectfont}
+\renewcommand{\RKTokBookReferenceColor}{Ink}
+\renewcommand{\RKTokBookGlossaryTermFont}{\rmfamily\itshape}
+\renewcommand{\RKTokBookGlossaryTermColor}{Accent}
+\renewcommand{\RKTokBookGlossaryBodyFont}{\rmfamily}
+\renewcommand{\RKTokBookGlossarySkip}{4pt}
+\rk@booktokensloadedtrue
+
 \endinput
