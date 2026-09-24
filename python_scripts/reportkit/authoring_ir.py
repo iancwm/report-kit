@@ -378,6 +378,13 @@ def _validate_node(
     ))
     arguments = {str(item["name"]): item for item in record.get("arguments", []) if isinstance(item, Mapping) and item.get("name")}
     supplied = {key: value for key, value in _presentation_arguments(node).items() if key not in _RESERVED_FIELDS}
+    if {"title", "legacy_suffix"}.issubset(arguments) and {"title", "legacy_suffix"}.issubset(supplied):
+        errors.append(_diagnostic(
+            "callout_title_collision",
+            f"callout {node.primitive!r} cannot set both replacement 'title' and legacy 'legacy_suffix'",
+            node,
+            details={"fields": ["title", "legacy_suffix"]},
+        ))
     missing = [
         name for name, argument in arguments.items()
         if argument.get("required") and name not in supplied

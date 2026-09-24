@@ -70,7 +70,7 @@ def test_every_in_tree_xparse_specifier_is_supported() -> None:
         for argument in record["arguments"]
         if argument["specifier"] in {"m", "O", "o", "s"}
     }
-    assert found == {"m", "O", "o"}
+    assert found == {"m", "O", "o", "g"}
     assert parse_xparse_signature("s")[0]["specifier"] == "s"
 
 

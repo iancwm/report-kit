@@ -86,6 +86,14 @@ Before TeX runs, optional consumer-project `figures/` and `assets/` files are
 copied into the isolated build directory. Their relative paths and SHA-256
 hashes are recorded in `build-report.json` for build provenance.
 
+Markdown publications can declare replaceable photograph or illustration
+slots in `image-slots.yaml` and reference them with a standalone
+`[[REPORTKIT-IMAGE:img:<slug>]]` line. A supplied local asset is captioned and
+placed at that location; a missing asset remains a clearly marked placeholder
+in draft builds and blocks a release build. Build never downloads images.
+See [the callout and image-slot authoring guide](../references/callouts-and-image-slots.md)
+for declaration fields, rights metadata, and replacement steps.
+
 `reportkit build --mode combined` is the canonical full-document build and is driven by
 `manuscript/order.txt`. It validates the publication before Pandoc runs,
 compiles twice with `-file-line-error`, applies the strict log gate, renders

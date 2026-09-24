@@ -108,6 +108,11 @@ def parse_xparse_signature(spec: str) -> list[dict[str, Any]]:
             result.append({"position": position, "specifier": "m", "required": True, "default": None})
         elif token == "o":
             result.append({"position": position, "specifier": "o", "required": False, "default": None})
+        elif token == "g":
+            # xparse's ``g`` reads an optional braced argument. It is useful
+            # for preserving older public syntax alongside a newer optional
+            # bracketed form (for example ``o g`` callout titles).
+            result.append({"position": position, "specifier": "g", "required": False, "default": None})
         elif token == "s":
             result.append({"position": position, "specifier": "s", "required": False, "default": False})
         elif token == "O":
@@ -213,6 +218,11 @@ def _default_latex_example(name: str, form: str, arguments: list[dict[str, Any]]
             values.append("{Example}")
         elif argument["specifier"] == "s":
             values.append("*")
+        elif argument["specifier"] == "g":
+            # Optional braced arguments are omitted in the generated example.
+            # Emitting ``{Example}`` here would make it look required and can
+            # shift later optional arguments in mixed signatures.
+            continue
         else:
             values.append("[]")
     invocation = "".join(values)

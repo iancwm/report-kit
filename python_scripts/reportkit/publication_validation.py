@@ -7,6 +7,15 @@ from pathlib import Path
 import re
 
 from reportkit.diagnostics import make_diagnostic  # noqa: E402
+from reportkit.image_slots import (
+    IMAGE_SENTINEL_MARKER,
+    IMAGE_SENTINEL_RE,
+    IMAGE_SLOTS_FILENAME,
+    ImageSlot,
+    is_pending_rights_value,
+    normalize_image_slot,
+    parse_image_slots,
+)
 
 SENTINEL_RE = re.compile(r"\[\[REPORTKIT-VISUAL:fig:(?P<slug>[a-z0-9]+(?:-[a-z0-9]+)*)\]\]")
 FRAGMENT_RE = re.compile(r"^fig-(?P<slug>[a-z0-9]+(?:-[a-z0-9]+)*)\.tex$")
@@ -78,6 +87,9 @@ class ValidationResult:
     manuscript_files: list[str] = field(default_factory=list)
     slugs: list[str] = field(default_factory=list)
     labels: list[str] = field(default_factory=list)
+    image_slots: dict[str, ImageSlot] = field(default_factory=dict)
+    unresolved_image_slots: list[ImageSlot] = field(default_factory=list)
+    profile: str = "draft"
 
     @property
     def ok(self) -> bool:
@@ -91,12 +103,13 @@ class ValidationResult:
     def add(
         self, message: str, *, rule: str, file: str | None = None, line: int | None = None,
         kind: str = "publication_validation",
+        severity: str = "error",
     ) -> None:
         source = {"file": file} if file else None
         if source is not None and line is not None:
             source["line"] = line
         self.diagnostics.append(make_diagnostic(
-            kind, message, code=f"RK_VALIDATION_{rule.upper()}", source=source,
+            kind, message, code=f"RK_VALIDATION_{rule.upper()}", severity=severity, source=source,
             docs="#/commands/check",
         ))
 
@@ -130,9 +143,10 @@ def _validate_fragment_safety(result: ValidationResult, root: Path, path: Path) 
     return text
 
 
-def validate_publication(root: Path) -> ValidationResult:
+def validate_publication(root: Path, profile: str = "draft") -> ValidationResult:
     root = root.resolve()
-    result = ValidationResult()
+    selected_profile = profile or "draft"
+    result = ValidationResult(profile=selected_profile)
     manuscript_dir, fragment_dir = root / "manuscript", root / "fragments"
     order = manuscript_dir / "order.txt"
     if not order.is_file():
@@ -160,6 +174,7 @@ def validate_publication(root: Path) -> ValidationResult:
         result.add(f"manuscript is not listed in order.txt: {name}", rule="unlisted_manuscript", file=f"manuscript/{name}")
 
     used: dict[str, str] = {}
+    used_images: dict[str, tuple[str, int]] = {}
     trusted_fragments: set[str] = set()
     for entry in entries:
         manuscript = manuscript_dir / entry
@@ -181,24 +196,41 @@ def validate_publication(root: Path) -> ValidationResult:
                         rule="asset_path_escape", file=str(manuscript.relative_to(root)), line=number,
                         kind="security_violation",
                     )
-            if "REPORTKIT-VISUAL" not in raw:
+            if "REPORTKIT-VISUAL" in raw:
+                visual_match = SENTINEL_RE.fullmatch(raw.strip())
+                if not visual_match:
+                    result.add(f"{manuscript.relative_to(root)}:{number}: invalid visual sentinel", rule="invalid_visual_sentinel", file=str(manuscript.relative_to(root)), line=number)
+                else:
+                    slug = visual_match.group("slug")
+                    if slug in used:
+                        result.add(f"{manuscript.relative_to(root)}:{number}: duplicate visual slug: {slug}", rule="duplicate_visual_slug", file=str(manuscript.relative_to(root)), line=number)
+                    else:
+                        used[slug] = f"{manuscript.relative_to(root)}:{number}"
+                        result.slugs.append(slug)
+
+            if IMAGE_SENTINEL_MARKER not in raw.upper():
                 continue
-            match = SENTINEL_RE.fullmatch(raw.strip())
-            if not match:
-                result.add(f"{manuscript.relative_to(root)}:{number}: invalid visual sentinel", rule="invalid_visual_sentinel", file=str(manuscript.relative_to(root)), line=number)
+            image_match = IMAGE_SENTINEL_RE.fullmatch(raw.strip())
+            if not image_match:
+                result.add(
+                    f"{manuscript.relative_to(root)}:{number}: invalid image sentinel; put exactly [[REPORTKIT-IMAGE:img:<slug>]] on its own line",
+                    rule="invalid_image_sentinel", file=str(manuscript.relative_to(root)), line=number,
+                )
                 continue
-            slug = match.group("slug")
-            if slug in used:
-                result.add(f"{manuscript.relative_to(root)}:{number}: duplicate visual slug: {slug}", rule="duplicate_visual_slug", file=str(manuscript.relative_to(root)), line=number)
+            image_slug = image_match.group("slug")
+            location = (str(manuscript.relative_to(root)), number)
+            if image_slug in used_images:
+                result.add(
+                    f"{manuscript.relative_to(root)}:{number}: duplicate image slot use: {image_slug}",
+                    rule="duplicate_image_slot_use", file=str(manuscript.relative_to(root)), line=number,
+                )
             else:
-                used[slug] = f"{manuscript.relative_to(root)}:{number}"
-                result.slugs.append(slug)
+                used_images[image_slug] = location
 
     if not fragment_dir.is_dir():
         result.add(f"missing fragment directory: {fragment_dir}", rule="missing_fragment_directory", file="fragments")
-        return result
     fragments: dict[str, Path] = {}
-    for path in sorted(fragment_dir.iterdir()):
+    for path in (sorted(fragment_dir.iterdir()) if fragment_dir.is_dir() else ()):
         if not path.is_file():
             continue
         match = FRAGMENT_RE.fullmatch(path.name)
@@ -246,4 +278,75 @@ def validate_publication(root: Path) -> ValidationResult:
             result.add(f"orphan fragment has no manuscript sentinel: {path.relative_to(root)}", rule="orphan_fragment", file=str(path.relative_to(root)))
     for label in sorted({label for label in result.labels if result.labels.count(label) > 1}):
         result.add(f"duplicate diagram label: {label}", rule="duplicate_diagram_label")
+
+    manifest = root / IMAGE_SLOTS_FILENAME
+    declared: dict[str, dict] = {}
+    declaration_lines: dict[str, int] = {}
+    if manifest.is_file():
+        declared, declaration_lines, manifest_issues = parse_image_slots(manifest)
+        for issue in manifest_issues:
+            result.add(
+                issue.message,
+                rule="image_manifest_syntax",
+                file=IMAGE_SLOTS_FILENAME,
+                line=issue.line,
+            )
+
+    for slug, (manuscript_file, manuscript_line) in used_images.items():
+        if slug not in declared:
+            result.add(
+                f"{manuscript_file}:{manuscript_line}: image slot {slug!r} has no declaration in {IMAGE_SLOTS_FILENAME}",
+                rule="missing_image_declaration",
+                file=manuscript_file,
+                line=manuscript_line,
+            )
+    for slug, values in declared.items():
+        use = used_images.get(slug)
+        manuscript_file, manuscript_line = use if use else (None, None)
+        slot, slot_issues = normalize_image_slot(
+            slug,
+            values,
+            path=manifest,
+            root=root,
+            manuscript_file=manuscript_file,
+            manuscript_line=manuscript_line,
+        )
+        result.image_slots[slug] = slot
+        if use is None:
+            result.add(
+                f"{IMAGE_SLOTS_FILENAME}:{declaration_lines.get(slug, 1)}: orphan image slot declaration {slug!r} has no manuscript sentinel",
+                rule="orphan_image_declaration",
+                file=IMAGE_SLOTS_FILENAME,
+                line=declaration_lines.get(slug),
+            )
+        for issue in slot_issues:
+            result.add(
+                issue.message,
+                rule="image_slot_metadata_or_path",
+                file=IMAGE_SLOTS_FILENAME,
+                line=issue.line,
+            )
+        if slot.unresolved_reason:
+            result.unresolved_image_slots.append(slot)
+            strict_profile = selected_profile.casefold() in {"final", "release"}
+            if slot.state == "placeholder":
+                result.add(
+                    f"image slot {slug!r} is missing {slot.path!r}; add the file inside assets/images/ or correct the declaration",
+                    rule="image_slot_missing_file",
+                    file=manuscript_file or IMAGE_SLOTS_FILENAME,
+                    line=manuscript_line if use else declaration_lines.get(slug),
+                    severity="error" if strict_profile else "warning",
+                )
+            pending_fields = [
+                field_name for field_name in ("source", "creator", "license", "attribution", "restrictions")
+                if is_pending_rights_value(getattr(slot, field_name), field_name)
+            ]
+            if pending_fields:
+                result.add(
+                    f"image slot {slug!r} has pending rights or credit fields ({', '.join(pending_fields)}); record concrete source, creator, license, attribution, and restrictions before final/release",
+                    rule="image_slot_pending_rights",
+                    file=IMAGE_SLOTS_FILENAME,
+                    line=declaration_lines.get(slug),
+                    severity="error" if strict_profile else "warning",
+                )
     return result
