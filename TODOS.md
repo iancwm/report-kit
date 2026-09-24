@@ -21,20 +21,21 @@ and [references/documentation-status.md](references/documentation-status.md).
 | [2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md](docs/superpowers/specs/2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md) | A′/B′, constrained authoring, standalone render, progressive-disclosure budgets, the generated OpenAI adapter, and per-script font stacks/language-support truthfulness (D-prime 3) are implemented. Tagged-PDF remains deferred. | P2 |
 | [2026-09-22-reportkit-presentation-typography-and-composition-refinement-spec.md](docs/superpowers/specs/2026-09-22-reportkit-presentation-typography-and-composition-refinement-spec.md) | Core implementation is merged; native density/canonical visual release validation remains. | P2 |
 | [2026-09-22-reportkit-presentation-typography-and-composition-refinement.md](docs/superpowers/plans/2026-09-22-reportkit-presentation-typography-and-composition-refinement.md) | Workstreams A/B/D and the semantic fixture source are merged; dense/reference authoring expansion and native C/E release gates remain. | P2 |
-| [2026-09-24-reportkit-callout-titles-and-image-slots-spec.md](docs/superpowers/specs/2026-09-24-reportkit-callout-titles-and-image-slots-spec.md) | Implementation merged in PR #54 at `f6293d4`; focused contract/validation tests, mixed supplied/missing-image pipeline coverage, and native visual/release verification remain. | P2 |
-| [2026-09-24-reportkit-callout-titles-and-image-slots-implementation-plan.md](docs/superpowers/plans/2026-09-24-reportkit-callout-titles-and-image-slots-implementation-plan.md) | Implementation complete in the merged mainline; the plan's unchecked focused tests, full acceptance/build gates, and visual review remain. | P2 |
+| [2026-09-24-reportkit-callout-titles-and-image-slots-spec.md](docs/superpowers/specs/2026-09-24-reportkit-callout-titles-and-image-slots-spec.md) | Implementation merged in PR #54 at `f6293d4`; focused contract/validation tests and mixed supplied/missing-image pipeline coverage are green; native visual/release verification remains. | P2 |
+| [2026-09-24-reportkit-callout-titles-and-image-slots-implementation-plan.md](docs/superpowers/plans/2026-09-24-reportkit-callout-titles-and-image-slots-implementation-plan.md) | Implementation complete in the merged mainline; focused tests and the docs/context checks are complete; full acceptance/build gates and visual review remain. | P2 |
 | [2026-09-24-reportkit-code-quality-review-spec.md](docs/superpowers/specs/2026-09-24-reportkit-code-quality-review-spec.md) | §A (CI ruff gate blind spot) and §B (duplicate `_tex_escape` in `theme_overrides.py`) landed. §C (`build()` size), §D (partial `viz/` split), and §E (dead `line-length` config) are open, unscheduled cleanup. | P3 |
 
 ## Open work
 
 - **Presentation refinement — native visual release gate.** The assertion hierarchy, dense compositions, references composition, constrained-authoring preflight, and density fixture source are merged. Complete the target-aware native build of both canonical and density executive fixtures, 140-DPI visual review, mechanical envelope/safe-area checks, grayscale review, and canonical hero-closing regression. Do not claim release completion from static tests alone.
 
-- **Callout titles and image slots — verification and release gate.** PR #54
-  merged the optional replacement/legacy callout heading forms, safe Markdown
-  directives, declared local image slots, supplied-image rendering, draft
-  placeholders, and build-report state. Complete the unchecked focused contract
-  and validation tests, mixed supplied/missing-image pipeline checks, default
-  and institutional visual review, and final/release-profile rejection checks.
+- **Callout titles and image slots — native verification and release gate.** PR
+  #54 merged the optional replacement/legacy callout heading forms, safe
+  Markdown directives, declared local image slots, supplied-image rendering,
+  draft placeholders, and build-report state. Focused contract/validation and
+  mixed supplied/missing-image pipeline tests now pass. Complete the pinned
+  default and institutional visual review, native PDF text/placement checks,
+  and final/release-profile acceptance run.
 
 ### P2
 

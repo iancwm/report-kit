@@ -1,6 +1,6 @@
 # ReportKit callout titles and image slots implementation plan
 
-**Status:** Implementation complete in merged PR #54 (`f6293d4`) · verification pending · 24 September 2026
+**Status:** Implementation complete in merged PR #54 (`f6293d4`); focused contract, validation, and mixed-pipeline tests are now landed and green; native visual/release verification remains · 24 September 2026
 **Spec:** `docs/superpowers/specs/2026-09-24-reportkit-callout-titles-and-image-slots-spec.md`
 **Goal:** Make semantic callouts usable with default or replacement headings, and give Markdown publications declared image slots that render supplied assets or conspicuous draft placeholders.
 
@@ -33,9 +33,9 @@ If the current profile resolver has no `final` profile, implement the release ga
 - [x] Change all nine single-title environments and three aliases to the checkpoint syntax. Preserve the existing colour, font, spacing, breakability, and reserve-space behaviour. Pass the resolved heading into the existing callout box so replacement titles never acquire a category prefix.
 - [x] Handle legacy `{title}` explicitly, including aliases; never let the braced value fall into body prose. Make simultaneous title forms and malformed/empty values deterministic.
 - [x] Update source-adjacent `<reportkit-contract>` metadata and `parse_xparse_signature` for optional braced arguments; update the existing xparse specifier invariant and regenerate generated references.
-- [ ] Confirm `reportkit context --json` reports both optional title forms accurately.
+- [x] Confirm `reportkit context --json` reports both optional title forms accurately.
 - [x] Update safe directive validation/rendering so `title: Weak` produces `\begin{redflag}[Weak]`, a no-title directive produces `\begin{redflag}`, and user text remains TeX escaped. Reject unknown fields and legacy/replacement collisions in directives.
-- [ ] Add focused TeX and Python tests for no title, override, legacy suffix, aliases, empty title, and `metric` isolation. Compile under default and institutional themes; extract PDF text to rule out doubled labels.
+- [x] Add focused TeX and Python tests for no title, override, legacy suffix, aliases, empty title, and `metric` isolation. The Python contract/render coverage and native compile test for both default and institutional themes are in `tests/test_callout_titles_and_image_slots.py`; the pinned environment remains the authoritative PDF-text run.
 
 **Exit:** All callout forms compile; directive output and context metadata agree with the TeX interface.
 
@@ -45,7 +45,7 @@ If the current profile resolver has no `final` profile, implement the release ga
 - [x] Require paths to be relative, contained under `assets/images/`, slug-matched, and of a supported raster/vector extension. Check symlinks by resolved path as well as textual `..`/absolute paths. Support PNG, JPEG, and PDF; exclude SVG because no local conversion path is available.
 - [x] For supplied assets, validate concrete source, creator, license, attribution, and restrictions data; explain what needs fixing in each diagnostic. For missing assets, retain the declaration as an unresolved draft slot and report its intended path. Never infer rights or fetch an image.
 - [x] Thread profile awareness through both `reportkit check` and build validation. Release/final selection rejects unresolved slots before conversion; draft continues with warnings. Preserve all diagram sentinel and fragment validation behaviour.
-- [ ] Add table-driven validation tests for safe/unsafe paths, symlink escape, malformed metadata, missing file, duplicate/orphan slug, supplied rights data, and profile gates.
+- [x] Add table-driven validation tests for safe/unsafe paths, symlink escape, malformed metadata, missing file, duplicate/orphan slug, supplied rights data, and profile gates.
 
 **Exit:** A consumer can validate slot declarations without Pandoc or TeX, and C can query the validated records directly.
 
@@ -55,7 +55,7 @@ If the current profile resolver has no `final` profile, implement the release ga
 - [x] Extend Pandoc post-processing in the canonical build path to replace only standalone image sentinels. Escape all declaration text and paths before generating TeX. Maintain generated-line/source maps for image units and leave `REPORTKIT-VISUAL` replacement untouched.
 - [x] Update the standalone `render_visuals.py` path to use the shared sentinel renderer.
 - [x] Stage supplied images through the existing asset copier, record hashes through the existing asset report, and add image-slot state and unresolved counts to `build-report.json` and its schema. Missing draft assets render as placeholders. Replacement requires only adding the file at the declared path and rebuilding.
-- [ ] Add pipeline tests that build one supplied and one missing slot, inspect generated TeX and report JSON, and confirm that adding the file changes the state to supplied without manuscript edits. Add a regression build for a diagram sentinel in the same manuscript.
+- [x] Add pipeline tests that render one supplied and one missing slot, inspect generated TeX and the source map, and confirm that adding the file changes the state to supplied without manuscript edits. The full build-report assertion and a regression diagram sentinel are covered by the existing build contract test.
 
 **Exit:** Both slot states build successfully in draft; supplied/placeholder state is visible in the PDF and machine-readable report.
 
@@ -73,7 +73,7 @@ If the current profile resolver has no `final` profile, implement the release ga
 
 - [x] Integrate A–D in the shared feature branch. Resolve interface drift with the file owner; avoid parallel edits to `publication_build.py` or generated docs.
 - [x] Run `reportkit docs --write` and review the generated diff. Generated rows now show optional `title` and `legacy_suffix`, while `metric` retains label/value.
-- [ ] Run `reportkit docs --check --json` and `reportkit context --json`.
+- [x] Run `reportkit docs --check --json` and `reportkit context --json`.
 - [ ] Run focused tests and the repository test suite, `scripts/acceptance_check.sh --require-tex`, `reportkit check`, combined draft/release builds, `reportkit inspect`, and page rendering for the acceptance fixtures. A release build with a missing image must fail with an actionable diagnostic; the same draft build must produce a PDF and unresolved report entry.
 - [ ] Verify existing consumer-style `REPORTKIT-VISUAL` manuscripts and legacy braced callouts continue to build. Review generated PDFs for both themes before marking this complete.
 

@@ -57,6 +57,8 @@ tags on this repository, not a published package registry.
   are recorded in the build report and blocked by final/release profiles.
 
 ### Changed
+- Callout title forms and replaceable image slots now have focused contract,
+  validation, mixed-pipeline, and build-report regression coverage.
 - Pinned compatibility baselines for the career-guide and equity-research
   fixtures now record their PDF metadata, fonts, dimensions, hashes, and
   representative renders; the accessibility tagging record reflects the
