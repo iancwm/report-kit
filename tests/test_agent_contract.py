@@ -68,7 +68,7 @@ def test_every_in_tree_xparse_specifier_is_supported() -> None:
         for group in registry["primitives"].values()
         for record in group.values()
         for argument in record["arguments"]
-        if argument["specifier"] in {"m", "O", "o", "s"}
+        if argument["specifier"] in {"m", "O", "o", "g"}
     }
     assert found == {"m", "O", "o", "g"}
     assert parse_xparse_signature("s")[0]["specifier"] == "s"
