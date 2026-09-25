@@ -424,11 +424,12 @@ def generate_registry(repo_root: Path | None = None, *, strict: bool = False) ->
         errors.extend(file_errors)
         for record in records:
             _merge_record(primitives, record, errors)
-    chart_path = repo_root / "python_scripts" / "reportkit" / "viz" / "core.py"
-    chart_records, chart_errors = _chart_primitives(chart_path, repo_root)
-    errors.extend(chart_errors)
-    for record in chart_records:
-        _merge_record(primitives, record, errors)
+    charts_dir = repo_root / "python_scripts" / "reportkit" / "viz" / "charts"
+    for chart_path in sorted(charts_dir.glob("*.py")):
+        chart_records, chart_errors = _chart_primitives(chart_path, repo_root)
+        errors.extend(chart_errors)
+        for record in chart_records:
+            _merge_record(primitives, record, errors)
     class_text = (repo_root / "latex_templates" / "reportkit.cls").read_text(encoding="utf-8")
     class_match = re.search(r"\\ProvidesClass\{[^}]+\}\[[^]]+\s+v([^\s]+)", class_text)
     class_version = class_match.group(1) if class_match else "unknown"
@@ -443,7 +444,7 @@ def generate_registry(repo_root: Path | None = None, *, strict: bool = False) ->
         },
         "charts": sorted(name for name in primitives["chart"] if name in LEGACY_CHART_NAMES), "commands": dict(COMMANDS),
         "command_contract": COMMAND_CONTRACT, "class_version": class_version,
-        "sources": {"primitives": "source-adjacent <reportkit-contract> blocks", "charts": "python_scripts/reportkit/viz/core.py"},
+        "sources": {"primitives": "source-adjacent <reportkit-contract> blocks", "charts": "python_scripts/reportkit/viz/charts/"},
     }
 
 
