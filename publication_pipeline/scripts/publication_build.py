@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import redirect_stderr, redirect_stdout
+from dataclasses import dataclass
 from datetime import datetime, timezone
 import hashlib
 import io
@@ -22,6 +23,7 @@ import subprocess
 import sys
 import tempfile
 import time
+from typing import Any
 try:
     import resource
 except ImportError:  # pragma: no cover - ReportKit's pinned environment is Linux
@@ -506,7 +508,51 @@ def resolve_roots(args: argparse.Namespace) -> tuple[Path, Path]:
     return source_root, output_root
 
 
-def build(args: argparse.Namespace) -> int:
+@dataclass
+class _PreflightResult:
+    """Everything the compile stage needs once validation, config loading,
+    and multi-format target resolution have all succeeded.
+
+    Building this object (as opposed to returning an ``int`` failure code) is
+    the dividing line between ``build()``'s preflight stage and its compile
+    stage: every value here is fully resolved, and every stage after this
+    point only runs pandoc, TeX, the diagnostic gate, and the PDF page
+    renderer/inspector on top of it -- no further target-, theme-, or
+    config-branching failures remain.
+    """
+
+    source_root: Path
+    output_root: Path
+    profile: str | None
+    timeout: int
+    memory_limit_mb: int
+    authoring: Any
+    config: dict[str, Any]
+    identity: dict[str, str]
+    license_values: dict[str, str]
+    engine: str
+    target: Any
+    entrypoint: Path
+    selection_marker: str
+    font_policy: str
+    declared_language: str | None
+    effective_theme: Any
+    manuscripts: list[Path]
+    used_image_slots: dict[str, Any]
+    unresolved_used_slots: list[Any]
+
+
+def _preflight(args: argparse.Namespace) -> _PreflightResult | int:
+    """Validate the request, load config, and resolve the multi-format build
+    target -- every failure ``build()`` used to report before touching the
+    output directory or spawning pandoc/TeX.
+
+    Returns a :class:`_PreflightResult` on success, or the process exit code
+    to return (after already printing its diagnostic to stderr) on failure.
+    This never writes to ``output_root`` and never spawns a subprocess, so
+    every branch here is directly callable from a test without a working
+    Pandoc/TeX toolchain.
+    """
     source_root, output_root = resolve_roots(args)
     profile = getattr(args, "profile", None)
     timeout = int(getattr(args, "compile_timeout_seconds", 120))
@@ -638,20 +684,26 @@ def build(args: argparse.Namespace) -> int:
         slot for slot in validation.unresolved_image_slots
         if image_field(slot, "manuscript_file", None) in selected_manuscript_files
     ]
-    stamp = time.strftime("%Y%m%d-%H%M%S")
-    history_root = output_root / "history"
-    # F2 bounded parallelism: two sections built concurrently can resolve the
-    # same mode+stamp before either has written its history file, so a
-    # build-id keyed on mode alone ("section-<stamp>") is a check-then-act
-    # race under --workers > 1. Keying on the manuscript stem too makes
-    # concurrent sections' candidates distinct from the start; the
-    # pre-existing collision index in unique_build_id still covers the rare
-    # case of the same section built twice within one second.
-    build_id_mode = f"section-{Path(manuscripts[0]).stem}" if args.mode == "section" else args.mode
-    build_id = unique_build_id(build_id_mode, stamp, history_root)
-    output = output_root / ("combined" if args.mode == "combined" else f"section-{Path(manuscripts[0]).stem}-{stamp}")
-    if output.exists() and args.mode != "combined":
-        output = output_root / build_id
+    return _PreflightResult(
+        source_root=source_root, output_root=output_root, profile=profile,
+        timeout=timeout, memory_limit_mb=memory_limit_mb, authoring=authoring,
+        config=config, identity=identity, license_values=license_values,
+        engine=engine, target=target, entrypoint=entrypoint, selection_marker=selection_marker,
+        font_policy=font_policy, declared_language=declared_language, effective_theme=effective_theme,
+        manuscripts=manuscripts, used_image_slots=used_image_slots, unresolved_used_slots=unresolved_used_slots,
+    )
+
+
+def _stage_build_directory(
+    *, output: Path, source_root: Path, entrypoint: Path, effective_theme: Any, target: Any, args: argparse.Namespace,
+) -> tuple[list[dict[str, str]], str | None] | int:
+    """Create the isolated build directory and stage its inputs: templates,
+    the resolved entrypoint, project assets, an optional brand logo, theme
+    overrides, and an optional cover PDF.
+
+    Returns ``(staged_assets, cover_name)`` on success, or a failure exit
+    code (already printed to stderr) exactly as build() reported inline.
+    """
     output.mkdir(parents=True, exist_ok=True)
     for path in template_files():
         shutil.copy2(path, output / path.name)
@@ -711,7 +763,19 @@ def build(args: argparse.Namespace) -> int:
             return 2
         cover_name = "reportkit-cover.pdf"
         shutil.copy2(cover, output / cover_name)
-    body_files = []
+    return staged_assets, cover_name
+
+
+def _render_manuscript_bodies(
+    *, source_root: Path, output: Path, manuscripts: list[Path], target: Any, authoring: Any,
+    used_image_slots: dict[str, Any], timeout: int, memory_limit_mb: int,
+) -> list[Path] | int:
+    """Run Pandoc (via render_markdown) over every selected manuscript file.
+
+    Returns the list of rendered body-NN.tex paths in manuscript order on
+    success, or a failure exit code (already printed to stderr).
+    """
+    body_files: list[Path] = []
     for index, manuscript in enumerate(manuscripts):
         rendered = output / f"body-{index:02d}.tex"
         try:
@@ -740,6 +804,252 @@ def build(args: argparse.Namespace) -> int:
             print(f"compile failure: {exc}", file=sys.stderr)
             return 4
         body_files.append(rendered)
+    return body_files
+
+
+def _compile_tex_passes(
+    *, engine: str, tex: Path, log: Path, output: Path, texinputs: str, timeout: int, memory_limit_mb: int,
+    selection_marker: str, report: dict[str, Any], report_path: Path, history_root: Path,
+) -> int | None:
+    """Run the two required TeX passes, updating ``report`` in place.
+
+    Returns ``None`` on success (both passes exited 0, and the final log is
+    staged with the selection marker appended). On failure, finalizes and
+    persists ``report`` via ``_fail`` and returns the process exit code.
+    """
+    for pass_number in range(1, 3):
+        command = [engine, "-file-line-error", "-interaction=nonstopmode", "-halt-on-error", tex.name]
+        report["commands"].append(" ".join(command))
+        env = dict(
+            os.environ,
+            TEXINPUTS=texinputs,
+            # luaotfload reads the installed Unicode ScriptExtensions.txt and
+            # Scripts.txt through Lua's file API during LuaLaTeX startup. The
+            # pinned TeX Live toolchain cannot resolve those absolute
+            # kpathsea paths under paranoid input mode; the visual-QA
+            # LuaLaTeX runners use the same setting. Markdown and fragment
+            # validation still constrain all user-controlled inputs, and
+            # output writes remain restricted below.
+            openin_any="a" if engine == "lualatex" else "p",
+            openout_any="p",
+            # The pinned luaotfload build can fail while loading its
+            # multiscript module under the runner's C.UTF-8 locale.  Keep
+            # every normal-pipeline TeX invocation on the same stable C
+            # locale as the renderer and acceptance-test subprocesses.
+            LC_ALL="C",
+            SOURCE_DATE_EPOCH="1",
+            FORCE_SOURCE_DATE="1",
+            TZ="UTC",
+        )
+        pass_log = output / f"publication-pass-{pass_number}.log"
+        with pass_log.open("w", encoding="utf-8") as stream:
+            stream.write("$ " + " ".join(command) + "\n")
+            try:
+                proc = run_limited(
+                    command, cwd=output, timeout=timeout, memory_limit_mb=memory_limit_mb,
+                    env=env, stdout=stream, stderr=subprocess.STDOUT, text=True,
+                )
+            except subprocess.TimeoutExpired:
+                return _fail(report, diagnostic_envelope([
+                    make_diagnostic("compile_timeout", f"{engine} pass {pass_number} exceeded {timeout} seconds", code="RK_COMPILE_TIMEOUT")
+                ], passed=False), 4, report_path=report_path, history_root=history_root)
+            except FileNotFoundError:
+                return _fail(report, diagnostic_envelope([
+                    make_diagnostic("environment_error", f"TeX engine {engine!r} is not installed", code="RK_TEX_ENGINE_MISSING")
+                ], passed=False), 5, report_path=report_path, history_root=history_root)
+        report["exit_codes"].append({"command": " ".join(command), "code": proc.returncode})
+        if proc.returncode:
+            diagnostics = inspect_log(pass_log.read_text(encoding="utf-8", errors="replace"))
+            if not diagnostics["diagnostics"]:
+                memory_failure = proc.returncode < 0 or proc.returncode in {134, 137}
+                diagnostics = diagnostic_envelope([
+                    make_diagnostic(
+                        "compile_memory" if memory_failure else "compile_failure",
+                        f"{engine} exited with status {proc.returncode}",
+                        code="RK_COMPILE_MEMORY" if memory_failure else "RK_COMPILE_FAILURE",
+                    )
+                ], passed=False)
+            return _fail(report, diagnostics, 4, report_path=report_path, history_root=history_root)
+        if pass_number == 2:
+            shutil.copy2(pass_log, log)
+            # Log-visible half of the resolved-selection marker (the other
+            # half is the stdout print() above, which --json mode's stdout
+            # capture does not surface in the payload). Appended after the
+            # copy, not written into pass_log, so it cannot affect
+            # inspect_log()'s/check_build_log.py's diagnostic parsing.
+            with log.open("a", encoding="utf-8") as stream:
+                stream.write("\n" + selection_marker + "\n")
+    return None
+
+
+def _run_log_gate(
+    *, log: Path, output: Path, source_root: Path, validation_config: dict[str, Any], identity: dict[str, str],
+    args: argparse.Namespace, timeout: int, memory_limit_mb: int,
+    report: dict[str, Any], report_path: Path, history_root: Path,
+) -> tuple[Path, Path] | int:
+    """Run check_build_log.py's diagnostic gate and locate the compiled PDF.
+
+    Returns ``(compiled_pdf, pdf)`` on a passing gate with a PDF on disk, or
+    a failure exit code (report already finalized via ``_fail``).
+    """
+    gate = SCRIPT_DIR / "check_build_log.py"
+    gate_command = [sys.executable, str(gate), str(log), "--json", str(output / "diagnostics.json"), "--map-dir", str(output), "--source-root", str(source_root)]
+    threshold = validation_config.get("underfull_badness_threshold")
+    if threshold is not None:
+        gate_command += ["--underfull-badness", str(int(threshold))]
+    # Which diagnostics a publication has reviewed and accepted is that
+    # publication's call, not this engine's -- so prefer an allowlist that
+    # lives with the project. Falls back to the engine's own (empty) default
+    # when the project has not defined one.
+    project_allowlist = source_root / "build-log-allowlist.json"
+    if project_allowlist.is_file():
+        gate_command += ["--allowlist", str(project_allowlist)]
+    try:
+        gate_result = run_limited(
+            gate_command, cwd=output, timeout=timeout, memory_limit_mb=memory_limit_mb,
+            capture_output=True, text=True,
+        )
+    except subprocess.TimeoutExpired:
+        return _fail(report, diagnostic_envelope([
+            make_diagnostic("compile_timeout", "diagnostic gate timed out", code="RK_DIAGNOSTIC_TIMEOUT")
+        ], passed=False), 4, report_path=report_path, history_root=history_root)
+    report["exit_codes"].append({"command": f"{sys.executable} {gate} {log}", "code": gate_result.returncode})
+    report["diagnostics"] = json.loads((output / "diagnostics.json").read_text(encoding="utf-8"))
+    report["gate"] = "passed" if gate_result.returncode == 0 else "failed"
+    compiled_pdf = output / "publication.pdf"
+    pdf = output / (f"{identity['slug']}.pdf" if args.mode == "combined" else "section.pdf")
+    if compiled_pdf.is_file() and compiled_pdf != pdf:
+        shutil.copy2(compiled_pdf, pdf)
+    if gate_result.returncode or not pdf.is_file():
+        return _fail(report, report["diagnostics"], 3, report_path=report_path, history_root=history_root)  # type: ignore[arg-type]
+    report["pdf"] = pdf.name
+    report["pdf_sha256"] = sha256(pdf)
+    return compiled_pdf, pdf
+
+
+def _render_pdf_pages_stage(
+    *, renderer: Path, pdf: Path, output: Path, timeout: int, memory_limit_mb: int,
+    report: dict[str, Any], report_path: Path, history_root: Path,
+) -> int | None:
+    """Render every PDF page to an image via render_pdf_pages.py.
+
+    Returns ``None`` on success (``report["page_count"]`` is set), or a
+    failure exit code (report already finalized via ``_fail``).
+    """
+    pages = output / "pages"
+    render_command = [str(renderer), str(SCRIPT_DIR / "render_pdf_pages.py"), str(pdf), str(pages), "--manifest", str(output / "page-manifest.json")]
+    try:
+        render = run_limited(
+            render_command, cwd=output, timeout=timeout, memory_limit_mb=memory_limit_mb,
+            capture_output=True, text=True,
+        )
+    except (subprocess.TimeoutExpired, FileNotFoundError) as exc:
+        kind = "compile_timeout" if isinstance(exc, subprocess.TimeoutExpired) else "environment_error"
+        return _fail(report, diagnostic_envelope([
+            make_diagnostic(kind, f"page rendering failed: {exc}", code="RK_RENDER_FAILED")
+        ], passed=False), 4 if isinstance(exc, subprocess.TimeoutExpired) else 5, report_path=report_path, history_root=history_root)
+    report["exit_codes"].append({"command": f"{renderer} {SCRIPT_DIR / 'render_pdf_pages.py'} {pdf}", "code": render.returncode})
+    if render.returncode:
+        return _fail(report, diagnostic_envelope([
+            make_diagnostic(
+                "pdf_geometry", f"page renderer exited with status {render.returncode}",
+                code="RK_RENDER_FAILED", details={"stderr": (render.stderr or "")[-4000:]},
+            )
+        ], passed=False), 3, report_path=report_path, history_root=history_root)
+    report["page_count"] = json.loads((output / "page-manifest.json").read_text(encoding="utf-8")).get("page_count")
+    return None
+
+
+def _inspect_pdf_stage(
+    *, renderer: Path, pdf: Path, output: Path, timeout: int, memory_limit_mb: int,
+    report: dict[str, Any], report_path: Path, history_root: Path,
+) -> int | None:
+    """Run inspect_pdf.py's structural/geometry inspection over the built PDF.
+
+    Returns ``None`` on success (``report["commands"]`` records the call), or
+    a failure exit code (report already finalized via ``_fail``).
+    """
+    inspection_command = [str(renderer), str(SCRIPT_DIR / "inspect_pdf.py"), str(pdf), "--json", str(output / "pdf-inspection.json")]
+    try:
+        inspection = run_limited(
+            inspection_command, cwd=output, timeout=timeout, memory_limit_mb=memory_limit_mb,
+            capture_output=True, text=True,
+        )
+    except (subprocess.TimeoutExpired, FileNotFoundError) as exc:
+        kind = "compile_timeout" if isinstance(exc, subprocess.TimeoutExpired) else "environment_error"
+        return _fail(report, diagnostic_envelope([
+            make_diagnostic(kind, f"PDF inspection failed: {exc}", code="RK_INSPECTION_FAILED")
+        ], passed=False), 4 if isinstance(exc, subprocess.TimeoutExpired) else 5, report_path=report_path, history_root=history_root)
+    report["exit_codes"].append({"command": f"{renderer} {SCRIPT_DIR / 'inspect_pdf.py'} {pdf}", "code": inspection.returncode})
+    if (output / "pdf-inspection.json").is_file():
+        report["pdf_inspection"] = json.loads((output / "pdf-inspection.json").read_text(encoding="utf-8"))
+    if inspection.returncode:
+        nested = report.get("pdf_inspection", {})
+        diagnostics = nested if isinstance(nested, dict) and nested.get("diagnostics") else diagnostic_envelope([
+            make_diagnostic(
+                "pdf_geometry", f"PDF inspector exited with status {inspection.returncode}",
+                code="RK_INSPECTION_FAILED", details={"stderr": (inspection.stderr or "")[-4000:]},
+            )
+        ], passed=False)
+        return _fail(report, diagnostics, 5 if inspection.returncode == 5 else 3, report_path=report_path, history_root=history_root)
+    report["commands"].append(f"{renderer} {SCRIPT_DIR / 'inspect_pdf.py'} {pdf}")
+    return None
+
+
+def build(args: argparse.Namespace) -> int:
+    preflight = _preflight(args)
+    if isinstance(preflight, int):
+        return preflight
+    source_root = preflight.source_root
+    output_root = preflight.output_root
+    profile = preflight.profile
+    timeout = preflight.timeout
+    memory_limit_mb = preflight.memory_limit_mb
+    authoring = preflight.authoring
+    config = preflight.config
+    identity = preflight.identity
+    license_values = preflight.license_values
+    engine = preflight.engine
+    target = preflight.target
+    entrypoint = preflight.entrypoint
+    selection_marker = preflight.selection_marker
+    font_policy = preflight.font_policy
+    declared_language = preflight.declared_language
+    effective_theme = preflight.effective_theme
+    manuscripts = preflight.manuscripts
+    used_image_slots = preflight.used_image_slots
+    unresolved_used_slots = preflight.unresolved_used_slots
+
+    stamp = time.strftime("%Y%m%d-%H%M%S")
+    history_root = output_root / "history"
+    # F2 bounded parallelism: two sections built concurrently can resolve the
+    # same mode+stamp before either has written its history file, so a
+    # build-id keyed on mode alone ("section-<stamp>") is a check-then-act
+    # race under --workers > 1. Keying on the manuscript stem too makes
+    # concurrent sections' candidates distinct from the start; the
+    # pre-existing collision index in unique_build_id still covers the rare
+    # case of the same section built twice within one second.
+    build_id_mode = f"section-{Path(manuscripts[0]).stem}" if args.mode == "section" else args.mode
+    build_id = unique_build_id(build_id_mode, stamp, history_root)
+    output = output_root / ("combined" if args.mode == "combined" else f"section-{Path(manuscripts[0]).stem}-{stamp}")
+    if output.exists() and args.mode != "combined":
+        output = output_root / build_id
+
+    staged = _stage_build_directory(
+        output=output, source_root=source_root, entrypoint=entrypoint,
+        effective_theme=effective_theme, target=target, args=args,
+    )
+    if isinstance(staged, int):
+        return staged
+    staged_assets, cover_name = staged
+
+    body_files = _render_manuscript_bodies(
+        source_root=source_root, output=output, manuscripts=manuscripts, target=target,
+        authoring=authoring, used_image_slots=used_image_slots, timeout=timeout, memory_limit_mb=memory_limit_mb,
+    )
+    if isinstance(body_files, int):
+        return body_files
+
     body = output / "body.tex"
     body.write_text("\n".join(f"\\input{{{path.stem}}}" for path in body_files) + "\n", encoding="utf-8")
     manuscript_text = "\n".join((source_root / "manuscript" / path).read_text(encoding="utf-8") for path in manuscripts)
@@ -841,152 +1151,47 @@ def build(args: argparse.Namespace) -> int:
     # Keep the TeX search path explicit: the staged output plus the known
     # class/theme/publication roots are the complete ReportKit input surface.
     texinputs = f"{output}:{templates_root}:{templates_root / 'themes'}:{templates_root / 'publication_types'}:"
-    for pass_number in range(1, 3):
-        command = [engine, "-file-line-error", "-interaction=nonstopmode", "-halt-on-error", tex.name]
-        report["commands"].append(" ".join(command))
-        env = dict(
-            os.environ,
-            TEXINPUTS=texinputs,
-            # luaotfload reads the installed Unicode ScriptExtensions.txt and
-            # Scripts.txt through Lua's file API during LuaLaTeX startup. The
-            # pinned TeX Live toolchain cannot resolve those absolute
-            # kpathsea paths under paranoid input mode; the visual-QA
-            # LuaLaTeX runners use the same setting. Markdown and fragment
-            # validation still constrain all user-controlled inputs, and
-            # output writes remain restricted below.
-            openin_any="a" if engine == "lualatex" else "p",
-            openout_any="p",
-            # The pinned luaotfload build can fail while loading its
-            # multiscript module under the runner's C.UTF-8 locale.  Keep
-            # every normal-pipeline TeX invocation on the same stable C
-            # locale as the renderer and acceptance-test subprocesses.
-            LC_ALL="C",
-            SOURCE_DATE_EPOCH="1",
-            FORCE_SOURCE_DATE="1",
-            TZ="UTC",
-        )
-        pass_log = output / f"publication-pass-{pass_number}.log"
-        with pass_log.open("w", encoding="utf-8") as stream:
-            stream.write("$ " + " ".join(command) + "\n")
-            try:
-                proc = run_limited(
-                    command, cwd=output, timeout=timeout, memory_limit_mb=memory_limit_mb,
-                    env=env, stdout=stream, stderr=subprocess.STDOUT, text=True,
-                )
-            except subprocess.TimeoutExpired:
-                return _fail(report, diagnostic_envelope([
-                    make_diagnostic("compile_timeout", f"{engine} pass {pass_number} exceeded {timeout} seconds", code="RK_COMPILE_TIMEOUT")
-                ], passed=False), 4, report_path=report_path, history_root=history_root)
-            except FileNotFoundError:
-                return _fail(report, diagnostic_envelope([
-                    make_diagnostic("environment_error", f"TeX engine {engine!r} is not installed", code="RK_TEX_ENGINE_MISSING")
-                ], passed=False), 5, report_path=report_path, history_root=history_root)
-        report["exit_codes"].append({"command": " ".join(command), "code": proc.returncode})
-        if proc.returncode:
-            diagnostics = inspect_log(pass_log.read_text(encoding="utf-8", errors="replace"))
-            if not diagnostics["diagnostics"]:
-                memory_failure = proc.returncode < 0 or proc.returncode in {134, 137}
-                diagnostics = diagnostic_envelope([
-                    make_diagnostic(
-                        "compile_memory" if memory_failure else "compile_failure",
-                        f"{engine} exited with status {proc.returncode}",
-                        code="RK_COMPILE_MEMORY" if memory_failure else "RK_COMPILE_FAILURE",
-                    )
-                ], passed=False)
-            return _fail(report, diagnostics, 4, report_path=report_path, history_root=history_root)
-        if pass_number == 2:
-            shutil.copy2(pass_log, log)
-            # Log-visible half of the resolved-selection marker (the other
-            # half is the stdout print() above, which --json mode's stdout
-            # capture does not surface in the payload). Appended after the
-            # copy, not written into pass_log, so it cannot affect
-            # inspect_log()'s/check_build_log.py's diagnostic parsing.
-            with log.open("a", encoding="utf-8") as stream:
-                stream.write("\n" + selection_marker + "\n")
-    gate = SCRIPT_DIR / "check_build_log.py"
-    gate_command = [sys.executable, str(gate), str(log), "--json", str(output / "diagnostics.json"), "--map-dir", str(output), "--source-root", str(source_root)]
-    threshold = validation_config.get("underfull_badness_threshold")
-    if threshold is not None:
-        gate_command += ["--underfull-badness", str(int(threshold))]
-    # Which diagnostics a publication has reviewed and accepted is that
-    # publication's call, not this engine's -- so prefer an allowlist that
-    # lives with the project. Falls back to the engine's own (empty) default
-    # when the project has not defined one.
-    project_allowlist = source_root / "build-log-allowlist.json"
-    if project_allowlist.is_file():
-        gate_command += ["--allowlist", str(project_allowlist)]
-    try:
-        gate_result = run_limited(
-            gate_command, cwd=output, timeout=timeout, memory_limit_mb=memory_limit_mb,
-            capture_output=True, text=True,
-        )
-    except subprocess.TimeoutExpired:
-        return _fail(report, diagnostic_envelope([
-            make_diagnostic("compile_timeout", "diagnostic gate timed out", code="RK_DIAGNOSTIC_TIMEOUT")
-        ], passed=False), 4, report_path=report_path, history_root=history_root)
-    report["exit_codes"].append({"command": f"{sys.executable} {gate} {log}", "code": gate_result.returncode})
-    report["diagnostics"] = json.loads((output / "diagnostics.json").read_text(encoding="utf-8"))
-    report["gate"] = "passed" if gate_result.returncode == 0 else "failed"
-    compiled_pdf = output / "publication.pdf"
-    pdf = output / (f"{identity['slug']}.pdf" if args.mode == "combined" else "section.pdf")
-    if compiled_pdf.is_file() and compiled_pdf != pdf:
-        shutil.copy2(compiled_pdf, pdf)
-    if gate_result.returncode or not pdf.is_file():
-        return _fail(report, report["diagnostics"], 3, report_path=report_path, history_root=history_root)  # type: ignore[arg-type]
-    report["pdf"] = pdf.name
-    report["pdf_sha256"] = sha256(pdf)
+
+    tex_failure = _compile_tex_passes(
+        engine=engine, tex=tex, log=log, output=output, texinputs=texinputs, timeout=timeout, memory_limit_mb=memory_limit_mb,
+        selection_marker=selection_marker, report=report, report_path=report_path, history_root=history_root,
+    )
+    if tex_failure is not None:
+        return tex_failure
+
+    gate_outcome = _run_log_gate(
+        log=log, output=output, source_root=source_root, validation_config=validation_config, identity=identity,
+        args=args, timeout=timeout, memory_limit_mb=memory_limit_mb,
+        report=report, report_path=report_path, history_root=history_root,
+    )
+    if isinstance(gate_outcome, int):
+        return gate_outcome
+    _compiled_pdf, pdf = gate_outcome
+
     renderer = Path(os.environ["REPORTKIT_PDF_PYTHON"]).expanduser() if os.environ.get("REPORTKIT_PDF_PYTHON") else output_root / ".venv" / "bin" / "python"
     if not renderer.is_absolute():
         renderer = (Path.cwd() / renderer).absolute()
     if not renderer.is_file():
         renderer = Path(sys.executable)
-    pages = output / "pages"
-    render_command = [str(renderer), str(SCRIPT_DIR / "render_pdf_pages.py"), str(pdf), str(pages), "--manifest", str(output / "page-manifest.json")]
-    try:
-        render = run_limited(
-            render_command, cwd=output, timeout=timeout, memory_limit_mb=memory_limit_mb,
-            capture_output=True, text=True,
-        )
-    except (subprocess.TimeoutExpired, FileNotFoundError) as exc:
-        kind = "compile_timeout" if isinstance(exc, subprocess.TimeoutExpired) else "environment_error"
-        return _fail(report, diagnostic_envelope([
-            make_diagnostic(kind, f"page rendering failed: {exc}", code="RK_RENDER_FAILED")
-        ], passed=False), 4 if isinstance(exc, subprocess.TimeoutExpired) else 5, report_path=report_path, history_root=history_root)
-    report["exit_codes"].append({"command": f"{renderer} {SCRIPT_DIR / 'render_pdf_pages.py'} {pdf}", "code": render.returncode})
-    if render.returncode:
-        return _fail(report, diagnostic_envelope([
-            make_diagnostic(
-                "pdf_geometry", f"page renderer exited with status {render.returncode}",
-                code="RK_RENDER_FAILED", details={"stderr": (render.stderr or "")[-4000:]},
-            )
-        ], passed=False), 3, report_path=report_path, history_root=history_root)
-    report["page_count"] = json.loads((output / "page-manifest.json").read_text(encoding="utf-8")).get("page_count")
-    inspection_command = [str(renderer), str(SCRIPT_DIR / "inspect_pdf.py"), str(pdf), "--json", str(output / "pdf-inspection.json")]
-    try:
-        inspection = run_limited(
-            inspection_command, cwd=output, timeout=timeout, memory_limit_mb=memory_limit_mb,
-            capture_output=True, text=True,
-        )
-    except (subprocess.TimeoutExpired, FileNotFoundError) as exc:
-        kind = "compile_timeout" if isinstance(exc, subprocess.TimeoutExpired) else "environment_error"
-        return _fail(report, diagnostic_envelope([
-            make_diagnostic(kind, f"PDF inspection failed: {exc}", code="RK_INSPECTION_FAILED")
-        ], passed=False), 4 if isinstance(exc, subprocess.TimeoutExpired) else 5, report_path=report_path, history_root=history_root)
-    report["exit_codes"].append({"command": f"{renderer} {SCRIPT_DIR / 'inspect_pdf.py'} {pdf}", "code": inspection.returncode})
-    if (output / "pdf-inspection.json").is_file():
-        report["pdf_inspection"] = json.loads((output / "pdf-inspection.json").read_text(encoding="utf-8"))
-    if inspection.returncode:
-        nested = report.get("pdf_inspection", {})
-        diagnostics = nested if isinstance(nested, dict) and nested.get("diagnostics") else diagnostic_envelope([
-            make_diagnostic(
-                "pdf_geometry", f"PDF inspector exited with status {inspection.returncode}",
-                code="RK_INSPECTION_FAILED", details={"stderr": (inspection.stderr or "")[-4000:]},
-            )
-        ], passed=False)
-        return _fail(report, diagnostics, 5 if inspection.returncode == 5 else 3, report_path=report_path, history_root=history_root)
-    report["commands"].append(f"{renderer} {SCRIPT_DIR / 'inspect_pdf.py'} {pdf}")
+
+    render_failure = _render_pdf_pages_stage(
+        renderer=renderer, pdf=pdf, output=output, timeout=timeout, memory_limit_mb=memory_limit_mb,
+        report=report, report_path=report_path, history_root=history_root,
+    )
+    if render_failure is not None:
+        return render_failure
+
+    inspect_failure = _inspect_pdf_stage(
+        renderer=renderer, pdf=pdf, output=output, timeout=timeout, memory_limit_mb=memory_limit_mb,
+        report=report, report_path=report_path, history_root=history_root,
+    )
+    if inspect_failure is not None:
+        return inspect_failure
+
     report["finished_at"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
-    report["status"] = "passed" if render.returncode == 0 and inspection.returncode == 0 else "failed"
+    # Both stages above already returned a failure code on a nonzero
+    # renderer/inspector exit, so reaching here means both succeeded.
+    report["status"] = "passed"
     write_report(report, output / "build-report.json", history_root)
     if report["status"] == "passed":
         write_lock(source_root / "reportkit.lock", engine=engine, tool_versions=report["tool_versions"], toolchain=report["toolchain"])
