@@ -3,7 +3,10 @@ pythonpath = [".", "python_scripts", "publication_pipeline/scripts", "publicatio
 testpaths = ["tests", "publication_pipeline/tests"]
 
 [tool.ruff]
-line-length = 120
+# No line-length key: E501 is ignored below and no `ruff format` step runs
+# anywhere, so line width is deliberately unenforced rather than pinned to
+# an inert value. Several modules (e.g. reportkit/registry.py's one-line-
+# per-command contract dicts) read better unwrapped.
 target-version = "py312"
 extend-exclude = ["latex_templates/examples"]
 
