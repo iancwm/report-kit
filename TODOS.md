@@ -23,7 +23,6 @@ and [references/documentation-status.md](references/documentation-status.md).
 | [2026-09-22-reportkit-presentation-typography-and-composition-refinement.md](docs/superpowers/plans/2026-09-22-reportkit-presentation-typography-and-composition-refinement.md) | Workstreams A/B/D and the semantic fixture source are merged; dense/reference authoring expansion and native C/E release gates remain. | P2 |
 | [2026-09-24-reportkit-callout-titles-and-image-slots-spec.md](docs/superpowers/specs/2026-09-24-reportkit-callout-titles-and-image-slots-spec.md) | Implementation merged in PR #54 at `f6293d4`; focused contract/validation tests and mixed supplied/missing-image pipeline coverage are green; native visual/release verification remains. | P2 |
 | [2026-09-24-reportkit-callout-titles-and-image-slots-implementation-plan.md](docs/superpowers/plans/2026-09-24-reportkit-callout-titles-and-image-slots-implementation-plan.md) | Implementation complete in the merged mainline; focused tests and the docs/context checks are complete; full acceptance/build gates and visual review remain. | P2 |
-| [2026-09-24-reportkit-code-quality-review-spec.md](docs/superpowers/specs/2026-09-24-reportkit-code-quality-review-spec.md) | §A (CI ruff gate blind spot) and §B (duplicate `_tex_escape` in `theme_overrides.py`) landed. §C (`build()` size), §D (partial `viz/` split), and §E (dead `line-length` config) are open, unscheduled cleanup. | P3 |
 | [2026-09-25-reportkit-multi-format-visual-review-plan.md](docs/superpowers/plans/2026-09-25-reportkit-multi-format-visual-review-plan.md) | Draft plan for closing the pinned-toolchain visual review gap common to venture, editorial, executive-brief and book (Phases D–F). No execution yet. | P2 |
 
 ## Open work
@@ -69,13 +68,6 @@ and [references/documentation-status.md](references/documentation-status.md).
   `publication.yaml` settles and there is more than one consumer content
   repository to keep synchronized.
 
-- **Code quality review follow-ups (§C–§E).** `publication_build.build()` is
-  now 424 lines despite the `_fail()` helper from the prior remediation
-  landing (§C); the `reportkit/viz/` package split still re-exports all
-  chart constructors from one 1512-line `core.py` rather than splitting them
-  out (§D); `pyproject.toml`'s `line-length = 120` does nothing because
-  `E501` is globally ignored (§E). None are defects; pick up opportunistically.
-
 ## Completed work
 
 The following records are complete. Their implementation details and dated
@@ -95,6 +87,7 @@ verification notes are retained in `History` below.
 | [2026-09-16-reportkit-algorithm-visualization-primitives-spec.md](docs/superpowers/specs/2026-09-16-reportkit-algorithm-visualization-primitives-spec.md) | Full P0–P3 algorithm-visualization scope complete. |
 | [2026-09-18-algorithm-visuals-fix-sprint-spec.md](docs/superpowers/specs/2026-09-18-algorithm-visuals-fix-sprint-spec.md) | Tasks 1–4 complete; the dedicated visual gate and pinned current-target acceptance run pass. |
 | [2026-09-18-algorithm-visuals-fix-sprint.md](docs/superpowers/plans/2026-09-18-algorithm-visuals-fix-sprint.md) | Tasks 1–4 complete and synchronized with the sprint spec. |
+| [2026-09-24-reportkit-code-quality-review-spec.md](docs/superpowers/specs/2026-09-24-reportkit-code-quality-review-spec.md) | All five items (§A–§E) landed; §C/§D/§E closed 2026-09-25. |
 
 ### Completed implementation slices
 
@@ -241,6 +234,51 @@ from a session provisioned this way.
   explicitly open; no baseline pixels were changed.
 
 ## History
+
+- 2026-09-25: closed out the code-quality-review spec's §C, §D, and §E on
+  `claude/todos-workstream-delegation-7kqaze`, on top of `main` at `8c74016`.
+  These three were unrelated, independently-scoped, non-toolchain-blocked
+  workstreams (different files, "pick up opportunistically" per the prior
+  entry), so §C and §D were farmed out to two parallel background agents in
+  isolated worktrees while §E was done directly. **§E**: removed the inert
+  `line-length = 120` from `[tool.ruff]` (E501 is globally ignored and no
+  `ruff format` step exists) and documented that width is deliberately
+  unenforced. **§C**: split `publication_build.build()` (424 lines) into
+  `_preflight()` (validate -> config -> resolve target, no subprocess) plus
+  `_stage_build_directory`/`_render_manuscript_bodies`/`_compile_tex_passes`/
+  `_run_log_gate`/`_render_pdf_pages_stage`/`_inspect_pdf_stage`; `build()`
+  itself is now 199 lines. New `publication_pipeline/tests/test_preflight.py`
+  (23 tests) exercises every preflight failure branch directly in ~1.3s with
+  no Pandoc/TeX involved, covering all eight multi-format targets registered
+  since the 2026-09-12 baseline — the specific gap the original item named.
+  Verified with a freshly-provisioned (not pinned-CI) toolchain: 550 passed,
+  4 failed, the same 4 failures confirmed present on unmodified `HEAD` too
+  (toolchain-version drift, not a regression). **§D**: `viz/core.py` dropped
+  from 1512 to 226 lines; the thirteen chart constructors moved into
+  `viz/charts/{timeseries,relationships,composition}.py` plus a shared
+  `_shared.py`, grouped by which helpers they share exactly as the spec
+  suggested; `validate_palette_against_latex`/
+  `validate_theme_contract_against_latex` moved to `viz/palette.py` and
+  `build_demo` to `viz/demo.py`; `registry.py`'s contract scanner now globs
+  `viz/charts/*.py`. Verified behavior-preserving: all public import paths
+  resolve identically, `apply_theme()` runtime switching still works (moved
+  functions do a deferred `from .. import core` for live module-global
+  reads, matching the pre-existing `figure.py`/`theme.py` pattern), all 12
+  `build_demo()` figures are byte-identical before/after, and AST
+  signatures/contract metadata are unchanged for all 13 functions. Both
+  workstreams merged cleanly (no file overlap) and the combined tree passes
+  `ruff check .` with zero violations; full-suite results after both merges:
+  512 passed / 4 failed / 15 skipped on the orchestrating session's own
+  from-scratch toolchain, same 4 pre-existing failures. See the spec's own
+  §C/§D/§E sections for exact commits and full verification detail. Not
+  farmed out: the visual-review-gated P2 items (institutional-theme human
+  §25 review, multi-format Phases D–F pinned-toolchain visual review,
+  presentation-refinement native gate, callout-titles native verification)
+  and the P3 tagged-PDF spike/consumer-template — these require either a
+  human looking at rendered pixels or the actual pinned CI toolchain
+  specifically (this container has neither pre-installed), and TODOS.md's
+  own environment notes already caution that a freshly-provisioned host's
+  renders are informative, not authoritative, for pixel-level baselines.
 
 - 2026-09-24: synchronized the post-merge documentation after PR #54 landed on
   `main` at `f6293d4`. The callout-title and image-slot implementation is now

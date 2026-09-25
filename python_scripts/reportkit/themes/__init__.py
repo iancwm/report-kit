@@ -268,7 +268,7 @@ def validate_theme_contract(theme: Theme) -> list[str]:
 
     This is deliberately independent of Matplotlib so registry and static
     contract tests can validate every theme in a minimal environment. The
-    LaTeX package checks live in reportkit.viz.core because they require
+    LaTeX package checks live in reportkit.viz.palette because they require
     repository paths; both layers are reported by the single check-theme
     command.
     """

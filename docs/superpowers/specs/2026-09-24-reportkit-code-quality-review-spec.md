@@ -1,8 +1,9 @@
 # ReportKit Code Quality Review — September 2026
 
-**Status:** Two items (§A, §B) landed in this same change; §C and §D are open,
-unscheduled cleanup; §E is a documentation-only note. No phase gate blocks
-anything else in the repository.
+**Status:** All five items are landed. §A and §B landed in the original
+change; §C and §D landed 2026-09-25 on `claude/todos-workstream-delegation-7kqaze`
+(commits `90a82d0`/`2adee38` for §C, `72ace9d`/`7a2e639` for §D); §E landed the
+same day (`57517d5`). No phase gate blocks anything else in the repository.
 **Baseline:** `main` at `b8766fd` (branch `claude/code-quality-review-pzqcft`).
 **Source:** a targeted re-audit of the repository's Python surface
 (`python_scripts/`, `publication_pipeline/`, `scripts/`, `adapters/`,
@@ -185,6 +186,21 @@ time.
 directly, without a full build — the gap the original item named — passing
 for every multi-format target added since.
 
+**Done (2026-09-25).** `build()` is now 199 lines and sequences `_preflight()`
+(validate -> config -> resolve target; pure, no subprocess) plus
+`_stage_build_directory`, `_render_manuscript_bodies`, `_compile_tex_passes`,
+`_run_log_gate`, `_render_pdf_pages_stage`, and `_inspect_pdf_stage`, moved
+out with identical control flow, variable names, and failure-report shapes.
+New `publication_pipeline/tests/test_preflight.py` (23 tests) exercises
+every preflight failure branch directly in ~1.3s with no Pandoc/TeX
+involved, covering all eight multi-format targets registered since the
+2026-09-12 baseline. Verified with a freshly-provisioned toolchain (not the
+pinned CI image): `python -m pytest tests publication_pipeline/tests -q` —
+550 passed, 4 failed, with the same 4 failures confirmed present on
+unmodified `HEAD` too (toolchain-version drift, not a regression). `ruff
+check .` passes. Commits `90a82d0` (implementation) / `2adee38` (merge) on
+`claude/todos-workstream-delegation-7kqaze`.
+
 ## D. The `reportkit_viz` → `reportkit/viz/` package split is a re-export shim over one 1512-line `core.py`
 
 **Evidence.** The 2026-09-12 document (item N) prescribed splitting the
@@ -223,6 +239,27 @@ functions by shared helpers (e.g. `_treemap_*` with `treemap_chart`,
 and `build_demo` to their own modules. Low priority — no defect motivates it,
 only the original structural goal being half-realized.
 
+**Done (2026-09-25).** `core.py` dropped from 1512 to 226 lines and is now
+the hub (theme-state globals, `apply_theme()`, `annotate_point`/
+`shade_period`, the CLI, re-exports). The thirteen chart constructors moved
+into `charts/timeseries.py`, `charts/relationships.py`,
+`charts/composition.py`, and shared helpers into `charts/_shared.py`, grouped
+exactly as prescribed above; `validate_palette_against_latex`/
+`validate_theme_contract_against_latex` moved to `viz/palette.py` and
+`build_demo` to `viz/demo.py`. `registry.py`'s contract scanner now globs
+`viz/charts/*.py`. Verified behavior-preserving: all public import paths
+(`reportkit_viz`, `reportkit.viz`, `reportkit.viz.core`,
+`reportkit.viz.charts`) resolve to identical objects; `apply_theme()`
+runtime theme-switching still works (each moved function does a deferred
+`from .. import core` for live module-global reads, matching the existing
+`figure.py`/`theme.py` pattern); all 12 `build_demo()` figures are
+byte-identical (PNG sha256) before/after; AST signatures and
+`<reportkit-contract>` metadata are unchanged for all 13 functions. `python
+-m pytest tests publication_pipeline/tests -q` — 512 passed, 4 failed, 15
+skipped, identical failure set before/after. `ruff check .` passes. Commits
+`72ace9d` (implementation) / `7a2e639` (merge) on
+`claude/todos-workstream-delegation-7kqaze`.
+
 ## E. `line-length = 120` in `pyproject.toml` is dead configuration
 
 **Evidence.** `pyproject.toml`:
@@ -257,6 +294,13 @@ in a comment that width is deliberately unenforced. Either resolves the
 inconsistency; picking one is a judgment call about the tabular-data
 tradeoff above, not something to decide inside a review pass.
 
+**Done (2026-09-25).** Took the second option: removed the unused
+`line-length = 120` key from `[tool.ruff]` and replaced it with a comment
+recording that width is deliberately unenforced (`E501` ignored, no `ruff
+format` step exists), citing `registry.py`'s tabular contract dicts as the
+motivating case for not wrapping. No prose-wrapping churn. Commit `57517d5`
+on `claude/todos-workstream-delegation-7kqaze`.
+
 ---
 
 ## Non-goals
@@ -274,6 +318,6 @@ tradeoff above, not something to decide inside a review pass.
 
 §A and §B are done as of this change: `ruff check .` reports zero violations,
 the widened CI command matches it, and the escaper identity test covers all
-four call sites including `theme_overrides`. §C, §D, and §E are open and
-unscheduled; picking any of them up should update this document's status
-table rather than rediscover the finding.
+four call sites including `theme_overrides`. §C, §D, and §E are done as of
+2026-09-25 (see each section above for verification detail); nothing in
+this document remains open.
