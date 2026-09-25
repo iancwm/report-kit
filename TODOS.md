@@ -1,6 +1,6 @@
 # ReportKit — Outstanding Work
 
-**Last updated:** 2026-09-24
+**Last updated:** 2026-09-25
 
 This is the current-work index, not an audit. The front of the document contains
 only work that is still actionable. Completed implementation records and dated
@@ -24,6 +24,7 @@ and [references/documentation-status.md](references/documentation-status.md).
 | [2026-09-24-reportkit-callout-titles-and-image-slots-spec.md](docs/superpowers/specs/2026-09-24-reportkit-callout-titles-and-image-slots-spec.md) | Implementation merged in PR #54 at `f6293d4`; focused contract/validation tests and mixed supplied/missing-image pipeline coverage are green; native visual/release verification remains. | P2 |
 | [2026-09-24-reportkit-callout-titles-and-image-slots-implementation-plan.md](docs/superpowers/plans/2026-09-24-reportkit-callout-titles-and-image-slots-implementation-plan.md) | Implementation complete in the merged mainline; focused tests and the docs/context checks are complete; full acceptance/build gates and visual review remain. | P2 |
 | [2026-09-24-reportkit-code-quality-review-spec.md](docs/superpowers/specs/2026-09-24-reportkit-code-quality-review-spec.md) | §A (CI ruff gate blind spot) and §B (duplicate `_tex_escape` in `theme_overrides.py`) landed. §C (`build()` size), §D (partial `viz/` split), and §E (dead `line-length` config) are open, unscheduled cleanup. | P3 |
+| [2026-09-25-reportkit-multi-format-visual-review-plan.md](docs/superpowers/plans/2026-09-25-reportkit-multi-format-visual-review-plan.md) | Draft plan for closing the pinned-toolchain visual review gap common to venture, editorial, executive-brief and book (Phases D–F). No execution yet. | P2 |
 
 ## Open work
 
@@ -50,7 +51,13 @@ and [references/documentation-status.md](references/documentation-status.md).
   registered as experimental. Each has a fixture that compiles cleanly and was
   reviewed by eye on an unpinned host; none has a pinned-toolchain visual
   review or a checked-in pixel baseline yet. Promote each to stable only after
-  that review passes on the pinned OCI image.
+  that review passes on the pinned OCI image. A concrete execution plan for
+  closing this gap — one workstream per format, each needing a dedicated
+  `scripts/visual_qa_<format>.py` with a checked-in `expected/` baseline,
+  a pinned-toolchain render, and a per-format human review checklist — is
+  drafted in
+  [2026-09-25-reportkit-multi-format-visual-review-plan.md](docs/superpowers/plans/2026-09-25-reportkit-multi-format-visual-review-plan.md);
+  no execution has started yet.
 
 ### P3
 
