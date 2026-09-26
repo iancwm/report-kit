@@ -1,6 +1,6 @@
 # ReportKit — Outstanding Work
 
-**Last updated:** 2026-09-25
+**Last updated:** 2026-09-26
 
 This is the current-work index, not an audit. The front of the document contains
 only work that is still actionable. Completed implementation records and dated
@@ -16,14 +16,14 @@ and [references/documentation-status.md](references/documentation-status.md).
 | [2026-09-06-reportkit-vnext-ai-publication-system-spec.md](docs/superpowers/specs/2026-09-06-reportkit-vnext-ai-publication-system-spec.md) | Reconciled roadmap; implementation phases are complete in the companion plan. Only the deferred consumer-project template remains. | P3 |
 | [2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md](docs/superpowers/specs/2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md) | Steps 1–5 and pinned visual baseline comparison passed; human §25 review remains. | P2 |
 | [2026-09-09-reportkit-institutional-theme-implementation-plan.md](docs/superpowers/plans/2026-09-09-reportkit-institutional-theme-implementation-plan.md) | Same state: pinned baseline passed; human §25 visual release review remains. | P2 |
-| [2026-09-09-reportkit-multi-format-publication-architecture-spec.md](docs/superpowers/specs/2026-09-09-reportkit-multi-format-publication-architecture-spec.md) | A0–A5, Phase B, constrained-authoring item C′1, Phase C executive theme, and Phases D–F (venture theme, editorial/feature-article, executive-brief, book, and registry-derived combination coverage) are all implemented in the working tree, D/E/F1/F2 as experimental. The pinned current-target acceptance gate is green; pinned-toolchain visual review for the experimental themes/types remains. | P2 |
-| [2026-09-10-reportkit-multi-format-publication-implementation-plan.md](docs/superpowers/plans/2026-09-10-reportkit-multi-format-publication-implementation-plan.md) | Same implementation state as the spec; the readable plan is synchronized to the merged mainline. Pinned visual review for Phases D/E/F1/F2 remains. | P2 |
+| [2026-09-09-reportkit-multi-format-publication-architecture-spec.md](docs/superpowers/specs/2026-09-09-reportkit-multi-format-publication-architecture-spec.md) | A0–A5, Phase B, constrained-authoring item C′1, and Phases C–F are implemented. Phase E is stable after pinned visual review; D/F1/F2 remain experimental pending that review. | P2 |
+| [2026-09-10-reportkit-multi-format-publication-implementation-plan.md](docs/superpowers/plans/2026-09-10-reportkit-multi-format-publication-implementation-plan.md) | Same implementation state as the spec; Phase E's pinned baseline and review are complete. Pinned visual review for D/F1/F2 remains. | P2 |
 | [2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md](docs/superpowers/specs/2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md) | A′/B′, constrained authoring, standalone render, progressive-disclosure budgets, the generated OpenAI adapter, and per-script font stacks/language-support truthfulness (D-prime 3) are implemented. Tagged-PDF remains deferred. | P2 |
 | [2026-09-22-reportkit-presentation-typography-and-composition-refinement-spec.md](docs/superpowers/specs/2026-09-22-reportkit-presentation-typography-and-composition-refinement-spec.md) | Core implementation is merged; native density/canonical visual release validation remains. | P2 |
 | [2026-09-22-reportkit-presentation-typography-and-composition-refinement.md](docs/superpowers/plans/2026-09-22-reportkit-presentation-typography-and-composition-refinement.md) | Workstreams A/B/D and the semantic fixture source are merged; dense/reference authoring expansion and native C/E release gates remain. | P2 |
 | [2026-09-24-reportkit-callout-titles-and-image-slots-spec.md](docs/superpowers/specs/2026-09-24-reportkit-callout-titles-and-image-slots-spec.md) | Implementation merged in PR #54 at `f6293d4`; focused contract/validation tests and mixed supplied/missing-image pipeline coverage are green; native visual/release verification remains. | P2 |
 | [2026-09-24-reportkit-callout-titles-and-image-slots-implementation-plan.md](docs/superpowers/plans/2026-09-24-reportkit-callout-titles-and-image-slots-implementation-plan.md) | Implementation complete in the merged mainline; focused tests and the docs/context checks are complete; full acceptance/build gates and visual review remain. | P2 |
-| [2026-09-25-reportkit-multi-format-visual-review-plan.md](docs/superpowers/plans/2026-09-25-reportkit-multi-format-visual-review-plan.md) | Draft plan for closing the pinned-toolchain visual review gap common to venture, editorial, executive-brief and book (Phases D–F). No execution yet. | P2 |
+| [2026-09-25-reportkit-multi-format-visual-review-plan.md](docs/superpowers/plans/2026-09-25-reportkit-multi-format-visual-review-plan.md) | Phase E editorial review complete; venture, executive-brief and book remain. | P2 |
 
 ## Open work
 
@@ -44,19 +44,16 @@ and [references/documentation-status.md](references/documentation-status.md).
   2026-09-19 with zero diagnostics. Complete the spec §25 human visual review;
   do not update expected pixels from a non-pinned host.
 
-- **Multi-format Phases D–F — pinned-toolchain visual review.** Phase D
-  (venture theme and branding), Phase E (editorial theme and feature-article),
-  Phase F1 (executive-brief), and Phase F2 (book) are all implemented and
-  registered as experimental. Each has a fixture that compiles cleanly and was
-  reviewed by eye on an unpinned host; none has a pinned-toolchain visual
-  review or a checked-in pixel baseline yet. Promote each to stable only after
-  that review passes on the pinned OCI image. A concrete execution plan for
+- **Multi-format Phases D/F1/F2 — pinned-toolchain visual review.** Venture,
+  executive-brief, and book remain experimental. Each needs a pinned render,
+  checked-in pixel baseline and human review before promotion. Phase E's
+  editorial feature completed this gate on 2026-09-26. A concrete execution plan for
   closing this gap — one workstream per format, each needing a dedicated
   `scripts/visual_qa_<format>.py` with a checked-in `expected/` baseline,
   a pinned-toolchain render, and a per-format human review checklist — is
   drafted in
   [2026-09-25-reportkit-multi-format-visual-review-plan.md](docs/superpowers/plans/2026-09-25-reportkit-multi-format-visual-review-plan.md);
-  no execution has started yet.
+  the remaining formats is linked above.
 
 ### P3
 
@@ -133,14 +130,14 @@ verification notes are retained in `History` below.
   under executive and venture with materially different, and reviewed,
   pixels) passes on this host. Pinned-toolchain visual review remains (see
   above).
-- **Multi-format Phase E — editorial feature article** is implemented as
-  experimental: the editorial theme, the `feature-article` publication type
+- **Multi-format Phase E — editorial feature article** is stable after pinned
+  visual review: the editorial theme, the `feature-article` publication type
   with 13 registered semantic primitives (headline, deck, byline, opening
   visual, drop cap, pull quote, sidebar, feature exhibit, section opener,
   image credit, and more), a closed one-column/two-column/full-width rhythm
   with no feature-specific positioning API, and a 6-page fictional fixture.
   The theme-swap gate (the same document recompiles unchanged under a test
-  theme) passes. Pinned-toolchain visual review remains (see above).
+  theme) passes. Six reviewed page PNGs and the pinned baseline are checked in.
 - **Multi-format Phase F1 — executive brief** is implemented as experimental:
   the `executive-brief` publication type is registered for the executive and
   institutional-research themes, reuses the exhibit system (now shared as

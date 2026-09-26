@@ -1,6 +1,6 @@
 # ReportKit venture and other-format visual review plan
 
-**Status:** Draft — planning only; no execution yet · 25 September 2026
+**Status:** Phase E editorial review complete; D/F1/F2 remain · 26 September 2026
 **Spec:** [docs/superpowers/specs/2026-09-09-reportkit-multi-format-publication-architecture-spec.md](../specs/2026-09-09-reportkit-multi-format-publication-architecture-spec.md) (Phases D, E, F)
 **Companion plan:** [docs/superpowers/plans/2026-09-10-reportkit-multi-format-publication-implementation-plan.md](2026-09-10-reportkit-multi-format-publication-implementation-plan.md) (§7 Phase D, §9 Phase E, §10 Phase F1/F2)
 **Goal:** Close the one item all four experimental formats share — pinned-toolchain visual review with a checked-in pixel baseline — so each can flip from `stability="experimental"` to `"stable"` in `python_scripts/reportkit/publications.py`.
@@ -19,6 +19,13 @@ checked-in artifact recording that the look was approved.
 | Editorial | `feature-article` / `editorial` | `latex_templates/examples/editorial-feature/` (6 pages) | none | none |
 | Executive brief | `executive-brief` / `executive`, `institutional-research` | `latex_templates/examples/executive-brief/` (3 pages × 2 themes) | none | none |
 | Book | `book` / `default`, `technical`, `editorial` | `latex_templates/examples/book/` (11 pages × 2 distinct renders; technical is byte-identical to default) | none | none |
+
+**Phase E review, 2026-09-26:** `scripts/visual_qa_editorial.py` now builds the
+three figures and six-page article in the pinned image. The reviewed PNGs and
+manifest are in `latex_templates/examples/editorial-feature/expected/`. The
+chart PDFs embed Libertinus Sans; the full-width exhibit leaves open space on
+page 4, and the short final page is accepted. Both editorial stability flags
+are now `stable`. The table above is the original planning snapshot.
 
 For contrast, the two formats that already carry a checked-in pixel baseline
 (`equity-research`/`institutional-research` and the `career_guide_en`

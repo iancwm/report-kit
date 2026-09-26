@@ -82,7 +82,7 @@ The stable `executive` theme is the supported consulting/strategy slide system (
 
 ### Feature articles
 
-For designed narrative reading — a magazine-style feature or thought-leadership article — use `\documentclass[theme=editorial,publication-type=feature-article]{reportkit}` with `lualatex` (both are experimental until pinned visual review). Build it from the feature primitives (`featureopening`, `featureheadline`, `featuredeck`, `featurebyline`, `openingvisual`, `dropcap`, `featuresection`, `featurecolumns`, `pullquote`, `featuresidebar`, `featureexhibit`, `imagecredit`, `featurereferences`); layout rhythm is limited to one-column prose, `featurecolumns`, and full-width visuals (`featureexhibit[span=full]` outside columns), never coordinates or local font changes. See [references/feature-article-authoring.md](references/feature-article-authoring.md) and `latex_templates/examples/editorial-feature/`.
+For designed narrative reading — a magazine-style feature or thought-leadership article — use `\documentclass[theme=editorial,publication-type=feature-article]{reportkit}` with `lualatex` (both are stable after pinned visual review). Build it from the feature primitives (`featureopening`, `featureheadline`, `featuredeck`, `featurebyline`, `openingvisual`, `dropcap`, `featuresection`, `featurecolumns`, `pullquote`, `featuresidebar`, `featureexhibit`, `imagecredit`, `featurereferences`); layout rhythm is limited to one-column prose, `featurecolumns`, and full-width visuals (`featureexhibit[span=full]` outside columns), never coordinates or local font changes. See [references/feature-article-authoring.md](references/feature-article-authoring.md) and `latex_templates/examples/editorial-feature/`.
 
 ### Books
 

@@ -57,6 +57,7 @@ tags on this repository, not a published package registry.
   are recorded in the build report and blocked by final/release profiles.
 
 ### Changed
+- The editorial feature article is now stable, with a reviewed six-page visual baseline from the pinned toolchain and Libertinus Sans in its charts.
 - Venture presentation footers now keep source citations and slide numbers in
   separate layout regions, and section dividers accept an optional eyebrow for
   clearer narrative hierarchy.

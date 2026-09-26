@@ -34,7 +34,7 @@ non-pinned host and pinned-toolchain visual review remains (see §7). Phase F1
 (executive brief) is implemented as an experimental publication type
 registered for executive and institutional-research; pinned-toolchain visual
 review remains (see F1).
-**Last updated:** 2026-09-23
+**Last updated:** 2026-09-26
 **Plans:** [2026-09-09-reportkit-multi-format-publication-architecture-spec.md](../specs/2026-09-09-reportkit-multi-format-publication-architecture-spec.md)
 **Amended by:** [2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md](../specs/2026-09-10-reportkit-agent-interface-and-platform-contract-spec.md)
 **Baseline:** planning baseline `main` at `4f2b27f`, ReportKit v1.9.1.
@@ -42,8 +42,7 @@ review remains (see F1).
 Python/theme-contract, target-aware A5/equity-acceptance, automated B4
 slide-accessibility changes, Phase C executive fixture, and pinned fixture
 baselines retained in mainline. Workflow run 65 passed with 374 pytest cases
-and 1 skip. Phase E is implemented as experimental (section 9 records
-what landed and what remains); Phase D and Phase F's book work remain future work.
+and 1 skip. Phase E is stable after the 2026-09-26 pinned visual review (section 9); Phase D and Phase F's visual review remain.
 
 ---
 
@@ -1699,14 +1698,14 @@ face, and its text block contains the same letters. The feature package and
 every registered feature primitive record contain no "editorial" mention,
 and the package sets no literal font, color or palette name.
 
-**Remaining:** pinned-toolchain visual review and checked-in page baselines
-(the fixture was reviewed only on an unpinned local TeX Live, so no pixel
-baseline is committed); promotion to stable after that review; chart text
-resolves Libertinus Sans only where it is registered with fontconfig (the
-unpinned host fell back to DejaVu Sans, the same gap the executive fixture
-has); non-floating exhibits can leave a partial page when a full-width
-exhibit does not fit, which is an authoring choice to review in the pinned
-render; `book` compatibility for editorial belongs to Phase F.
+**Pinned visual gate completed 2026-09-26:** `scripts/visual_qa_editorial.py`
+regenerates all three figures, compiles the six-page A4 fixture in the pinned
+image, checks diagnostics and chart fonts, and compares every page with
+`examples/editorial-feature/expected/`. All six pages were reviewed; the
+partial page after the full-width exhibits and the short concluding page are
+accepted reading breaks. Chart PDFs embed Libertinus Sans after Matplotlib
+registers the TeX-installed font. The editorial theme and feature-article
+type are stable. `book` compatibility for editorial belongs to Phase F.
 
 ## 10. Phase F — executive brief and book polish
 
