@@ -285,7 +285,7 @@ THEMES: dict[str, dict[str, Any]] = {
     # Greek/Cyrillic glyphs, but no fixture verifies them.
     "editorial": _theme(
         "editorial", renderers=["paged"], required_engine="lualatex",
-        common_package="reportkit-theme-editorial", stability="experimental", since="1.10.0",
+        common_package="reportkit-theme-editorial", stability="stable", since="1.10.0",
         renderer_adapters={"paged": "reportkit-theme-editorial-paged"},
     ),
 }
@@ -346,7 +346,7 @@ PUBLICATION_TYPES: dict[str, dict[str, Any]] = {
         "template": "feature-article.tex",
         "package": "reportkit-feature-article",
         "selection_criteria": "Designed narrative reading: magazine-style features and thought-leadership articles.",
-        "stability": "experimental",
+        "stability": "stable",
         "since": "1.10.0",
     },
     # Phase F2. A long-form multi-chapter publication on the paged renderer

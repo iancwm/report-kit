@@ -100,14 +100,14 @@ def _body_letters(pdf: Path) -> Counter[str]:
 # -----------------------------------------------------------------------------
 # Registry and theme contract
 # -----------------------------------------------------------------------------
-def test_feature_article_and_editorial_are_registered_as_an_experimental_paged_pair() -> None:
+def test_feature_article_and_editorial_are_registered_as_a_stable_paged_pair() -> None:
     publication = PUBLICATION_TYPES["feature-article"]
     theme = THEMES["editorial"]
     assert publication["renderer"] == "paged"
     assert publication["themes"] == ["editorial"]
     assert publication["template"] == "feature-article.tex"
     assert publication["package"] == "reportkit-feature-article"
-    assert publication["stability"] == theme["stability"] == "experimental"
+    assert publication["stability"] == theme["stability"] == "stable"
     assert theme["required_engine"] == "lualatex"
     assert theme["renderer_adapters"] == {"paged": "reportkit-theme-editorial-paged"}
     target = resolve_build_target("feature-article", "editorial", repo_root=REPO)

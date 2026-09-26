@@ -1,0 +1,79 @@
+{
+  "class_options": [
+    "theme=editorial",
+    "publication-type=feature-article"
+  ],
+  "dpi": 150,
+  "engine": "lualatex",
+  "expected_toolchain_fingerprint": "6e0fc8ea7889634d3c337eacc4e4f68adb10c2c968e2e7e683f5c24de07408e5",
+  "fixture": "latex_templates/examples/editorial-feature/report.tex",
+  "fonts": [
+    "AZAIXV+LibertinusSerifInitials-Regular",
+    "DMVBZQ+LibertinusSerif-Italic",
+    "EGLIHW+LibertinusSans-Regular",
+    "ELCACJ+LibertinusSans-Bold",
+    "GTOSSD+LibertinusSans-Regular",
+    "ITWRSK+LibertinusMono-Regular",
+    "NARSJO+LibertinusSerifDisplay-Regular",
+    "ZRDAIC+LibertinusSerif-Regular"
+  ],
+  "metadata": {
+    "author": "Mara Ellison",
+    "creationDate": "D:19700101000001Z",
+    "creator": "LaTeX with hyperref",
+    "encryption": null,
+    "format": "PDF 1.7",
+    "keywords": "ReportKit, feature article, editorial, fictional example",
+    "modDate": "D:19700101000001Z",
+    "producer": "LuaTeX-1.18.0",
+    "subject": "Feature article: flood measurement in a fictional delta town",
+    "title": "The river that learned to count",
+    "trapped": ""
+  },
+  "page_count": 6,
+  "page_dimensions": [
+    {
+      "height": 841.8900146484375,
+      "page": 1,
+      "width": 595.2760009765625
+    },
+    {
+      "height": 841.8900146484375,
+      "page": 2,
+      "width": 595.2760009765625
+    },
+    {
+      "height": 841.8900146484375,
+      "page": 3,
+      "width": 595.2760009765625
+    },
+    {
+      "height": 841.8900146484375,
+      "page": 4,
+      "width": 595.2760009765625
+    },
+    {
+      "height": 841.8900146484375,
+      "page": 5,
+      "width": 595.2760009765625
+    },
+    {
+      "height": 841.8900146484375,
+      "page": 6,
+      "width": 595.2760009765625
+    }
+  ],
+  "pages": [
+    "page-01.png",
+    "page-02.png",
+    "page-03.png",
+    "page-04.png",
+    "page-05.png",
+    "page-06.png"
+  ],
+  "pdf_sha256": "dcb6da695f1614b17b5264b5fcae6e1a7dd4e033d127dcbfa7943a72798a0812",
+  "pixel_difference_threshold": 0.01,
+  "resolved_toolchain_fingerprint": "6e0fc8ea7889634d3c337eacc4e4f68adb10c2c968e2e7e683f5c24de07408e5",
+  "schema_version": 1,
+  "toolchain_fingerprint": "6e0fc8ea7889634d3c337eacc4e4f68adb10c2c968e2e7e683f5c24de07408e5"
+}

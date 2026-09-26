@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 from typing import Any, Sequence
+import shutil
+import subprocess
 
 import matplotlib as mpl
 from matplotlib import font_manager
@@ -10,13 +12,26 @@ from reportkit.themes import get_theme, validate_theme_contract
 
 
 def _available_font(candidates: Sequence[str], fallback: str = "DejaVu Sans") -> str:
-    """Return the first installed font name without requiring local font files."""
+    """Return the first available font, including fonts installed for TeX only."""
     for candidate in candidates:
         try:
             font_manager.findfont(candidate, fallback_to_default=False)
             return candidate
         except ValueError:
-            pass
+            # Pinned TeX fonts live in TEXMF, outside fontconfig's search path.
+            # Register the same OTF with Matplotlib when kpsewhich can find it.
+            if candidate.startswith("Libertinus ") and shutil.which("kpsewhich"):
+                filename = candidate.replace(" ", "") + "-Regular.otf"
+                path = subprocess.run(
+                    ["kpsewhich", filename], capture_output=True, text=True, check=False
+                ).stdout.strip()
+                if path:
+                    font_manager.fontManager.addfont(path)
+                    try:
+                        font_manager.findfont(candidate, fallback_to_default=False)
+                        return candidate
+                    except ValueError:
+                        pass
     return fallback
 
 
