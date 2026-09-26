@@ -1,4 +1,4 @@
-from geometry import word_boxes
+from geometry import node_rects, word_boxes
 
 VERTICAL = r"""
 \begin{diagram}[caption={A vertical flow.}]
@@ -33,3 +33,21 @@ def test_horizontal_flow_remains_the_default(compile_doc):
     ys = [boxes[label][1] for label in ("Alpha", "Bravo", "Charlie")]
     assert max(ys) - min(ys) < 5
     assert xs == sorted(xs)
+
+
+def test_vertical_flow_arrowheads_reach_target_nodes(compile_doc):
+    page = compile_doc(VERTICAL)[0]
+    nodes = sorted(node_rects(page, min_width=80), key=lambda rect: rect.y0)
+    assert len(nodes) == 3
+
+    for source, target in zip(nodes, nodes[1:]):
+        connector_parts = [
+            drawing["rect"]
+            for drawing in page.get_drawings()
+            if drawing["rect"].width < 8
+            and drawing["rect"].height < 10
+            and drawing["rect"].y0 >= source.y1 - 2
+            and drawing["rect"].y1 <= target.y0 + 2
+        ]
+        assert connector_parts
+        assert max(rect.y1 for rect in connector_parts) >= target.y0 - 0.1

@@ -68,7 +68,9 @@
     \useasboundingbox (0,0) rectangle (\paperwidth,\paperheight);
     \ifrkventure@inverse
       \fill[VentureNight] (0,0) rectangle (\paperwidth,\paperheight);
-      \fill[Research] (12mm,6mm) rectangle (30mm,7.2mm);
+      % Keep the decorative rule below diagram provenance on plain dark
+      % frames; the old 6mm position crossed a low-placed \source line.
+      \fill[Research] (12mm,4.5mm) rectangle (30mm,5.7mm);
       \rkventure@logochip
     \else
       \fill[white] (0,0) rectangle (\paperwidth,\paperheight);
