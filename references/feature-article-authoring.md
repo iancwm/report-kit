@@ -1,6 +1,6 @@
 # Feature-article authoring contract
 
-This reference covers the `feature-article` publication type and the `editorial` theme (Phase E of the multi-format publication architecture). Both are **experimental**: the canonical fixture compiles and its structure/style boundary is tested, but pinned-toolchain visual review has not yet happened.
+This reference covers the `feature-article` publication type and the `editorial` theme (Phase E of the multi-format publication architecture). Both are **stable**: the canonical fixture and its structure/style boundary are tested, and the six-page pinned-toolchain visual baseline was reviewed on 2026-09-26.
 
 Select them together:
 

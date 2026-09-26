@@ -13,15 +13,15 @@ venture theme, controlled branding and 12-slide pitch fixture are implemented
 as `experimental`; the critical executive-versus-venture smoke gate passes on
 a non-pinned host. Phase F1's `executive-brief` publication type (§14) is
 implemented as experimental for the executive and institutional-research
-themes, and Phase E (editorial theme and feature-article type) is implemented
-as experimental. Phase F2's `book` publication type (§16) is implemented as
+themes. Phase E (editorial theme and feature-article type) is stable after its
+2026-09-26 pinned visual review. Phase F2's `book` publication type (§16) is implemented as
 experimental for the default, technical and editorial themes, and F3's
-combination-coverage test layer (§18) is implemented. Phases D, E, F1 and F2
+combination-coverage test layer (§18) is implemented. Phases D, F1 and F2
 are pending pinned visual review.
 Supersedes nothing; extends the architecture introduced by
 [2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md](2026-09-09-reportkit-institutional-theme-and-equity-profile-spec.md)
 (Steps 1–5 implemented, `reportkit.cls` v1.9.3).
-**Last updated:** 2026-09-23
+**Last updated:** 2026-09-26
 **Current-state claims:** historical baseline verified against `origin/main` at
 `f45ab86` plus the merged implementation checkpoint at `f5f5a6b`; pinned
 workflow run 65 is the current acceptance record below.
@@ -913,7 +913,7 @@ Every theme × publication-type combination needs a canonical fixture.
 | Institutional | equity-research (`examples/equity-research/`) | exists |
 | Executive | 8–10 slide fictional technology/strategy deck | exists — direct TeX and pipeline smoke coverage |
 | Venture | 10–12 slide fictional startup pitch | exists — 12-slide direct/pipeline fixture; experimental pending pinned visual review |
-| Editorial | 6–8 page fictional feature article | exists (`examples/editorial-feature/`) — experimental pending pinned visual review |
+| Editorial | 6–8 page fictional feature article | exists (`examples/editorial-feature/`) — stable after pinned visual review on 2026-09-26 |
 
 **Executive deck must include:** title; assertion-evidence slide; architecture;
 2×2; chart; table; roadmap; recommendation.
@@ -1105,11 +1105,13 @@ Implement the editorial theme and the `feature-article` publication type.
 **Definition of done:** a long-form magazine-style article can be produced
 without falling back to technical-report visual grammar.
 
-**Status (2026-09-23):** implemented as experimental. The editorial theme,
+**Status (2026-09-26):** stable after pinned visual review. The editorial theme,
 feature-article publication type, thirteen feature primitives, the 6-page
 fictional fixture, and the theme-swap gate are in the tree (see the
-implementation plan's Phase E section). Pinned visual review and promotion to
-stable remain.
+implementation plan's Phase E section). The six A4 pages and checked-in pixel
+baseline passed the pinned toolchain comparison; the charts embed Libertinus
+Sans. Page 4's open space after the full-width exhibits and the short final
+page were reviewed and accepted.
 
 ### Phase F — Brief and book polish
 
