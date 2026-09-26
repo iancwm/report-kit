@@ -41,7 +41,12 @@
   },
   rk accent/.style={draw=\RKTokDiagramAccentDraw,line width=\RKTokDiagramAccentWidth,fill=\RKTokDiagramAccentFill},
   rk layer accent/.style={draw=\RKTokDiagramAccentDraw,line width=\RKTokDiagramAccentWidth,fill=\RKTokDiagramAccentFill},
-  rk edge/.style={-{Stealth[length=\RKTokDiagramArrowLength,width=\RKTokDiagramArrowWidth]}},
+  % TikZ clips a node-to-node path before placing the arrow tip.  With the
+  % compact presentation node and arrow tokens this leaves a hairline gap
+  % before the target node, which reads as a disconnected relationship in a
+  % rendered slide.  Extend the target end slightly so the arrowhead meets
+  % the node border instead of stopping short of it.
+  rk edge/.style={-{Stealth[length=\RKTokDiagramArrowLength,width=\RKTokDiagramArrowWidth]},shorten >=-1.5pt},
   rk edge flow/.style={rk edge,draw=\RKTokDiagramEdgeFlowColor,line width=\RKTokDiagramEdgeFlowWidth},
   rk edge sequence/.style={rk edge,draw=\RKTokDiagramEdgeSequenceColor,line width=\RKTokDiagramEdgeSequenceWidth},
   rk edge dependency/.style={rk edge,draw=\RKTokDiagramEdgeDependencyColor,line width=\RKTokDiagramEdgeDependencyWidth},

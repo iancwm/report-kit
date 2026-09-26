@@ -68,7 +68,9 @@
     \useasboundingbox (0,0) rectangle (\paperwidth,\paperheight);
     \ifrkventure@inverse
       \fill[VentureNight] (0,0) rectangle (\paperwidth,\paperheight);
-      \fill[Research] (12mm,6mm) rectangle (30mm,7.2mm);
+      % Keep the decorative rule below diagram provenance on plain dark
+      % frames; the old 6mm position crossed a low-placed \source line.
+      \fill[Research] (12mm,4.5mm) rectangle (30mm,5.7mm);
       \rkventure@logochip
     \else
       \fill[white] (0,0) rectangle (\paperwidth,\paperheight);
@@ -77,23 +79,34 @@
 }
 
 % -----------------------------------------------------------------------------
-% Running chrome -- a quiet footline: logo (or footer text) left, frame
-% number right. No headline; compositions carry their own heading type.
+% Running chrome -- a quiet footline: source citation in a fixed left box,
+% frame number in a dedicated right box. No headline; compositions carry
+% their own heading type. Keeping the boxes separate prevents the citation
+% and page number from reading as one string in PDF extraction.
 % -----------------------------------------------------------------------------
 \setbeamertemplate{footline}{%
   \leavevmode
-  \hbox{\begin{beamercolorbox}[wd=\paperwidth,ht=4.2mm,dp=2.6mm,leftskip=12mm,rightskip=12mm]{}
-    \ifrkventure@inverse
-      {\sffamily\RKTokPresentationSourceFont\color{VentureInverseMuted}\rk@footer\hfill\insertframenumber}%
-    \else
-      \rkventure@iflogo{%
-        \raisebox{-.8mm}{\includegraphics[height=3.6mm]{\RKBrandLogo}}%
-      }{%
-        {\sffamily\RKTokPresentationSourceFont\color{Muted}\rk@footer}%
-      }%
-      \hfill{\sffamily\bfseries\RKTokPresentationSourceFont\color{Accent}\insertframenumber}%
-    \fi
-  \end{beamercolorbox}}
+  \hbox{%
+    \begin{beamercolorbox}[wd=\dimexpr\paperwidth-24mm\relax,ht=4.2mm,dp=2.6mm,leftskip=12mm,rightskip=0pt]{}
+      \ifrkventure@inverse
+        {\sffamily\RKTokPresentationSourceFont\color{VentureInverseMuted}\rk@footer}%
+      \else
+        \rkventure@iflogo{%
+          \raisebox{-.8mm}{\includegraphics[height=3.6mm]{\RKBrandLogo}}%
+        }{%
+          {\sffamily\RKTokPresentationSourceFont\color{Muted}\rk@footer}%
+        }%
+      \fi
+    \end{beamercolorbox}%
+    \begin{beamercolorbox}[wd=24mm,ht=4.2mm,dp=2.6mm,leftskip=0pt,rightskip=12mm]{}
+      \hfill
+      \ifrkventure@inverse
+        \raisebox{2.5mm}{\sffamily\bfseries\RKTokPresentationSourceFont\color{VentureInverseMuted}\insertframenumber}%
+      \else
+        \raisebox{2.5mm}{\sffamily\bfseries\RKTokPresentationSourceFont\color{Accent}\insertframenumber}%
+      \fi
+    \end{beamercolorbox}%
+  }
 }
 
 % -----------------------------------------------------------------------------
