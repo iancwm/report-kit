@@ -30,6 +30,19 @@
 \RequirePackage{xparse}
 \RequirePackage{etoolbox}
 \RequirePackage{enumitem}
+
+% reportkit-longform.sty pulls in the shared Pandoc compatibility layer
+% (reportkit-pandoc.sty), which only loads `longtable` when told the
+% manuscript contains a table. That signal normally comes from the
+% generated metadata.tex, but this package is required during
+% \documentclass option processing -- before the entrypoint has a chance to
+% \input metadata.tex -- so the flag would otherwise always read as unset
+% (false) here regardless of the actual manuscript. A long-form, multi-
+% chapter book manuscript needing a table is the common case, not the
+% exception, so declare the flag true unconditionally; reportkit-pandoc.sty's
+% own \@ifundefined guard treats this as already-set and leaves it alone.
+\newif\ifRKPubUsesTables
+\RKPubUsesTablestrue
 \RequirePackage{reportkit-longform}
 
 \RKAssertBookTokens
