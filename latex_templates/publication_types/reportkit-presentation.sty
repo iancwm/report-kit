@@ -127,15 +127,15 @@
 % Section divider
 % -----------------------------------------------------------------------------
 % <reportkit-contract>
-% {"kind":"composition","description":"Sectiondivider","arguments":[{"name":"title","type":"text","description":"Section title, also registered as a \\section for the PDF outline/bookmarks."}],"constraints":[{"code":"content_only_wrap_in_frame","description":"Content only; wrap in \\begin{frame}[plain]...\\end{frame}."}],"example":"\\begin{frame}[plain]\n\\begin{sectiondivider}{Example}\n\\end{sectiondivider}\n\\end{frame}","stability":"stable","since":"1.9.3"}
+% {"kind":"composition","description":"Sectiondivider","arguments":[{"name":"eyebrow","type":"text","description":"Optional small label above the section title; defaults to Section."},{"name":"title","type":"text","description":"Section title, also registered as a \\section for the PDF outline/bookmarks."}],"constraints":[{"code":"content_only_wrap_in_frame","description":"Content only; wrap in \\begin{frame}[plain]...\\end{frame}."}],"example":"\\begin{frame}[plain]\n\\begin{sectiondivider}[Section 01]{Example}\n\\end{sectiondivider}\n\\end{frame}","stability":"stable","since":"1.9.3"}
 % </reportkit-contract>
-\NewDocumentEnvironment{sectiondivider}{m}{%
+\NewDocumentEnvironment{sectiondivider}{O{Section} m}{%
   \RKTokPresentationSurface{divider}%
-  \section{#1}%
+  \section{#2}%
   \vfill
-  {\sffamily\RKTokPresentationKickerFont\bfseries\color{Accent}\MakeUppercase{Section}\par}
+  {\sffamily\RKTokPresentationKickerFont\bfseries\color{Accent}\MakeUppercase{#1}\par}
   \vspace{4mm}
-  {\sffamily\bfseries\RKTokPresentationDividerTitleFont\color{Ink}#1\par}
+  {\sffamily\bfseries\RKTokPresentationDividerTitleFont\color{Ink}#2\par}
 }{%
   \vfill
 }
