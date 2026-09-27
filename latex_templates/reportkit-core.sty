@@ -585,7 +585,11 @@
 % expression; length tokens hold a TeX dimension; ExhibitInsetFraction is
 % a bare number (a fraction of \linewidth) and DropCapLines a bare integer;
 % CreditAlign holds \raggedright, \raggedleft or \centering; KickerTransform
-% holds a one-argument macro (\MakeUppercase or \@firstofone).
+% holds a one-argument macro (\MakeUppercase or \@firstofone). TableCellSep
+% holds a TeX dimension (\tabcolsep) and TableRowStretch a bare number
+% (\arraystretch), so a plain tabularx/booktabs table set inside featuretable
+% reads at the same proportion as its own \imagecredit line instead of at
+% full body-text size.
 \newcommand{\RKTokFeatureOpeningPageStyle}{\rk@styletokenerror{\RKTokFeatureOpeningPageStyle}}
 \newcommand{\RKTokFeatureOpeningTopSkip}{\rk@styletokenerror{\RKTokFeatureOpeningTopSkip}}
 \newcommand{\RKTokFeatureOpeningRuleColor}{\rk@styletokenerror{\RKTokFeatureOpeningRuleColor}}
@@ -646,6 +650,10 @@
 \newcommand{\RKTokFeatureReferenceTitleFont}{\rk@styletokenerror{\RKTokFeatureReferenceTitleFont}}
 \newcommand{\RKTokFeatureReferenceFont}{\rk@styletokenerror{\RKTokFeatureReferenceFont}}
 \newcommand{\RKTokFeatureReferenceColor}{\rk@styletokenerror{\RKTokFeatureReferenceColor}}
+\newcommand{\RKTokFeatureTableFont}{\rk@styletokenerror{\RKTokFeatureTableFont}}
+\newcommand{\RKTokFeatureTableColor}{\rk@styletokenerror{\RKTokFeatureTableColor}}
+\newcommand{\RKTokFeatureTableCellSep}{\rk@styletokenerror{\RKTokFeatureTableCellSep}}
+\newcommand{\RKTokFeatureTableRowStretch}{\rk@styletokenerror{\RKTokFeatureTableRowStretch}}
 \newif\ifrk@featuretokensloaded
 \rk@featuretokensloadedfalse
 % Called by reportkit-feature-article.sty immediately before defining

@@ -35,6 +35,8 @@
 \RequirePackage[most]{tcolorbox}
 \RequirePackage{lettrine}
 \RequirePackage{enumitem}
+\RequirePackage{array}
+\RequirePackage{tabularx}
 
 \RKAssertFeatureTokens
 
@@ -254,6 +256,18 @@
     \par
   \end{minipage}\hfill\null\par
   \vspace{\RKTokFeatureExhibitSkip}%
+}
+
+% <reportkit-contract>
+% {"kind":"composition","description":"Typographic wrapper for a plain tabularx/booktabs table placed inside a featureexhibit. Feature articles have no dedicated data-table primitive (unlike the institutional-research theme's financialtable); featuretable instead sets the table's own font, color, row height and cell padding to the theme's table tokens so a hand-authored table reads at the same proportion as its own \\imagecredit line rather than at full body-text size.","arguments":[],"constraints":[{"code":"exhibit_only","description":"Place featuretable inside a featureexhibit, around the author's own tabularx (or plain tabular) environment; it does not declare a column specification itself."}],"example":"\\begin{featureexhibit}{Old Harbour carries the densest part of the network}\n\\begin{featuretable}\n\\begin{tabularx}{\\linewidth}{@{}l X@{}}\n\\toprule\nDistrict & Gauges installed \\\\\n\\midrule\nOld Harbour & 11 \\\\\n\\bottomrule\n\\end{tabularx}\n\\end{featuretable}\n\\end{featureexhibit}","stability":"experimental","since":"1.10.0"}
+% </reportkit-contract>
+\NewDocumentEnvironment{featuretable}{}{%
+  \begingroup
+  \RKTokFeatureTableFont\color{\RKTokFeatureTableColor}%
+  \renewcommand{\arraystretch}{\RKTokFeatureTableRowStretch}%
+  \setlength{\tabcolsep}{\RKTokFeatureTableCellSep}%
+}{%
+  \endgroup
 }
 
 % <reportkit-contract>

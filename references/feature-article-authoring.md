@@ -31,6 +31,7 @@ Do not add local `\fontsize`, `\color`, `\vspace`, `minipage` or `\hspace` in th
 | `\pullquote{quote}[attribution]` | A short line from the article, set apart. Never invent quotes. |
 | `featuresidebar` | Self-contained companion box; unbreakable, keep under about half a page. |
 | `featureexhibit[span=...]{title}` | Numbered exhibit (`span=column` or `span=full`) with a finding-first title; credit it with `\imagecredit`. |
+| `featuretable` | Wraps a hand-authored `tabularx`/`tabular` inside a `featureexhibit`, setting its font, color, row height and cell padding to the theme's table tokens so the table reads at the same proportion as its own `\imagecredit` line. There is no other data-table primitive in feature-article; this is the fallback, not `financialtable`. |
 | `\imagecredit{credit}` | Credit or source line for a visual. |
 | `featurereferences[title]` | Numbered notes and sources (`\item` entries) at the end of the article. |
 
@@ -43,6 +44,23 @@ The rhythm vocabulary is closed on purpose; it is not a positioning API.
 - **Full-width visuals** are `openingvisual` and `featureexhibit[span=full]`, placed outside `featurecolumns`. Using either inside columns fails with `FEATURE_EXHIBIT_FULL_SPAN_IN_COLUMNS` or `FEATURE_OPENING_VISUAL_IN_COLUMNS`; any other `span` value fails with `FEATURE_EXHIBIT_UNKNOWN_SPAN`.
 
 Exhibits are not floats: they stay where they are written. If an exhibit leaves a large gap at a page foot, move it or the surrounding prose rather than adding spacing.
+
+A tabular exhibit (a comparison, a metrics list, a scenario grid) is plain `tabularx`/`tabular` -- there is no coordinate-based table primitive -- but wrap it in `featuretable` rather than leaving it at the body-text size. Feature articles have no dedicated data-table primitive the way the institutional-research theme has `financialtable`; without `featuretable`, a hand-authored table reads noticeably larger than its own `\imagecredit` line, out of proportion with the rest of the exhibit.
+
+```latex
+\begin{featureexhibit}[span=full]{Old Harbour carries the densest part of the network}
+\begin{featuretable}
+\begin{tabularx}{\linewidth}{@{}l X@{}}
+\toprule
+District & Gauges installed \\
+\midrule
+Old Harbour & 11 \\
+\bottomrule
+\end{tabularx}
+\end{featuretable}
+\imagecredit{Source: Varenholm gauge survey, fictional data}
+\end{featureexhibit}
+```
 
 ## Typography and language coverage
 
@@ -145,6 +163,7 @@ This section is generated from source-adjacent contract metadata. Do not edit it
 | `featureopening` | `` | — | Use once, at the start of the article body, before any prose.<br>The opening page's running furniture comes from the theme; do not call \thispagestyle yourself. | experimental since 1.10.0 | <code>\begin{featureopening}&lt;br&gt;\featureheadline[Infrastructure]{The river that learned to count}&lt;br&gt;\featuredeck{How a fictional delta town rebuilt its flood defences around measurement.}&lt;br&gt;\featurebyline{By Mara Ellison}[Field report]&lt;br&gt;\end{featureopening}</code> |
 | `featurereferences` | `O{\RKFeatureReferencesName}` | `title` (text, optional=\RKFeatureReferencesName) — Heading for the list; defaults to the publication type's references name. | Contains only \item entries.<br>Place in one-column flow at the end of the article. | experimental since 1.10.0 | <code>\begin{featurereferences}&lt;br&gt;\item Delta Town Council (2026), Flood gauge survey. \url{https://example.com/survey}&lt;br&gt;\end{featurereferences}</code> |
 | `featuresidebar` | `m` | `title` (text, required) — Sidebar title. | The article must still read correctly if the sidebar is skipped.<br>A sidebar does not break across pages or columns; keep it under about half a page. | experimental since 1.10.0 | <code>\begin{featuresidebar}{How the gauges work}&lt;br&gt;Each gauge reports water height every ten minutes.&lt;br&gt;\end{featuresidebar}</code> |
+| `featuretable` | `` | — | Place featuretable inside a featureexhibit, around the author's own tabularx (or plain tabular) environment; it does not declare a column specification itself. | experimental since 1.10.0 | <code>\begin{featureexhibit}{Old Harbour carries the densest part of the network}&lt;br&gt;\begin{featuretable}&lt;br&gt;\begin{tabularx}{\linewidth}{@{}l X@{}}&lt;br&gt;\toprule&lt;br&gt;District &amp; Gauges installed \\&lt;br&gt;\midrule&lt;br&gt;Old Harbour &amp; 11 \\&lt;br&gt;\bottomrule&lt;br&gt;\end{tabularx}&lt;br&gt;\end{featuretable}&lt;br&gt;\end{featureexhibit}</code> |
 | `openingvisual` | `m o` | `caption` (text, required) — Caption describing what the visual shows.<br>`credit` (text, optional) — Optional image credit or source. | Always spans the full text width; size the body to \linewidth.<br>Credit every photograph or illustration not made for the article. | experimental since 1.10.0 | <code>\begin{openingvisual}{The delta at low water, drawn from the town survey.}[Illustration: ReportKit example]&lt;br&gt;\rule{\linewidth}{30mm}&lt;br&gt;\end{openingvisual}</code> |
 | `outputblock` | `` | — | — | stable since 1.0.0 | <code>\begin{outputblock}&lt;br&gt;Example content.&lt;br&gt;\end{outputblock}</code> |
 

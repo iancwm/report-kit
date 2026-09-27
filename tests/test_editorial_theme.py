@@ -35,7 +35,7 @@ EXAMPLE = TEMPLATES / "examples" / "editorial-feature"
 FEATURE_PRIMITIVES = {
     "featureopening", "featureheadline", "featuredeck", "featurebyline", "openingvisual",
     "imagecredit", "dropcap", "featurecolumns", "pullquote", "featuresidebar",
-    "featureexhibit", "featuresection", "featurereferences",
+    "featureexhibit", "featuretable", "featuresection", "featurereferences",
 }
 PROBE_THEME = "feature-probe"
 
@@ -352,6 +352,10 @@ PROBE_ADAPTER = r"""\NeedsTeXFormat{LaTeX2e}
 \renewcommand{\RKTokFeatureReferenceTitleFont}{\sffamily\bfseries}
 \renewcommand{\RKTokFeatureReferenceFont}{\small}
 \renewcommand{\RKTokFeatureReferenceColor}{Ink}
+\renewcommand{\RKTokFeatureTableFont}{\small}
+\renewcommand{\RKTokFeatureTableColor}{Ink}
+\renewcommand{\RKTokFeatureTableCellSep}{6pt}
+\renewcommand{\RKTokFeatureTableRowStretch}{1}
 \rk@featuretokensloadedtrue
 \endinput
 """

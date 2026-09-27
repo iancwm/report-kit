@@ -7,6 +7,13 @@ tags on this repository, not a published package registry.
 ## [Unreleased]
 
 ### Added
+- A new `featuretable` primitive (`reportkit-feature-article.sty`) for
+  feature articles: wraps a hand-authored `tabularx`/`tabular` inside a
+  `featureexhibit` and sets its font, color, row height and cell padding to
+  new `\RKTokFeatureTableFont`/`Color`/`CellSep`/`RowStretch` theme tokens,
+  so a table reads at the same proportion as its own `\imagecredit` line
+  instead of at full body-text size. Feature articles have no other
+  data-table primitive.
 - A new `reportkit-algorithm-viz.sty` module (Phase 1 of the
   algorithm-visualization primitives spec): a shared nine-state algorithm
   vocabulary (`current`/`active`/`candidate`/`frontier`/`visited`/
@@ -57,6 +64,9 @@ tags on this repository, not a published package registry.
   are recorded in the build report and blocked by final/release profiles.
 
 ### Changed
+- The editorial theme's `\RKTokFeatureCreditFont` token is now 7.6pt/9.4pt
+  (was 6.6pt/8.2pt): image and table credits were reading disproportionately
+  small next to the exhibits they caption.
 - The editorial feature article is now stable, with a reviewed six-page visual baseline from the pinned toolchain and Libertinus Sans in its charts.
 - Venture presentation footers now keep source citations and slide numbers in
   separate layout regions, and section dividers accept an optional eyebrow for
