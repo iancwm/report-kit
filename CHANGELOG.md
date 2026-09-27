@@ -7,6 +7,8 @@ tags on this repository, not a published package registry.
 ## [Unreleased]
 
 ### Added
+- Fresh-clone agent instructions and a Debian/Ubuntu setup command that installs
+  TeX and fonts and verifies both LuaLaTeX themes before drafting.
 - A new `featuretable` primitive (`reportkit-feature-article.sty`) for
   feature articles: wraps a hand-authored `tabularx`/`tabular` inside a
   `featureexhibit` and sets its font, color, row height and cell padding to
@@ -112,6 +114,10 @@ tags on this repository, not a published package registry.
   validation, mixed-pipeline, and build-report regression coverage.
 
 ### Fixed
+- Publication type and theme choices now resolve their registered LuaLaTeX
+  engine on the first build when `document.engine` is omitted.
+- `reportkit doctor --require full-build` accepts a working host with version
+  drift; `--require pinned-toolchain` still enforces the exact lock.
 - Venture flow arrows now reach their target nodes in rendered slides, and the
   dark-frame decorative rule no longer crosses low-placed provenance text.
 - Algorithm visualization annotations now support the documented `row=` target,
