@@ -120,8 +120,29 @@ def test_theme_engine_conflict_none_for_default_theme() -> None:
     assert theme_engine_conflict(resolve_document({})) is None
 
 
-def test_theme_engine_conflict_flags_institutional_without_lualatex() -> None:
-    document = resolve_document({"publication": {"title": "T"}, "document": {"theme": "institutional-research"}})
+@pytest.mark.parametrize(("publication_type", "theme", "engine"), [
+    ("technical-report", "default", "pdflatex"),
+    ("equity-research", "institutional-research", "lualatex"),
+    ("executive-brief", "executive", "lualatex"),
+    ("feature-article", "editorial", "lualatex"),
+    ("presentation", "executive", "lualatex"),
+    ("book", "default", "pdflatex"),
+])
+def test_resolve_document_uses_registered_target_defaults(publication_type: str, theme: str, engine: str) -> None:
+    document = resolve_document({"document": {"publication_type": publication_type}})
+    assert (document["theme"], document["engine"]) == (theme, engine)
+    assert theme_engine_conflict(document) is None
+
+
+def test_resolve_document_uses_explicit_theme_and_engine() -> None:
+    editorial_book = resolve_document({"document": {"publication_type": "book", "theme": "editorial"}})
+    assert (editorial_book["theme"], editorial_book["engine"]) == ("editorial", "lualatex")
+    explicit_engine = resolve_document({"document": {"publication_type": "book", "engine": "lualatex"}})
+    assert explicit_engine["engine"] == "lualatex"
+
+
+def test_theme_engine_conflict_flags_explicit_wrong_engine() -> None:
+    document = resolve_document({"publication": {"title": "T"}, "document": {"theme": "institutional-research", "engine": "pdflatex"}})
     message = theme_engine_conflict(document)
     assert message is not None
     assert "institutional-research" in message

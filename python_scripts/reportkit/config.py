@@ -370,9 +370,12 @@ def resolve_document(config: dict[str, Any], profile: str | None = None) -> dict
     document = _profile_section(config, "document", profile)
     document.setdefault("main", "report.tex")
     document.setdefault("class", "reportkit")
-    document.setdefault("engine", "pdflatex")
-    document.setdefault("theme", "default")
     document.setdefault("publication_type", "technical-report")
+    publication = PUBLICATION_TYPES.get(str(document["publication_type"]))
+    default_target = (publication or {}).get("default_target", {})
+    document.setdefault("theme", default_target.get("theme", "default"))
+    theme = THEMES.get(str(document["theme"]))
+    document.setdefault("engine", (theme or {}).get("required_engine", "pdflatex"))
     # decision D5 (multi-format publication architecture spec): a canvas-based
     # renderer (slides) never gets a fake "paper" value -- an omitted paper
     # key must stay omitted so context/build-report honestly report a canvas
@@ -382,7 +385,6 @@ def resolve_document(config: dict[str, Any], profile: str | None = None) -> dict
     # publication_type also defaults to "a4" here so resolve_build_target's
     # own validation -- not this defaulting step -- produces the "unknown
     # publication type" diagnostic.
-    publication = PUBLICATION_TYPES.get(str(document["publication_type"]))
     renderer_name = str(publication["renderer"]) if publication else "paged"
     geometry_kind = RENDERERS.get(renderer_name, {}).get("geometry", {}).get("kind", "paper")
     if geometry_kind == "paper":

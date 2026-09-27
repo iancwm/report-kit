@@ -24,8 +24,9 @@ because "TeX is installed" — see the false-positive fix in
 
 ## Standard task flow
 
-1. `git clone` this repo (see `SKILL.md` for the URL/tag pattern), then
-   run `<cloned_dir>/reportkit init <work_dir>`.
+1. `git clone` this repo (see `SKILL.md` for the URL/tag pattern), run
+   `<cloned_dir>/scripts/setup_tex.sh` on Debian/Ubuntu, then run
+   `<cloned_dir>/reportkit init <work_dir>`.
 2. Create the pinned Python environment in `<work_dir>/build/.venv` as
    described in `SKILL.md`, then `cd` into the consumer project.
 3. Run `<cloned_dir>/reportkit doctor` and check the `MODE:` line before

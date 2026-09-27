@@ -4,8 +4,8 @@ A LaTeX toolkit for producing polished, professionally designed technical
 reports as PDFs, with a versioned host-neutral CLI contract and a Claude Skill
 adapter.
 
-**`SKILL.md` is the Claude-driven entry point** — a claude.ai session
-clones this repo and follows it directly. This file is the human-facing
+**`AGENTS.md` is the coding-agent entry point** for a fresh clone; it points
+to `SKILL.md` for the full authoring workflow. This file is the human-facing
 overview.
 
 ## Repository boundary
@@ -160,8 +160,15 @@ requirements are documented in [`CONTRIBUTING.md`](CONTRIBUTING.md) and
 
 ## Setup
 
-Use `reportkit init <publication-project>` to scaffold a consumer project,
-then install the pinned Python dependencies into its build environment:
+On a fresh Debian/Ubuntu clone, install and verify LuaLaTeX and the bundled
+fonts before building:
+
+```bash
+./scripts/setup_tex.sh
+```
+
+Then use `reportkit init <publication-project>` to scaffold a consumer project
+and install the pinned Python dependencies into its build environment:
 
 ```bash
 python3 -m venv <publication-project>/build/.venv

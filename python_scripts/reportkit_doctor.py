@@ -183,6 +183,7 @@ def main() -> int:
         diagnostics.append(make_diagnostic(
             "toolchain_mismatch", "resolved toolchain identity or dependency versions differ from the checked-in lock",
             code="RK_TOOLCHAIN_MISMATCH",
+            severity="error" if args.require == "pinned-toolchain" else "warning",
             details={
                 "version_matches": toolchain.get("version_matches"),
                 "integrity": toolchain.get("integrity"),

@@ -1,5 +1,11 @@
 # Font setup
 
+For a fresh Debian/Ubuntu environment, run `scripts/setup_tex.sh` from the
+ReportKit clone. It installs the TeX packages, bundled Libertinus subset,
+LinBiolinum stub, and Google Sans fixtures, then compiles both LuaLaTeX theme
+smoke documents. Use `scripts/setup_tex.sh --check` to verify an existing
+installation. The manual steps below are for other setups or troubleshooting.
+
 `reportkit.cls` requires the Libertinus font packages (`libertinus`,
 `libertinust1math`), which are not part of a base TeX Live install — they
 ship in the `texlive-fonts-extra` package on Debian/Ubuntu, a 1.7GB,
@@ -66,5 +72,6 @@ this repo but needing manual setup per session:
    mktexlsr /usr/local/share/texmf
    ```
 
-`reportkit init --install-fonts` does not automate these two lualatex-only steps — do
-them manually before compiling Unicode content.
+`reportkit init --install-fonts` installs only the Libertinus subset. Use
+`scripts/setup_tex.sh` for the complete LuaLaTeX setup, or apply the manual
+steps above when the script is unavailable.
