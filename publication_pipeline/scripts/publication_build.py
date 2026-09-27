@@ -41,6 +41,7 @@ from reportkit.publication_validation import validate_publication
 SCRIPT_DIR = Path(__file__).resolve().parent
 PIPELINE_ROOT = SCRIPT_DIR.parent
 REPO_ROOT = PIPELINE_ROOT.parent
+TABLE_WIDTHS_FILTER = PIPELINE_ROOT / "filters" / "table-widths.lua"
 # Phase A5: the entrypoint template is no longer a fixed module constant --
 # build() resolves it per build from the publication registry's BuildTarget
 # (publications.py's `template` field, selected by publication_type/theme)
@@ -226,8 +227,21 @@ def render_markdown(
         # `writer` comes from the resolved BuildTarget's pandoc_writer (Phase
         # A5, decision D3: Python is canonical) -- "latex" for the paged
         # renderer (unchanged), "beamer" for slides.
+        # Every ReportKit manuscript writes ordinary full-sentence table
+        # cells, but Pandoc leaves a table's column widths at "auto" unless
+        # the Markdown source itself encodes them (grid tables, or a pipe
+        # table's explicit `:---:` width syntax) -- which no ReportKit
+        # manuscript does. An "auto"-width table becomes a plain,
+        # non-wrapping `l`/`c`/`r` longtable column, so a normal prose cell
+        # reliably overflows the page once printed at its natural,
+        # unbroken width. This filter assigns proportional width fractions
+        # to any table Pandoc left unsized, which is what makes the LaTeX
+        # writer emit wrapping `p{width}` columns instead.
         return run_limited(
-            ["pandoc", "-f", "markdown-raw_tex", "-t", writer, *slide_level, str(input_path)],
+            [
+                "pandoc", "-f", "markdown-raw_tex", "-t", writer,
+                f"--lua-filter={TABLE_WIDTHS_FILTER}", *slide_level, str(input_path),
+            ],
             cwd=root.parent, timeout=timeout, memory_limit_mb=memory_limit_mb, capture_output=True, text=True,
         )
 
@@ -1053,7 +1067,15 @@ def build(args: argparse.Namespace) -> int:
     body = output / "body.tex"
     body.write_text("\n".join(f"\\input{{{path.stem}}}" for path in body_files) + "\n", encoding="utf-8")
     manuscript_text = "\n".join((source_root / "manuscript" / path).read_text(encoding="utf-8") for path in manuscripts)
-    uses_tables = any("|" in line and "---" in line for line in manuscript_text.splitlines())
+    # Pandoc's other table form, the "simple table" (no pipes: a header row
+    # followed by two or more space-separated runs of dashes), is at least
+    # as common in hand-written Markdown as the pipe form and also lowers to
+    # a `longtable` environment, so it must be detected too.
+    simple_table_separator = re.compile(r"^[ \t]*-{2,}(?:[ \t]+-{2,})+[ \t]*$")
+    uses_tables = any(
+        ("|" in line and "---" in line) or simple_table_separator.match(line)
+        for line in manuscript_text.splitlines()
+    )
     uses_code = "```" in manuscript_text or "~~~" in manuscript_text
     write_metadata(
         output / "metadata.tex", identity=identity, combined=args.mode == "combined",
