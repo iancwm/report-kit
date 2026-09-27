@@ -93,3 +93,22 @@ def test_doctor_dependency_remediation_is_present_in_text_and_json(monkeypatch: 
     payload = json.loads(capsys.readouterr().out)
     diagnostic = next(item for item in payload["diagnostics"] if item["code"] == "RK_PYTHON_DEPENDENCIES_MISSING")
     assert reportkit_doctor.PYTHON_DEPENDENCY_INSTALL == diagnostic["remediation"]
+
+
+def test_doctor_only_blocks_version_drift_for_pinned_toolchain(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str],
+) -> None:
+    monkeypatch.setattr(reportkit_doctor, "resolved_toolchain", lambda root: {
+        "status": "mismatch", "expected_fingerprint": "test", "version_matches": {},
+    })
+    monkeypatch.setattr(sys, "argv", ["reportkit_doctor.py", "--json"])
+    assert reportkit_doctor.main() == 0
+    report = json.loads(capsys.readouterr().out)
+    mismatch = next(item for item in report["diagnostics"] if item["code"] == "RK_TOOLCHAIN_MISMATCH")
+    assert mismatch["severity"] == "warning"
+
+    monkeypatch.setattr(sys, "argv", ["reportkit_doctor.py", "--require", "pinned-toolchain", "--json"])
+    assert reportkit_doctor.main() == 5
+    report = json.loads(capsys.readouterr().out)
+    mismatch = next(item for item in report["diagnostics"] if item["code"] == "RK_TOOLCHAIN_MISMATCH")
+    assert mismatch["severity"] == "error"

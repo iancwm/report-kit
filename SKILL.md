@@ -27,6 +27,7 @@ From a clone of this skill, initialize a separate report directory:
 
 ```bash
 git clone https://github.com/iancwm/report-kit.git <skill-directory>
+<skill-directory>/scripts/setup_tex.sh
 <skill-directory>/reportkit init <report-directory> --install-fonts
 python3 -m venv <report-directory>/build/.venv
 <report-directory>/build/.venv/bin/python -m pip install --require-hashes \
@@ -34,6 +35,14 @@ python3 -m venv <report-directory>/build/.venv
 <report-directory>/build/.venv/bin/python <skill-directory>/reportkit doctor \
   --require full-build
 ```
+
+`setup_tex.sh` installs the Debian/Ubuntu TeX packages and bundled fonts and
+compiles editorial and institutional LuaLaTeX smoke documents. Run it once per
+fresh code-execution environment, before drafting. On an environment with TeX already installed,
+`scripts/setup_tex.sh --check` verifies the compile without installing
+anything. If system package installation is unavailable, use the pinned
+`toolchain/Dockerfile` or follow `references/font-setup.md`; do not interpret
+a Python-only setup as a working TeX environment.
 
 `reportkit init` refuses to run if `<report-directory>` resolves inside
 `<skill-directory>` — pick a directory outside the clone. It scaffolds
@@ -48,7 +57,35 @@ set supplies the Python dependencies for a full build. Trust the actual
 - `SOURCE BUILD + FIGURES`: create source and figures, but do not claim that the PDF compiled.
 - `SOURCE BUILD`: create a portable source bundle only.
 
-For a single short report, copy `latex_templates/REPORT_TEMPLATE.tex` to `<report-directory>/report.tex` to start. Use `lualatex` for Unicode content outside pdfLaTeX's T1 encoding. For environment or font problems, read [references/troubleshooting.md](references/troubleshooting.md) and [references/font-setup.md](references/font-setup.md).
+**Choose the design before creating source.** Read the user's requested
+template, publication type, theme, and design guidelines first. Use the
+matching row below, then read that row's authoring guide and worked example
+before drafting. Preserve the requested design throughout the first build and
+visual review; do not fall back to the generic report just because it builds.
+If the requested name is ambiguous, identify the closest registered target
+with `reportkit context --slice quickstart --json` and confirm the choice with
+the user before authoring.
+
+| Requested format | `document.publication_type` | `document.theme` | Authoring reference |
+| --- | --- | --- | --- |
+| General technical report | `technical-report` | `default` | `latex_templates/REPORT_TEMPLATE.tex` |
+| Institutional equity research | `equity-research` | `institutional-research` | `references/institutional-research-theme.md` |
+| Short management decision brief | `executive-brief` | `executive` | `latex_templates/examples/executive-brief/` |
+| Magazine-style article | `feature-article` | `editorial` | `references/feature-article-authoring.md` |
+| Book or handbook | `book` | `default` or `editorial` | `latex_templates/examples/book/` |
+| Consulting presentation | `presentation` | `executive` | `references/presentation-authoring.md` |
+| Venture presentation | `presentation` | `venture` | `latex_templates/examples/venture-presentation/` |
+
+For Markdown publications, set `document.publication_type` and
+`document.theme` in `<report-directory>/publication.yaml` **before** the first
+`reportkit check` or `reportkit build`. The selected theme now supplies the
+correct TeX engine automatically unless `document.engine` is explicitly set.
+For a direct short `.tex` document, copy `REPORT_TEMPLATE.tex` only for the
+general technical-report row; otherwise start from the matching worked
+example and set its `\documentclass` options before writing content. Use
+`lualatex` for Unicode content outside pdfLaTeX's T1 encoding. For environment
+or font problems, read [references/troubleshooting.md](references/troubleshooting.md)
+and [references/font-setup.md](references/font-setup.md).
 
 ### Long-form publications
 

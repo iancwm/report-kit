@@ -245,8 +245,7 @@ def test_executive_brief_builds_through_the_normal_pipeline(tmp_path: Path, them
         "author: ReportKit\n"
         "document:\n"
         "  publication_type: executive-brief\n"
-        f"  theme: {theme}\n"
-        "  engine: lualatex\n",
+        f"  theme: {theme}\n",
         encoding="utf-8",
     )
     (source / "manuscript" / "order.txt").write_text("01-brief.md\n", encoding="utf-8")
