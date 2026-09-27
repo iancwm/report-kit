@@ -29,3 +29,14 @@ open space after the full-width chart and diagram; it preserves exhibit
 order without splitting either figure. Page 6 is a short concluding page.
 The three chart PDFs embed Libertinus Sans. No clipped content, collisions,
 blank pages, or blocking TeX diagnostics were found.
+
+**Stale since:** `\RKTokFeatureCreditFont` moved from 6.6pt/8.2pt to
+7.6pt/9.4pt (credits were reading disproportionately small next to their
+exhibits) and a new `featuretable` primitive was added; neither is exercised
+by this fixture, but the credit-font change shifts every `\imagecredit` line
+in these PNGs. Regenerate and re-review with `--update-expected` on the
+pinned toolchain (unavailable in a plain `apt-get` environment -- rebuilding
+against this fixture with a locally installed `texlive-*` was verified to
+still produce 6 clean pages with no `Overfull`/`Underfull` warnings, but that
+is not the pinned toolchain and does not satisfy this baseline's fingerprint
+check).
