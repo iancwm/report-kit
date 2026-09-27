@@ -143,7 +143,7 @@ def test_duplicate_primitive_with_conflicting_signature_is_reported() -> None:
 def test_context_is_versioned_filterable_and_legacy_compatible() -> None:
     context = build_context(REPO, kinds=["chart"], publication_type="equity-research")
     assert context["schema_version"] == "1.0.0"
-    assert context["contract_version"] == "1.1.0"
+    assert context["contract_version"] == "1.2.0"
     assert context["reportkit_version"] == "1.9.3"
     assert context["selection"] == {
         "publication_type": "equity-research", "requested_theme": "institutional-research",
@@ -345,7 +345,7 @@ def test_contract_major_mismatch_is_structured_exit_two() -> None:
 def test_newer_same_major_contract_is_structured_exit_two() -> None:
     result = subprocess.run(
         [str(REPO / "reportkit"), "check", "--source-root", str(REPO / "publication_pipeline" / "example_publication"),
-         "--contract-version", "1.2.0", "--json"],
+         "--contract-version", "1.3.0", "--json"],
         capture_output=True, text=True,
     )
     payload = json.loads(result.stdout)
@@ -355,7 +355,7 @@ def test_newer_same_major_contract_is_structured_exit_two() -> None:
 
 
 def test_older_same_major_contract_warns_and_continues(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr("reportkit.cli.CONTRACT_VERSION", "1.2.0")
+    monkeypatch.setattr("reportkit.cli.CONTRACT_VERSION", "1.3.0")
     diagnostics, exit_code = _contract_diagnostics("1.1.0")
     assert exit_code is None
     assert diagnostics[0]["code"] == "RK_CONTRACT_VERSION_STALE"
@@ -369,6 +369,7 @@ def test_older_same_major_contract_warns_and_continues(monkeypatch: pytest.Monke
         (["doctor", "--json"], 0),
         (["docs", "--check", "--json"], 0),
         (["check", "--json"], 0),
+        (["audit-editorial", "/path/that/does/not/exist.tex", "--brief", "/path/that/does/not/exist.json", "--json"], 2),
         (["analyse-history", "--history-dir", "/path/that/does/not/exist", "--json"], 0),
         (["diagnose", "/path/that/does/not/exist.log", "--json"], 2),
         (["inspect", "/path/that/does/not/exist.pdf", "--json"], 2),
