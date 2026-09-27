@@ -58,11 +58,15 @@ Migrating an existing content branch out of this repo is covered in
   `theme=institutional-research`) also loads for its short decision-brief
   masthead, action list, and source list.
   `reportkit-feature-article.sty` (`publication-type=feature-article`,
-  experimental, currently requires `theme=editorial`) adds headline, deck,
+  stable, currently requires `theme=editorial`) adds headline, deck,
   byline, opening visual, drop cap, section opener, two-column prose, pull
   quote, sidebar, feature exhibit, image credit, and references primitives;
   see `references/feature-article-authoring.md` and
-  `examples/editorial-feature/` (6-page fictional feature).
+  `latex_templates/examples/editorial-feature/` (6-page fictional feature).
+  For a hand-authored article, declare its visual reference and intended
+  composition in an `editorial-brief.json`, then run `reportkit audit-editorial
+  report.tex --brief editorial-brief.json` before compiling. The audit checks
+  source structure; review the rendered pages separately.
   `reportkit-book.sty` (`publication-type=book`, experimental, `theme=default`,
   `theme=technical` or `theme=editorial`) builds a multi-chapter book on the
   same paged class and long-form helpers: numbered chapter openers, part

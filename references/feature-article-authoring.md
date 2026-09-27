@@ -10,6 +10,33 @@ Select them together:
 
 or, in `publication.yaml`, `document.publication_type: feature-article`, `document.theme: editorial`, `document.engine: lualatex`. The editorial theme requires LuaLaTeX.
 
+## Audit the intended composition
+
+The class option chooses typography and feature styling, but cannot choose an
+article's visual rhythm. Before writing the source, name the visual reference
+and expected roles in an `editorial-brief.json` in the consumer publication
+directory. Start with the canonical example's
+`latex_templates/examples/editorial-feature/editorial-brief.json` and change
+the expectations to fit the actual assignment. For example:
+
+```json
+{
+  "visual_reference": "client-provided editorial QA PDF",
+  "required": ["openingvisual", "featurecolumns", "pullquote", "graphic-exhibit"],
+  "minimum_exhibits": 2
+}
+```
+
+Run `reportkit audit-editorial report.tex --brief editorial-brief.json --json`
+before compiling and again after editing. A source that only selects
+`theme=editorial` will fail this brief. The audit also rejects local styling
+overrides and reports the roles present in the source. It does not establish
+that a quote is genuine, an exhibit is meaningful, data is sound, or pages are
+well composed. Verify those by reading sources and comparing every rendered
+page with the reference. The brief is publication-specific: a legitimate
+feature may omit a pull quote or chart when evidence does not support one;
+document that choice instead of inventing content to pass a generic quota.
+
 ## Structure versus style
 
 `reportkit-feature-article.sty` owns what a feature is made of; the theme owns how it looks. Every size, family, color, rule, inset and spacing value a feature primitive uses is a `\RKTokFeature...` token populated by the theme's paged adapter (`reportkit-theme-editorial-paged.sty`). A second feature-compatible theme restyles the same article source without edits; `tests/test_editorial_theme.py` proves this by compiling the canonical fixture again under an unrelated probe theme.

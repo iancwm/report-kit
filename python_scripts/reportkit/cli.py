@@ -28,6 +28,7 @@ from .context import build_context
 from .context_budget import CONTEXT_SLICE_NAMES, build_context_slice
 from .diagnostics import diagnostic_envelope, inspect_log, load_allowlist, load_maps, make_diagnostic, suggest
 from .documentation import check_documentation, write_documentation
+from .editorial_audit import audit_editorial_source
 from .initialization import initialize, install_fonts
 from .languages import language_diagnostics
 from .publications import (
@@ -675,6 +676,31 @@ def _run_analysis(args: argparse.Namespace) -> int:
     return 0
 
 
+def _run_audit_editorial(args: argparse.Namespace) -> int:
+    tex = Path(args.tex).resolve()
+    brief = Path(args.brief).resolve()
+    if not tex.is_file() or not brief.is_file():
+        missing = tex if not tex.is_file() else brief
+        payload = _failure("configuration_error", f"missing editorial audit input: {missing}", code="RK_EDITORIAL_INPUT")
+        _json_or_print(payload, args.json)
+        return EXIT_CONFIG
+    try:
+        payload = audit_editorial_source(tex, brief)
+    except (OSError, ValueError, json.JSONDecodeError) as exc:
+        payload = _failure("configuration_error", str(exc), code="RK_EDITORIAL_BRIEF")
+        _json_or_print(payload, args.json)
+        return EXIT_CONFIG
+    if args.json:
+        _json_or_print(payload, True)
+    else:
+        print(f"{'PASS' if payload['passed'] else 'FAIL'}: editorial source audit")
+        print("  Composition: " + ", ".join(f"{name}={count}" for name, count in payload["inventory"].items()))
+        for item in payload["diagnostics"]:
+            print(f"  {item['code']}: {item['message']}")
+        print("  Manual page and evidence review is still required.")
+    return EXIT_OK if payload["passed"] else EXIT_VALIDATION
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = ReportKitArgumentParser(prog="reportkit", description="Deterministic ReportKit publication engine")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -707,6 +733,12 @@ def build_parser() -> argparse.ArgumentParser:
     check.add_argument("--contract-version")
     check.add_argument("--json", action="store_true")
     check.set_defaults(handler=_run_check)
+
+    audit_editorial = sub.add_parser("audit-editorial", help=COMMAND_CONTRACT["audit-editorial"]["summary"], description=COMMAND_CONTRACT["audit-editorial"]["summary"])
+    audit_editorial.add_argument("tex", help="hand-authored feature-article TeX source")
+    audit_editorial.add_argument("--brief", required=True, help="JSON brief naming the visual reference and expected editorial roles")
+    audit_editorial.add_argument("--json", action="store_true")
+    audit_editorial.set_defaults(handler=_run_audit_editorial)
 
     build = sub.add_parser("build", help=COMMAND_CONTRACT["build"]["summary"], description=COMMAND_CONTRACT["build"]["summary"])
     _add_publication_paths(build)

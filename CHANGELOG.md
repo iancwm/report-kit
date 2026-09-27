@@ -9,6 +9,12 @@ tags on this repository, not a published package registry.
 ### Added
 - Fresh-clone agent instructions and a Debian/Ubuntu setup command that installs
   TeX and fonts and verifies both LuaLaTeX themes before drafting.
+- `reportkit audit-editorial` compares a hand-authored feature article with
+  a publication-specific visual brief. It detects a valid editorial class
+  paired with missing columns, pull quotes, graphics, or exhibits, while
+  explicitly leaving source fidelity and rendered-page review to the author.
+  The feature authoring workflow now calls for this audit before delivery;
+  the additive CLI contract is version 1.2.0.
 - A new `featuretable` primitive (`reportkit-feature-article.sty`) for
   feature articles: wraps a hand-authored `tabularx`/`tabular` inside a
   `featureexhibit` and sets its font, color, row height and cell padding to

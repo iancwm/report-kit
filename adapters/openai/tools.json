@@ -1,5 +1,5 @@
 {
-  "contract_version": "1.1.0",
+  "contract_version": "1.2.0",
   "schema_version": "1.0.0",
   "source": "reportkit CLI argparse + COMMAND_CONTRACT",
   "tools": [
@@ -134,6 +134,29 @@
             "type": "string"
           }
         },
+        "type": "object"
+      },
+      "strict": true,
+      "type": "function"
+    },
+    {
+      "description": "Compare a hand-authored feature article with its declared editorial composition brief.",
+      "name": "reportkit_audit_editorial",
+      "parameters": {
+        "additionalProperties": false,
+        "properties": {
+          "brief": {
+            "description": "JSON brief naming the visual reference and expected editorial roles",
+            "type": "string"
+          },
+          "tex": {
+            "description": "hand-authored feature-article TeX source",
+            "type": "string"
+          }
+        },
+        "required": [
+          "tex"
+        ],
         "type": "object"
       },
       "strict": true,

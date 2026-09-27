@@ -31,7 +31,7 @@ LEGACY_CHART_NAMES = PUBLIC_CHART_NAMES - {"donut_chart", "risk_reward_chart"}
 PRIMITIVE_KINDS = ("callout", "figure", "chart", "composition", "command")
 COMMANDS = {
     "init": "reportkit init", "doctor": "reportkit doctor", "context": "reportkit context", "check": "reportkit check",
-    "build": "reportkit build", "diagnose": "reportkit diagnose", "inspect": "reportkit inspect",
+    "build": "reportkit build", "audit-editorial": "reportkit audit-editorial", "diagnose": "reportkit diagnose", "inspect": "reportkit inspect",
     "render": "reportkit render",
     "package": "reportkit package", "analyse-history": "reportkit analyse-history", "docs": "reportkit docs",
 }
@@ -40,6 +40,7 @@ COMMAND_CONTRACT: dict[str, dict[str, Any]] = {
     "doctor": {"summary": "Inspect build dependencies and pinned-toolchain drift.", "arguments": ["--require", "--json"], "exit_codes": [0, 5, 70]},
     "context": {"summary": "Print the versioned ReportKit capability contract.", "arguments": ["--source-root", "--output-root", "--profile", "--publication-type", "--theme", "--kind", "--slice", "--schema", "--json"], "exit_codes": [0, 2, 70]},
     "check": {"summary": "Validate publication structure without invoking TeX.", "arguments": ["--source-root", "--output-root", "--profile", "--engine", "--contract-version", "--json"], "exit_codes": [0, 2, 3, 70]},
+    "audit-editorial": {"summary": "Compare a hand-authored feature article with its declared editorial composition brief.", "arguments": ["tex", "--brief", "--json"], "exit_codes": [0, 2, 3, 70]},
     "build": {"summary": "Validate, convert, compile, diagnose, render, and inspect a publication.", "arguments": ["--source-root", "--output-root", "--profile", "--mode", "--section", "--chapter", "--workers", "--engine", "--title", "--author", "--version", "--cover", "--contract-version", "--compile-timeout-seconds", "--memory-limit-mb", "--json"], "exit_codes": [0, 2, 3, 4, 5, 70]},
     "diagnose": {"summary": "Parse a TeX log into source-aware diagnostics.", "arguments": ["log", "--source-root", "--output-root", "--profile", "--allowlist", "--underfull-badness", "--json"], "exit_codes": [0, 2, 3, 70]},
     "inspect": {"summary": "Inspect PDF geometry, metadata, fonts, links, and bookmarks.", "arguments": ["pdf", "--source-root", "--output-root", "--profile", "--json"], "exit_codes": [0, 2, 3, 5, 70]},

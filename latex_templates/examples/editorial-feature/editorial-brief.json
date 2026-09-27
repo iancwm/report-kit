@@ -1,0 +1,13 @@
+{
+  "visual_reference": "latex_templates/examples/editorial-feature/report.tex (pinned six-page visual baseline)",
+  "required": [
+    "openingvisual",
+    "dropcap",
+    "featurecolumns",
+    "pullquote",
+    "featuresidebar",
+    "graphic-exhibit",
+    "full-width-exhibit"
+  ],
+  "minimum_exhibits": 3
+}
