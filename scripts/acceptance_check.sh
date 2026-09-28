@@ -295,8 +295,11 @@ done
 # Exercise the documented consumer setup from a clone-shaped checkout. The
 # diagnostic acceptance mode remains useful on hosts without the full Python
 # and TeX toolchain, so skip this integration run there rather than turning a
-# missing optional environment into a source regression.
-if command -v git >/dev/null 2>&1 && command -v pandoc >/dev/null 2>&1 \
+# missing optional environment into a source regression. This also requires a
+# real Git checkout to clone from: a built toolchain image is COPY'd from a
+# context that excludes .git (see .dockerignore and the remote-context release
+# build), so $ROOT/.git never exists there even though the git binary does.
+if [ -d "$ROOT/.git" ] && command -v git >/dev/null 2>&1 && command -v pandoc >/dev/null 2>&1 \
   && command -v pdflatex >/dev/null 2>&1 \
   && python3 -c 'import matplotlib, numpy, pandas, pymupdf' >/dev/null 2>&1; then
   FRESH_CLONE="$(mktemp -d)"
@@ -328,7 +331,7 @@ if command -v git >/dev/null 2>&1 && command -v pandoc >/dev/null 2>&1 \
   fi
   rm -rf "$FRESH_CLONE" "$FRESH_PROJECT"
 else
-  echo "WARN: full Python/TeX publication environment unavailable -- skipping fresh-clone dry run (not blocking)." >&2
+  echo "WARN: full Python/TeX publication environment or a Git checkout unavailable -- skipping fresh-clone dry run (not blocking)." >&2
 fi
 
 if [ "$status" -ne 0 ] || [ "$lua_status" -ne 0 ] || [ "$slide_accessibility_status" -ne 0 ] || [ "$hit" -ne 0 ]; then
