@@ -13,7 +13,13 @@ or, in `publication.yaml`, `document.publication_type: feature-article`, `docume
 ## Audit the intended composition
 
 The class option chooses typography and feature styling, but cannot choose an
-article's visual rhythm. Before writing the source, name the visual reference
+article's visual rhythm. Make two-column `featurecolumns` the normal reading
+measure for narrative. A short one-column lead can introduce a section; a
+full-width chart, diagram, image, or lookup table can interrupt it. Resume
+columns after the interrupt. Do not leave long explanatory paragraphs full
+width because a preceding table required the wider measure.
+
+Before writing the source, name the visual reference
 and expected roles in an `editorial-brief.json` in the consumer publication
 directory. Start with the canonical example's
 `latex_templates/examples/editorial-feature/editorial-brief.json` and change
@@ -23,14 +29,25 @@ the expectations to fit the actual assignment. For example:
 {
   "visual_reference": "client-provided editorial QA PDF",
   "required": ["openingvisual", "featurecolumns", "pullquote", "graphic-exhibit"],
-  "minimum_exhibits": 2
+  "minimum_exhibits": 2,
+  "minimum_column_prose_ratio": 0.6,
+  "section_minimum_column_prose_ratio": 0.5,
+  "minimum_pullquotes": 2,
+  "minimum_graphic_exhibits": 2,
+  "section_minimum_pullquotes": 1,
+  "section_minimum_graphic_exhibits": 1,
+  "exclude_sections": ["Sources and notes"]
 }
 ```
 
 Run `reportkit audit-editorial report.tex --brief editorial-brief.json --json`
 before compiling and again after editing. A source that only selects
 `theme=editorial` will fail this brief. The audit also rejects local styling
-overrides and reports the roles present in the source. It does not establish
+overrides, reports the roles present, and estimates the share of narrative
+words in columns for the whole article and each `featuresection`. The
+section gate can exclude reference-only sections. A high count of short
+column blocks cannot make up for long one-column prose passages. The audit
+does not establish
 that a quote is genuine, an exhibit is meaningful, data is sound, or pages are
 well composed. Verify those by reading sources and comparing every rendered
 page with the reference. The brief is publication-specific: a legitimate
@@ -66,11 +83,13 @@ Do not add local `\fontsize`, `\color`, `\vspace`, `minipage` or `\hspace` in th
 
 The rhythm vocabulary is closed on purpose; it is not a positioning API.
 
-- **One-column prose** is the default flow. A `span=column` exhibit here is an inset at the theme's inset width.
-- **Two-column prose** is `featurecolumns`. A `span=column` exhibit inside it fills its column.
+- **Two-column prose** is the normal feature reading measure: `featurecolumns`. A `span=column` exhibit inside it fills its column.
+- **One-column prose** is deliberate: a short lead, transition, wide table, or reference material. A `span=column` exhibit here is an inset at the theme's inset width.
 - **Full-width visuals** are `openingvisual` and `featureexhibit[span=full]`, placed outside `featurecolumns`. Using either inside columns fails with `FEATURE_EXHIBIT_FULL_SPAN_IN_COLUMNS` or `FEATURE_OPENING_VISUAL_IN_COLUMNS`; any other `span` value fails with `FEATURE_EXHIBIT_UNKNOWN_SPAN`.
 
 Exhibits are not floats: they stay where they are written. If an exhibit leaves a large gap at a page foot, move it or the surrounding prose rather than adding spacing.
+
+Plan at least one meaningful visual or graphic exhibit for each major movement of a long article, and use pull quotes at natural turning points. A visual can replace a table that merely encodes a relationship or decision path; retain wide tables for precise comparison or lookup, often in an appendix. Quotes must repeat or faithfully paraphrase a real sentence in the article or named source. Check pages as well as source: a visually repetitive run of tables, empty space, or uninterrupted prose needs another editorial pass even when the audit passes.
 
 A tabular exhibit (a comparison, a metrics list, a scenario grid) is plain `tabularx`/`tabular` -- there is no coordinate-based table primitive -- but wrap it in `featuretable` rather than leaving it at the body-text size. Feature articles have no dedicated data-table primitive the way the institutional-research theme has `financialtable`; without `featuretable`, a hand-authored table reads noticeably larger than its own `\imagecredit` line, out of proportion with the rest of the exhibit.
 

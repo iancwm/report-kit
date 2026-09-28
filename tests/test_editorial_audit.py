@@ -60,3 +60,29 @@ def test_cli_reports_static_pass_without_claiming_visual_approval(capsys) -> Non
     assert payload["passed"] is True
     assert payload["manual_review_required"] is True
     assert len(payload["manual_review"]) == 3
+
+
+def test_distribution_gate_detects_front_loaded_columns_and_sparse_graphics(tmp_path: Path) -> None:
+    tex = tmp_path / "report.tex"
+    tex.write_text(
+        r"\documentclass[theme=editorial,publication-type=feature-article]{reportkit}" "\n"
+        r"\begin{document}\featuresection{Opening}" "\n"
+        r"\begin{featurecolumns}A measured passage with some ordinary words.\end{featurecolumns}" "\n"
+        r"\pullquote{A measured passage with some ordinary words.}" "\n"
+        r"\featuresection{Later}" "\n"
+        + ("A long paragraph of ordinary one column prose should fail the per section and overall coverage gate. " * 8)
+        + "\n" + r"\end{document}", encoding="utf-8",
+    )
+    brief = tmp_path / "brief.json"
+    brief.write_text(json.dumps({
+        "visual_reference": "editorial feature",
+        "required": ["featurecolumns"],
+        "minimum_column_prose_ratio": .6,
+        "section_minimum_column_prose_ratio": .5,
+        "minimum_pullquotes": 2,
+        "minimum_graphic_exhibits": 1,
+    }), encoding="utf-8")
+    result = audit_editorial_source(tex, brief)
+    codes = {item["code"] for item in result["diagnostics"]}
+    assert codes == {"RK_EDITORIAL_COLUMN_COVERAGE", "RK_EDITORIAL_SECTION_COLUMNS", "RK_EDITORIAL_QUOTES", "RK_EDITORIAL_GRAPHICS"}
+    assert result["section_coverages"]["Later"]["column_words"] == 0

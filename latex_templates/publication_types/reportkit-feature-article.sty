@@ -15,8 +15,8 @@
 % an unrelated probe theme and compiles the same article source unchanged.
 %
 % Layout rhythm is deliberately a closed vocabulary, not a positioning API:
-%   * one-column prose  -- the default flow;
-%   * two-column prose  -- the featurecolumns environment;
+%   * two-column prose  -- the normal narrative flow in featurecolumns;
+%   * one-column prose  -- intentional leads, transitions and lookup material;
 %   * full-width visual -- openingvisual, or featureexhibit[span=full]
 %     outside featurecolumns.
 % featureexhibit accepts exactly span=column or span=full. There are no
@@ -157,7 +157,7 @@
 }
 
 % <reportkit-contract>
-% {"kind":"composition","description":"Two-column prose rhythm. Text outside this environment is one-column prose.","arguments":[],"constraints":[{"code":"no_nesting","description":"featurecolumns cannot be nested."},{"code":"no_full_span_inside","description":"featureexhibit[span=full] and openingvisual are not allowed inside; close the columns, place the full-width visual, then reopen."},{"code":"no_floats","description":"Do not place floating figure/table environments inside; use featureexhibit."}],"example":"\\begin{featurecolumns}\nThe survey began with a single gauge.\n\nWithin a year there were forty.\n\\end{featurecolumns}","stability":"experimental","since":"1.10.0"}
+% {"kind":"composition","description":"Standard two-column measure for feature narrative. Close it for opening material, full-width visuals or wide lookup tables, then resume; text outside it is intentionally one-column.","arguments":[],"constraints":[{"code":"no_nesting","description":"featurecolumns cannot be nested."},{"code":"no_full_span_inside","description":"featureexhibit[span=full] and openingvisual are not allowed inside; close the columns, place the full-width visual, then reopen."},{"code":"no_floats","description":"Do not place floating figure/table environments inside; use featureexhibit."}],"example":"\\begin{featurecolumns}\nThe survey began with a single gauge.\n\nWithin a year there were forty.\n\\end{featurecolumns}","stability":"experimental","since":"1.10.0"}
 % </reportkit-contract>
 \NewDocumentEnvironment{featurecolumns}{}{%
   \ifrkfeature@incolumns
