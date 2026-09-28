@@ -1,0 +1,31 @@
+# Keep engine text byte-stable across Windows and Linux checkouts. The
+# release image is built from a pinned Git context; these rules protect local
+# builds, whose Dockerfile hash-checks toolchain/requirements.lock.
+* text=auto
+Dockerfile text eol=lf
+.dockerignore text eol=lf
+.gitattributes text eol=lf
+.gitignore text eol=lf
+.githooks/* text eol=lf
+reportkit text eol=lf
+*.sh text eol=lf
+*.py text eol=lf
+*.tex text eol=lf
+*.sty text eol=lf
+*.cls text eol=lf
+*.def text eol=lf
+*.bib text eol=lf
+*.lock text eol=lf
+*.json text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.toml text eol=lf
+*.md text eol=lf
+*.txt text eol=lf
+*.ttf binary
+*.otf binary
+*.pdf binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gz binary

@@ -3,13 +3,16 @@ name: ReportKit contract and renderer gates
 on:
   pull_request:
     paths:
-      - ".github/workflows/contract-ci.yml"
+      - ".gitattributes"
+      - ".dockerignore"
+      - ".github/workflows/**"
       - ".github/dependabot.yml"
       - "pyproject.toml"
       - "LICENSE"
       - "latex_templates/**"
       - "publication_pipeline/**"
       - "python_scripts/**"
+      - "reportkit"
       - "schemas/**"
       - "scripts/**"
       - "tests/**"
@@ -19,12 +22,16 @@ on:
   push:
     branches: [main]
     paths:
+      - ".gitattributes"
+      - ".dockerignore"
+      - ".github/workflows/**"
       - ".github/dependabot.yml"
       - "pyproject.toml"
       - "LICENSE"
       - "latex_templates/**"
       - "publication_pipeline/**"
       - "python_scripts/**"
+      - "reportkit"
       - "schemas/**"
       - "scripts/**"
       - "tests/**"
@@ -48,7 +55,7 @@ jobs:
           ./reportkit docs --check --json &&
           python -m pytest tests publication_pipeline/tests -q &&
           python -m pip install --disable-pip-version-check --no-cache-dir ruff &&
-          ruff check python_scripts publication_pipeline scripts tests adapters &&
+          ruff check python_scripts publication_pipeline scripts tests adapters toolchain &&
           python -m pip install --disable-pip-version-check --no-cache-dir pip-audit &&
           (pip-audit -r toolchain/requirements.lock || true) &&
           bash scripts/acceptance_check.sh --require-tex &&

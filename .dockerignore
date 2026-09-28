@@ -1,0 +1,15 @@
+# Local Docker contexts only. The release build uses a pinned Git context
+# (.github/workflows/toolchain-release.yml); this keeps a developer's local
+# state out of `docker build .` from any host.
+.git
+.claude
+.agents
+.superpowers
+.pytest_cache
+.ruff_cache
+**/__pycache__
+**/*.py[cod]
+**/.venv
+**/venv
+build
+output
