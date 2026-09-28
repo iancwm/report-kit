@@ -35,7 +35,7 @@ def test_binary_assets_are_never_converted(path: str) -> None:
 
 def test_scripts_keep_executable_mode() -> None:
     required = {"reportkit", ".githooks/pre-commit", "scripts/setup_tex.sh", "scripts/acceptance_check.sh",
-                "scripts/reportkit_container.py"}
+                "scripts/reportkit_container.py", "toolchain/container_build.py"}
     staged = subprocess.run(["git", "ls-files", "-s", *sorted(required)], cwd=REPO, capture_output=True, text=True, check=True).stdout
     modes = {line.split("\t")[1]: line.split()[0] for line in staged.splitlines()}
     assert modes == {path: "100755" for path in required}
