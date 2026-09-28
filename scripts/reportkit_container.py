@@ -68,7 +68,15 @@ def _docker() -> Docker:
 
 
 def container_command(args: argparse.Namespace) -> list[str]:
-    command = [*ENTRYPOINT, "--kind", args.kind, "--dpi", str(args.dpi)]
+    # The entrypoint's own --compile-timeout-seconds (default 300s) is the
+    # real binding limit on each TeX step; the launcher's --timeout-seconds
+    # only bounds the outer container run. Scale the inner budget from the
+    # outer one so raising --timeout-seconds actually raises compile headroom
+    # too: the entrypoint's 300s default assumes the launcher's 1800s
+    # container-level default, i.e. roughly timeout_seconds // 6.
+    compile_timeout_seconds = max(1, args.timeout_seconds // 6)
+    command = [*ENTRYPOINT, "--kind", args.kind, "--dpi", str(args.dpi),
+               "--compile-timeout-seconds", str(compile_timeout_seconds)]
     if args.kind == "direct-tex":
         command += ["--entry", args.entry, "--engine", args.engine]
     if args.profile:
@@ -141,6 +149,10 @@ def run_build(args: argparse.Namespace, docker: Docker | None = None) -> tuple[i
             manifest = results.verify_result(incoming)
             if manifest.get("status") != "passed":
                 raise results.ResultError("RK_RESULT_STATUS", f"container exited 0 but reported status {manifest.get('status')!r}")
+            if manifest.get("input_manifest_sha256") != record["input_manifest_sha256"]:
+                raise results.ResultError("RK_RESULT_INPUT_HASH_MISMATCH",
+                                          f"container verified inputs (sha256={manifest.get('input_manifest_sha256')}) "
+                                          f"do not match what the host staged (sha256={record['input_manifest_sha256']})")
             results.install(incoming, output)
             incoming = None
             results.clear_failure(failure)
@@ -152,10 +164,21 @@ def run_build(args: argparse.Namespace, docker: Docker | None = None) -> tuple[i
                           "output_tail": outcome.output_tail.decode("utf-8", "replace")}
         if collect_error:
             shutil.rmtree(incoming, ignore_errors=True)
-        results.record_failure(failure, None if collect_error else incoming, failure_record)
-        incoming = None
         message = f"build failed (exit {outcome.exit_code}); diagnostics in {failure}" if not outcome.timed_out else \
             f"build exceeded {args.timeout_seconds} s and was stopped; diagnostics in {failure}"
+        try:
+            results.record_failure(failure, None if collect_error else incoming, failure_record)
+        except results.ResultError as diag_exc:
+            # Writing the failure diagnostics failed (e.g. RK_OUTPUT_LOCKED
+            # because a file from a PREVIOUS failure is open elsewhere).
+            # record_failure() has already consumed/removed `incoming` by the
+            # time it can raise. Report the ORIGINAL build failure as the
+            # primary error rather than letting this secondary exception hide
+            # it; attach the diagnostic-write failure separately.
+            incoming = None
+            return exit_code, {**record, "code": code, "message": message,
+                               "diagnostic_write_error": {"code": diag_exc.code, "message": diag_exc.message}}
+        incoming = None
         return exit_code, {**record, "code": code, "message": message}
     except results.ResultError as exc:
         return EXIT_VALIDATION, {**record, "code": exc.code, "message": exc.message}

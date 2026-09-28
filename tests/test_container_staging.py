@@ -189,3 +189,22 @@ def test_missing_source_root(tmp_path: Path) -> None:
     with pytest.raises(StagingError) as exc:
         collect(tmp_path / "nope")
     assert _codes(exc) == {"RK_STAGE_SOURCE_MISSING"}
+
+
+def test_excludes_launcher_byproducts_from_a_prior_retry(tmp_path: Path) -> None:
+    """scripts/rk_container/results.py creates these siblings of a
+    user-chosen output-root directory: <output>.failed (validate_output_root),
+    .<output>.incoming-* (incoming_dir), .<output>.previous-<pid> (install's
+    backup). None of them are publication content -- a retry after a failed
+    build (using the documented `--output-root <publication>/output` layout)
+    must not silently restage them as if they were real source files."""
+    src = _tree(tmp_path / "p", {"publication.yaml": b"t"})
+    _tree(src / "output.failed", {
+        "launcher-failure.json": b'{"code": "RK_CONTAINER_FAILED"}',
+        "logs/build.log": b"! Undefined control sequence.",
+    })
+    _tree(src / ".output.previous-12345", {"report.pdf": b"%PDF-stale"})
+    (src / ".output.incoming-abc123").mkdir()
+    result = collect(src)
+    assert [f.relative for f in result.files] == ["publication.yaml"]
+    assert {"output.failed/", ".output.previous-12345/", ".output.incoming-abc123/"} <= set(result.excluded)

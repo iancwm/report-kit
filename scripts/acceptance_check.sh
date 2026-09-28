@@ -299,7 +299,15 @@ done
 # real Git checkout to clone from: a built toolchain image is COPY'd from a
 # context that excludes .git (see .dockerignore and the remote-context release
 # build), so $ROOT/.git never exists there even though the git binary does.
-if [ -d "$ROOT/.git" ] && command -v git >/dev/null 2>&1 && command -v pandoc >/dev/null 2>&1 \
+#
+# `git -C "$ROOT" rev-parse --is-inside-work-tree` (not `[ -d "$ROOT/.git" ]`)
+# is the portable test here: in a git WORKTREE checkout (this repo's own
+# .worktrees/ convention included) `.git` is a FILE containing a `gitdir:`
+# pointer, not a directory, so the old `-d` check misfired there too, not
+# just inside the built image. rev-parse recognizes both a normal checkout
+# and a worktree checkout as real, and still correctly fails when there is no
+# .git at all (inside the built image, where it is absent by design).
+if git -C "$ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1 && command -v pandoc >/dev/null 2>&1 \
   && command -v pdflatex >/dev/null 2>&1 \
   && python3 -c 'import matplotlib, numpy, pandas, pymupdf' >/dev/null 2>&1; then
   FRESH_CLONE="$(mktemp -d)"
@@ -332,6 +340,16 @@ if [ -d "$ROOT/.git" ] && command -v git >/dev/null 2>&1 && command -v pandoc >/
   rm -rf "$FRESH_CLONE" "$FRESH_PROJECT"
 else
   echo "WARN: full Python/TeX publication environment or a Git checkout unavailable -- skipping fresh-clone dry run (not blocking)." >&2
+  # REPORTKIT_REQUIRE_FRESH_CLONE=1 turns this skip into a hard FAIL. Set it
+  # only on a host step that runs OUTSIDE the built toolchain image, where a
+  # real checkout is expected to exist -- a missing checkout there is a test
+  # environment misconfiguration, not something to silently paper over. Never
+  # set it for an in-image run (e.g. toolchain/release_gates.sh's docker run):
+  # .git is correctly and permanently absent there by design.
+  if [[ "${REPORTKIT_REQUIRE_FRESH_CLONE:-0}" -eq 1 ]]; then
+    echo "FAIL: REPORTKIT_REQUIRE_FRESH_CLONE=1 but the fresh-clone dry run was skipped (see WARN above)." >&2
+    hit=1
+  fi
 fi
 
 if [ "$status" -ne 0 ] || [ "$lua_status" -ne 0 ] || [ "$slide_accessibility_status" -ne 0 ] || [ "$hit" -ne 0 ]; then

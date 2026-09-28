@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 import sys
 import tarfile
+import tempfile
 
 import pytest
 
@@ -89,11 +90,23 @@ def args(src: Path, out: Path, *extra: str):
     return launcher.build_parser().parse_args(["build", "--image", IMAGE, "--source-root", str(src), "--output-root", str(out), "--kind", "pipeline", *extra])
 
 
-def good_result() -> bytes:
+def _project_input_manifest_sha256() -> str:
+    # project()'s file contents/relative paths are fixed, so its staged input
+    # manifest hash is the same regardless of tmp_path -- compute it once so
+    # good_result()'s default matches what run_build() actually stages.
+    with tempfile.TemporaryDirectory() as tmp:
+        return launcher.staging.collect(project(Path(tmp))).manifest_sha256()
+
+
+PROJECT_INPUT_MANIFEST_SHA256 = _project_input_manifest_sha256()
+
+
+def good_result(*, input_manifest_sha256: str | None = None) -> bytes:
     return result_tar({"doc.pdf": b"%PDF new", "build-report.json": b"{}"},
                       pdf={"path": "doc.pdf", "sha256": hashlib.sha256(b"%PDF new").hexdigest(), "pages": 3},
                       selection={"publication_type": "report", "theme": "default", "engine": "pdflatex", "paper": "a4"},
-                      input_manifest_sha256="x", image={"reference": IMAGE, "digest": DIGEST}, inspect_passed=True)
+                      input_manifest_sha256=input_manifest_sha256 or PROJECT_INPUT_MANIFEST_SHA256,
+                      image={"reference": IMAGE, "digest": DIGEST}, inspect_passed=True)
 
 
 def test_success_installs_verified_output(tmp_path: Path) -> None:
@@ -210,3 +223,60 @@ def test_main_json_output(tmp_path: Path, capsys, monkeypatch) -> None:
     monkeypatch.setattr(launcher, "_docker", lambda: FakeDocker(result=good_result()))
     assert launcher.main(["build", "--image", IMAGE, "--source-root", str(src), "--output-root", str(out), "--kind", "pipeline", "--json"]) == 0
     assert json.loads(capsys.readouterr().out)["passed"] is True
+
+
+def test_stale_output_failed_sibling_does_not_change_staged_inputs(tmp_path: Path) -> None:
+    """Finding 2 at the launcher level: a leftover <output>.failed/ from a
+    prior failed build (the documented --output-root <publication>/output
+    layout puts it as a sibling inside the source tree) must not be staged
+    as publication content on a retry, and must not change the staged input
+    manifest hash the cross-host gate relies on."""
+    src, out = project(tmp_path), tmp_path / "out"
+    code, clean_record = launcher.run_build(args(src, out), FakeDocker(result=good_result()))
+    assert code == 0
+    clean_hash = clean_record["input_manifest_sha256"]
+
+    failure_dir = src / "output.failed"
+    (failure_dir / "logs").mkdir(parents=True)
+    (failure_dir / "launcher-failure.json").write_bytes(b'{"code": "RK_CONTAINER_FAILED"}')
+    (failure_dir / "logs" / "build.log").write_bytes(b"! Undefined control sequence.")
+
+    out2 = tmp_path / "out2"
+    fake2 = FakeDocker(result=good_result())
+    code2, record2 = launcher.run_build(args(src, out2), fake2)
+    assert code2 == 0
+    assert record2["input_manifest_sha256"] == clean_hash
+    assert not any(name.startswith("source/output.failed") for name in fake2.staged)
+
+
+def test_input_hash_mismatch_is_rejected(tmp_path: Path) -> None:
+    """Finding 5: the host's staged input_manifest_sha256 must be
+    cross-checked against the container's own verified copy; a direct build
+    must not silently install a result built from different inputs."""
+    src, out = project(tmp_path), tmp_path / "out"
+    mismatched = good_result(input_manifest_sha256="0" * 64)
+    code, record = launcher.run_build(args(src, out), FakeDocker(result=mismatched))
+    assert code == launcher.EXIT_VALIDATION
+    assert record["code"] == "RK_RESULT_INPUT_HASH_MISMATCH"
+    assert not record["passed"]
+    assert not out.exists()
+
+
+def test_record_failure_error_does_not_mask_original_failure(tmp_path: Path, monkeypatch) -> None:
+    """Finding 6: if writing the failure diagnostics itself hits
+    RK_OUTPUT_LOCKED (e.g. a file under a prior failure dir is open
+    elsewhere), the ORIGINAL build failure's code/message must still be
+    reported, not silently replaced by the diagnostic-write error."""
+    src, out = project(tmp_path), tmp_path / "out"
+
+    def boom(failure_dir, collected, launcher_record):
+        raise launcher.results.ResultError("RK_OUTPUT_LOCKED", "could not replace out.failed; close the PDF viewer and retry")
+
+    monkeypatch.setattr(launcher.results, "record_failure", boom)
+    failed = result_tar({"logs/build.log": b"! Undefined control sequence."}, status="failed", failed_step="build")
+    code, record = launcher.run_build(args(src, out), FakeDocker(exit_code=4, result=failed))
+    assert code == 4
+    assert record["code"] == "RK_CONTAINER_FAILED"
+    assert "diagnostics in" in record["message"]
+    assert record["diagnostic_write_error"] == {"code": "RK_OUTPUT_LOCKED",
+                                                 "message": "could not replace out.failed; close the PDF viewer and retry"}

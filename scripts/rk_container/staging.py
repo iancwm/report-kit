@@ -94,7 +94,19 @@ def _excluded(parts: tuple[str, ...], is_dir: bool, path: str) -> bool:
     name = parts[-1]
     if is_dir and (name in EXCLUDED_ANY_DEPTH or os.path.isfile(os.path.join(path, "pyvenv.cfg"))):
         return True
-    return len(parts) == 1 and (name in EXCLUDED_TOP_LEVEL or (not is_dir and name.lower().endswith(".pdf")))
+    if len(parts) != 1:
+        return False
+    if name in EXCLUDED_TOP_LEVEL or (not is_dir and name.lower().endswith(".pdf")):
+        return True
+    # scripts/rk_container/results.py's own launcher-managed sibling directories:
+    # <output>.failed (validate_output_root), .<output>.incoming-* (incoming_dir),
+    # and .<output>.previous-<pid> (install's backup). These follow structural
+    # naming, not a fixed name, since the output-root name is user-chosen -- a
+    # retry must never restage a prior failure's diagnostics or a stale backup
+    # PDF as if it were real publication content.
+    if name.endswith(".failed"):
+        return True
+    return name.startswith(".") and (".incoming-" in name or ".previous-" in name)
 
 
 def _name_problem(relative: str, name: str) -> Problem | None:

@@ -98,13 +98,13 @@ jobs:
     permissions:
       contents: write
       packages: read
-    env:
-      IMAGE: ${{ env.IMAGE_REPO }}@${{ needs.build-gate-push.outputs.digest }}
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ needs.build-gate-push.outputs.commit }}
           fetch-depth: 0
+      - name: Compute image reference
+        run: echo "IMAGE=${IMAGE_REPO}@${{ needs.build-gate-push.outputs.digest }}" >> "$GITHUB_ENV"
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
