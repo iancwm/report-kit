@@ -120,7 +120,8 @@ class Build:
         problems = sorted(set(expected) ^ present) + [p for p in sorted(expected) if p in present and sha256(self.source / p) != expected[p]]
         log = self.result / "logs" / "verify-inputs.log"
         log.parent.mkdir(parents=True, exist_ok=True)
-        log.write_text("\n".join(problems[:200]) or "all staged inputs match input-manifest.json", encoding="utf-8")
+        content = ("\n".join(problems[:200]) or "all staged inputs match input-manifest.json").encode("utf-8")
+        log.write_bytes(content[-MAX_LOG_BYTES:])
         self.steps.append({"name": "verify-inputs", "exit_code": 3 if problems else 0, "seconds": 0, "log": "logs/verify-inputs.log"})
         if problems:
             self.diagnostics.append({"step": "verify-inputs", "code": "RK_CONTAINER_INPUT_MISMATCH", "severity": "error",

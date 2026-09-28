@@ -30,10 +30,16 @@ def stage(work: Path, files: dict[str, bytes]) -> None:
 
 
 class FakeTools:
-    """Plays the reportkit CLI and TeX. fail maps a step name to an exit code."""
+    """Plays the reportkit CLI and TeX. fail maps a step name to an exit code.
 
-    def __init__(self, fail: dict[str, int] | None = None) -> None:
+    big_stdout optionally overrides a step's returned stdout bytes (while still
+    performing that step's normal file side effects), so tests can prove log
+    truncation against content that is genuinely larger than MAX_LOG_BYTES.
+    """
+
+    def __init__(self, fail: dict[str, int] | None = None, big_stdout: dict[str, bytes] | None = None) -> None:
         self.fail = fail or {}
+        self.big_stdout = big_stdout or {}
         self.calls: list[tuple[str, list[str], dict]] = []
 
     def __call__(self, argv, cwd, env, timeout):
@@ -56,7 +62,8 @@ class FakeTools:
             out.mkdir(parents=True)
             (out / "pages.json").write_text("{}")
             (out / "page-001.png").write_bytes(b"png")
-        return subprocess.CompletedProcess(argv, code, json.dumps(payload).encode(), b"stderr text")
+        stdout = self.big_stdout.get(name, json.dumps(payload).encode())
+        return subprocess.CompletedProcess(argv, code, stdout, b"stderr text")
 
 
 def run(work: Path, tools: FakeTools, *argv: str, lock=lambda path, engine: path.write_text("{}")) -> int:
@@ -147,9 +154,38 @@ def test_unexpected_extra_source_file_is_rejected(tmp_path: Path) -> None:
 
 def test_logs_are_tail_bounded(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.setattr(cb, "MAX_LOG_BYTES", 100)
+    head_marker = b"HEAD-MARKER-STARTS-HERE"
+    tail_marker = b"TAIL-MARKER-ENDS-HERE"
+    build_stdout = head_marker + b"." * 500 + tail_marker
+    tools = FakeTools(big_stdout={"build": build_stdout})
     stage(tmp_path, {"publication.yaml": b"title: T\n"})
-    run(tmp_path, FakeTools(), "--kind", "pipeline")
-    assert (tmp_path / "result" / "logs" / "build.log").stat().st_size <= 100
+    assert run(tmp_path, tools, "--kind", "pipeline") == 0
+    # Reconstruct exactly what Build.step() concatenates before slicing, so the
+    # assertion below only passes if the tail-slice actually happened correctly.
+    expected_full = build_stdout + b"\n--- stderr ---\n" + b"stderr text"
+    assert len(expected_full) > 100  # pre-truncation content must exceed the bound
+    log_bytes = (tmp_path / "result" / "logs" / "build.log").read_bytes()
+    assert len(log_bytes) == 100
+    assert log_bytes == expected_full[-100:]
+    assert head_marker not in log_bytes
+    assert tail_marker in log_bytes
+
+
+def test_verify_inputs_log_is_tail_bounded(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setattr(cb, "MAX_LOG_BYTES", 50)
+    long_name = "manuscript/" + ("y" * 70) + ".md"
+    stage(tmp_path, {"publication.yaml": b"title: T\n", long_name: b"body\n"})
+    (tmp_path / "source" / long_name).write_bytes(b"tampered body\n")
+    tools = FakeTools()
+    assert run(tmp_path, tools, "--kind", "pipeline") == 3
+    assert tools.calls == []
+    expected_full = long_name.encode("utf-8")
+    assert len(expected_full) > 50  # pre-truncation content must exceed the bound
+    log_bytes = (tmp_path / "result" / "logs" / "verify-inputs.log").read_bytes()
+    assert len(log_bytes) == 50
+    assert log_bytes == expected_full[-50:]
+    assert not log_bytes.startswith(expected_full[:10])
+    assert log_bytes.endswith(expected_full[-10:])
 
 
 def test_direct_tex_entry_must_stay_inside_source(tmp_path: Path) -> None:
