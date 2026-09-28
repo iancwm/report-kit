@@ -62,3 +62,33 @@ jobs:
           python scripts/contract_acceptance.py --json &&
           PYTHONPATH=python_scripts python latex_templates/examples/equity-research/figures.py &&
           python scripts/visual_qa_equity_research.py --json'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Container workflow gate (Linux / ext4, uid 10001, no network)
+        env:
+          REPORTKIT_CONTAINER_TEST_IMAGE: reportkit-ci
+          REPORTKIT_REQUIRE_DOCKER: "1"
+        run: |
+          python -m pip install --disable-pip-version-check pytest
+          python -m pytest --noconftest -q tests/test_container_integration.py
+
+  container-launcher-host:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-2022]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4   # Windows runner checks out with core.autocrlf=true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: python -m pip install --disable-pip-version-check pytest
+      - name: Launcher, staging, results and gate unit tests (stdlib only)
+        run: >-
+          python -m pytest --noconftest -q
+          tests/test_container_staging.py tests/test_container_docker.py
+          tests/test_container_results.py tests/test_container_launcher.py
+          tests/test_cross_host_gate.py tests/test_repository_hygiene.py
