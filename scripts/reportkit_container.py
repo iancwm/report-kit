@@ -150,6 +150,8 @@ def run_build(args: argparse.Namespace, docker: Docker | None = None) -> tuple[i
         failure_record = {"code": code, "exit_code": outcome.exit_code, "timed_out": outcome.timed_out,
                           "collect_error": getattr(collect_error, "message", None),
                           "output_tail": outcome.output_tail.decode("utf-8", "replace")}
+        if collect_error:
+            shutil.rmtree(incoming, ignore_errors=True)
         results.record_failure(failure, None if collect_error else incoming, failure_record)
         incoming = None
         message = f"build failed (exit {outcome.exit_code}); diagnostics in {failure}" if not outcome.timed_out else \

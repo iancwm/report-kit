@@ -32,9 +32,10 @@ def result_tar(files: dict[str, bytes], status: str = "passed", **extra) -> byte
 
 
 class FakeDocker:
-    def __init__(self, exit_code=0, result=None, timed_out=False, daemon_error=None, interrupt_on_start=False):
+    def __init__(self, exit_code=0, result=None, timed_out=False, daemon_error=None, interrupt_on_start=False, copy_out_error=False):
         self.exit_code, self.result, self.timed_out = exit_code, result, timed_out
         self.daemon_error, self.interrupt_on_start = daemon_error, interrupt_on_start
+        self.copy_out_error = copy_out_error
         self.created = self.removed = 0
         self.staged: dict[str, bytes] = {}
         self.command: list[str] = []
@@ -66,6 +67,8 @@ class FakeDocker:
         return RunOutcome(None if self.timed_out else self.exit_code, self.timed_out, b"tail of output")
 
     def copy_out(self, container, path, consume):
+        if self.copy_out_error:
+            raise DockerError("RK_DOCKER_COPY_FAILED", "copy-out failed")
         if self.result is None:
             raise DockerError("RK_DOCKER_COPY_FAILED", "no result")
         consume(io.BytesIO(self.result))
@@ -118,6 +121,19 @@ def test_failure_keeps_prior_output_and_writes_failure_dir(tmp_path: Path) -> No
     failure = out.with_name("out.failed")
     assert (failure / "logs" / "build.log").is_file()
     assert json.loads((failure / "launcher-failure.json").read_text())["exit_code"] == 4
+
+
+def test_collect_error_on_container_failure_does_not_leak_incoming_dir(tmp_path: Path) -> None:
+    src, out = project(tmp_path), tmp_path / "out"
+    fake = FakeDocker(exit_code=4, copy_out_error=True)
+    code, record = launcher.run_build(args(src, out), fake)
+    assert code == 4 and not record["passed"]
+    assert fake.removed == 1
+    failure = out.with_name("out.failed")
+    assert json.loads((failure / "launcher-failure.json").read_text())["collect_error"] == "copy-out failed"
+    all_dirs = [p for p in tmp_path.rglob("*") if p.is_dir()]
+    assert not any("incoming" in p.name for p in all_dirs), f"leaked incoming directory: {all_dirs}"
+    assert sorted(p.name for p in tmp_path.iterdir()) == ["Publication Tëst ü", "out.failed"]
 
 
 def test_timeout_kills_and_removes_container(tmp_path: Path) -> None:
