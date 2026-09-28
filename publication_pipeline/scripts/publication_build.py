@@ -466,12 +466,24 @@ def git_value(args: list[str]) -> str:
     return proc.stdout.strip() if proc.returncode == 0 and proc.stdout.strip() else "unknown"
 
 
+def engine_commit() -> str:
+    """Engine commit from the checkout, else the image's baked build arg."""
+    value = git_value(["rev-parse", "HEAD"])
+    return value if value != "unknown" else os.environ.get("REPORTKIT_COMMIT", "unknown") or "unknown"
+
+
+def engine_ref() -> str:
+    """Engine ref from the checkout, else the image's baked build arg."""
+    value = git_value(["describe", "--tags", "--always"])
+    return value if value != "unknown" else os.environ.get("REPORTKIT_REF", "unknown") or "unknown"
+
+
 def write_lock(path: Path, *, engine: str, tool_versions: dict[str, str], toolchain: dict) -> None:
     """Pin the engine and toolchain the publication was built against."""
     lock = {
         "schema_version": 2,
-        "reportkit_ref": git_value(["describe", "--tags", "--always"]),
-        "reportkit_commit": git_value(["rev-parse", "HEAD"]),
+        "reportkit_ref": engine_ref(),
+        "reportkit_commit": engine_commit(),
         "tex_engine": engine,
         "pandoc": tool_versions.get("pandoc", "unknown"),
         "python": tool_versions.get("python", "unknown"),
@@ -1144,7 +1156,7 @@ def build(args: argparse.Namespace) -> int:
         "mode": args.mode,
         "profile": profile or "draft",
         "version": identity["version"],
-        "commit": git_value(["rev-parse", "HEAD"]),
+        "commit": engine_commit(),
         "status": "running",
         "started_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "inputs": report_inputs,

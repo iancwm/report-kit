@@ -52,11 +52,27 @@ RUN install -d /usr/local/share/fonts/reportkit \
       --enable Map=libertinust1math.map \
  && TERM=xterm luaotfload-tool --update --force
 
+# Build user for container publication builds (scripts/reportkit_container.py
+# runs with --user 10001:10001). /work lives on the container's own Linux
+# filesystem; nothing here is bind-mounted from the host.
+RUN groupadd --gid 10001 reportkit \
+ && useradd --uid 10001 --gid 10001 --home-dir /work/home --no-create-home \
+      --shell /usr/sbin/nologin reportkit \
+ && install -d -o 10001 -g 10001 -m 0755 /work /work/home /work/build /work/result
+
+ARG REPORTKIT_COMMIT=unknown
+ARG REPORTKIT_REF=unknown
+LABEL org.opencontainers.image.source="https://github.com/iancwm/report-kit" \
+      org.opencontainers.image.revision="${REPORTKIT_COMMIT}" \
+      org.opencontainers.image.version="${REPORTKIT_REF}"
+
 ENV PATH="/opt/reportkit/.venv/bin:${PATH}" \
     SOURCE_DATE_EPOCH=1 \
     TZ=UTC \
     PYTHONHASHSEED=0 \
     MPLBACKEND=Agg \
-    REPORTKIT_TOOLCHAIN_FINGERPRINT=6e0fc8ea7889634d3c337eacc4e4f68adb10c2c968e2e7e683f5c24de07408e5
+    REPORTKIT_TOOLCHAIN_FINGERPRINT=6e0fc8ea7889634d3c337eacc4e4f68adb10c2c968e2e7e683f5c24de07408e5 \
+    REPORTKIT_COMMIT=${REPORTKIT_COMMIT} \
+    REPORTKIT_REF=${REPORTKIT_REF}
 
 ENTRYPOINT ["/opt/reportkit/reportkit"]
