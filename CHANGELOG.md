@@ -7,6 +7,25 @@ tags on this repository, not a published package registry.
 ## [Unreleased]
 
 ### Added
+- A Docker cross-host publication-build workflow, recommended on Windows and
+  any host without a native TeX toolchain. `scripts/reportkit_container.py`
+  is a stdlib-only host launcher (`scripts/rk_container/{staging,docker,results}.py`)
+  that validates and streams a publication into the pinned toolchain image via
+  `docker cp` (never a bind mount), runs it with no network access under a
+  fixed non-root build user, and atomically installs the verified result;
+  `toolchain/container_build.py` is the in-image entrypoint sequencing the
+  same check/build/render/inspect steps as a native build for both
+  `--kind pipeline` and `--kind direct-tex`. A gated release workflow
+  (`.github/workflows/toolchain-release.yml`, `toolchain/release_gates.sh`,
+  `scripts/image_release_manifest.py`) builds the image from a pinned Git
+  context, runs in-image gates, pushes it under an immutable `sha-<commit>`
+  tag, re-verifies the pushed digest on a clean runner, and only promotes the
+  release tag once a human-run Windows gate
+  (`scripts/cross_host_gate.py`) is uploaded and compared against the Linux
+  result, behind a required-reviewers environment. New `.gitattributes` and
+  `.dockerignore` keep engine text byte-stable across host checkouts and keep
+  local/developer state out of the image build context. See
+  [`references/docker-workflow.md`](references/docker-workflow.md).
 - Fresh-clone agent instructions and a Debian/Ubuntu setup command that installs
   TeX and fonts and verifies both LuaLaTeX themes before drafting.
 - `reportkit audit-editorial` compares a hand-authored feature article with

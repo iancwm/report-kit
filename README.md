@@ -164,6 +164,25 @@ requirements are documented in [`CONTRIBUTING.md`](CONTRIBUTING.md) and
 
 ## Setup
 
+### Docker (recommended, cross-host)
+
+Build inside the pinned toolchain image instead of installing TeX natively.
+This is the recommended path on Windows and on any host without a working
+native LuaLaTeX install, and it needs only Python 3.11+ and the Docker CLI:
+
+```bash
+python3 scripts/reportkit_container.py build \
+  --image ghcr.io/iancwm/report-kit@sha256:<digest> \
+  --source-root <publication-project> --output-root <publication-project>/output \
+  --kind pipeline
+```
+
+See [`references/docker-workflow.md`](references/docker-workflow.md) for the
+full flag reference, staging rules, result layout, image pinning, and the
+release procedure for operators qualifying a new image.
+
+### Native Debian/Ubuntu
+
 On a fresh Debian/Ubuntu clone, install and verify LuaLaTeX and the bundled
 fonts before building:
 

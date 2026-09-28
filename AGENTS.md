@@ -14,13 +14,17 @@ separate directory outside this clone.
 2. In a fresh Debian/Ubuntu environment, run `scripts/setup_tex.sh` before
    building. It installs TeX and fonts, then compiles editorial and
    institutional LuaLaTeX smoke documents. Run `scripts/setup_tex.sh --check`
-   when dependencies are already installed.
+   when dependencies are already installed. On Windows, or any host without
+   the native toolchain, use `scripts/reportkit_container.py` with a pinned
+   image digest instead of `scripts/setup_tex.sh` — see
+   `references/docker-workflow.md`.
 3. Initialize the separate project with `./reportkit init <project-dir>` and
    install the Python environment as shown in `SKILL.md`. Run
    `<project-dir>/build/.venv/bin/python ./reportkit doctor --require full-build`
    before promising a PDF.
 4. Build using the selected target, inspect `build-report.json`'s `selection`,
    and visually review the rendered pages against the user's design guidelines.
+   For container builds, inspect `container-build.json` → `selection` instead.
 
 Do not copy `latex_templates/REPORT_TEMPLATE.tex` for a requested article,
 brief, book, equity report, or presentation. It is only the generic technical

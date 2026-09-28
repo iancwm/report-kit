@@ -23,6 +23,24 @@ first, then request only the on-demand slice needed for the selected target.
 
 **This repository is a reusable engine, not a place for report content.** Keep generated TeX files, figures, and any publication's manuscript outside this repository — in a separate report or publication directory. See [references/repository-boundary.md](references/repository-boundary.md) for the full boundary and guardrails.
 
+### Recommended cross-host path (Docker)
+
+On Windows, or any host without a working native LuaLaTeX install, build
+inside the pinned toolchain image instead of running `setup_tex.sh`. Only
+Python 3.11+ and the Docker CLI are required:
+
+```bash
+python3 scripts/reportkit_container.py build \
+  --image ghcr.io/iancwm/report-kit@sha256:<digest> \
+  --source-root <publication-dir> --output-root <publication-dir>/output \
+  --kind pipeline
+```
+
+See [references/docker-workflow.md](references/docker-workflow.md) for the
+full flag reference, staging rules, result layout, and release procedure.
+
+### Native Debian/Ubuntu path
+
 From a clone of this skill, initialize a separate report directory:
 
 ```bash
@@ -600,7 +618,10 @@ inspect only the pages or slides relevant to the change; its output includes
 an atomic page directory and `pages.json` manifest. Inspect every rendered
 page for clipped text, overlapping labels, broken arrows, bad page breaks,
 missing figures, and meanings conveyed only by colour. A successful TeX exit
-code alone is not completion.
+code alone is not completion. A container build (`scripts/reportkit_container.py`)
+runs this same check/build/render/inspect sequence inside the pinned image and
+returns the same artefacts under `--output-root`; page review is still
+required.
 
 When modifying ReportKit itself, run its regression suite:
 
