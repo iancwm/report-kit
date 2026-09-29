@@ -112,3 +112,41 @@ If references exceed the slide's stable capacity, add a continuation slide such 
 The ReportKit repository is the reusable engine, not a publication workspace. Keep manuscripts, fragments, assets, generated figures, build output, and final PDFs in a separate consumer project; follow [repository-boundary.md](repository-boundary.md). This documentation does not authorize adding a deck fixture or generated artifact to the engine repository.
 
 For a full build, use `reportkit build --source-root <publication-project>`, render only relevant pages/slides with `reportkit render --source-root <publication-project> --pages ... --dpi 150`, and run `reportkit inspect --source-root <publication-project>`. Review rendered slides for clipped text, header/body overlap, unsafe margins, broken diagrams, missing sources, and meanings conveyed only by color. A successful TeX exit code alone is not completion.
+
+<!-- REPORTKIT-CONTRACT:START -->
+## Generated primitive contract
+
+This section is generated from source-adjacent contract metadata. Do not edit it by hand.
+
+### Composition primitives
+
+| Name | Signature | Canonical example |
+| --- | --- | --- |
+| `appendixdivider` | `m` | <code>\begin{frame}[plain]&lt;br&gt;\begin{appendixdivider}{Example}&lt;br&gt;\end{appendixdivider}&lt;br&gt;\end{frame}</code> |
+| `architectureslide` | `O{} O{}` | <code>\begin{frame}&lt;br&gt;\begin{architectureslide}[][]&lt;br&gt;Example content.&lt;br&gt;\end{architectureslide}&lt;br&gt;\end{frame}</code> |
+| `assertionslide` | `O{} m O{}` | <code>\begin{frame}&lt;br&gt;\begin{assertionslide}[kicker={Parenting constitution}]{Six household rules prevent most major unforced errors.}[Agree on these before you are tired.]&lt;br&gt;Evidence body.&lt;br&gt;\end{assertionslide}&lt;br&gt;\end{frame}</code> |
+| `cardgrid` | `O{}` | <code>\begin{frame}&lt;br&gt;\begin{cardgrid}[columns=2,variant=surface]&lt;br&gt;\carditem[numbered]{Rule one}{Short evidence.}&lt;br&gt;\carditem[accent-rail]{Rule two}{Short evidence.}&lt;br&gt;\end{cardgrid}&lt;br&gt;\end{frame}</code> |
+| `chartslide` | `O{right} m m` | <code>\begin{frame}&lt;br&gt;\begin{chartslide}[right]{Example}{Example}&lt;br&gt;Example content.&lt;br&gt;\end{chartslide}&lt;br&gt;\end{frame}</code> |
+| `closingslide` | `m` | <code>\begin{frame}[plain]&lt;br&gt;\begin{closingslide}{Example}&lt;br&gt;Example content.&lt;br&gt;\end{closingslide}&lt;br&gt;\end{frame}</code> |
+| `comparison` | `` | <code>\begin{frame}&lt;br&gt;\begin{comparison}&lt;br&gt;\comparisoncolumn{Example}{Example}&lt;br&gt;\comparisoncolumn{Example}{Example}&lt;br&gt;\end{comparison}&lt;br&gt;\end{frame}</code> |
+| `evidenceslide` | `m` | <code>\begin{frame}&lt;br&gt;\begin{evidenceslide}{Example}&lt;br&gt;Example content.&lt;br&gt;\end{evidenceslide}&lt;br&gt;\end{frame}</code> |
+| `fullvisual` | `O{} O{}` | <code>\begin{frame}&lt;br&gt;\begin{fullvisual}[][]&lt;br&gt;Example content.&lt;br&gt;\end{fullvisual}&lt;br&gt;\end{frame}</code> |
+| `herometric` | `m m` | <code>\begin{frame}&lt;br&gt;\begin{herometric}{Example}{Example}&lt;br&gt;Example content.&lt;br&gt;\end{herometric}&lt;br&gt;\end{frame}</code> |
+| `messageslide` | `m` | <code>\begin{frame}&lt;br&gt;\begin{messageslide}{Example}&lt;br&gt;Example content.&lt;br&gt;\end{messageslide}&lt;br&gt;\end{frame}</code> |
+| `referenceslide` | `m O{}` | <code>\begin{frame}&lt;br&gt;\begin{referenceslide}{Sources and use}[Short usage note.]&lt;br&gt;\referenceitem{Author (2026), Title. \\url{https://example.com}}&lt;br&gt;\end{referenceslide}&lt;br&gt;\end{frame}</code> |
+| `sectiondivider` | `O{Section} m` | <code>\begin{frame}[plain]&lt;br&gt;\begin{sectiondivider}[Section 01]{Example}&lt;br&gt;\end{sectiondivider}&lt;br&gt;\end{frame}</code> |
+| `tableslide` | `O{right} m m` | <code>\begin{frame}&lt;br&gt;\begin{tableslide}[right]{Example}{Example}&lt;br&gt;Example content.&lt;br&gt;\end{tableslide}&lt;br&gt;\end{frame}</code> |
+| `threepart` | `` | <code>\begin{frame}&lt;br&gt;\begin{threepart}&lt;br&gt;\threepartcolumn{Example}{Example}&lt;br&gt;\threepartcolumn{Example}{Example}&lt;br&gt;\threepartcolumn{Example}{Example}&lt;br&gt;\end{threepart}&lt;br&gt;\end{frame}</code> |
+| `titleslide` | `` | <code>\begin{frame}[plain]&lt;br&gt;\begin{titleslide}&lt;br&gt;\end{titleslide}&lt;br&gt;\end{frame}</code> |
+| `visualtext` | `O{right} m m` | <code>\begin{frame}&lt;br&gt;\begin{visualtext}[right]{Example}{Example}&lt;br&gt;Example content.&lt;br&gt;\end{visualtext}&lt;br&gt;\end{frame}</code> |
+
+### Command primitives
+
+| Name | Signature | Canonical example |
+| --- | --- | --- |
+| `carditem` | `O{} m m` | <code>\carditem[accent-rail]{Heading}{Evidence}</code> |
+| `comparisoncolumn` | `m m` | <code>\comparisoncolumn{Example}{Example}</code> |
+| `referenceitem` | `m` | <code>\referenceitem{Author (2026), Title.}</code> |
+| `threepartcolumn` | `m m` | <code>\threepartcolumn{Example}{Example}</code> |
+
+<!-- REPORTKIT-CONTRACT:END -->
