@@ -6,6 +6,8 @@ The presentation publication type owns semantic composition names. The slides th
 
 ## Composition roles
 
+All registered chart functions are available for analytical data graphics in a supported slide composition. Use the shared [chart guidance](charts.md) for data encoding and provenance; this reference governs slide fit, composition, and density. The presentation target uses its publication-package primitives for semantic slide compositions.
+
 Presentation compositions are content-only: put them inside an explicit Beamer `frame` and add `[fragile]` to that author-owned frame when the body needs it. The role, not the visual size alone, determines which composition to choose.
 
 | Composition | Role | Use it when | Do not use it for |
