@@ -31,7 +31,7 @@ After a reset or context compaction, start with `reportkit status --source-root 
 | Technical report or guide | `technical-report` × `default` or `technical` | TeX or Markdown | pdfLaTeX | `latex_templates/examples/career_guide_en/` | `latex_templates/examples/career_guide_en/composition-brief.json` | [Diagrams and algorithms](references/diagrams-and-algorithms.md) |
 | Equity research | `equity-research` × `institutional-research` | TeX or Markdown fragments | LuaLaTeX | `latex_templates/examples/equity-research/` | `latex_templates/examples/equity-research/composition-brief.json` | [Equity research guide](references/institutional-research-theme.md) |
 | Executive decision brief | `executive-brief` × `executive` or `institutional-research` | TeX or Markdown | LuaLaTeX | `latex_templates/examples/executive-brief/` | `latex_templates/examples/executive-brief/composition-brief.json` | [Executive brief guide](references/executive-brief-authoring.md) |
-| Magazine feature | `feature-article` × `editorial` | TeX for full composition; Markdown supports the opening only | LuaLaTeX | `latex_templates/examples/editorial-feature/` | `latex_templates/examples/editorial-feature/composition-brief.json` | [Feature article guide](references/feature-article-authoring.md) |
+| Magazine feature | `feature-article` × `editorial` | TeX required by target lock; legacy Markdown is opening-only | LuaLaTeX | `latex_templates/examples/editorial-feature/` | `latex_templates/examples/editorial-feature/composition-brief.json` | [Feature article guide](references/feature-article-authoring.md) |
 | Book or handbook | `book` × `default`, `technical`, or `editorial` | TeX or Markdown | pdfLaTeX for default/technical; LuaLaTeX for editorial | `latex_templates/examples/book/` | `latex_templates/examples/book/composition-brief.json` | [Book guide](references/book-authoring.md) |
 | Consulting or venture deck | `presentation` × `executive` or `venture` | TeX or Markdown | LuaLaTeX | `latex_templates/examples/executive-presentation/` | `latex_templates/examples/executive-presentation/composition-brief.json` | [Presentation guide](references/presentation-authoring.md) |
 
@@ -39,8 +39,8 @@ If more than one pair plausibly fits, ask which format the user intends. The ali
 
 ## Stop rules
 
-- The build refuses an undeclared target. Declare it; do not accept the default.
-- If LuaLaTeX is missing, fix the environment; keep the theme.
+- New projects and projects with `validation.require_declared_target: true` refuse an undeclared target. Legacy projects without that setting build with an implicit-target warning; persist the choice before new work.
+- If the selected theme requires LuaLaTeX and it is missing, fix the environment; keep the theme.
 - Use only primitives listed by `reportkit context --slice primitives` for your target.
 - If you cannot view rendered pages, say so in the delivery message.
 

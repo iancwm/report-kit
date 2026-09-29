@@ -67,9 +67,15 @@ py -3 scripts\reportkit_container.py build `
   --kind pipeline
 ```
 
-For a hand-authored `.tex` document instead of a Markdown/`publication.yaml`
-pipeline, pass `--kind direct-tex` with an entry file relative to the source
-root:
+For a target-aware hand-authored `.tex` publication, set
+`document.source_mode: tex` and `document.main` in `publication.yaml`, then use
+`--kind pipeline`. This runs `reportkit check` and `reportkit build` with the
+same target, engine, and composition gates as a native build.
+
+Use `--kind direct-tex` only for the lower-level raw-TeX path when the target
+reasoning loop is not needed. It compiles the supplied entry and diagnoses its
+log, but skips `reportkit check` and `reportkit build` target gates. Pass an
+entry file relative to the source root:
 
 ```bash
 python3 scripts/reportkit_container.py build \
@@ -86,8 +92,9 @@ either flag against the wrong `--kind` is a config error
 no-op.
 
 If a staged `direct-tex` source contains `editorial-brief.json` next to the
-entry file, the container runs `reportkit audit-editorial` against it before
-compiling, exactly as the native workflow does — no separate flag needed.
+entry file, the container runs the legacy `reportkit audit-editorial` check
+before compiling. This optional audit does not replace the target-aware gates
+available through `--kind pipeline`.
 
 Recommend `--output-root <publication-dir>/output` (a subdirectory of the
 publication, not the engine clone) so the same directory conventions apply
@@ -151,8 +158,9 @@ the host. It contains:
 - `reportkit.lock`
 - `inspection.json`
 - `render/pages.json` plus one PNG per rendered page
-- `logs/<step>.log` for every build step (check, build, compile, render,
-  inspect, audit-editorial, ...)
+- `logs/<step>.log` for every step used. Pipeline builds include check/build;
+  raw direct-TeX builds include compile/diagnostics and the optional editorial
+  audit. Both paths render and inspect the PDF.
 - `container-build.json` — the manifest described below
 
 `container-build.json` fields: `schema`, `status` (`passed`/`failed`),

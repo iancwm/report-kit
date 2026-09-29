@@ -8,5 +8,5 @@ On fresh Debian/Ubuntu hosts, run `scripts/setup_tex.sh` before drafting/buildin
 On Windows or without a native toolchain, use `scripts/reportkit_container.py` with a pinned image digest ([workflow](references/docker-workflow.md)).
 Initialize a separate project and install its Python environment as described in SKILL.md.
 Run the consumer project's `reportkit doctor --require full-build` before promising a PDF.
-Build the selected target, inspect `build-report.json` selection, render the pages, and review them.
+Build the selected target and render the pages. Inspect `build-report.json` selection, or `container-build.json` selection for container builds.
 Report when visual review is unavailable; never claim it was completed.

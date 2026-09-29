@@ -7,13 +7,14 @@ tags on this repository, not a published package registry.
 ## [Unreleased]
 
 ### Added
-- A target-aware publication loop that records the chosen structure and look
-  in `publication.yaml` and `.reportkit/intent.json`, scaffolds format-specific
-  starters and composition briefs, scopes authoring context by target, and
-  gates both Markdown and direct-TeX builds. New `reportkit target` and
-  `reportkit status` commands preserve the decision across sessions;
+- Authors can now lock a publication's structure and look, recover that choice
+  after a session reset, and build either Markdown or direct TeX through the
+  same target gates. ReportKit saves the decision in `publication.yaml` and
+  `.reportkit/intent.json`, scaffolds format-specific starters and composition
+  briefs, and scopes authoring context to the selected target. The new
+  `reportkit target` and `reportkit status` commands expose that saved state;
   `reportkit review` records page-level manual and visual review. Composition
-  audits now cover all six publication types, and the additive CLI contract is
+  audits cover all six publication types, and the additive CLI contract is
   version 1.3.0.
 - A Docker cross-host publication-build workflow, recommended on Windows and
   any host without a native TeX toolchain. `scripts/reportkit_container.py`
@@ -21,9 +22,10 @@ tags on this repository, not a published package registry.
   that validates and streams a publication into the pinned toolchain image via
   `docker cp` (never a bind mount), runs it with no network access under a
   fixed non-root build user, and atomically installs the verified result;
-  `toolchain/container_build.py` is the in-image entrypoint sequencing the
-  same check/build/render/inspect steps as a native build for both
-  `--kind pipeline` and `--kind direct-tex`. A gated release workflow
+  `toolchain/container_build.py` is the in-image entrypoint. Pipeline builds
+  run the same check/build/render/inspect steps as a native build; the
+  lower-level `--kind direct-tex` path compiles and diagnoses raw TeX with an
+  optional legacy editorial audit. A gated release workflow
   (`.github/workflows/toolchain-release.yml`, `toolchain/release_gates.sh`,
   `scripts/image_release_manifest.py`) builds the image from a pinned Git
   context, runs in-image gates, pushes it under an immutable `sha-<commit>`

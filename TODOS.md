@@ -1,6 +1,6 @@
 # ReportKit — Outstanding Work
 
-**Last updated:** 2026-09-26
+**Last updated:** 2026-09-29
 
 This is the current-work index, not an audit. The front of the document contains
 only work that is still actionable. Completed implementation records and dated
@@ -24,6 +24,8 @@ and [references/documentation-status.md](references/documentation-status.md).
 | [2026-09-24-reportkit-callout-titles-and-image-slots-spec.md](docs/superpowers/specs/2026-09-24-reportkit-callout-titles-and-image-slots-spec.md) | Implementation merged in PR #54 at `f6293d4`; focused contract/validation tests and mixed supplied/missing-image pipeline coverage are green; native visual/release verification remains. | P2 |
 | [2026-09-24-reportkit-callout-titles-and-image-slots-implementation-plan.md](docs/superpowers/plans/2026-09-24-reportkit-callout-titles-and-image-slots-implementation-plan.md) | Implementation complete in the merged mainline; focused tests and the docs/context checks are complete; full acceptance/build gates and visual review remain. | P2 |
 | [2026-09-25-reportkit-multi-format-visual-review-plan.md](docs/superpowers/plans/2026-09-25-reportkit-multi-format-visual-review-plan.md) | Phase E editorial review complete; venture, executive-brief and book remain. | P2 |
+| [2026-09-28-reportkit-agent-reasoning-loop-spec.md](docs/superpowers/specs/2026-09-28-reportkit-agent-reasoning-loop-spec.md) | Lanes A–F are implemented in PR #77; Lane G and acceptance evidence remain open. | P2 |
+| [2026-09-28-reportkit-agent-reasoning-loop-implementation-plan.md](docs/superpowers/plans/2026-09-28-reportkit-agent-reasoning-loop-implementation-plan.md) | Lanes A–F are implemented in PR #77; Lane G and acceptance evidence remain open. | P2 |
 
 ## Open work
 
@@ -38,6 +40,13 @@ and [references/documentation-status.md](references/documentation-status.md).
   and final/release-profile acceptance run.
 
 ### P2
+
+- **Agent reasoning loop — acceptance and evaluation.** Wave 0 is merged and
+  lanes A–F are implemented in [PR #77](https://github.com/iancwm/report-kit/pull/77).
+  The Lane G oracle harness and four §4.9 scenarios remain. Run the pytest and
+  Ruff suites, record AC1–AC12 evidence, build each target from a fresh project,
+  and compare the legacy fixture before treating the plan's acceptance gates
+  as complete.
 
 - **Institutional theme — human visual release review.** The four-page equity
   fixture and checked-in baseline passed the pinned OCI comparison on
@@ -231,6 +240,14 @@ from a session provisioned this way.
   explicitly open; no baseline pixels were changed.
 
 ## History
+
+- 2026-09-29: opened PR #77 for the target-aware agent reasoning loop. Lanes
+  A–F add persisted target selection, scoped context, direct-TeX gates,
+  composition audits/review, and target-specific authoring guidance; the
+  contract is 1.3.0. Compileall, `docs --check`, JSON syntax, and diff checks
+  pass. Pytest/Ruff, the AC1–AC12 matrix, fresh-target PDF builds, and the
+  legacy build comparison were not run. Lane G's oracle eval harness remains
+  open and is tracked above.
 
 - 2026-09-25: closed out the code-quality-review spec's §C, §D, and §E on
   `claude/todos-workstream-delegation-7kqaze`, on top of `main` at `8c74016`.
