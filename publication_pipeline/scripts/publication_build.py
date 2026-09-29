@@ -98,7 +98,7 @@ from reportkit.latex import tex_escape  # noqa: E402
 from reportkit.markdown_directives import parse_markdown, replace_placeholders  # noqa: E402
 from reportkit.tex_renderer import render_ir  # noqa: E402
 from reportkit.theme_overrides import ThemeOverrideError, materialize_tex_overrides  # noqa: E402
-from reportkit.publications import PublicationRegistryError, resolve_build_target  # noqa: E402
+from reportkit.publications import THEMES, PublicationRegistryError, resolve_build_target  # noqa: E402
 from reportkit.review import compare_intent  # noqa: E402
 from reportkit.target import TargetState, load_target, target_gate  # noqa: E402
 from reportkit.tex_target import engine_gate, tex_gates  # noqa: E402
@@ -624,14 +624,25 @@ def _preflight(args: argparse.Namespace) -> _PreflightResult | int:
     if resource is None or not hasattr(resource, "RLIMIT_AS"):
         print("environment: this platform cannot enforce the required compile memory limit", file=sys.stderr)
         return 5
-    validation = validate_publication(source_root, profile=profile or "draft")
-    for diagnostic in validation.diagnostics:
-        if diagnostic.get("severity") == "warning":
-            print(f"publication validation warning: {diagnostic['message']}", file=sys.stderr)
-    if not validation.ok:
-        for error in validation.errors:
-            print(f"publication validation: {error}", file=sys.stderr)
-        return 3
+    validation = None
+    initial_target = load_target(source_root)
+    if initial_target.source_mode == "tex":
+        if args.mode != "combined":
+            print("publication config: direct TeX builds require --mode combined", file=sys.stderr)
+            return 2
+        main_path = Path(initial_target.main)
+        if main_path.is_absolute() or ".." in main_path.parts or main_path.suffix.lower() != ".tex":
+            print("publication config: document.main must name a TeX file inside the publication root", file=sys.stderr)
+            return 2
+    if initial_target.source_mode != "tex":
+        validation = validate_publication(source_root, profile=profile or "draft")
+        for diagnostic in validation.diagnostics:
+            if diagnostic.get("severity") == "warning":
+                print(f"publication validation warning: {diagnostic['message']}", file=sys.stderr)
+        if not validation.ok:
+            for error in validation.errors:
+                print(f"publication validation: {error}", file=sys.stderr)
+            return 3
     authoring = validate_authoring(source_root)
     if not authoring.ok:
         for error in authoring.errors:
@@ -661,10 +672,17 @@ def _preflight(args: argparse.Namespace) -> _PreflightResult | int:
         return 2
     document = resolve_document(config, profile)
     requested_engine = getattr(args, "engine", None) or os.environ.get("REPORTKIT_TEX_ENGINE")
-    target_state, gate_exit = _target_gates(args, source_root, requested_engine)
+    gate_engine = requested_engine
+    if not gate_engine and initial_target.source_mode == "tex":
+        gate_engine = str(document.get("engine", "pdflatex"))
+    target_state, gate_exit = _target_gates(args, source_root, gate_engine)
     if gate_exit is not None:
         return gate_exit
-    engine = str(requested_engine or document.get("engine", "pdflatex"))
+    if target_state.source_mode == "tex":
+        theme_record = THEMES.get(str(document.get("theme")))
+        engine = str(requested_engine or (theme_record or {}).get("required_engine") or document.get("engine", "pdflatex"))
+    else:
+        engine = str(requested_engine or document.get("engine", "pdflatex"))
     try:
         target = resolve_build_target(
             str(document.get("publication_type")),
@@ -723,32 +741,37 @@ def _preflight(args: argparse.Namespace) -> _PreflightResult | int:
     except (OSError, ThemeOverrideError, ValueError) as exc:
         print(f"publication config: theme/brand overrides: {exc}", file=sys.stderr)
         return 2
-    entries = order_entries(source_root)
-    if args.mode == "section":
-        chosen = getattr(args, "section", None)
-        if not chosen:
-            print("--section is required in section mode", file=sys.stderr)
-            return 2
-        chosen_path = Path(chosen)
-        if chosen_path.is_absolute() or ".." in chosen_path.parts or chosen_path.suffix != ".md":
-            print(f"--section must name a Markdown file inside manuscript/: {chosen!r}", file=sys.stderr)
-            return 2
-        manuscripts = [chosen_path]
+    if target_state.source_mode == "tex":
+        manuscripts = []
+        used_image_slots = {}
+        unresolved_used_slots = []
     else:
-        manuscripts = [Path(entry) for entry in entries]
-    for manuscript in manuscripts:
-        if not (source_root / "manuscript" / manuscript).is_file():
-            print(f"missing manuscript: {manuscript}", file=sys.stderr)
-            return 3
-    selected_manuscript_files = {f"manuscript/{path.as_posix()}" for path in manuscripts}
-    used_image_slots = {
-        slug: slot for slug, slot in validation.image_slots.items()
-        if image_field(slot, "manuscript_file", None) in selected_manuscript_files
-    }
-    unresolved_used_slots = [
-        slot for slot in validation.unresolved_image_slots
-        if image_field(slot, "manuscript_file", None) in selected_manuscript_files
-    ]
+        entries = order_entries(source_root)
+        if args.mode == "section":
+            chosen = getattr(args, "section", None)
+            if not chosen:
+                print("--section is required in section mode", file=sys.stderr)
+                return 2
+            chosen_path = Path(chosen)
+            if chosen_path.is_absolute() or ".." in chosen_path.parts or chosen_path.suffix != ".md":
+                print(f"--section must name a Markdown file inside manuscript/: {chosen!r}", file=sys.stderr)
+                return 2
+            manuscripts = [chosen_path]
+        else:
+            manuscripts = [Path(entry) for entry in entries]
+        for manuscript in manuscripts:
+            if not (source_root / "manuscript" / manuscript).is_file():
+                print(f"missing manuscript: {manuscript}", file=sys.stderr)
+                return 3
+        selected_manuscript_files = {f"manuscript/{path.as_posix()}" for path in manuscripts}
+        used_image_slots = {
+            slug: slot for slug, slot in validation.image_slots.items()
+            if image_field(slot, "manuscript_file", None) in selected_manuscript_files
+        }
+        unresolved_used_slots = [
+            slot for slot in validation.unresolved_image_slots
+            if image_field(slot, "manuscript_file", None) in selected_manuscript_files
+        ]
     return _PreflightResult(
         source_root=source_root, output_root=output_root, profile=profile,
         timeout=timeout, memory_limit_mb=memory_limit_mb, authoring=authoring,
@@ -762,6 +785,7 @@ def _preflight(args: argparse.Namespace) -> _PreflightResult | int:
 
 def _stage_build_directory(
     *, output: Path, source_root: Path, entrypoint: Path, effective_theme: Any, target: Any, args: argparse.Namespace,
+    direct_tex: Path | None = None,
 ) -> tuple[list[dict[str, str]], str | None] | int:
     """Create the isolated build directory and stage its inputs: templates,
     the resolved entrypoint, project assets, an optional brand logo, theme
@@ -777,15 +801,18 @@ def _stage_build_directory(
     # source template was selected -- downstream packaging/inspection reads
     # "publication.tex"/"publication.pdf" regardless of publication_type.
     try:
-        stage_entrypoint(
-            entrypoint,
-            output / "publication.tex",
-            theme=target.requested_theme,
-            publication_type=target.publication_type,
-            class_name=target.class_name,
-        )
+        if direct_tex is None:
+            stage_entrypoint(
+                entrypoint,
+                output / "publication.tex",
+                theme=target.requested_theme,
+                publication_type=target.publication_type,
+                class_name=target.class_name,
+            )
+        else:
+            shutil.copy2(direct_tex, output / "publication.tex")
     except (OSError, ValueError) as exc:
-        print(f"publication config: could not stage resolved entrypoint: {exc}", file=sys.stderr)
+        print(f"publication config: could not stage {'direct TeX source' if direct_tex else 'resolved entrypoint'}: {exc}", file=sys.stderr)
         return 2
     # Per-renderer shared base files an entrypoint may \input{} (D7) -- e.g.
     # slides-base.tex for presentation.tex. publication-template.tex is
@@ -1085,6 +1112,12 @@ def build(args: argparse.Namespace) -> int:
     manuscripts = preflight.manuscripts
     used_image_slots = preflight.used_image_slots
     unresolved_used_slots = preflight.unresolved_used_slots
+    target_state = preflight.target_state
+    direct_tex = (
+        source_root / target_state.main
+        if target_state is not None and target_state.source_mode == "tex"
+        else None
+    )
 
     stamp = time.strftime("%Y%m%d-%H%M%S")
     history_root = output_root / "history"
@@ -1103,44 +1136,47 @@ def build(args: argparse.Namespace) -> int:
 
     staged = _stage_build_directory(
         output=output, source_root=source_root, entrypoint=entrypoint,
-        effective_theme=effective_theme, target=target, args=args,
+        effective_theme=effective_theme, target=target, args=args, direct_tex=direct_tex,
     )
     if isinstance(staged, int):
         return staged
     staged_assets, cover_name = staged
 
-    body_files = _render_manuscript_bodies(
-        source_root=source_root, output=output, manuscripts=manuscripts, target=target,
-        authoring=authoring, used_image_slots=used_image_slots, timeout=timeout, memory_limit_mb=memory_limit_mb,
-    )
-    if isinstance(body_files, int):
-        return body_files
+    if direct_tex is None:
+        body_files = _render_manuscript_bodies(
+            source_root=source_root, output=output, manuscripts=manuscripts, target=target,
+            authoring=authoring, used_image_slots=used_image_slots, timeout=timeout, memory_limit_mb=memory_limit_mb,
+        )
+        if isinstance(body_files, int):
+            return body_files
 
-    body = output / "body.tex"
-    body.write_text("\n".join(f"\\input{{{path.stem}}}" for path in body_files) + "\n", encoding="utf-8")
-    manuscript_text = "\n".join((source_root / "manuscript" / path).read_text(encoding="utf-8") for path in manuscripts)
-    # Pandoc's other table form, the "simple table" (no pipes: a header row
-    # followed by two or more space-separated runs of dashes), is at least
-    # as common in hand-written Markdown as the pipe form and also lowers to
-    # a `longtable` environment, so it must be detected too.
-    simple_table_separator = re.compile(r"^[ \t]*-{2,}(?:[ \t]+-{2,})+[ \t]*$")
-    uses_tables = any(
-        ("|" in line and "---" in line) or simple_table_separator.match(line)
-        for line in manuscript_text.splitlines()
-    )
-    uses_code = "```" in manuscript_text or "~~~" in manuscript_text
-    write_metadata(
-        output / "metadata.tex", identity=identity, combined=args.mode == "combined",
-        license_values=license_values, cover_name=cover_name, uses_tables=uses_tables, uses_code=uses_code,
-        font_policy=font_policy, language=declared_language,
-    )
-    links_file = source_root / "links.yaml"
-    if links_file.is_file():
-        try:
-            render_links_tex(links_file, output / "links.tex")
-        except (OSError, ValueError) as exc:
-            print(f"link registry: {exc}", file=sys.stderr)
-            return 2
+        body = output / "body.tex"
+        body.write_text("\n".join(f"\\input{{{path.stem}}}" for path in body_files) + "\n", encoding="utf-8")
+        manuscript_text = "\n".join((source_root / "manuscript" / path).read_text(encoding="utf-8") for path in manuscripts)
+        # Pandoc's other table form, the "simple table" (no pipes: a header row
+        # followed by two or more space-separated runs of dashes), is at least
+        # as common in hand-written Markdown as the pipe form and also lowers to
+        # a `longtable` environment, so it must be detected too.
+        simple_table_separator = re.compile(r"^[ \t]*-{2,}(?:[ \t]+-{2,})+[ \t]*$")
+        uses_tables = any(
+            ("|" in line and "---" in line) or simple_table_separator.match(line)
+            for line in manuscript_text.splitlines()
+        )
+        uses_code = "```" in manuscript_text or "~~~" in manuscript_text
+        write_metadata(
+            output / "metadata.tex", identity=identity, combined=args.mode == "combined",
+            license_values=license_values, cover_name=cover_name, uses_tables=uses_tables, uses_code=uses_code,
+            font_policy=font_policy, language=declared_language,
+        )
+        links_file = source_root / "links.yaml"
+        if links_file.is_file():
+            try:
+                render_links_tex(links_file, output / "links.tex")
+            except (OSError, ValueError) as exc:
+                print(f"link registry: {exc}", file=sys.stderr)
+                return 2
+    else:
+        manuscript_text = ""
     tex = output / "publication.tex"
     log = output / "publication.log"
     validation_config = resolve_validation(config, profile)
@@ -1183,10 +1219,13 @@ def build(args: argparse.Namespace) -> int:
     for slot in unresolved_used_slots
     ]
     table_count = len(re.findall(r"(?m)^\s*\|.*\n\s*\|?\s*:?-{3,}", manuscript_text))
-    report_inputs = [
-        {"path": str(path), "sha256": sha256(source_root / "manuscript" / path)}
-        for path in manuscripts
-    ]
+    if direct_tex is None:
+        report_inputs = [
+            {"path": str(path), "sha256": sha256(source_root / "manuscript" / path)}
+            for path in manuscripts
+        ]
+    else:
+        report_inputs = [{"path": target_state.main, "sha256": sha256(direct_tex)}]
     image_manifest = source_root / "image-slots.yaml"
     if used_image_slots and image_manifest.is_file():
         report_inputs.append({"path": image_manifest.name, "sha256": sha256(image_manifest)})
@@ -1213,7 +1252,11 @@ def build(args: argparse.Namespace) -> int:
         # like "technical" from what actually rendered).
         # Agent reasoning loop spec §4.2/§4.8: where the target was declared
         # and whether it matches .reportkit/intent.json (null until recorded).
-        "selection": {**target.as_dict(), "declared_by": None, "matches_intent": matches_intent},
+        "selection": {
+            **target.as_dict(),
+            "declared_by": target_state.declared_by if target_state is not None else None,
+            "matches_intent": matches_intent,
+        },
         "effective_theme": effective_theme.as_dict(),
         # Agent-contract spec section 13: how the declared language resolved
         # (null when publication.yaml declares none and en-US applies).
@@ -1308,6 +1351,9 @@ def main() -> int:
     def execute() -> int:
         if args.mode == "sections":
             root, _ = resolve_roots(args)
+            if load_target(root).source_mode == "tex":
+                print("publication config: direct TeX builds require --mode combined", file=sys.stderr)
+                return 2
             result = validate_publication(root)
             if not result.ok:
                 for error in result.errors:
