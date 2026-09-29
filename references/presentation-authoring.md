@@ -6,6 +6,8 @@ The presentation publication type owns semantic composition names. The slides th
 
 ## Composition roles
 
+The presentation visual surface is the package’s native slide primitives. The supported chart subset is `bar_chart`; use the shared [chart guidance](charts.md) for data encoding and provenance, and this reference for slide fit, composition, and density.
+
 Presentation compositions are content-only: put them inside an explicit Beamer `frame` and add `[fragile]` to that author-owned frame when the body needs it. The role, not the visual size alone, determines which composition to choose.
 
 | Composition | Role | Use it when | Do not use it for |

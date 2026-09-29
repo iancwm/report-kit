@@ -1,32 +1,9 @@
 # ReportKit agent instructions
 
-When creating a PDF with this repository, read `SKILL.md` before drafting or
-building. This checkout is the publication engine. Put each publication in a
-separate directory outside this clone.
-
-## First run
-
-1. Read the user's requested format, template, theme, and design guidelines.
-   Record the chosen `document.publication_type` and `document.theme` in the
-   consumer project's `publication.yaml` before writing the manuscript. Use
-   the selection table and matching authoring reference in `SKILL.md`. If the
-   request is ambiguous, clarify the choice before drafting.
-2. In a fresh Debian/Ubuntu environment, run `scripts/setup_tex.sh` before
-   building. It installs TeX and fonts, then compiles editorial and
-   institutional LuaLaTeX smoke documents. Run `scripts/setup_tex.sh --check`
-   when dependencies are already installed. On Windows, or any host without
-   the native toolchain, use `scripts/reportkit_container.py` with a pinned
-   image digest instead of `scripts/setup_tex.sh` — see
-   `references/docker-workflow.md`.
-3. Initialize the separate project with `./reportkit init <project-dir>` and
-   install the Python environment as shown in `SKILL.md`. Run
-   `<project-dir>/build/.venv/bin/python ./reportkit doctor --require full-build`
-   before promising a PDF.
-4. Build using the selected target, inspect `build-report.json`'s `selection`,
-   and visually review the rendered pages against the user's design guidelines.
-   For container builds, inspect `container-build.json` → `selection` instead.
-
-Do not copy `latex_templates/REPORT_TEMPLATE.tex` for a requested article,
-brief, book, equity report, or presentation. It is only the generic technical
-report starter. Do not silently replace an unavailable requested target with
-the default theme; report the specific build failure and fix the setup.
+1. Read `SKILL.md` before planning a publication.
+2. The CLI enforces the publication loop; follow each command's `next_step`.
+3. Keep each publication project outside this engine repository.
+4. Use the selection table to choose publication type, theme, and source mode before authoring.
+5. Load target-specific primitives with `reportkit context --slice primitives --json`.
+6. Build through `reportkit build`, then inspect the build report and rendered pages.
+7. Record visual review with `reportkit review` and confirm delivery state with `reportkit status`.
