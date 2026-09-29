@@ -119,6 +119,19 @@
         "constraints": {"type": "array", "items": {"type": "object"}},
         "example": {"type": "string", "minLength": 1},
         "available_in": {"$ref": "#/$defs/availability"},
+        "targets": {
+          "type": "object",
+          "properties": {
+            "technical-report": {"enum": ["native", "allowed", "discouraged", "absent"]},
+            "equity-research": {"enum": ["native", "allowed", "discouraged", "absent"]},
+            "executive-brief": {"enum": ["native", "allowed", "discouraged", "absent"]},
+            "feature-article": {"enum": ["native", "allowed", "discouraged", "absent"]},
+            "book": {"enum": ["native", "allowed", "discouraged", "absent"]},
+            "presentation": {"enum": ["native", "allowed", "discouraged", "absent"]}
+          },
+          "required": ["technical-report", "equity-research", "executive-brief", "feature-article", "book", "presentation"],
+          "additionalProperties": false
+        },
         "stability": {"enum": ["stable", "experimental", "deprecated"]},
         "since": {"type": "string"}, "description": {"type": "string"},
         "contract_pointer": {"type": "string", "pattern": "^#/capabilities/primitives/"},
