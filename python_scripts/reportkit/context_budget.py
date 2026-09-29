@@ -63,30 +63,49 @@ def _language_line(themes: Mapping[str, Any]) -> str:
 
 
 def _target_text(context: Mapping[str, Any]) -> str:
-    """The quickstart's target wording: the loop's TARGET line when the
-    project's target has been resolved (spec §4.2), else the legacy line."""
-    line = (context.get("target") or {}).get("line")
+    """State whether a durable publication target has been declared."""
+    target = context.get("target") or {}
+    declared_by = target.get("declared_by") or context.get("selection", {}).get("declared_by")
+    if declared_by == "default":
+        return (
+            "TARGET NOT DECLARED — the build will refuse. Pick a row below and run "
+            "`reportkit target set`."
+        )
+    line = target.get("line")
     if line:
         return str(line)
     selection = context["selection"]
-    return f"The current target is {selection['publication_type']}/{selection['requested_theme']}/{selection['renderer']}."
+    publication_type = selection["publication_type"]
+    theme = selection.get("theme", selection.get("requested_theme"))
+    return (
+        f"TARGET structure={publication_type} look={theme} renderer={selection['renderer']} "
+        "(declared in publication.yaml)."
+    )
 
 
 def _quickstart_text(context: Mapping[str, Any]) -> str:
     publications = context["capabilities"]["publication_types"]
-    publication_lines = "; ".join(
-        f"{name}: {record['selection_criteria']} Themes: {', '.join(record['themes'])}."
-        for name, record in publications.items()
-    )
+    selection_rows = [
+        "| Structure | Choose it for | Compatible looks | Renderer | Source modes |",
+        "| --- | --- | --- | --- | --- |",
+    ]
+    for name, record in publications.items():
+        modes = ", ".join(f"{mode}={value}" for mode, value in record["source_modes"].items())
+        selection_rows.append(
+            f"| {name} | {record['selection_criteria']} | {', '.join(record['themes'])} | "
+            f"{record['renderer']} | {modes} |"
+        )
     commands = context["commands"]
     return "\n".join([
         "ReportKit host-neutral quickstart.",
-        f"Choose a publication type by intent: {publication_lines}",
+        "Structure selects the publication type; look selects its visual theme.",
+        *selection_rows,
         _target_text(context),
         _language_line(context["capabilities"]["themes"]),
-        f"Author in a consumer project, then run `{commands['check']} --json` before conversion.",
-        f"Build with `{commands['build']} --json`; on failure read its structured diagnostics and remediation.",
-        f"For visual feedback run `{commands['render']} --pages 1 --json`, then `{commands['inspect']} --json`.",
+        "If no target is declared, select a row and run `reportkit target set --publication-type T --theme H --source-mode tex|markdown --request \"<verbatim user ask>\"`.",
+        f"Create the starter with `reportkit init <dir> --publication-type T --theme H`, author, then run `{commands['check']} --json`.",
+        f"Build with `{commands['build']} --json`, render and visually review the pages, then record `reportkit review --visual-review done|unavailable --json`.",
+        "After any context reset, or before your final message, run `reportkit status --json`.",
         "Use the selection, primitives, authoring, commands, and toolchain slices only when needed.",
     ])
 
