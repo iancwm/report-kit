@@ -7,6 +7,17 @@ tags on this repository, not a published package registry.
 ## [Unreleased]
 
 ### Added
+- Once the Wave 1 implementation lanes are integrated, ReportKit will provide
+  a persisted publication-target workflow with `reportkit target set/show`,
+  `reportkit status`, and `reportkit review pdf`, plus target-scoped build,
+  composition, and intent checks. The new diagnostics are `RK_TARGET_UNDECLARED`,
+  `RK_TARGET_IMPLICIT`, `RK_TARGET_MISMATCH`, `RK_ENGINE_DOWNGRADE`,
+  `RK_SOURCE_MODE_UNSUPPORTED`, `RK_PRIMITIVE_OFF_TARGET`, `RK_LOCAL_STYLE`,
+  and `RK_INTENT_MISMATCH`. New `reportkit init` projects opt into blocking
+  target declaration; legacy projects without
+  `validation.require_declared_target` remain buildable and receive the
+  non-blocking `RK_TARGET_IMPLICIT` warning. The contract advances to 1.3.0
+  for this additive change; the intended ReportKit release version is 1.10.0.
 - A Docker cross-host publication-build workflow, recommended on Windows and
   any host without a native TeX toolchain. `scripts/reportkit_container.py`
   is a stdlib-only host launcher (`scripts/rk_container/{staging,docker,results}.py`)

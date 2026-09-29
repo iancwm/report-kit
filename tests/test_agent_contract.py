@@ -28,7 +28,7 @@ from reportkit.registry import (  # noqa: E402
     _python_signature,
 )
 from reportkit.toolchain import load_toolchain_lock, toolchain_fingerprint  # noqa: E402
-from reportkit.version import REPORTKIT_VERSION  # noqa: E402
+from reportkit.version import CONTRACT_VERSION, REPORTKIT_VERSION  # noqa: E402
 from publication_build import _resolve_publication_date, run_limited, tex_escape as pipeline_tex_escape, write_metadata  # noqa: E402
 from publication_validation import validate_publication  # noqa: E402
 from scripts.contract_acceptance import acceptance_source, run_acceptance  # noqa: E402
@@ -143,8 +143,8 @@ def test_duplicate_primitive_with_conflicting_signature_is_reported() -> None:
 def test_context_is_versioned_filterable_and_legacy_compatible() -> None:
     context = build_context(REPO, kinds=["chart"], publication_type="equity-research")
     assert context["schema_version"] == "1.0.0"
-    assert context["contract_version"] == "1.2.0"
-    assert context["reportkit_version"] == "1.9.3"
+    assert context["contract_version"] == CONTRACT_VERSION
+    assert context["reportkit_version"] == REPORTKIT_VERSION
     assert context["selection"] == {
         "publication_type": "equity-research", "requested_theme": "institutional-research",
         "requested_name": "institutional-research",
@@ -332,9 +332,10 @@ def test_command_contract_covers_every_public_cli_option() -> None:
 
 
 def test_contract_major_mismatch_is_structured_exit_two() -> None:
+    major = int(CONTRACT_VERSION.split(".", 1)[0])
     result = subprocess.run(
         [str(REPO / "reportkit"), "check", "--source-root", str(REPO / "publication_pipeline" / "example_publication"),
-         "--contract-version", "2.0.0", "--json"],
+         "--contract-version", f"{major + 1}.0.0", "--json"],
         capture_output=True, text=True,
     )
     payload = json.loads(result.stdout)
@@ -343,9 +344,10 @@ def test_contract_major_mismatch_is_structured_exit_two() -> None:
 
 
 def test_newer_same_major_contract_is_structured_exit_two() -> None:
+    major, minor, _patch = (int(part) for part in CONTRACT_VERSION.split("."))
     result = subprocess.run(
         [str(REPO / "reportkit"), "check", "--source-root", str(REPO / "publication_pipeline" / "example_publication"),
-         "--contract-version", "1.3.0", "--json"],
+         "--contract-version", f"{major}.{minor + 1}.0", "--json"],
         capture_output=True, text=True,
     )
     payload = json.loads(result.stdout)
@@ -354,9 +356,10 @@ def test_newer_same_major_contract_is_structured_exit_two() -> None:
     assert payload["diagnostics"][0]["code"] == "RK_CONTRACT_VERSION_NEWER"
 
 
-def test_older_same_major_contract_warns_and_continues(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr("reportkit.cli.CONTRACT_VERSION", "1.3.0")
-    diagnostics, exit_code = _contract_diagnostics("1.1.0")
+def test_older_same_major_contract_warns_and_continues() -> None:
+    major, minor, _patch = (int(part) for part in CONTRACT_VERSION.split("."))
+    older = f"{major}.{minor - 1}.0" if minor else f"{major - 1}.0.0"
+    diagnostics, exit_code = _contract_diagnostics(older)
     assert exit_code is None
     assert diagnostics[0]["code"] == "RK_CONTRACT_VERSION_STALE"
     assert diagnostics[0]["severity"] == "warning"
@@ -541,12 +544,11 @@ def test_section_build_rejects_path_escape_before_conversion() -> None:
     assert payload["diagnostics"][0]["type"] == "configuration_error"
 
 
-def test_toolchain_fingerprint_and_release_version_are_stable() -> None:
+def test_toolchain_fingerprint_and_release_version_match_class_metadata() -> None:
     lock = load_toolchain_lock(REPO)
     assert set(lock["apt_packages"]) == set(lock["apt_package_versions"])
     fingerprint = toolchain_fingerprint(lock)
     assert fingerprint == "6e0fc8ea7889634d3c337eacc4e4f68adb10c2c968e2e7e683f5c24de07408e5"
-    assert REPORTKIT_VERSION == "1.9.3"
     assert generate_registry(REPO)["class_version"] == REPORTKIT_VERSION
     assert load_toolchain_lock(REPO)["apt_package_versions"]
     dockerfile = (REPO / "toolchain" / "Dockerfile").read_text()

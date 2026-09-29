@@ -1,4 +1,4 @@
-% ReportKit v1.9.3 -- core document class
+% ReportKit v1.10.0 -- core document class
 % Project-local technical report grammar.
 % v1.1 adds structural pagination guards for section openings and diagrams.
 % v1.6 introduces a theme/publication-type architecture: typography,
@@ -43,11 +43,10 @@
 % on this local, unpinned toolchain even before this change, so the
 % institutional/equity comparison is pixel- and text-level, not hash-level;
 % see the implementation plan's A4 section).
-% Also not its own version bump -- \ProvidesClass stays v1.9.3 until a
-% release commit moves it, matching version.py's REPORTKIT_VERSION (see
-% test_agent_contract.py's test_toolchain_fingerprint_and_release_version_are_stable).
+% The class release version stays in parity with version.py's
+% REPORTKIT_VERSION; test_agent_contract.py checks that registry metadata.
 \NeedsTeXFormat{LaTeX2e}
-\ProvidesClass{reportkit}[2026/09/13 v1.9.3 ReportKit technical report class]
+\ProvidesClass{reportkit}[2026/09/29 v1.10.0 ReportKit technical report class]
 
 % -----------------------------------------------------------------------------
 % Theme / publication-type selection
