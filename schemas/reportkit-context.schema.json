@@ -132,8 +132,8 @@
     "schema_version": {"const": "1.0.0"},
     "passed": {"const": true},
     "diagnostics": {"type": "array", "items": {"$ref": "#/$defs/diagnostic"}},
-    "contract_version": {"const": "1.2.0"},
-    "reportkit_version": {"const": "1.9.3"},
+    "contract_version": {"const": "1.3.0"},
+    "reportkit_version": {"const": "1.10.0"},
     "revision": {"type": "string"},
     "selection": {
       "type": "object",

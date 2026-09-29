@@ -1,6 +1,6 @@
 # Agent contract, diagnostics, and trusted build boundary
 
-ReportKit 1.9.3 exposes its host-neutral interface through the `reportkit` CLI.
+ReportKit 1.10.0 exposes its host-neutral interface through the `reportkit` CLI.
 `reportkit init` scaffolds a consumer project outside the engine clone; its
 font installation is opt-in because `TEXMFLOCAL` may be system-owned.
 `reportkit context --json` is the authoritative capability catalog; generated
@@ -29,7 +29,7 @@ article omits the chosen editorial rhythm. A passing source audit still reports
 page and verify evidence, quotes, and exhibit purpose. The canonical fixture's
 pinned visual regression checks the engine, not a consumer article's design.
 
-Contract version `1.2.0` describes the combinations registered today:
+Contract version `1.3.0` describes the combinations registered today:
 `technical-report/{default,technical}/paged`,
 `equity-research/institutional-research/paged`,
 `presentation/executive/slides`, the stable
