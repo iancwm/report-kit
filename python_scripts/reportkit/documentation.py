@@ -32,7 +32,11 @@ def _constraints(record: dict[str, Any]) -> str:
 
 
 def render_reference(registry: dict[str, Any], *, publication_type: str | None = None) -> str:
-    """Render the generated primitive-contract section for a registry."""
+    """Render the generated primitive-contract section for a registry.
+
+    Target-specific authoring references describe the target's native
+    grammar. The full inventory remains in ``primitive-contract.md``.
+    """
     lines = [
         START,
         "## Generated primitive contract",
@@ -41,21 +45,36 @@ def render_reference(registry: dict[str, Any], *, publication_type: str | None =
         "",
     ]
     for kind, records in registry["primitives"].items():
-        selected = [record for record in records.values() if not publication_type or publication_type in record["available_in"]["publication_types"]]
+        selected = [
+            record
+            for record in records.values()
+            if not publication_type or record.get("targets", {}).get(publication_type) == "native"
+        ]
         if not selected:
             continue
-        lines.extend([
-            f"### {kind.title()} primitives",
-            "",
-            "| Name | Signature | Arguments | Constraints | Stability | Canonical example |",
-            "| --- | --- | --- | --- | --- | --- |",
-        ])
+        lines.extend([f"### {kind.title()} primitives", ""])
+        if publication_type:
+            lines.extend([
+                "| Name | Signature | Canonical example |",
+                "| --- | --- | --- |",
+            ])
+        else:
+            lines.extend([
+                "| Name | Signature | Arguments | Constraints | Stability | Canonical example |",
+                "| --- | --- | --- | --- | --- | --- |",
+            ])
         for record in sorted(selected, key=lambda item: item["name"]):
-            stability = f"{record['stability']} since {record['since']}"
-            lines.append(
-                f"| `{record['name']}` | `{_cell(record['signature'])}` | {_arguments(record)} | "
-                f"{_constraints(record)} | {_cell(stability)} | <code>{_cell(record['example'])}</code> |"
-            )
+            if publication_type:
+                lines.append(
+                    f"| `{record['name']}` | `{_cell(record['signature'])}` | "
+                    f"<code>{_cell(record['example'])}</code> |"
+                )
+            else:
+                stability = f"{record['stability']} since {record['since']}"
+                lines.append(
+                    f"| `{record['name']}` | `{_cell(record['signature'])}` | {_arguments(record)} | "
+                    f"{_constraints(record)} | {_cell(stability)} | <code>{_cell(record['example'])}</code> |"
+                )
         lines.append("")
     lines.extend([END, ""])
     return "\n".join(lines)
@@ -77,6 +96,7 @@ def generated_documents(repo_root: Path, registry: dict[str, Any]) -> dict[Path,
         repo_root / "references" / "primitive-contract.md": render_reference(registry),
         repo_root / "references" / "institutional-research-theme.md": render_reference(registry, publication_type="equity-research"),
         repo_root / "references" / "feature-article-authoring.md": render_reference(registry, publication_type="feature-article"),
+        repo_root / "references" / "presentation-authoring.md": render_reference(registry, publication_type="presentation"),
     }
     return {
         path: _replace_generated(path.read_text(encoding="utf-8"), generated)

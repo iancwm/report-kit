@@ -267,14 +267,14 @@ def test_load_target_distinguishes_declared_from_defaulted(tmp_path: Path) -> No
     assert declared.intent_path == tmp_path / ".reportkit" / "intent.json"
 
 
-def test_authoring_template_stub_is_the_previous_skeleton() -> None:
+def test_authoring_template_uses_target_opening_and_maketitle_only_for_technical_reports() -> None:
     from reportkit.authoring_templates import document_template
 
-    assert document_template("feature-article", "editorial") == (
-        "\\documentclass[theme=editorial,publication-type=feature-article]{reportkit}\n"
-        "\\title{Contract acceptance}\n\\author{ReportKit}\n"
-        "\\begin{document}\n\\maketitle\n{{body}}\n\\end{document}\n"
-    )
+    feature = document_template("feature-article", "editorial")
+    technical = document_template("technical-report", "default")
+    assert r"\begin{featureopening}" in feature
+    assert r"\maketitle" not in feature
+    assert r"\maketitle" in technical
 
 
 # -- CLI wiring ---------------------------------------------------------------

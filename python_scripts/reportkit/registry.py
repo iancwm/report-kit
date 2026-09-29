@@ -7,6 +7,7 @@ from pathlib import Path
 import re
 from typing import Any, Iterable
 
+from .primitive_targets import role_for
 from .publications import PUBLICATION_TYPES, availability_for
 
 CALLOUT_ALIASES = {"evidence": "evidencenote", "limitation": "limitationnote", "tip": "tipnote"}
@@ -451,6 +452,12 @@ def generate_registry(repo_root: Path | None = None, *, strict: bool = False) ->
     class_text = (repo_root / "latex_templates" / "reportkit.cls").read_text(encoding="utf-8")
     class_match = re.search(r"\\ProvidesClass\{[^}]+\}\[[^]]+\s+v([^\s]+)", class_text)
     class_version = class_match.group(1) if class_match else "unknown"
+    for kind, records in primitives.items():
+        for name, record in records.items():
+            record["targets"] = {
+                publication_type: role_for(name, kind, publication_type)
+                for publication_type in PUBLICATION_TYPES
+            }
     if strict and errors:
         raise ContractError("\n".join(errors))
     return {
@@ -466,33 +473,12 @@ def generate_registry(repo_root: Path | None = None, *, strict: bool = False) ->
     }
 
 
-def skill_inventory(skill_path: Path) -> dict[str, set[str]]:
-    """Read historical hand-authored inventories during the v1.x transition."""
-    text = skill_path.read_text(encoding="utf-8")
-    figures: set[str] = set()
-    for line in text.splitlines():
-        if "|" in line and "Use" not in line and "---" not in line:
-            cells = [cell.strip() for cell in line.split("|")]
-            if len(cells) >= 3:
-                figures.update(name for name in re.findall(r"`([^`]+)`", cells[2]) if name != "reportkit_viz.py")
-    callout_match = re.search(r"Use semantic callouts only when their meaning matters:\s*([^\.]+)", text)
-    callouts = set(re.findall(r"`([^`]+)`", callout_match.group(1))) if callout_match else set()
-    return {"figures": figures, "callouts": callouts}
-
-
 def check_skill_drift(repo_root: Path | None = None) -> list[str]:
     """Compatibility wrapper over full generated-document drift checks."""
     repo_root = (repo_root or Path(__file__).resolve().parents[2]).resolve()
     registry = generate_registry(repo_root)
     errors = list(registry["contract_errors"])
-    try:
-        from .documentation import check_documentation
-    except ImportError:
-        inventory = skill_inventory(repo_root / "SKILL.md")
-        if set(registry["figures"]) != inventory["figures"]:
-            errors.append("figure inventory drift")
-        if set(registry["callouts"]["public"]) != inventory["callouts"]:
-            errors.append("callout inventory drift")
-        return errors
+    from .documentation import check_documentation
+
     errors.extend(check_documentation(repo_root, registry=registry))
     return errors

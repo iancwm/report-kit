@@ -73,6 +73,8 @@ def _filter_primitives(
         result[kind] = {}
         for name, record in primitives[kind].items():
             available = record["available_in"]
+            if publication_type and record["targets"][publication_type] not in {"native", "allowed"}:
+                continue
             if publication_type and publication_type not in available["publication_types"]:
                 continue
             if theme and theme not in available["themes"]:
@@ -172,7 +174,8 @@ def build_context(
     revision = _git(repo_root, "describe", "--tags", "--always")
     class_version = registry["class_version"]
     primitives = _filter_primitives(
-        registry["primitives"], publication_type=publication_type, theme=theme, kinds=selected_kinds,
+        registry["primitives"], publication_type=target.publication_type,
+        theme=target.requested_theme, kinds=selected_kinds,
     )
     diagnostics: list[dict[str, Any]] = []
     if revision != "unknown" and class_version != "unknown" and not revision.endswith(class_version):
@@ -196,7 +199,9 @@ def build_context(
             **target.as_dict(),
             "profile": profile or "draft",
         },
-        "filters": {"publication_type": publication_type, "theme": theme, "kinds": selected_kinds},
+        "filters": {
+            "publication_type": target.publication_type, "theme": target.requested_theme, "kinds": selected_kinds,
+        },
         "capabilities": {
             "publication_types": deepcopy(PUBLICATION_TYPES),
             "themes": deepcopy(THEMES),
