@@ -7,6 +7,14 @@ tags on this repository, not a published package registry.
 ## [Unreleased]
 
 ### Added
+- A target-aware publication loop that records the chosen structure and look
+  in `publication.yaml` and `.reportkit/intent.json`, scaffolds format-specific
+  starters and composition briefs, scopes authoring context by target, and
+  gates both Markdown and direct-TeX builds. New `reportkit target` and
+  `reportkit status` commands preserve the decision across sessions;
+  `reportkit review` records page-level manual and visual review. Composition
+  audits now cover all six publication types, and the additive CLI contract is
+  version 1.3.0.
 - A Docker cross-host publication-build workflow, recommended on Windows and
   any host without a native TeX toolchain. `scripts/reportkit_container.py`
   is a stdlib-only host launcher (`scripts/rk_container/{staging,docker,results}.py`)

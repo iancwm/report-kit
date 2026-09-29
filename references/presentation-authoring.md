@@ -1,114 +1,67 @@
-# Presentation authoring contract
+# Presentation authoring
 
-This reference defines how to choose ReportKit's executive presentation compositions and how to write assertions that preserve the evidence canvas. It covers the implemented typography and composition refinement slice without changing the repository boundary or the renderer/theme split.
+> Scope: `presentation` structure × `executive` or `venture` look. TeX and Markdown are supported. Both themes use LuaLaTeX; the venture theme is experimental.
 
-The presentation publication type owns semantic composition names. The slides theme owns point sizes, spacing, gutters, density, and other appearance values. Authoring guidance must select a semantic role; it must not encode a theme name or repair a layout with local typography.
+The publication type supplies slide compositions; the theme owns typography, spacing, gutters, density, and color. The [canonical example](../latex_templates/examples/executive-presentation/) shows the executive theme. Use the target-scoped context slice and generated contract for the current composition vocabulary.
 
 ## Composition roles
 
-Presentation compositions are content-only: put them inside an explicit Beamer `frame` and add `[fragile]` to that author-owned frame when the body needs it. The role, not the visual size alone, determines which composition to choose.
+Choose by rhetorical role, not by visual size:
 
-| Composition | Role | Use it when | Do not use it for |
-| --- | --- | --- | --- |
-| `messageslide` | Sparse hero assertion | One message should dominate a quiet frame and supporting copy is short. | A normal evidence slide with a grid, process, comparison, or substantial diagram. |
-| `assertionslide` | Standard working slide | One assertion should orient the reader while the evidence body occupies most of the safe canvas. | A sparse closing message or a slide whose main rhetoric is explicitly Claim → Evidence. |
-| `evidenceslide` | Explicit Claim → Evidence | The slide benefits from visible `CLAIM`, divider, and `EVIDENCE` labels. | A generic wrapper for every evidence-bearing slide; it is not an alias for `assertionslide`. |
-| `titleslide` | Document identity | The audience needs title, subtitle, author, date, or other front-matter orientation. | A working assertion or an evidence canvas. |
-| `sectiondivider` / `appendixdivider` | Section transition | The slide marks a new section or appendix and should be sparse. | A place to hide evidence that needs a normal working slide. |
-| `closingslide` | Deliberate conclusion | The deck needs a final recommendation, implication, or call to action with intentional closing emphasis. | A standard assertion just because it is near the end. |
-| `referenceslide` | Sources and use | A source-heavy closing or appendix needs readable references and an optional usage/limitation note. | A footer substitute or a dense bibliography forced into microscopic type. |
-
-The compositions above are part of the current presentation composition vocabulary. `assertionslide`, `referenceslide`, `referenceitem`, and the dense card-grid contract are implemented in main and exposed through the generated contract. Native visual release validation remains the gate for layout correctness; do not emulate the API with arbitrary local TeX or treat static contract coverage as visual approval.
-
-## Assertion writing and fit
-
-An assertion is one decision-relevant claim, not a report-section title or a sentence that summarizes every card below it.
-
-- One line is ideal.
-- Two lines are acceptable; the compact assertion treatment may be used when the measured header fit requires it.
-- Three lines should generally be rewritten before build. If the claim still cannot fit after rewriting, split the slide.
-
-The fit contract has only three states: `standard`, `compact`, and `invalid`. It measures the rendered assertion against a bounded header, tries the standard assertion scale first, then the compact scale, and fails with `PRESENTATION_ASSERTION_TOO_LONG` if the compact assertion still does not fit. It does not continuously scale the font.
-
-Never shrink body, dense-body, source, or reference text to rescue an oversized assertion. Rewrite or split the assertion/slide. Do not add a local `\\fontsize`, `\\small`, `\\scriptsize`, negative spacing, or per-card override; typography values belong to the theme's presentation tokens and semantic density roles.
-
-The executive implementation uses approximately 18.5/22pt for a standard assertion, 16.5/20pt for compact assertions, and a 24 mm maximum assertion header, tuned only through native fixture review. These are theme-owned targets, not author-level magic numbers.
-
-`assertionslide` has this semantic shape:
-
-    \\begin{frame}
-      \\begin{assertionslide}[kicker={Parenting constitution}]{Six household rules prevent most major unforced errors.}[Agree on these before you are tired, stressed, or negotiating in front of the child.]
-        % arbitrary evidence/body
-      \\end{assertionslide}
-    \\end{frame}
-
-The exact implementation may expose equivalent xparse keys, but the contract remains: optional kicker, one required assertion, optional deck, bounded header, and arbitrary body evidence. The body must start below a stable header envelope; it must not be vertically rescued with content-dependent filler.
-
-## Dense semantic layouts
-
-The current API includes the existing fixed compositions such as `comparison`/`comparisoncolumn` and `threepart`/`threepartcolumn`, as well as the general `cardgrid`/`carditem` grammar. Theme-owned gutters, padding, density, and minimum text sizes are part of the presentation contract. Native density-fixture rendering remains the release gate for visual correctness.
-
-| Supported layout | Intended content | Semantic constraints |
-| --- | --- | --- |
-| 2×2 cards | Four comparable rules, risks, choices, or evidence points. | Two columns, two equal-height rows, top-aligned content. |
-| 2×3 cards | Six compact rules or evidence points. | Two columns, three equal-height rows; shorten content or split if cards become prose paragraphs. |
-| Three-column cards | Three capabilities, options, or workstreams that deserve equal weight. | Three equal columns, aligned headings and stable internal padding. |
-| Four-step layout | An ordered process, method, or decision sequence. | Four equal horizontal steps with explicit order; use a process primitive when relationships/branching matter more than card text. |
-
-The supported shape is:
-
-    \\begin{cardgrid}[columns=2]
-      \\carditem[variant=surface]{Fear}{Violence, humiliation, and threats}
-      \\carditem[variant=accent-rail]{Repair}{Return to the conversation and name the harm}
-      % two more items for the 2×2 form
-    \\end{cardgrid}
-
-Use `columns=2` with four items for 2×2, six items for 2×3, `columns=3` with three items for the three-column form, and `columns=4` with four ordered/numbered items for the four-step form. A named `fourstep` composition is equally acceptable if the implementation freezes that spelling; the semantic requirements are the same.
-
-Grid rules:
-
-- gutters, padding, card density, and minimum text sizes come from presentation theme tokens;
-- items in one row have equal height and top-aligned content;
-- ordinal, rail, rule weight, or labels must preserve meaning in grayscale;
-- dense body and annotation roles are semantic roles, not local point-size patches;
-- if content does not fit at the minimum role size, shorten it, change the layout, or split the slide.
-
-### Card variants
-
-Use variants to encode a meaningful hierarchy without turning every card into the same pale rectangle:
-
-| Variant | Meaning and treatment |
+| Role | Use |
 | --- | --- |
-| `plain` | Border and white fill for neutral peer items. |
-| `surface` | The quiet surface treatment for ordinary supporting cards. |
-| `accent-rail` | A 2–3pt semantic rail for a marked item; the rail is not the only signal. |
-| `numbered` | A visible ordinal for sequence, ranking, or reading order. |
-| `emphasis` | Stronger rule weight for a priority item, not merely a more saturated fill. |
+| `titleslide` | Establish the deck's identity and orientation. |
+| `assertionslide` | Orient a working slide with one decision-relevant claim and evidence. |
+| `evidenceslide` | Separate an explicit claim from its supporting evidence. |
+| `messageslide` | Give one sparse hero message room to dominate. |
+| `sectiondivider` / `appendixdivider` | Mark a deliberate transition. |
+| `closingslide` | Deliver a conclusion, implication, or action. |
+| `referenceslide` | Present readable full references and optional usage notes. |
 
-Do not add gradients, shadows, ornamental chrome, an icon library, or color-only meaning. Do not rebuild these modes with nested manual columns and local font-size hacks. If the planned helper is not present in the capability catalog yet, keep the body concise and wait for the semantic API rather than copying implementation geometry into content.
+Keep compositions inside author-owned Beamer frames. A slide assertion should state one claim: one line is ideal, two lines can use the compact treatment, and longer claims should be rewritten or split. Keep evidence as the dominant canvas. Theme-owned density roles set text sizes and card spacing; if content does not fit, shorten it or split the slide.
 
-## References and continuation
+## Evidence layouts and sources
 
-The supported `referenceslide`/`referenceitem` composition is for a source-heavy closing or appendix frame:
+Use a card grid for a small set of comparable points, equal-weight options, or ordered steps. Use a semantic process diagram when relationships, branches, or ownership matter more than card text. The context and generated contract provide current layout options and constraints. Preserve meaning in grayscale and keep labels concise.
 
-    \\begin{frame}
-      \\begin{referenceslide}{Sources and use}
-        \\referenceitem{Author or organization. Title. Year. Link.}
-        \\referenceitem{Author or organization. Title. Year. Link.}
-        \\referenceitem{Author or organization. Title. Year. Link.}
-      \\end{referenceslide}
-    \\end{frame}
+Use a short source line for the visual on the slide and full citations on a references slide. Continue a source list when needed so that references remain readable. Review rendered slides for clipped content, header/body overlap, safe margins, broken diagrams, missing sources, and meaning that depends on color.
 
-Keep 3–8 short references in one slide when they remain readable. Reference items are real text and links, not rasterized images. Add a short usage or limitation note when the audience needs to understand how the sources were used.
+`reportkit check --source-root <project> --json` runs the target's source checks. Build through ReportKit, render the relevant slides, then record the manual review with `reportkit review`. See [charts](charts.md), [visual grammar](visual-grammar.md), and [repository-boundary.md](repository-boundary.md) for topic guidance.
 
-A short `\\source{...}` line or diagram `source={...}` value is provenance for the visual on the current slide; it is not a replacement for a full bibliographic reference. Keep the short provenance line in the footer or visual caption and move full citations to `referenceslide`.
+<!-- REPORTKIT-CONTRACT:START -->
+## Generated primitive contract
 
-If references exceed the slide's stable capacity, add a continuation slide such as `Sources and use (continued)` or an appendix references slide. Preserve the same readable reference role and spacing. Never solve overflow by shrinking references or footer text below the configured source/reference minimum.
+This section is generated from source-adjacent and explicit virtual contract metadata. Do not edit it by hand.
 
-## Contract, boundary, and validation
+### Composition primitives
 
-`reportkit context --json` is the authoritative machine-readable capability catalog. `reportkit docs --check --json` is the documentation-drift gate. Contract inventories such as `references/primitive-contract.md` are generated from owning contract blocks or the supported registry command; do not hand-edit generated files. If a public composition changes, the implementation owner updates its contract source and reruns the supported generator/check.
+| Name | Signature | Arguments | Constraints | Stability | Canonical example |
+| --- | --- | --- | --- | --- | --- |
+| `appendixdivider` | `m` | `title` (text, required) — Appendix title, also registered as a \section (prefixed Appendix:) for the PDF outline/bookmarks. | Content only; wrap in \begin{frame}[plain]...\end{frame}. | stable since 1.9.3 | <code>\begin{frame}[plain]&lt;br&gt;\begin{appendixdivider}{Example}&lt;br&gt;\end{appendixdivider}&lt;br&gt;\end{frame}</code> |
+| `architectureslide` | `O{} O{}` | `caption` (text, optional=) — Optional caption, typeset the same way a diagram's is.<br>`source` (text, optional=) — Optional source line. | Same layout as fullvisual; named separately so an author or agent authoring an architecture slide finds it directly.<br>Content only; wrap in \begin{frame}...\end{frame}. | stable since 1.9.3 | <code>\begin{frame}&lt;br&gt;\begin{architectureslide}[][]&lt;br&gt;Example content.&lt;br&gt;\end{architectureslide}&lt;br&gt;\end{frame}</code> |
+| `assertionslide` | `O{} m O{}` | `options` (options, optional=) — Optional key list; currently supports kicker={...}.<br>`assertion` (text, required) — The single working-slide assertion.<br>`deck` (text, optional=) — Optional short supporting sentence in the deck hierarchy. | Content only; wrap in \begin{frame}...\end{frame}.<br>The header is measured and reserved at a fixed maximum height; body typography is not reduced to rescue an invalid assertion.<br>The assertion resolves to standard, compact, or invalid; invalid emits PRESENTATION_ASSERTION_TOO_LONG. | stable since 1.9.3 | <code>\begin{frame}&lt;br&gt;\begin{assertionslide}[kicker={Parenting constitution}]{Six household rules prevent most major unforced errors.}[Agree on these before you are tired.]&lt;br&gt;Evidence body.&lt;br&gt;\end{assertionslide}&lt;br&gt;\end{frame}</code> |
+| `cardgrid` | `O{}` | `options` (options, optional=) — columns=2, 3, or 4; optional default card variant. | Only columns=2, columns=3, and columns=4 are supported; invalid values emit a hard diagnostic.<br>Gutters, padding, minimum height, rule weight, and text roles come from presentation tokens.<br>Variants use borders, rails, ordinals, or rule weight in addition to fill.<br>Content only; wrap in \begin{frame}...\end{frame}. | stable since 1.9.3 | <code>\begin{frame}&lt;br&gt;\begin{cardgrid}[columns=2,variant=surface]&lt;br&gt;\carditem[numbered]{Rule one}{Short evidence.}&lt;br&gt;\carditem[accent-rail]{Rule two}{Short evidence.}&lt;br&gt;\end{cardgrid}&lt;br&gt;\end{frame}</code> |
+| `chartslide` | `O{right} m m` | `position` (options, optional=right) — left or right: which side the chart (this environment's content) renders on. Default right.<br>`heading` (text, required) — Heading for the text column.<br>`body` (text, required) — Supporting insight text for the text column. | Same layout as visualtext; named separately so an author or agent authoring a chart slide finds it directly.<br>Content only; wrap in \begin{frame}...\end{frame}. | stable since 1.9.3 | <code>\begin{frame}&lt;br&gt;\begin{chartslide}[right]{Example}{Example}&lt;br&gt;Example content.&lt;br&gt;\end{chartslide}&lt;br&gt;\end{frame}</code> |
+| `closingslide` | `m` | `headline` (text, required) — Closing statement or call to action. | Content only; wrap in \begin{frame}[plain]...\end{frame}. | stable since 1.9.3 | <code>\begin{frame}[plain]&lt;br&gt;\begin{closingslide}{Example}&lt;br&gt;Example content.&lt;br&gt;\end{closingslide}&lt;br&gt;\end{frame}</code> |
+| `comparison` | `` | — | Content must be exactly two \comparisoncolumn calls.<br>Content only; wrap in \begin{frame}...\end{frame}. | stable since 1.9.3 | <code>\begin{frame}&lt;br&gt;\begin{comparison}&lt;br&gt;\comparisoncolumn{Example}{Example}&lt;br&gt;\comparisoncolumn{Example}{Example}&lt;br&gt;\end{comparison}&lt;br&gt;\end{frame}</code> |
+| `evidenceslide` | `m` | `claim` (text, required) — The claim; content is the supporting evidence, visually separated from it. | Content only; wrap in \begin{frame}...\end{frame}. | stable since 1.9.3 | <code>\begin{frame}&lt;br&gt;\begin{evidenceslide}{Example}&lt;br&gt;Example content.&lt;br&gt;\end{evidenceslide}&lt;br&gt;\end{frame}</code> |
+| `fullvisual` | `O{} O{}` | `caption` (text, optional=) — Optional caption, typeset the same way a diagram's is.<br>`source` (text, optional=) — Optional source line. | Content only; wrap in \begin{frame}...\end{frame}. | stable since 1.9.3 | <code>\begin{frame}&lt;br&gt;\begin{fullvisual}[][]&lt;br&gt;Example content.&lt;br&gt;\end{fullvisual}&lt;br&gt;\end{frame}</code> |
+| `herometric` | `m m` | `value` (text, required) — The number, dominating the frame.<br>`label` (text, required) — What the number is. | Content only; wrap in \begin{frame}...\end{frame}. | stable since 1.9.3 | <code>\begin{frame}&lt;br&gt;\begin{herometric}{Example}{Example}&lt;br&gt;Example content.&lt;br&gt;\end{herometric}&lt;br&gt;\end{frame}</code> |
+| `messageslide` | `m` | `headline` (text, required) — The one assertion this slide makes. | Content only; wrap in \begin{frame}...\end{frame}. | stable since 1.9.3 | <code>\begin{frame}&lt;br&gt;\begin{messageslide}{Example}&lt;br&gt;Example content.&lt;br&gt;\end{messageslide}&lt;br&gt;\end{frame}</code> |
+| `referenceslide` | `m O{}` | `title` (text, required) — Compact heading for the references frame.<br>`note` (text, optional=) — Optional usage or limitation note. | Content only; wrap in \begin{frame}...\end{frame}.<br>Use 3–8 referenceitem calls; more than eight emits a hard overflow diagnostic and should continue on another slide.<br>Reference items use the theme-owned source font and are never silently shrunk below it. | stable since 1.9.3 | <code>\begin{frame}&lt;br&gt;\begin{referenceslide}{Sources and use}[Short usage note.]&lt;br&gt;\referenceitem{Author (2026), Title. \\url{https://example.com}}&lt;br&gt;\end{referenceslide}&lt;br&gt;\end{frame}</code> |
+| `sectiondivider` | `O{Section} m` | `eyebrow` (text, optional=Section) — Optional small label above the section title; defaults to Section.<br>`title` (text, required) — Section title, also registered as a \section for the PDF outline/bookmarks. | Content only; wrap in \begin{frame}[plain]...\end{frame}. | stable since 1.9.3 | <code>\begin{frame}[plain]&lt;br&gt;\begin{sectiondivider}[Section 01]{Example}&lt;br&gt;\end{sectiondivider}&lt;br&gt;\end{frame}</code> |
+| `tableslide` | `O{right} m m` | `position` (options, optional=right) — left or right: which side the table (this environment's content) renders on. Default right.<br>`heading` (text, required) — Heading for the text column.<br>`body` (text, required) — Supporting insight text for the text column. | Same layout as visualtext; named separately so an author or agent authoring a table slide finds it directly.<br>Content only; wrap in \begin{frame}...\end{frame}. | stable since 1.9.3 | <code>\begin{frame}&lt;br&gt;\begin{tableslide}[right]{Example}{Example}&lt;br&gt;Example content.&lt;br&gt;\end{tableslide}&lt;br&gt;\end{frame}</code> |
+| `threepart` | `` | — | Content must be exactly three \threepartcolumn calls.<br>Content only; wrap in \begin{frame}...\end{frame}. | stable since 1.9.3 | <code>\begin{frame}&lt;br&gt;\begin{threepart}&lt;br&gt;\threepartcolumn{Example}{Example}&lt;br&gt;\threepartcolumn{Example}{Example}&lt;br&gt;\threepartcolumn{Example}{Example}&lt;br&gt;\end{threepart}&lt;br&gt;\end{frame}</code> |
+| `titleslide` | `` | — | Content only; wrap in \begin{frame}[plain]...\end{frame}.<br>Reads \title/\subtitle/\author/\date and reportkit-core's \rk@leftheader (set with \setreportkitleftheader); set those before use, as with the paged renderer's \maketitle. | stable since 1.9.3 | <code>\begin{frame}[plain]&lt;br&gt;\begin{titleslide}&lt;br&gt;\end{titleslide}&lt;br&gt;\end{frame}</code> |
+| `visualtext` | `O{right} m m` | `position` (options, optional=right) — left or right: which side the visual (this environment's content) renders on. Default right.<br>`heading` (text, required) — Heading for the text column.<br>`body` (text, required) — Supporting text for the text column. | Content only; wrap in \begin{frame}...\end{frame}. | stable since 1.9.3 | <code>\begin{frame}&lt;br&gt;\begin{visualtext}[right]{Example}{Example}&lt;br&gt;Example content.&lt;br&gt;\end{visualtext}&lt;br&gt;\end{frame}</code> |
 
-The ReportKit repository is the reusable engine, not a publication workspace. Keep manuscripts, fragments, assets, generated figures, build output, and final PDFs in a separate consumer project; follow [repository-boundary.md](repository-boundary.md). This documentation does not authorize adding a deck fixture or generated artifact to the engine repository.
+### Command primitives
 
-For a full build, use `reportkit build --source-root <publication-project>`, render only relevant pages/slides with `reportkit render --source-root <publication-project> --pages ... --dpi 150`, and run `reportkit inspect --source-root <publication-project>`. Review rendered slides for clipped text, header/body overlap, unsafe margins, broken diagrams, missing sources, and meanings conveyed only by color. A successful TeX exit code alone is not completion.
+| Name | Signature | Arguments | Constraints | Stability | Canonical example |
+| --- | --- | --- | --- | --- | --- |
+| `carditem` | `O{} m m` | `variant` (options, optional=) — plain, surface, accent-rail, numbered, or emphasis; defaults to the parent grid variant.<br>`heading` (text, required) — Card heading.<br>`body` (text, required) — Dense evidence text. | Use inside cardgrid.<br>Only plain, surface, accent-rail, numbered, and emphasis are supported. | stable since 1.9.3 | <code>\carditem[accent-rail]{Heading}{Evidence}</code> |
+| `comparisoncolumn` | `m m` | `heading` (text, required) — Column heading.<br>`body` (text, required) — Column content. | Only valid inside a comparison environment. | stable since 1.9.3 | <code>\comparisoncolumn{Example}{Example}</code> |
+| `referenceitem` | `m` | `reference` (text, required) — One short source or reference entry. | Only valid inside referenceslide. | stable since 1.9.3 | <code>\referenceitem{Author (2026), Title.}</code> |
+| `threepartcolumn` | `m m` | `heading` (text, required) — Column heading.<br>`body` (text, required) — Column content. | Only valid inside a threepart environment. | stable since 1.9.3 | <code>\threepartcolumn{Example}{Example}</code> |
+
+<!-- REPORTKIT-CONTRACT:END -->

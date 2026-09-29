@@ -3,9 +3,13 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+import json
 import shutil
 import subprocess
 import tarfile
+
+from .authoring_templates import document_template
+from .publications import PUBLICATION_TYPES
 
 
 PROJECT_DIRECTORIES = ("manuscript", "fragments", "assets", "figures", "build", "output")
@@ -28,6 +32,11 @@ title:
 # keywords:
 # disclaimer:
 # project_url:
+document:
+  publication_type:   # REQUIRED: run `reportkit target set` (see SKILL.md selection table)
+  theme:
+validation:
+  require_declared_target: true
 """
 PUBLICATION_CONTENT = PUBLICATION_CONFIG
 
@@ -81,6 +90,83 @@ def initialize(target: Path, repo_root: Path) -> InitResult:
     """Scaffold a consumer project and return a structured result for callers."""
     resolved, created = initialize_project(target, repo_root)
     return InitResult(target=resolved, created=tuple(created))
+
+
+def scaffold_target(
+    target: Path, publication_type: str, theme: str, source_mode: str, *, main: str = "report.tex",
+) -> tuple[str, ...]:
+    """Create a target-specific starter and composition brief without overwriting.
+
+    This is called only when ``reportkit init`` receives target flags. The
+    template is derived from the target's canonical opening grammar; the
+    brief is copied from its canonical example with the reference left blank
+    for the consumer to fill in.
+    """
+    root = Path(target).resolve()
+    if publication_type not in PUBLICATION_TYPES:
+        raise ValueError(f"unknown publication type {publication_type!r}")
+    record = PUBLICATION_TYPES[publication_type]
+    repository = Path(__file__).resolve().parents[2]
+    created: list[str] = []
+
+    if source_mode == "tex":
+        destination = (root / main).resolve()
+        if destination != root and root not in destination.parents:
+            raise ValueError("document.main must stay inside the consumer project")
+        if not destination.exists():
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            starter = document_template(publication_type, theme)
+            starter = starter.replace("{{body}}", "% TODO: author the target-specific composition here.\n")
+            destination.write_text(starter, encoding="utf-8")
+            created.append(str(destination.relative_to(root)))
+    elif source_mode == "markdown":
+        manuscript = root / "manuscript"
+        manuscript.mkdir(parents=True, exist_ok=True)
+        source = manuscript / "01-introduction.md"
+        if not source.exists():
+            source.write_text(
+                "# Start with the reader's question\n\n"
+                "State the main point, then support it with evidence and sources.\n",
+                encoding="utf-8",
+            )
+            created.append("manuscript/01-introduction.md")
+        order = root / "manuscript" / "order.txt"
+        if order.is_file() and order.read_text(encoding="utf-8").strip() == ORDER_FILE.strip():
+            order.write_text("01-introduction.md\n", encoding="utf-8")
+            created.append("manuscript/order.txt")
+
+    brief_path = root / "composition-brief.json"
+    if not brief_path.exists():
+        example_name = str(record.get("composition_brief_example") or "")
+        example = repository / example_name if example_name else Path()
+        if not example.is_file():
+            example_dir = repository / str(record.get("canonical_example", ""))
+            alternatives = (example_dir / "editorial-brief.json", example_dir / "composition-brief.json")
+            example = next((candidate for candidate in alternatives if candidate.is_file()), Path())
+        if example.is_file():
+            brief = json.loads(example.read_text(encoding="utf-8"))
+            if not isinstance(brief, dict):
+                raise ValueError(f"canonical composition brief must be a JSON object: {example}")
+            brief["publication_type"] = publication_type
+            brief["visual_reference"] = ""
+        else:
+            brief = {
+                "schema_version": "1.0.0",
+                "publication_type": publication_type,
+                "visual_reference": "",
+                "required": [],
+            }
+        try:
+            intent = json.loads((root / ".reportkit" / "intent.json").read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            intent = {}
+        if isinstance(intent, dict) and isinstance(intent.get("visual_reference"), str):
+            if intent["visual_reference"].strip():
+                brief["visual_reference"] = intent["visual_reference"]
+        brief_path.write_text(json.dumps(brief, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+        created.append("composition-brief.json")
+
+    return tuple(created)
 
 
 def _texmf_local() -> Path:

@@ -5,6 +5,8 @@ import html
 from pathlib import Path
 from typing import Any
 
+from .primitive_targets import role_for
+
 START = "<!-- REPORTKIT-CONTRACT:START -->"
 END = "<!-- REPORTKIT-CONTRACT:END -->"
 
@@ -37,11 +39,17 @@ def render_reference(registry: dict[str, Any], *, publication_type: str | None =
         START,
         "## Generated primitive contract",
         "",
-        "This section is generated from source-adjacent contract metadata. Do not edit it by hand.",
+        "This section is generated from source-adjacent and explicit virtual contract metadata. Do not edit it by hand.",
         "",
     ]
     for kind, records in registry["primitives"].items():
-        selected = [record for record in records.values() if not publication_type or publication_type in record["available_in"]["publication_types"]]
+        selected = [
+            record for record in records.values()
+            if not publication_type or (
+                publication_type in record["available_in"]["publication_types"]
+                and role_for(record["name"], kind, publication_type) == "native"
+            )
+        ]
         if not selected:
             continue
         lines.extend([
@@ -77,6 +85,7 @@ def generated_documents(repo_root: Path, registry: dict[str, Any]) -> dict[Path,
         repo_root / "references" / "primitive-contract.md": render_reference(registry),
         repo_root / "references" / "institutional-research-theme.md": render_reference(registry, publication_type="equity-research"),
         repo_root / "references" / "feature-article-authoring.md": render_reference(registry, publication_type="feature-article"),
+        repo_root / "references" / "presentation-authoring.md": render_reference(registry, publication_type="presentation"),
     }
     return {
         path: _replace_generated(path.read_text(encoding="utf-8"), generated)

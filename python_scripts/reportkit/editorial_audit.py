@@ -70,9 +70,11 @@ def _without_reference_tail(section: str) -> str:
     return re.split(r"\\(?:subsection|subsubsection)\*?\{(?:Sources|Evidence notes and references)\}", section, maxsplit=1)[0]
 
 
-def audit_editorial_source(tex: Path, brief: Path) -> dict[str, Any]:
+def audit_editorial_source(
+    tex: Path, brief: Path, *, source_text: str | None = None,
+) -> dict[str, Any]:
     """Check a feature's source against a declared, publication-specific brief."""
-    source = tex.read_text(encoding="utf-8")
+    source = source_text if source_text is not None else tex.read_text(encoding="utf-8")
     request = json.loads(brief.read_text(encoding="utf-8"))
     if not isinstance(request, dict):
         raise ValueError("editorial brief must be a JSON object")

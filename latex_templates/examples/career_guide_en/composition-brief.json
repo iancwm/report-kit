@@ -1,0 +1,8 @@
+{
+  "schema_version": "1.0.0",
+  "visual_reference": "latex_templates/examples/career_guide_en/report.tex (canonical technical-report example)",
+  "required": [],
+  "manual_review": [
+    "Review the rendered pages for hierarchy, legibility, and evidence placement."
+  ]
+}

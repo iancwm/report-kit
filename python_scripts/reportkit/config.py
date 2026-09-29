@@ -371,14 +371,23 @@ def _profile_section(config: dict[str, Any], name: str, profile: str | None) -> 
 
 def resolve_document(config: dict[str, Any], profile: str | None = None) -> dict[str, Any]:
     document = _profile_section(config, "document", profile)
+    # Capture declaration provenance before applying defaults. Empty YAML
+    # placeholders (the fresh-init state) are defaults just like missing
+    # values; retaining that distinction lets target_gate reject new projects
+    # without changing the values resolved for legacy callers.
+    declared_publication_type = document.get("publication_type") not in (None, "")
     document.setdefault("main", "report.tex")
     document.setdefault("class", "reportkit")
-    document.setdefault("publication_type", "technical-report")
+    if document.get("publication_type") in (None, ""):
+        document["publication_type"] = "technical-report"
     publication = PUBLICATION_TYPES.get(str(document["publication_type"]))
     default_target = (publication or {}).get("default_target", {})
-    document.setdefault("theme", default_target.get("theme", "default"))
+    if document.get("theme") in (None, ""):
+        document["theme"] = default_target.get("theme", "default")
+    document.setdefault("source_mode", "markdown")
     theme = THEMES.get(str(document["theme"]))
     document.setdefault("engine", (theme or {}).get("required_engine", "pdflatex"))
+    document["declared_by"] = "publication.yaml" if declared_publication_type else "default"
     # decision D5 (multi-format publication architecture spec): a canvas-based
     # renderer (slides) never gets a fake "paper" value -- an omitted paper
     # key must stay omitted so context/build-report honestly report a canvas
