@@ -33,7 +33,7 @@ The feature package defines article roles; the editorial theme supplies size, fa
 
 ## Diagrams, charts, and typography
 
-Feature exhibits may use these native diagrams: `reportcycle`, `reportflow`, `reportmatrix`, `reporttimeline`, `reportcompare`, `continuum`, `reportroadmap`, and `capabilitymap`. The shared [diagram reference](diagrams-and-algorithms.md) has syntax examples for that subset; use its visual questions as selection guidance. All registered chart functions are available; use [chart guidance](charts.md) for data encoding and provenance. The editorial theme provides `column` and `inset` figure sizes through `rkv.apply_theme("editorial")`.
+Feature article diagrams use `reportcycle`, `reportflow`, or a `diagram` wrapper with `\step` and `\flowedge`. The shared [diagram reference](diagrams-and-algorithms.md) provides examples for this subset. The available chart functions are `donut_chart` and `timeseries`; use [chart guidance](charts.md) for data encoding and provenance. The editorial theme provides `column` and `inset` figure sizes through `rkv.apply_theme("editorial")`.
 
 English Latin-script typography is verified by the canonical fixture. Vietnamese is metadata-only; other scripts are undeclared and right-to-left text is unsupported. See the [generated primitive contract](primitive-contract.md) for exact signatures.
 

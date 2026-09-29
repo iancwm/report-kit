@@ -22,6 +22,14 @@ Run commands from the publication directory. The CLI restates the target and nex
 | Review | `reportkit render --pages 1` then `reportkit review --visual-review done --json` | Rendered pages and review record |
 | Deliver | `reportkit status --json` | Reconstructed project state |
 
+### Example status transcript
+
+```text
+TARGET structure=technical-report look=default renderer=paged  source=markdown  declared=publication.yaml  intent=.reportkit/intent.json
+intent: A concise technical report
+next step: deliver (Quote this status TARGET line in the delivery message.)
+```
+
 ## Choose structure and look
 
 `document.publication_type` selects the publication structure; `document.theme` selects its visual system. Pick both before authoring, then choose a supported `document.source_mode`.

@@ -51,3 +51,10 @@ def test_every_cli_command_mentioned_in_skill_exists_in_command_contract() -> No
     commands = set(re.findall(r"(?<![\w/.-])reportkit[ \t]+([a-z][a-z0-9-]*)", SKILL_TEXT))
     assert commands
     assert commands <= set(COMMAND_CONTRACT)
+
+
+def test_skill_router_includes_status_transcript_example() -> None:
+    assert "### Example status transcript" in SKILL_TEXT
+    assert "TARGET structure=technical-report look=default renderer=paged  source=markdown  declared=publication.yaml  intent=.reportkit/intent.json" in SKILL_TEXT
+    assert "intent: A concise technical report" in SKILL_TEXT
+    assert "next step: deliver (Quote this status TARGET line in the delivery message.)" in SKILL_TEXT
