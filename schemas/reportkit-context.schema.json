@@ -5,6 +5,26 @@
   "type": "object",
   "required": ["schema_version", "passed", "diagnostics", "contract_version", "reportkit_version", "revision", "selection", "capabilities", "commands", "command_contract", "schemas", "toolchain", "context_budget"],
   "$defs": {
+    "target": {
+      "description": "The TARGET line (agent reasoning loop spec §4.1): the project's declared or defaulted publication target.",
+      "type": "object",
+      "properties": {
+        "line": {"type": "string"},
+        "publication_type": {"type": "string"},
+        "theme": {"type": "string"},
+        "renderer": {"type": "string"},
+        "source_mode": {"enum": ["tex", "markdown"]},
+        "declared_by": {"enum": ["publication.yaml", "tex-class-options", "default"]},
+        "intent_path": {"type": ["string", "null"]}
+      },
+      "additionalProperties": true
+    },
+    "next_step": {
+      "description": "The next command in the reasoning loop, or the remediation command after a failed gate.",
+      "type": "object",
+      "properties": {"command": {"type": "string"}, "reason": {"type": "string"}},
+      "additionalProperties": true
+    },
     "font_stack": {
       "type": "object",
       "required": ["body", "heading", "mono"],
@@ -160,6 +180,8 @@
     },
     "commands": {"type": "object", "additionalProperties": {"type": "string"}},
     "command_contract": {"type": "object"}, "schemas": {"type": "object"}, "toolchain": {"type": "object"},
+    "target": {"$ref": "#/$defs/target"},
+    "next_step": {"$ref": "#/$defs/next_step"},
     "context_budget": {
       "type": "object",
       "required": ["accounting", "always_loaded", "always_loaded_ceiling", "slices"],

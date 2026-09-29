@@ -20,13 +20,41 @@
         "details": {"type": "object"}
       },
       "additionalProperties": true
+    },
+    "target": {
+      "description": "The TARGET line (agent reasoning loop spec §4.1): the project's declared or defaulted publication target.",
+      "type": "object",
+      "properties": {
+        "line": {"type": "string"},
+        "publication_type": {"type": "string"},
+        "theme": {"type": "string"},
+        "renderer": {"type": "string"},
+        "source_mode": {"enum": ["tex", "markdown"]},
+        "declared_by": {"enum": ["publication.yaml", "tex-class-options", "default"]},
+        "intent_path": {"type": ["string", "null"]}
+      },
+      "additionalProperties": true
+    },
+    "next_step": {
+      "description": "The next command in the reasoning loop, or the remediation command after a failed gate.",
+      "type": "object",
+      "properties": {"command": {"type": "string"}, "reason": {"type": "string"}},
+      "additionalProperties": true
     }
   },
   "required": ["schema_version", "passed", "diagnostics"],
   "properties": {
     "schema_version": {"const": "1.0.0"},
     "passed": {"type": "boolean"},
-    "diagnostics": {"type": "array", "items": {"$ref": "#/$defs/diagnostic"}}
+    "diagnostics": {"type": "array", "items": {"$ref": "#/$defs/diagnostic"}},
+    "target": {
+      "anyOf": [
+        {"$ref": "#/$defs/target"},
+        {"type": "string", "description": "init only: the scaffolded project path (v1.x); init reports its loop target as publication_target."}
+      ]
+    },
+    "publication_target": {"$ref": "#/$defs/target"},
+    "next_step": {"$ref": "#/$defs/next_step"}
   },
   "additionalProperties": true
 }

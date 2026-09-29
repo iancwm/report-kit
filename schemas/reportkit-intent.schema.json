@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:reportkit:schema:intent:1.0.0",
+  "title": "ReportKit publication intent (.reportkit/intent.json)",
+  "description": "The user's decision, persisted in the consumer project by `reportkit target set` (agent reasoning loop spec §4.2). It never enters the ReportKit repository.",
+  "type": "object",
+  "required": ["schema_version", "request", "publication_type", "theme", "source_mode", "decided_by", "locked_at"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "request": {"type": "string", "description": "The user's request, verbatim (decision 3)."},
+    "publication_type": {"type": "string", "minLength": 1},
+    "theme": {"type": "string", "minLength": 1},
+    "source_mode": {"enum": ["tex", "markdown"]},
+    "visual_reference": {"type": ["string", "null"], "description": "Project-relative path to the user's visual reference, if any."},
+    "composition_brief": {"type": ["string", "null"], "description": "Project-relative path to the target's composition brief."},
+    "decided_by": {"enum": ["user-confirmed", "agent-inferred"]},
+    "alias": {"type": ["string", "null"], "description": "The natural-language alias the target was resolved from, if any."},
+    "locked_at": {"type": "string", "format": "date-time"}
+  },
+  "additionalProperties": false
+}

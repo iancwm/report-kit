@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:reportkit:schema:status:1.0.0",
+  "title": "ReportKit loop status",
+  "description": "`reportkit status --json` (agent reasoning loop spec §4.8): the loop's state reconstructed from the consumer project on disk alone. A diagnostic envelope plus the fields below.",
+  "type": "object",
+  "required": ["schema_version", "passed", "diagnostics", "target", "intent", "next_step"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "passed": {"type": "boolean"},
+    "diagnostics": {"type": "array", "items": {"type": "object"}},
+    "source_root": {"type": "string"},
+    "target": {"$ref": "#/$defs/target"},
+    "intent": {"type": ["object", "null"], "description": "The parsed .reportkit/intent.json, or null when no intent is recorded."},
+    "brief": {
+      "type": ["object", "null"],
+      "properties": {
+        "path": {"type": ["string", "null"]},
+        "passed": {"type": ["boolean", "null"]}
+      },
+      "additionalProperties": true
+    },
+    "last_step": {
+      "type": ["object", "null"],
+      "properties": {
+        "step": {"enum": ["SELECT", "LOCK", "SCAFFOLD", "AUTHOR", "CHECK", "BUILD", "REVIEW", "DELIVER"]},
+        "at": {"type": "string"},
+        "artefact": {"type": ["string", "null"]}
+      },
+      "additionalProperties": true
+    },
+    "visual_review": {"enum": ["done", "unavailable", null]},
+    "delivery_caveat": {"type": ["string", "null"], "description": "Mandatory text for the delivery message when rendered pages were not viewed."},
+    "next_step": {"$ref": "#/$defs/next_step"}
+  },
+  "additionalProperties": true,
+  "$defs": {
+    "target": {
+      "description": "The TARGET line (agent reasoning loop spec §4.1): the project's declared or defaulted publication target.",
+      "type": "object",
+      "properties": {
+        "line": {"type": "string"},
+        "publication_type": {"type": "string"},
+        "theme": {"type": "string"},
+        "renderer": {"type": "string"},
+        "source_mode": {"enum": ["tex", "markdown"]},
+        "declared_by": {"enum": ["publication.yaml", "tex-class-options", "default"]},
+        "intent_path": {"type": ["string", "null"]}
+      },
+      "additionalProperties": true
+    },
+    "next_step": {
+      "description": "The next command in the reasoning loop, or the remediation command after a failed gate.",
+      "type": "object",
+      "properties": {"command": {"type": "string"}, "reason": {"type": "string"}},
+      "additionalProperties": true
+    }
+  }
+}

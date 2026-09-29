@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:reportkit:schema:review:1.0.0",
+  "title": "ReportKit review record (build/review.json)",
+  "description": "Written by `reportkit review` (agent reasoning loop spec §4.8): the brief's manual-review checklist and whether the host could view rendered pages.",
+  "type": "object",
+  "required": ["schema_version", "pdf", "publication_type", "theme", "visual_review", "checklist", "reviewed_at"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "pdf": {"type": "string"},
+    "publication_type": {"type": "string"},
+    "theme": {"type": "string"},
+    "visual_review": {
+      "enum": ["done", "unavailable", null],
+      "description": "`unavailable` when the host cannot view images; `status` then prints a delivery caveat. null while pending."
+    },
+    "checklist": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["item"],
+        "properties": {
+          "item": {"type": "string"},
+          "page": {"type": ["integer", "null"], "minimum": 1},
+          "done": {"type": "boolean"}
+        },
+        "additionalProperties": true
+      }
+    },
+    "reviewed_at": {"type": "string", "format": "date-time"}
+  },
+  "additionalProperties": true
+}

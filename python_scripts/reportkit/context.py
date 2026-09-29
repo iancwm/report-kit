@@ -8,6 +8,7 @@ import re
 import subprocess
 from typing import Any, Iterable
 
+from .authoring_templates import document_template
 from .config import load_publication_config, resolve_document, resolve_theme
 from .context_budget import build_budget_metadata
 from .diagnostics import make_diagnostic
@@ -19,7 +20,9 @@ from .publications import (
     compatibility_error,
     resolve_build_target,
 )
+from .loop import target_line, target_payload
 from .registry import CALLOUT_ENVIRONMENTS, COMMANDS, LEGACY_CHART_NAMES, PRIMITIVE_KINDS, generate_registry
+from .target import load_target
 from .toolchain import toolchain_context
 from .version import CONTRACT_VERSION, CONTEXT_SCHEMA_VERSION, DIAGNOSTIC_SCHEMA_VERSION, REPORTKIT_VERSION
 
@@ -179,12 +182,7 @@ def build_context(
             code="RK_VERSION_PARITY", severity="warning", docs="#/reportkit_version",
             remediation="Tag the release with the ReportKit version or use a checkout whose class metadata matches its revision.",
         ))
-    document_options = f"theme={target.requested_theme},publication-type={target.publication_type}"
-    authoring_template = (
-        f"\\documentclass[{document_options}]{{{target.class_name}}}\n"
-        "\\title{Contract acceptance}\n\\author{ReportKit}\n"
-        "\\begin{document}\n\\maketitle\n{{body}}\n\\end{document}\n"
-    )
+    authoring_template = document_template(target.publication_type, target.requested_theme)
     result: dict[str, Any] = {
         "schema_version": CONTEXT_SCHEMA_VERSION,
         "passed": True,
@@ -245,6 +243,13 @@ def build_context(
         },
         "command_strings": dict(COMMANDS),
     }
+    # Agent reasoning loop spec §4.1-§4.2: restate the project's declared (or
+    # defaulted) target. ``line`` feeds the quickstart slice's target wording.
+    state = load_target(source_root)
+    loop_target = target_payload(state)
+    line = target_line(state)
+    if loop_target or line:
+        result["target"] = {**loop_target, "line": line} if line else loop_target
     if diagnostics:
         result["version_warning"] = f"git ref {revision} does not end with class version {class_version}"
     result["context_budget"] = build_budget_metadata(result)

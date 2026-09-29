@@ -43,10 +43,77 @@ DIAGNOSTIC_DEFINITIONS: dict[str, dict[str, str]] = {
     "blank_page": {"severity": "error", "remediation": "Remove the unintended page break or add the missing page content."},
     "visual_regression": {"severity": "error", "remediation": "Review the rendered difference; fix the regression or explicitly regenerate the pinned baseline."},
     "security_violation": {"severity": "error", "remediation": "Use paths inside the publication root and do not enable shell escape."},
+    # Agent reasoning loop spec §4.2-§4.3, §4.7: the publication target is a
+    # persisted decision, and composition findings are judged against it.
+    "target_contract": {"severity": "error", "remediation": "Declare the publication target with `reportkit target set --publication-type <type> --theme <theme> --source-mode <tex|markdown>`, then rerun reportkit check."},
+    "off_target": {"severity": "warning", "remediation": "Replace the primitive with one listed by `reportkit context --slice primitives` for the declared target."},
     "internal_error": {"severity": "error", "remediation": "Report the failure with the command output and ReportKit revision."},
 }
 
 DIAGNOSTIC_TYPES = tuple(DIAGNOSTIC_DEFINITIONS)
+
+# Code-level defaults for diagnostics whose remediation is more specific than
+# their kind's (agent reasoning loop spec §4.2-§4.8). ``make_diagnostic``
+# applies these when the caller passes the code without its own severity or
+# remediation. ``exit_code`` is the CLI exit status a blocking instance maps to.
+DIAGNOSTIC_CODES: dict[str, dict[str, Any]] = {
+    "RK_TARGET_UNDECLARED": {
+        "type": "target_contract", "severity": "error", "exit_code": 3,
+        "remediation": (
+            "TARGET NOT DECLARED: the build refuses a defaulted target. Pick a row from "
+            "`reportkit context --slice quickstart` and run `reportkit target set --publication-type <type> "
+            "--theme <theme> --source-mode <tex|markdown> --request \"<verbatim user ask>\"`."
+        ),
+    },
+    "RK_TARGET_IMPLICIT": {
+        "type": "target_contract", "severity": "warning", "exit_code": 0,
+        "remediation": (
+            "The target was defaulted, not declared. Run `reportkit target set --publication-type <type> "
+            "--theme <theme>` to record the decision in publication.yaml and .reportkit/intent.json."
+        ),
+    },
+    "RK_TARGET_MISMATCH": {
+        "type": "target_contract", "severity": "error", "exit_code": 3,
+        "remediation": (
+            "Make the `\\documentclass[publication-type=...,theme=...]` options in document.main agree with "
+            "publication.yaml, or change the declared target with `reportkit target set`."
+        ),
+    },
+    "RK_SOURCE_MODE_UNSUPPORTED": {
+        "type": "target_contract", "severity": "error", "exit_code": 3,
+        "remediation": (
+            "This target does not support the requested source mode. Run `reportkit target set "
+            "--source-mode tex` and author the publication as direct TeX."
+        ),
+    },
+    "RK_ENGINE_DOWNGRADE": {
+        "type": "environment_error", "severity": "error", "exit_code": 5,
+        "remediation": (
+            "This theme requires LuaLaTeX: install LuaLaTeX (run scripts/setup_tex.sh) and rerun "
+            "`reportkit build` without forcing pdflatex. Keep the declared theme."
+        ),
+    },
+    "RK_PRIMITIVE_OFF_TARGET": {
+        "type": "off_target", "severity": "warning", "exit_code": 3,
+        "remediation": (
+            "Replace the primitive with a native one from `reportkit context --slice primitives` for the "
+            "declared target; a brief with \"strict\": true makes this finding blocking."
+        ),
+    },
+    "RK_LOCAL_STYLE": {
+        "type": "off_target", "severity": "error", "exit_code": 3,
+        "remediation": (
+            "Remove the local styling command and use the declared theme's primitives; rerun `reportkit check`."
+        ),
+    },
+    "RK_INTENT_MISMATCH": {
+        "type": "target_contract", "severity": "error", "exit_code": 3,
+        "remediation": (
+            "The built target differs from .reportkit/intent.json. Rebuild with the declared target, or "
+            "record a new decision with `reportkit target set` if the user changed it."
+        ),
+    },
+}
 
 
 def _diagnostic_code(kind: str, rule: str | None = None) -> str:
@@ -80,6 +147,9 @@ def make_diagnostic(
 ) -> dict[str, Any]:
     """Create one record in the stable diagnostic schema."""
     definition = DIAGNOSTIC_DEFINITIONS.get(kind, DIAGNOSTIC_DEFINITIONS["internal_error"])
+    registered = DIAGNOSTIC_CODES.get(code or "")
+    if registered:
+        definition = {**definition, "severity": registered["severity"], "remediation": registered["remediation"]}
     normalized_source = None if source is None else {
         "file": source.get("file"),
         "line": source.get("line"),
@@ -105,6 +175,21 @@ def make_diagnostic(
     item["owner"] = item["details"].get("owner", _owner(kind, item["file"]))
     item["blocking"] = item["severity"] == "error"
     return item
+
+
+def registered_exit_code(diagnostics: Iterable[dict[str, Any]]) -> int | None:
+    """Return the exit status registered for the blocking coded diagnostics.
+
+    Environment failures (5) outrank validation failures (3): the fix for an
+    engine downgrade is setup, not source. ``None`` means no blocking
+    diagnostic carries a registered code, so the caller keeps its own rule.
+    """
+    codes = [
+        int(DIAGNOSTIC_CODES[item["code"]]["exit_code"])
+        for item in diagnostics
+        if item.get("severity") == "error" and item.get("code") in DIAGNOSTIC_CODES
+    ]
+    return max(codes) if codes else None
 
 
 def diagnostic_envelope(

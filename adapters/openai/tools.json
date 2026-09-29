@@ -13,12 +13,28 @@
             "description": "install the bundled Libertinus fonts into TEXMFLOCAL",
             "type": "boolean"
           },
+          "publication_type": {
+            "description": "lock the publication structure (see the quickstart selection table)",
+            "type": "string"
+          },
+          "source_mode": {
+            "description": "author as direct TeX or Markdown",
+            "enum": [
+              "tex",
+              "markdown"
+            ],
+            "type": "string"
+          },
           "target": {
             "description": "consumer publication project to scaffold",
             "type": "string"
           },
           "target_option": {
             "description": "consumer publication project to scaffold",
+            "type": "string"
+          },
+          "theme": {
+            "description": "lock the publication look",
             "type": "string"
           }
         },
@@ -108,6 +124,86 @@
       "type": "function"
     },
     {
+      "description": "Lock the publication target in publication.yaml and record the user's intent.",
+      "name": "reportkit_target_set",
+      "parameters": {
+        "additionalProperties": false,
+        "properties": {
+          "decided_by": {
+            "description": "whether the user confirmed the target or the agent inferred it",
+            "enum": [
+              "user-confirmed",
+              "agent-inferred"
+            ],
+            "type": "string"
+          },
+          "publication_type": {
+            "description": "publication structure, or a natural-language alias such as 'magazine'",
+            "type": "string"
+          },
+          "reference": {
+            "description": "path to the user's visual reference, if any",
+            "type": "string"
+          },
+          "request": {
+            "description": "the user's verbatim request, stored in .reportkit/intent.json",
+            "type": "string"
+          },
+          "source_mode": {
+            "description": "author as direct TeX or Markdown",
+            "enum": [
+              "tex",
+              "markdown"
+            ],
+            "type": "string"
+          },
+          "source_root": {
+            "description": "consumer publication project",
+            "type": "string"
+          },
+          "theme": {
+            "description": "publication look",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "strict": true,
+      "type": "function"
+    },
+    {
+      "description": "Show the declared or defaulted publication target.",
+      "name": "reportkit_target_show",
+      "parameters": {
+        "additionalProperties": false,
+        "properties": {
+          "source_root": {
+            "description": "consumer publication project",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "strict": true,
+      "type": "function"
+    },
+    {
+      "description": "Reconstruct the publication loop's state (target, intent, last step, next step) from disk.",
+      "name": "reportkit_status",
+      "parameters": {
+        "additionalProperties": false,
+        "properties": {
+          "source_root": {
+            "description": "consumer publication project",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "strict": true,
+      "type": "function"
+    },
+    {
       "description": "Validate publication structure without invoking TeX.",
       "name": "reportkit_check",
       "parameters": {
@@ -140,17 +236,40 @@
       "type": "function"
     },
     {
-      "description": "Compare a hand-authored feature article with its declared editorial composition brief.",
+      "description": "Compare a hand-authored publication source with its declared composition brief.",
+      "name": "reportkit_audit",
+      "parameters": {
+        "additionalProperties": false,
+        "properties": {
+          "brief": {
+            "description": "JSON composition brief naming the visual reference and expected roles",
+            "type": "string"
+          },
+          "tex": {
+            "description": "hand-authored TeX source",
+            "type": "string"
+          }
+        },
+        "required": [
+          "tex"
+        ],
+        "type": "object"
+      },
+      "strict": true,
+      "type": "function"
+    },
+    {
+      "description": "Compare a hand-authored publication source with its declared composition brief.",
       "name": "reportkit_audit_editorial",
       "parameters": {
         "additionalProperties": false,
         "properties": {
           "brief": {
-            "description": "JSON brief naming the visual reference and expected editorial roles",
+            "description": "JSON composition brief naming the visual reference and expected roles",
             "type": "string"
           },
           "tex": {
-            "description": "hand-authored feature-article TeX source",
+            "description": "hand-authored TeX source",
             "type": "string"
           }
         },
@@ -341,6 +460,34 @@
           },
           "source_root": {
             "description": "consumer publication project",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "strict": true,
+      "type": "function"
+    },
+    {
+      "description": "Record the manual review checklist and whether rendered pages were viewed.",
+      "name": "reportkit_review",
+      "parameters": {
+        "additionalProperties": false,
+        "properties": {
+          "pdf": {
+            "description": "pdf",
+            "type": "string"
+          },
+          "source_root": {
+            "description": "consumer publication project",
+            "type": "string"
+          },
+          "visual_review": {
+            "description": "'unavailable' when the host cannot view rendered pages",
+            "enum": [
+              "done",
+              "unavailable"
+            ],
             "type": "string"
           }
         },
