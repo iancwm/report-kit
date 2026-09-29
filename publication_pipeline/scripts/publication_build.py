@@ -91,13 +91,17 @@ from reportkit.config import (  # noqa: E402
     theme_font_policy_conflict,
 )
 from reportkit.manifest import unique_build_id, write_report  # noqa: E402
-from reportkit.diagnostics import diagnostic_envelope, inspect_log, make_diagnostic  # noqa: E402
+from reportkit.composition_audit import audit_source, find_brief  # noqa: E402
+from reportkit.diagnostics import diagnostic_envelope, inspect_log, make_diagnostic, registered_exit_code  # noqa: E402
 from reportkit.languages import language_diagnostics, normalize_language_tag, resolve_language  # noqa: E402
 from reportkit.latex import tex_escape  # noqa: E402
 from reportkit.markdown_directives import parse_markdown, replace_placeholders  # noqa: E402
 from reportkit.tex_renderer import render_ir  # noqa: E402
 from reportkit.theme_overrides import ThemeOverrideError, materialize_tex_overrides  # noqa: E402
 from reportkit.publications import PublicationRegistryError, resolve_build_target  # noqa: E402
+from reportkit.review import compare_intent  # noqa: E402
+from reportkit.target import TargetState, load_target, target_gate  # noqa: E402
+from reportkit.tex_target import engine_gate, tex_gates  # noqa: E402
 from reportkit.toolchain import toolchain_context  # noqa: E402
 from reportkit.toolchain import version_line  # noqa: E402
 from reportkit.version import BUILD_REPORT_SCHEMA_VERSION  # noqa: E402
@@ -566,6 +570,37 @@ class _PreflightResult:
     manuscripts: list[Path]
     used_image_slots: dict[str, Any]
     unresolved_used_slots: list[Any]
+    target_state: TargetState | None = None
+
+
+def _target_gates(args: argparse.Namespace, source_root: Path, requested_engine: str | None) -> tuple[TargetState, int | None]:
+    """The reasoning loop's CHECK gates, run before any TeX (spec §4.1, §4.3).
+
+    Target lock, direct-TeX class options, the target's composition audit
+    (direct TeX only: Markdown output does not exist yet), then the engine.
+    Blocking findings are printed and appended to ``args.gate_diagnostics``
+    (when the JSON facade provides it) so the envelope keeps their codes.
+    Returns the target state and, on a blocking finding, the exit code.
+    """
+    state = load_target(source_root)
+    diagnostics = list(target_gate(state))
+    if state.source_mode == "tex":
+        diagnostics.extend(tex_gates(state, source_root / state.main))
+        brief = find_brief(source_root, state)
+        tex = source_root / state.main
+        if brief is not None and tex.is_file():
+            diagnostics.extend(audit_source(tex, brief, state).get("diagnostics", []))
+    diagnostics.extend(engine_gate(state, requested_engine))
+    blocking = [item for item in diagnostics if item.get("severity") == "error"]
+    for item in diagnostics:
+        prefix = "publication target" if item in blocking else "publication target warning"
+        print(f"{prefix}: [{item['code']}] {item['message']}", file=sys.stderr)
+    collected = getattr(args, "gate_diagnostics", None)
+    if isinstance(collected, list):
+        collected.extend(item for item in blocking if item not in collected)
+    if blocking:
+        return state, registered_exit_code(blocking) or 3
+    return state, None
 
 
 def _preflight(args: argparse.Namespace) -> _PreflightResult | int:
@@ -625,7 +660,11 @@ def _preflight(args: argparse.Namespace) -> _PreflightResult | int:
         print(f"licensing: {exc}", file=sys.stderr)
         return 2
     document = resolve_document(config, profile)
-    engine = str(getattr(args, "engine", None) or os.environ.get("REPORTKIT_TEX_ENGINE") or document.get("engine", "pdflatex"))
+    requested_engine = getattr(args, "engine", None) or os.environ.get("REPORTKIT_TEX_ENGINE")
+    target_state, gate_exit = _target_gates(args, source_root, requested_engine)
+    if gate_exit is not None:
+        return gate_exit
+    engine = str(requested_engine or document.get("engine", "pdflatex"))
     try:
         target = resolve_build_target(
             str(document.get("publication_type")),
@@ -717,6 +756,7 @@ def _preflight(args: argparse.Namespace) -> _PreflightResult | int:
         engine=engine, target=target, entrypoint=entrypoint, selection_marker=selection_marker,
         font_policy=font_policy, declared_language=declared_language, effective_theme=effective_theme,
         manuscripts=manuscripts, used_image_slots=used_image_slots, unresolved_used_slots=unresolved_used_slots,
+        target_state=target_state,
     )
 
 
@@ -1150,6 +1190,9 @@ def build(args: argparse.Namespace) -> int:
     image_manifest = source_root / "image-slots.yaml"
     if used_image_slots and image_manifest.is_file():
         report_inputs.append({"path": image_manifest.name, "sha256": sha256(image_manifest)})
+    matches_intent, _ = (
+        compare_intent(target.as_dict(), preflight.target_state) if preflight.target_state is not None else (None, [])
+    )
     report = {
         "schema_version": BUILD_REPORT_SCHEMA_VERSION,
         "build_id": build_id,
@@ -1168,7 +1211,9 @@ def build(args: argparse.Namespace) -> int:
         # describing about which renderer/theme/template/writer actually
         # produced it (requested vs. canonical theme distinguishes an alias
         # like "technical" from what actually rendered).
-        "selection": target.as_dict(),
+        # Agent reasoning loop spec §4.2/§4.8: where the target was declared
+        # and whether it matches .reportkit/intent.json (null until recorded).
+        "selection": {**target.as_dict(), "declared_by": None, "matches_intent": matches_intent},
         "effective_theme": effective_theme.as_dict(),
         # Agent-contract spec section 13: how the declared language resolved
         # (null when publication.yaml declares none and en-US applies).
@@ -1302,6 +1347,8 @@ def main() -> int:
 
     if not args.json:
         return execute()
+    # Blocking target-gate diagnostics keep their codes in the JSON envelope.
+    args.gate_diagnostics = []
     stdout, stderr = io.StringIO(), io.StringIO()
     with redirect_stdout(stdout), redirect_stderr(stderr):
         try:
@@ -1321,6 +1368,8 @@ def main() -> int:
     nested = report.get("diagnostics", {}) if isinstance(report, dict) else {}
     diagnostics = list(nested.get("diagnostics", nested.get("issues", []))) if isinstance(nested, dict) else []
     message = stderr.getvalue().strip() or stdout.getvalue().strip()
+    if code and not diagnostics and args.gate_diagnostics:
+        diagnostics = list(args.gate_diagnostics)
     if code and not diagnostics:
         kind = {2: "configuration_error", 3: "publication_validation", 4: "compile_failure", 5: "environment_error"}.get(code, "internal_error")
         diagnostics = [make_diagnostic(kind, message or "publication build failed", code={

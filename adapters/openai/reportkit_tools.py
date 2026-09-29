@@ -111,10 +111,18 @@ def build_tool_bundle() -> dict[str, Any]:
     from reportkit.version import CONTRACT_VERSION
 
     parsers = _subparsers(build_parser())
-    tools = [
-        _tool_definition(command, parsers[command], record["summary"])
-        for command, record in COMMAND_CONTRACT.items()
-    ]
+    tools = []
+    for command, record in COMMAND_CONTRACT.items():
+        # A command group (``reportkit target set``) becomes one tool per
+        # subcommand: ``reportkit_target_set``, ``reportkit_target_show``.
+        if record.get("subcommands"):
+            nested = _subparsers(parsers[command])
+            tools.extend(
+                _tool_definition(f"{command}-{name}", nested[name], subrecord["summary"])
+                for name, subrecord in record["subcommands"].items()
+            )
+        else:
+            tools.append(_tool_definition(command, parsers[command], record["summary"]))
     return {
         "schema_version": "1.0.0",
         "contract_version": CONTRACT_VERSION,
@@ -139,6 +147,8 @@ def _schema_for(command: str, arguments: Mapping[str, Any]) -> Path | None:
     if command == "context":
         slice_name = arguments.get("context_slice", arguments.get("slice"))
         name = "reportkit-context-slice.schema.json" if slice_name else "reportkit-context.schema.json"
+    elif command == "status":
+        name = "reportkit-status.schema.json"
     else:
         name = "reportkit-diagnostic-envelope.schema.json"
     return SCHEMA_ROOT / name
@@ -193,10 +203,21 @@ def run_json(
     from reportkit.registry import COMMAND_CONTRACT
 
     arguments = dict(arguments or {})
-    if command not in COMMAND_CONTRACT:
+    # ``"target set"`` (or ``"target-set"``) names a subcommand of a group.
+    group, subcommand = command, ""
+    for name, record in COMMAND_CONTRACT.items():
+        if record.get("subcommands") and command[len(name):len(name) + 1] in {" ", "-"} and command.startswith(name):
+            group, subcommand = name, command[len(name) + 1:]
+    if group not in COMMAND_CONTRACT:
         raise ValueError(f"unknown ReportKit command {command!r}")
-    parser = _subparsers(build_parser())[command]
-    command_line = [str(executable or REPORTKIT), command, *_argument_tokens(command, parser, arguments), "--json"]
+    parser = _subparsers(build_parser())[group]
+    words = [group]
+    if COMMAND_CONTRACT[group].get("subcommands"):
+        if subcommand not in COMMAND_CONTRACT[group]["subcommands"]:
+            raise ValueError(f"unknown ReportKit command {command!r}")
+        parser = _subparsers(parser)[subcommand]
+        words.append(subcommand)
+    command_line = [str(executable or REPORTKIT), *words, *_argument_tokens(command, parser, arguments), "--json"]
     process = subprocess.run(command_line, capture_output=True, text=True, timeout=timeout, cwd=REPO_ROOT)
     try:
         payload = json.loads(process.stdout)

@@ -13,7 +13,9 @@ IDENTITY_KEYS = (
     "title", "subtitle", "author", "language", "version", "date", "left_header",
     "footer", "subject", "keywords", "disclaimer", "project_url",
 )
-DOCUMENT_KEYS = ("main", "class", "engine", "theme", "publication_type", "paper")
+# ``source_mode`` (tex | markdown) and ``validation.require_declared_target``
+# belong to the agent reasoning loop's target lock (spec §4.2-§4.4).
+DOCUMENT_KEYS = ("main", "class", "engine", "theme", "publication_type", "paper", "source_mode")
 LICENSE_KEYS = ("content_license", "content_license_url", "classification")
 # Compatibility view retained for callers that imported this constant before
 # the publication registry became canonical. Values are derived from the
@@ -38,6 +40,7 @@ BRAND_KEYS = ("primary", "secondary", "logo", "display_font")
 VALIDATION_KEYS = (
     "fail_on_undefined_refs", "fail_on_missing_assets",
     "overfull_hbox_threshold", "underfull_badness_threshold",
+    "require_declared_target",
 )
 OUTPUT_KEYS = ("directory",)
 KNOWN = IDENTITY_KEYS + DOCUMENT_KEYS + LICENSE_KEYS + VALIDATION_KEYS + OUTPUT_KEYS + THEME_KEYS

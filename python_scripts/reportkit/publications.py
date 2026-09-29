@@ -291,6 +291,19 @@ THEMES: dict[str, dict[str, Any]] = {
 }
 
 
+# Agent reasoning loop spec §4.4/§4.6 (data only; Wave 1 lanes read it):
+# ``source_modes`` says how each source mode can author the target
+# ("required"/"supported" for tex; "supported"/"fragments"/"opening-only"/
+# "unsupported" for markdown), ``aliases`` maps natural-language requests to
+# the type, ``canonical_example`` is the worked example the per-target
+# authoring template is built from, and ``composition_brief_example`` is where
+# that example's composition brief lives (written by the composition-audit
+# lane; its absence is not a registry error).
+SOURCE_MODE_VALUES: dict[str, tuple[str, ...]] = {
+    "tex": ("required", "supported"),
+    "markdown": ("supported", "fragments", "opening-only", "unsupported"),
+}
+
 PUBLICATION_TYPES: dict[str, dict[str, Any]] = {
     "technical-report": {
         "name": "technical-report",
@@ -303,6 +316,10 @@ PUBLICATION_TYPES: dict[str, dict[str, Any]] = {
         "selection_criteria": "General technical reports, guides, and long-form analytical documents.",
         "stability": "stable",
         "since": "1.0.0",
+        "source_modes": {"tex": "supported", "markdown": "supported"},
+        "aliases": ["technical report", "report", "guide", "white paper"],
+        "canonical_example": "latex_templates/examples/career_guide_en/",
+        "composition_brief_example": "latex_templates/examples/career_guide_en/composition-brief.json",
     },
     "equity-research": {
         "name": "equity-research",
@@ -315,6 +332,10 @@ PUBLICATION_TYPES: dict[str, dict[str, Any]] = {
         "selection_criteria": "Exhibit-led institutional equity research and investment analysis.",
         "stability": "stable",
         "since": "1.8.0",
+        "source_modes": {"tex": "supported", "markdown": "fragments"},
+        "aliases": ["equity research", "equity report", "stock report", "initiation", "research note"],
+        "canonical_example": "latex_templates/examples/equity-research/",
+        "composition_brief_example": "latex_templates/examples/equity-research/composition-brief.json",
     },
     # Phase F1. Registered with both themes only after both combinations
     # compiled the 2-8 page acceptance fixture
@@ -331,6 +352,10 @@ PUBLICATION_TYPES: dict[str, dict[str, Any]] = {
         "selection_criteria": "Short (2-8 page) management decision documents: recommendation, findings, risks, and next steps.",
         "stability": "experimental",
         "since": "1.9.3",
+        "source_modes": {"tex": "supported", "markdown": "supported"},
+        "aliases": ["brief", "decision brief", "executive summary", "memo"],
+        "canonical_example": "latex_templates/examples/executive-brief/",
+        "composition_brief_example": "latex_templates/examples/executive-brief/composition-brief.json",
     },
     # Phase B/C. Deliberately no "paper" key -- the slides renderer is a canvas
     # renderer (decision D5); resolve_build_target() rejects an explicit
@@ -348,6 +373,10 @@ PUBLICATION_TYPES: dict[str, dict[str, Any]] = {
         "selection_criteria": "Designed narrative reading: magazine-style features and thought-leadership articles.",
         "stability": "stable",
         "since": "1.10.0",
+        "source_modes": {"tex": "required", "markdown": "opening-only"},
+        "aliases": ["magazine", "feature", "editorial article", "magazine article", "thought leadership"],
+        "canonical_example": "latex_templates/examples/editorial-feature/",
+        "composition_brief_example": "latex_templates/examples/editorial-feature/composition-brief.json",
     },
     # Phase F2. A long-form multi-chapter publication on the paged renderer
     # (reportkit.cls + reportkit-longform.sty; no book class, no third
@@ -367,6 +396,10 @@ PUBLICATION_TYPES: dict[str, dict[str, Any]] = {
         "selection_criteria": "Multi-chapter long-form publications: handbooks, guides and books with parts, appendices, references and a glossary.",
         "stability": "experimental",
         "since": "1.10.0",
+        "source_modes": {"tex": "supported", "markdown": "supported"},
+        "aliases": ["book", "handbook", "long-form guide", "manual"],
+        "canonical_example": "latex_templates/examples/book/",
+        "composition_brief_example": "latex_templates/examples/book/composition-brief.json",
     },
     "presentation": {
         "name": "presentation",
@@ -378,6 +411,10 @@ PUBLICATION_TYPES: dict[str, dict[str, Any]] = {
         "selection_criteria": "Slide decks: pitches, strategy reviews, and other presented (not read) material.",
         "stability": "stable",
         "since": "1.9.3",
+        "source_modes": {"tex": "supported", "markdown": "supported"},
+        "aliases": ["deck", "slides", "slide deck", "presentation", "pitch deck"],
+        "canonical_example": "latex_templates/examples/executive-presentation/",
+        "composition_brief_example": "latex_templates/examples/executive-presentation/composition-brief.json",
     },
 }
 
@@ -611,6 +648,18 @@ def check_publication_registry(repo_root: Path | None = None) -> list[str]:
         template = root / "publication_pipeline" / "templates" / str(record.get("template", ""))
         if not template.is_file():
             errors.append(f"publication type {name!r} template does not exist: {template}")
+        source_modes = record.get("source_modes")
+        if not isinstance(source_modes, dict) or set(source_modes) != set(SOURCE_MODE_VALUES):
+            errors.append(f"publication type {name!r} must declare source_modes for {', '.join(SOURCE_MODE_VALUES)}")
+        else:
+            for mode, value in source_modes.items():
+                if value not in SOURCE_MODE_VALUES[mode]:
+                    errors.append(f"publication type {name!r} has invalid {mode} source mode {value!r}")
+        if not record.get("aliases"):
+            errors.append(f"publication type {name!r} must declare natural-language aliases")
+        example = root / str(record.get("canonical_example", ""))
+        if not record.get("canonical_example") or not example.is_dir():
+            errors.append(f"publication type {name!r} canonical_example does not exist: {example}")
         package = record.get("package")
         if package and not _package_path(root, str(package), group="publication").is_file():
             errors.append(f"publication type {name!r} package does not exist: {package}")

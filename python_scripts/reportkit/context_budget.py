@@ -62,8 +62,17 @@ def _language_line(themes: Mapping[str, Any]) -> str:
     )
 
 
-def _quickstart_text(context: Mapping[str, Any]) -> str:
+def _target_text(context: Mapping[str, Any]) -> str:
+    """The quickstart's target wording: the loop's TARGET line when the
+    project's target has been resolved (spec §4.2), else the legacy line."""
+    line = (context.get("target") or {}).get("line")
+    if line:
+        return str(line)
     selection = context["selection"]
+    return f"The current target is {selection['publication_type']}/{selection['requested_theme']}/{selection['renderer']}."
+
+
+def _quickstart_text(context: Mapping[str, Any]) -> str:
     publications = context["capabilities"]["publication_types"]
     publication_lines = "; ".join(
         f"{name}: {record['selection_criteria']} Themes: {', '.join(record['themes'])}."
@@ -73,7 +82,7 @@ def _quickstart_text(context: Mapping[str, Any]) -> str:
     return "\n".join([
         "ReportKit host-neutral quickstart.",
         f"Choose a publication type by intent: {publication_lines}",
-        f"The current target is {selection['publication_type']}/{selection['requested_theme']}/{selection['renderer']}.",
+        _target_text(context),
         _language_line(context["capabilities"]["themes"]),
         f"Author in a consumer project, then run `{commands['check']} --json` before conversion.",
         f"Build with `{commands['build']} --json`; on failure read its structured diagnostics and remediation.",

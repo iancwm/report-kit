@@ -11,7 +11,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
-from typing import Any
+from typing import Any, Callable
 
 from .analysis import analyse_history
 from .authoring import validate_authoring
@@ -24,13 +24,23 @@ from .config import (
     resolve_theme,
     theme_font_policy_conflict,
 )
+from .composition_audit import audit_source, find_brief
 from .context import build_context
 from .context_budget import CONTEXT_SLICE_NAMES, build_context_slice
-from .diagnostics import diagnostic_envelope, inspect_log, load_allowlist, load_maps, make_diagnostic, suggest
+from .diagnostics import (
+    diagnostic_envelope,
+    inspect_log,
+    load_allowlist,
+    load_maps,
+    make_diagnostic,
+    registered_exit_code,
+    suggest,
+)
 from .documentation import check_documentation, write_documentation
 from .editorial_audit import audit_editorial_source
-from .initialization import initialize, install_fonts
+from .initialization import ensure_outside_repository, initialize, install_fonts
 from .languages import language_diagnostics
+from .loop import next_step, target_line, target_payload
 from .publications import (
     PUBLICATION_TYPES,
     THEMES,
@@ -38,6 +48,10 @@ from .publications import (
     resolve_build_target,
 )
 from .registry import COMMAND_CONTRACT, PRIMITIVE_KINDS, ContractError, generate_registry
+from .review import VISUAL_REVIEW_STATES, compare_intent, write_review
+from .status import collect_status
+from .target import DECIDED_BY, SOURCE_MODES, TargetState, load_target, set_target, target_gate
+from .tex_target import engine_gate, tex_gates
 from .version import CONTRACT_VERSION
 from .publication_validation import validate_publication
 
@@ -70,6 +84,65 @@ def _json_or_print(payload: Any, as_json: bool) -> None:
         print(json.dumps(payload, indent=2, sort_keys=True))
     elif isinstance(payload, str):
         print(payload)
+
+
+def _loop_fields(payload: Any, state: TargetState | None, command: str) -> Any:
+    """Add the reasoning loop's ``target`` and ``next_step`` to a JSON payload."""
+    if not isinstance(payload, dict):
+        return payload
+    result = dict(payload)
+    target = target_payload(state) if state is not None else {}
+    if target:
+        # `init --json` has reported its project path as `target` since v1;
+        # there the loop's target object is `publication_target` instead.
+        result.setdefault("publication_target" if isinstance(result.get("target"), str) else "target", target)
+    step = next_step(command, state, result)
+    if step:
+        result.setdefault("next_step", step)
+    return result
+
+
+def _emit(
+    payload: Any,
+    state: TargetState | None,
+    command: str,
+    as_json: bool,
+    *,
+    human: Callable[[], None] | None = None,
+) -> None:
+    """The one output path for every command (agent reasoning loop spec §4.1).
+
+    JSON output gains ``target`` and ``next_step``. Human output prints the
+    TARGET line first, then the command's own text (``human``, or ``payload``
+    when it is a string), then ``next step:`` last. ``next_step`` is computed
+    after ``human`` runs, so ``human`` may still update a dict ``payload``.
+    """
+    if as_json:
+        _json_or_print(_loop_fields(payload, state, command), True)
+        return
+    line = target_line(state) if state is not None else ""
+    if line:
+        print(line)
+    if human is not None:
+        human()
+    elif isinstance(payload, str):
+        print(payload)
+    step = next_step(command, state, payload if isinstance(payload, dict) else {})
+    if step:
+        reason = f" ({step['reason']})" if step.get("reason") else ""
+        print(f"next step: {step.get('command', '')}{reason}")
+
+
+def _print_failures(diagnostics: list[dict[str, Any]]) -> None:
+    for item in diagnostics:
+        print(f"FAIL [{item['code']}]: {item['message']}", file=sys.stderr)
+
+
+def _state(args: argparse.Namespace) -> TargetState | None:
+    """Reload the project's target from disk for commands that name a project."""
+    if not hasattr(args, "source_root"):
+        return None
+    return load_target(_source_root(args))
 
 
 def _contract_diagnostics(requested: str | None) -> tuple[list[dict[str, Any]], int | None]:
@@ -114,7 +187,7 @@ def _source_root(args: argparse.Namespace) -> Path:
 
 
 def _output_root(args: argparse.Namespace, source_root: Path) -> Path:
-    if args.output_root:
+    if getattr(args, "output_root", None):
         return Path(args.output_root).resolve()
     config = load_publication_config(source_root / CONFIG_NAME)
     configured = resolve_output(config, source_root, getattr(args, "profile", None))
@@ -146,11 +219,13 @@ def _run_doctor(args: argparse.Namespace) -> int:
             payload = json.loads(proc.stdout)
         except json.JSONDecodeError:
             payload = _failure("internal_error", proc.stderr or proc.stdout or "environment doctor failed", code="RK_DOCTOR_OUTPUT")
-        _json_or_print(payload, True)
+        _emit(payload, None, "doctor", True)
     else:
-        print(proc.stdout, end="")
-        if proc.stderr:
-            print(proc.stderr, end="", file=sys.stderr)
+        def human() -> None:
+            print(proc.stdout, end="")
+            if proc.stderr:
+                print(proc.stderr, end="", file=sys.stderr)
+        _emit({"passed": proc.returncode == 0}, None, "doctor", False, human=human)
     return proc.returncode
 
 
@@ -173,11 +248,22 @@ def _run_init(args: argparse.Namespace) -> int:
             "configuration_error", str(exc), code="RK_INIT_FAILED", docs="#/commands/init",
         )
         payload = diagnostic_envelope([diagnostic], passed=False, target=str(target.resolve()))
-        if args.json:
-            _json_or_print(payload, True)
-        else:
-            print(f"FAIL [{diagnostic['code']}]: {diagnostic['message']}", file=sys.stderr)
+        _emit(payload, None, "init", args.json, human=lambda: print(f"FAIL [{diagnostic['code']}]: {diagnostic['message']}", file=sys.stderr))
         return EXIT_CONFIG
+
+    # Agent reasoning loop spec §4.2: `init --publication-type/--theme/
+    # --source-mode` locks the target the same way `target set` does.
+    target_diagnostics: list[dict[str, Any]] = []
+    if args.publication_type or args.theme or args.source_mode:
+        _, target_diagnostics = set_target(
+            result.target, publication_type=args.publication_type, theme=args.theme, source_mode=args.source_mode,
+        )
+        blocking = [item for item in target_diagnostics if item["severity"] == "error"]
+        if blocking:
+            payload = diagnostic_envelope(target_diagnostics, passed=False, target=str(result.target), created=list(result.created))
+            _emit(payload, load_target(result.target), "init", args.json, human=lambda: _print_failures(blocking))
+            return registered_exit_code(blocking) or EXIT_CONFIG
+    state = load_target(result.target)
 
     font_status = None
     if args.install_fonts:
@@ -188,10 +274,7 @@ def _run_init(args: argparse.Namespace) -> int:
                 "environment_error", str(exc), code="RK_INIT_FONT_INSTALL", docs="#/commands/init",
             )
             payload = diagnostic_envelope([diagnostic], passed=False, target=str(target))
-            if args.json:
-                _json_or_print(payload, True)
-            else:
-                print(f"FAIL [{diagnostic['code']}]: {diagnostic['message']}", file=sys.stderr)
+            _emit(payload, state, "init", args.json, human=lambda: print(f"FAIL [{diagnostic['code']}]: {diagnostic['message']}", file=sys.stderr))
             return EXIT_ENVIRONMENT
 
     doctor_command = [sys.executable, str(REPO_ROOT / "python_scripts" / "reportkit_doctor.py")]
@@ -208,23 +291,27 @@ def _run_init(args: argparse.Namespace) -> int:
             )]
             doctor_payload = {}
         payload = diagnostic_envelope(
-            diagnostics,
+            [*target_diagnostics, *diagnostics],
             passed=doctor_payload.get("passed", not diagnostics),
             target=str(result.target), created=list(result.created), fonts=font_status,
             mode=doctor_payload.get("mode"), toolchain=doctor_payload.get("toolchain"),
             checks=doctor_payload.get("checks", []),
         )
-        _json_or_print(payload, True)
+        _emit(payload, state, "init", True)
     else:
-        print("== ReportKit init ==")
-        print(f"consumer project: {result.target}")
-        print("created: " + (", ".join(result.created) if result.created else "nothing (already initialized)"))
-        if font_status:
-            print(font_status)
-        if doctor.stdout:
-            print(doctor.stdout, end="")
-        if doctor.stderr:
-            print(doctor.stderr, end="", file=sys.stderr)
+        def human() -> None:
+            print("== ReportKit init ==")
+            print(f"consumer project: {result.target}")
+            print("created: " + (", ".join(result.created) if result.created else "nothing (already initialized)"))
+            for item in target_diagnostics:
+                print(f"WARN [{item['code']}]: {item['message']}", file=sys.stderr)
+            if font_status:
+                print(font_status)
+            if doctor.stdout:
+                print(doctor.stdout, end="")
+            if doctor.stderr:
+                print(doctor.stderr, end="", file=sys.stderr)
+        _emit({"passed": doctor.returncode == 0}, state, "init", False, human=human)
     return doctor.returncode
 
 
@@ -237,6 +324,7 @@ def _run_context(args: argparse.Namespace) -> int:
         }[args.schema]
         print((REPO_ROOT / "schemas" / schema_name).read_text(encoding="utf-8"), end="")
         return EXIT_OK
+    state = _state(args)
     try:
         payload = build_context(
             REPO_ROOT, _source_root(args), args.profile,
@@ -247,7 +335,7 @@ def _run_context(args: argparse.Namespace) -> int:
             "contract_drift", str(exc), code="RK_CONTEXT_CONTRACT",
             docs="#/capabilities/primitives",
         )
-        _json_or_print(diagnostic_envelope([diagnostic], passed=False), True)
+        _emit(diagnostic_envelope([diagnostic], passed=False), state, "context", True)
         return EXIT_VALIDATION
     except PublicationRegistryError as exc:
         diagnostic = dict(exc.diagnostic)
@@ -258,7 +346,7 @@ def _run_context(args: argparse.Namespace) -> int:
             diagnostic["candidates"] = sorted(set(suggest(args.publication_type, PUBLICATION_TYPES)))
         elif args.theme and message.startswith("unknown theme"):
             diagnostic["candidates"] = sorted(set(suggest(args.theme, THEMES)))
-        _json_or_print(diagnostic_envelope([diagnostic], passed=False), True)
+        _emit(diagnostic_envelope([diagnostic], passed=False), state, "context", True)
         return EXIT_CONFIG
     except ValueError as exc:
         candidates: list[str] = []
@@ -272,11 +360,11 @@ def _run_context(args: argparse.Namespace) -> int:
             "configuration_error", str(exc), code="RK_CONTEXT_FILTER",
             candidates=sorted(set(candidates)), docs="#/capabilities",
         )
-        _json_or_print(diagnostic_envelope([diagnostic], passed=False), True)
+        _emit(diagnostic_envelope([diagnostic], passed=False), state, "context", True)
         return EXIT_CONFIG
     if args.context_slice:
         payload = build_context_slice(payload, args.context_slice)
-    _json_or_print(payload, True)
+    _emit(payload, state, "context", True)
     return EXIT_OK
 
 
@@ -294,27 +382,56 @@ def _run_docs(args: argparse.Namespace) -> int:
     payload = diagnostic_envelope(
         diagnostics, passed=not diagnostics, mode="write" if args.write else "check", changed=changed,
     )
-    if args.json:
-        _json_or_print(payload, True)
-    elif diagnostics:
-        print("FAIL: generated contract documentation is stale", file=sys.stderr)
-        for diagnostic in diagnostics:
-            print(f"- {diagnostic['message']}", file=sys.stderr)
-    elif args.write:
-        print(f"PASS: generated contract documentation ({len(changed)} file(s) changed)")
-    else:
-        print("PASS: generated contract documentation is current")
+    def human() -> None:
+        if diagnostics:
+            print("FAIL: generated contract documentation is stale", file=sys.stderr)
+            for diagnostic in diagnostics:
+                print(f"- {diagnostic['message']}", file=sys.stderr)
+        elif args.write:
+            print(f"PASS: generated contract documentation ({len(changed)} file(s) changed)")
+        else:
+            print("PASS: generated contract documentation is current")
+    _emit(payload, None, "docs", args.json, human=human)
     return EXIT_OK if not diagnostics else EXIT_VALIDATION
+
+
+def _composition_tex(args: argparse.Namespace, root: Path, state: TargetState) -> Path | None:
+    """The TeX a composition audit reads: ``document.main`` in TeX mode, else
+    the Markdown pipeline's generated ``publication.tex`` (spec §4.7)."""
+    if state.source_mode == "tex":
+        return root / state.main
+    try:
+        return _output_root(args, root) / "combined" / "publication.tex"
+    except ValueError:
+        return None
+
+
+def _target_diagnostics(
+    args: argparse.Namespace, root: Path, state: TargetState, engine: str | None,
+) -> tuple[list[dict[str, Any]], dict[str, Any] | None]:
+    """The reasoning loop's CHECK gates (spec §4.1): target lock, direct-TeX
+    class options, engine, and the target's composition audit."""
+    diagnostics = list(target_gate(state))
+    if state.source_mode == "tex":
+        diagnostics.extend(tex_gates(state, root / state.main))
+    diagnostics.extend(engine_gate(state, engine))
+    composition = None
+    brief = find_brief(root, state)
+    if brief is not None:
+        tex = _composition_tex(args, root, state)
+        if tex is not None and tex.is_file():
+            composition = audit_source(tex, brief, state)
+            diagnostics.extend(composition.get("diagnostics", []))
+    return diagnostics, composition
 
 
 def _run_check(args: argparse.Namespace) -> int:
     root = _source_root(args)
+    state = load_target(root)
     diagnostics, version_exit = _contract_diagnostics(args.contract_version)
     if version_exit:
         payload = diagnostic_envelope(diagnostics, passed=False, errors=[item["message"] for item in diagnostics])
-        _json_or_print(payload, args.json)
-        if not args.json:
-            print(payload["errors"][0], file=sys.stderr)
+        _emit(payload, state, "check", args.json, human=lambda: print(payload["errors"][0], file=sys.stderr))
         return version_exit
     result = validate_publication(root, profile=args.profile or "draft")
     authoring = validate_authoring(root)
@@ -352,6 +469,8 @@ def _run_check(args: argparse.Namespace) -> int:
             resolve_declared_language(config, args.profile), requested_theme,
             font_policy=str(theme_config.get("font_policy", "fallback")),
         ))
+    loop_diagnostics, composition = _target_diagnostics(args, root, state, engine_override)
+    diagnostics.extend(loop_diagnostics)
     errors = [item["message"] for item in diagnostics if item["severity"] == "error"]
     payload = diagnostic_envelope(
         diagnostics,
@@ -366,31 +485,34 @@ def _run_check(args: argparse.Namespace) -> int:
         sources=authoring.sources,
         chapters=authoring.chapters,
         links=authoring.links,
+        **({"composition": composition} if composition is not None else {}),
     )
-    if args.json:
-        _json_or_print(payload, True)
-    elif not errors:
-        print(f"PASS: publication validation ({len(result.manuscript_files)} manuscripts, {len(result.slugs)} visuals, {len(result.image_slots)} image slots, {len(result.labels)} labels)")
-        for diagnostic in diagnostics:
-            if diagnostic["severity"] == "warning":
-                print(f"WARN [{diagnostic['code']}]: {diagnostic['message']}", file=sys.stderr)
-    else:
-        print("FAIL: publication validation", file=sys.stderr)
-        for error in errors:
-            print(f"- {error}", file=sys.stderr)
+
+    def human() -> None:
+        if not errors:
+            print(f"PASS: publication validation ({len(result.manuscript_files)} manuscripts, {len(result.slugs)} visuals, {len(result.image_slots)} image slots, {len(result.labels)} labels)")
+            for diagnostic in diagnostics:
+                if diagnostic["severity"] == "warning":
+                    print(f"WARN [{diagnostic['code']}]: {diagnostic['message']}", file=sys.stderr)
+        else:
+            print("FAIL: publication validation", file=sys.stderr)
+            for error in errors:
+                print(f"- {error}", file=sys.stderr)
+    _emit(payload, state, "check", args.json, human=human)
     if not errors:
         return EXIT_OK
-    return EXIT_CONFIG if any(item["type"] == "configuration_error" for item in diagnostics if item["severity"] == "error") else EXIT_VALIDATION
+    blocking = [item for item in diagnostics if item["severity"] == "error"]
+    if registered_exit_code(blocking) == EXIT_ENVIRONMENT:
+        return EXIT_ENVIRONMENT
+    return EXIT_CONFIG if any(item["type"] == "configuration_error" for item in blocking) else EXIT_VALIDATION
 
 
 def _run_build(args: argparse.Namespace) -> int:
+    state = _state(args)
     version_diagnostics, version_exit = _contract_diagnostics(args.contract_version)
     if version_exit:
         payload = diagnostic_envelope(version_diagnostics, passed=False, errors=[item["message"] for item in version_diagnostics])
-        if args.json:
-            _json_or_print(payload, True)
-        else:
-            print(payload["errors"][0], file=sys.stderr)
+        _emit(payload, state, "build", args.json, human=lambda: print(payload["errors"][0], file=sys.stderr))
         return version_exit
     command = [sys.executable, str(PIPELINE_ROOT / "scripts" / "publication_build.py"), "--mode", args.mode]
     for name in ("source_root", "output_root", "profile", "engine", "title", "author", "version", "cover"):
@@ -417,12 +539,17 @@ def _run_build(args: argparse.Namespace) -> int:
         else:
             payload["diagnostics"] = [*version_diagnostics, *payload.get("diagnostics", [])]
             payload["issues"] = payload["diagnostics"]
-        _json_or_print(payload, True)
+        _emit(payload, state, "build", True)
         return proc.returncode
-    if version_diagnostics:
+    outcome: dict[str, Any] = {"passed": False, "diagnostics": list(version_diagnostics)}
+
+    def human() -> None:
         for diagnostic in version_diagnostics:
             print(f"WARN [{diagnostic['code']}]: {diagnostic['message']}", file=sys.stderr)
-    return subprocess.run(command).returncode
+        outcome["returncode"] = subprocess.run(command).returncode
+        outcome["passed"] = outcome["returncode"] == 0
+    _emit(outcome, state, "build", False, human=human)
+    return int(outcome["returncode"])
 
 
 def _find_log(args: argparse.Namespace, source_root: Path) -> Path | None:
@@ -437,13 +564,11 @@ def _find_log(args: argparse.Namespace, source_root: Path) -> Path | None:
 
 def _run_diagnose(args: argparse.Namespace) -> int:
     source_root = _source_root(args)
+    state = load_target(source_root)
     log = _find_log(args, source_root)
     if not log:
         payload = _failure("configuration_error", "no publication.log found; pass a log path or build first", code="RK_DIAGNOSE_LOG_MISSING")
-        if args.json:
-            _json_or_print(payload, True)
-        else:
-            print("FAIL: no publication.log found; pass a log path or build first", file=sys.stderr)
+        _emit(payload, state, "diagnose", args.json, human=lambda: print("FAIL: no publication.log found; pass a log path or build first", file=sys.stderr))
         return EXIT_CONFIG
     allowlist_path = Path(args.allowlist).resolve() if args.allowlist else source_root / "build-log-allowlist.json"
     if not allowlist_path.is_file():
@@ -455,9 +580,8 @@ def _run_diagnose(args: argparse.Namespace) -> int:
         maps=load_maps(log.parent),
     )
     result["log"] = str(log)
-    if args.json:
-        _json_or_print(result, True)
-    else:
+
+    def human() -> None:
         if result["passed"]:
             print(f"PASS: {log} contains no actionable diagnostics")
         else:
@@ -467,6 +591,7 @@ def _run_diagnose(args: argparse.Namespace) -> int:
                 if issue.get("line"):
                     location += f":{issue['line']}"
                 print(f"- {location} [{issue['type']} / {issue['owner']}]: {issue['message']}", file=sys.stderr)
+    _emit(result, state, "diagnose", args.json, human=human)
     return EXIT_OK if result["passed"] else EXIT_VALIDATION
 
 
@@ -488,16 +613,30 @@ def _find_pdf(build_dir: Path) -> Path | None:
     return next((path for path in sorted(build_dir.glob("*.pdf")) if path.name != "publication.pdf"), None)
 
 
+def _intent_diagnostics(pdf: Path, state: TargetState) -> list[dict[str, Any]]:
+    """Compare the build's recorded selection with ``.reportkit/intent.json``
+    (spec §4.8: ``inspect`` fails when the built target differs)."""
+    report = pdf.parent / "build-report.json"
+    try:
+        selection = json.loads(report.read_text(encoding="utf-8")).get("selection") if report.is_file() else None
+    except (OSError, json.JSONDecodeError, AttributeError):
+        selection = None
+    if not isinstance(selection, dict):
+        return []
+    _, diagnostics = compare_intent(selection, state)
+    return diagnostics
+
+
 def _run_inspect(args: argparse.Namespace) -> int:
     source_root = _source_root(args)
+    state = load_target(source_root)
     pdf = Path(args.pdf).resolve() if args.pdf else _find_pdf(_output_root(args, source_root) / "combined")
     if not pdf or not pdf.is_file():
         payload = _failure("configuration_error", "no PDF found; pass a PDF path or build first", code="RK_INSPECT_PDF_MISSING")
-        if args.json:
-            _json_or_print(payload, True)
-        else:
-            print("FAIL: no PDF found; pass a PDF path or build first", file=sys.stderr)
+        _emit(payload, state, "inspect", args.json, human=lambda: print("FAIL: no PDF found; pass a PDF path or build first", file=sys.stderr))
         return EXIT_CONFIG
+    intent_diagnostics = _intent_diagnostics(pdf, state)
+    intent_blocking = [item for item in intent_diagnostics if item["severity"] == "error"]
     inspector = PIPELINE_ROOT / "scripts" / "inspect_pdf.py"
     configured_python = os.environ.get("REPORTKIT_PDF_PYTHON")
     candidate = Path(configured_python).expanduser() if configured_python else _output_root(args, source_root) / ".venv" / "bin" / "python"
@@ -516,7 +655,16 @@ def _run_inspect(args: argparse.Namespace) -> int:
                     return EXIT_ENVIRONMENT if "requires PyMuPDF" in proc.stderr else EXIT_VALIDATION
                 result = json.loads(json_path.read_text(encoding="utf-8"))
         else:
-            return subprocess.run([str(candidate), str(inspector), str(pdf)]).returncode
+            outcome: dict[str, Any] = {"passed": False, "diagnostics": intent_diagnostics}
+
+            def run_inspector() -> None:
+                outcome["returncode"] = subprocess.run([str(candidate), str(inspector), str(pdf)]).returncode
+                _print_failures(intent_blocking)
+                if intent_blocking and outcome["returncode"] == EXIT_OK:
+                    outcome["returncode"] = EXIT_VALIDATION
+                outcome["passed"] = outcome["returncode"] == EXIT_OK
+            _emit(outcome, state, "inspect", False, human=run_inspector)
+            return int(outcome["returncode"])
     else:
         try:
             from publication_pipeline.scripts.inspect_pdf import inspect as inspect_pdf
@@ -524,17 +672,22 @@ def _run_inspect(args: argparse.Namespace) -> int:
         except ModuleNotFoundError as exc:
             message = f"PDF inspection requires PyMuPDF; run publication_pipeline/scripts/setup.sh or set REPORTKIT_PDF_PYTHON ({exc})"
             payload = _failure("environment_error", message, code="RK_PYMUPDF_MISSING")
-            if args.json:
-                _json_or_print(payload, True)
-            else:
-                print(f"FAIL: {message}", file=sys.stderr)
+            _emit(payload, state, "inspect", args.json, human=lambda: print(f"FAIL: {message}", file=sys.stderr))
             return EXIT_ENVIRONMENT
-    if args.json:
-        _json_or_print(result, True)
-    elif result["passed"]:
-        print(f"PASS: PDF inspection ({result['page_count']} pages, {result['link_count']} links)")
-    else:
-        print(f"FAIL: {len(result['outside_media_box'])} glyph boxes fall outside the media box", file=sys.stderr)
+    if intent_diagnostics:
+        result = dict(result)
+        result["diagnostics"] = [*result.get("diagnostics", []), *intent_diagnostics]
+        if intent_blocking:
+            result["passed"] = False
+
+    def human() -> None:
+        if result["passed"]:
+            print(f"PASS: PDF inspection ({result['page_count']} pages, {result['link_count']} links)")
+        else:
+            if "outside_media_box" in result:
+                print(f"FAIL: {len(result['outside_media_box'])} glyph boxes fall outside the media box", file=sys.stderr)
+            _print_failures(intent_blocking)
+    _emit(result, state, "inspect", args.json, human=human)
     if result["passed"]:
         return EXIT_OK
     return EXIT_ENVIRONMENT if inspector_exit == EXIT_ENVIRONMENT else EXIT_VALIDATION
@@ -543,13 +696,11 @@ def _run_inspect(args: argparse.Namespace) -> int:
 def _run_render(args: argparse.Namespace) -> int:
     """Render selected PDF pages for the agent visual feedback loop."""
     source_root = _source_root(args)
+    state = load_target(source_root)
     pdf = Path(args.pdf).resolve() if args.pdf else _find_pdf(_output_root(args, source_root) / "combined")
     if not pdf or not pdf.is_file():
         payload = _failure("configuration_error", "no PDF found; pass a PDF path or build first", code="RK_RENDER_PDF_MISSING")
-        if args.json:
-            _json_or_print(payload, True)
-        else:
-            print("FAIL: no PDF found; pass a PDF path or build first", file=sys.stderr)
+        _emit(payload, state, "render", args.json, human=lambda: print("FAIL: no PDF found; pass a PDF path or build first", file=sys.stderr))
         return EXIT_CONFIG
     out_dir = Path(args.out).resolve() if args.out else _output_root(args, source_root) / "render"
     renderer = PIPELINE_ROOT / "scripts" / "render_pdf_pages.py"
@@ -575,11 +726,17 @@ def _run_render(args: argparse.Namespace) -> int:
                         proc.stderr.strip() or "render helper produced no structured output",
                         code="RK_PYMUPDF_MISSING" if "requires PyMuPDF" in proc.stderr else "RK_RENDER_OUTPUT",
                     )
-                    _json_or_print(payload, True)
+                    _emit(payload, state, "render", True)
                     return EXIT_ENVIRONMENT if "requires PyMuPDF" in proc.stderr else EXIT_INTERNAL
                 result = json.loads(json_path.read_text(encoding="utf-8"))
         else:
-            return subprocess.run(command).returncode
+            outcome: dict[str, Any] = {"passed": False, "diagnostics": []}
+
+            def run_renderer() -> None:
+                outcome["returncode"] = subprocess.run(command).returncode
+                outcome["passed"] = outcome["returncode"] == EXIT_OK
+            _emit(outcome, state, "render", False, human=run_renderer)
+            return int(outcome["returncode"])
     else:
         try:
             from publication_pipeline.scripts.render_pdf_pages import render as render_pages
@@ -588,22 +745,18 @@ def _run_render(args: argparse.Namespace) -> int:
         except ModuleNotFoundError as exc:
             message = f"PDF rendering requires PyMuPDF; run publication_pipeline/scripts/setup.sh or set REPORTKIT_PDF_PYTHON ({exc})"
             payload = _failure("environment_error", message, code="RK_PYMUPDF_MISSING")
-            if args.json:
-                _json_or_print(payload, True)
-            else:
-                print(f"FAIL: {message}", file=sys.stderr)
+            _emit(payload, state, "render", args.json, human=lambda: print(f"FAIL: {message}", file=sys.stderr))
             return EXIT_ENVIRONMENT
         except ValueError as exc:
             payload = _failure("configuration_error", str(exc), code="RK_RENDER_PAGES_INVALID")
-            if args.json:
-                _json_or_print(payload, True)
-            else:
-                print(f"FAIL: {exc}", file=sys.stderr)
+            error_text = f"FAIL: {exc}"
+            _emit(payload, state, "render", args.json, human=lambda: print(error_text, file=sys.stderr))
             return EXIT_CONFIG
-    if args.json:
-        _json_or_print(result, True)
-    elif result["passed"]:
-        print(f"PASS: rendered {len(result['files'])} of {result['page_count']} page(s) to {out_dir} (dpi={args.dpi})")
+
+    def human() -> None:
+        if result["passed"]:
+            print(f"PASS: rendered {len(result['files'])} of {result['page_count']} page(s) to {out_dir} (dpi={args.dpi})")
+    _emit(result, state, "render", args.json, human=human)
     if result["passed"]:
         return EXIT_OK
     return EXIT_ENVIRONMENT if render_exit == EXIT_ENVIRONMENT else EXIT_VALIDATION
@@ -611,33 +764,25 @@ def _run_render(args: argparse.Namespace) -> int:
 
 def _run_package(args: argparse.Namespace) -> int:
     source_root = _source_root(args)
+    state = load_target(source_root)
     build_dir = Path(args.build_dir).resolve() if args.build_dir else _output_root(args, source_root) / "combined"
     report_path = build_dir / "build-report.json"
     if not report_path.is_file():
         message = f"missing combined build manifest: {report_path}"
         payload = _failure("configuration_error", message, code="RK_PACKAGE_MANIFEST_MISSING")
-        if args.json:
-            _json_or_print(payload, True)
-        else:
-            print(f"FAIL: {message}", file=sys.stderr)
+        _emit(payload, state, "package", args.json, human=lambda: print(f"FAIL: {message}", file=sys.stderr))
         return EXIT_CONFIG
     report = json.loads(report_path.read_text(encoding="utf-8"))
     if report.get("status") != "passed":
         message = "package requires a passing combined build"
         payload = _failure("publication_validation", message, code="RK_PACKAGE_BUILD_FAILED")
-        if args.json:
-            _json_or_print(payload, True)
-        else:
-            print(f"FAIL: {message}", file=sys.stderr)
+        _emit(payload, state, "package", args.json, human=lambda: print(f"FAIL: {message}", file=sys.stderr))
         return EXIT_VALIDATION
     pdf = _find_pdf(build_dir)
     if not pdf:
         message = "passing build has no PDF"
         payload = _failure("publication_validation", message, code="RK_PACKAGE_PDF_MISSING")
-        if args.json:
-            _json_or_print(payload, True)
-        else:
-            print(f"FAIL: {message}", file=sys.stderr)
+        _emit(payload, state, "package", args.json, human=lambda: print(f"FAIL: {message}", file=sys.stderr))
         return EXIT_VALIDATION
     destination = Path(args.destination).resolve() if args.destination else source_root / "output"
     destination.mkdir(parents=True, exist_ok=True)
@@ -655,24 +800,25 @@ def _run_package(args: argparse.Namespace) -> int:
         shutil.copytree(pages, target)
         copied.append(str(target))
     payload = {"passed": True, "destination": str(destination), "files": copied}
-    if args.json:
-        _json_or_print(diagnostic_envelope([], **payload), True)
-    else:
+
+    def human() -> None:
         print(f"PASS: packaged release in {destination}")
         for path in copied:
             print(f"- {path}")
+    _emit(diagnostic_envelope([], **payload), state, "package", args.json, human=human)
     return 0
 
 
 def _run_analysis(args: argparse.Namespace) -> int:
+    state = _state(args)
     history = Path(args.history_dir).resolve() if args.history_dir else _source_root(args) / "build" / "history"
     result = analyse_history(history)
-    if args.json:
-        _json_or_print(diagnostic_envelope([], **result), True)
-    else:
+
+    def human() -> None:
         print(f"ReportKit history: {result['build_count']} builds, {len(result['recurring'])} recurring diagnostics")
         for item in result["recurring"]:
             print(f"- {item['type']}: {item['occurrences']} occurrences across {item['builds']} builds")
+    _emit(diagnostic_envelope([], **result), state, "analyse-history", args.json, human=human)
     return 0
 
 
@@ -682,23 +828,114 @@ def _run_audit_editorial(args: argparse.Namespace) -> int:
     if not tex.is_file() or not brief.is_file():
         missing = tex if not tex.is_file() else brief
         payload = _failure("configuration_error", f"missing editorial audit input: {missing}", code="RK_EDITORIAL_INPUT")
-        _json_or_print(payload, args.json)
+        _emit(payload, None, args.command, args.json)
         return EXIT_CONFIG
     try:
         payload = audit_editorial_source(tex, brief)
     except (OSError, ValueError, json.JSONDecodeError) as exc:
         payload = _failure("configuration_error", str(exc), code="RK_EDITORIAL_BRIEF")
-        _json_or_print(payload, args.json)
+        _emit(payload, None, args.command, args.json)
         return EXIT_CONFIG
-    if args.json:
-        _json_or_print(payload, True)
-    else:
+
+    def human() -> None:
         print(f"{'PASS' if payload['passed'] else 'FAIL'}: editorial source audit")
         print("  Composition: " + ", ".join(f"{name}={count}" for name, count in payload["inventory"].items()))
         for item in payload["diagnostics"]:
             print(f"  {item['code']}: {item['message']}")
         print("  Manual page and evidence review is still required.")
+    _emit(payload, None, args.command, args.json, human=human)
     return EXIT_OK if payload["passed"] else EXIT_VALIDATION
+
+
+def _target_record(state: TargetState) -> dict[str, Any]:
+    """The resolved target as ``target show`` reports it."""
+    return {
+        "publication_type": state.publication_type,
+        "theme": state.theme,
+        "renderer": state.renderer,
+        "source_mode": state.source_mode,
+        "main": state.main,
+        "declared_by": state.declared_by,
+        "require_declared": state.require_declared,
+        "intent_path": str(state.intent_path) if state.intent_path is not None else None,
+        "intent": state.intent,
+    }
+
+
+def _run_target(args: argparse.Namespace) -> int:
+    """LOCK (spec §4.2): ``target set`` persists the decision; ``show`` reloads it."""
+    root = _source_root(args)
+    command = f"target {args.target_command}"
+    diagnostics: list[dict[str, Any]] = []
+    if args.target_command == "set":
+        try:
+            ensure_outside_repository(root, REPO_ROOT)
+        except ValueError as exc:
+            diagnostics = [make_diagnostic("configuration_error", str(exc), code="RK_TARGET_SOURCE_ROOT", docs="#/commands/target")]
+            payload = diagnostic_envelope(diagnostics, passed=False, source_root=str(root))
+            _emit(payload, None, command, args.json, human=lambda: _print_failures(diagnostics))
+            return EXIT_CONFIG
+        state, diagnostics = set_target(
+            root, publication_type=args.publication_type, theme=args.theme, source_mode=args.source_mode,
+            request=args.request, reference=args.reference, decided_by=args.decided_by,
+        )
+    else:
+        state = load_target(root)
+    blocking = [item for item in diagnostics if item["severity"] == "error"]
+    record = _target_record(state)
+    payload = diagnostic_envelope(diagnostics, passed=not blocking, source_root=str(root), target_state=record)
+
+    def human() -> None:
+        print(f"target: structure={state.publication_type} look={state.theme} renderer={state.renderer} "
+              f"source={state.source_mode} declared={state.declared_by}")
+        _print_failures(blocking)
+        for item in diagnostics:
+            if item["severity"] != "error":
+                print(f"WARN [{item['code']}]: {item['message']}", file=sys.stderr)
+    _emit(payload, state, command, args.json, human=human)
+    if not blocking:
+        return EXIT_OK
+    return registered_exit_code(blocking) or EXIT_CONFIG
+
+
+def _run_status(args: argparse.Namespace) -> int:
+    """DELIVER / re-hydrate (spec §4.8): the loop's state from disk alone."""
+    root = _source_root(args)
+    state = load_target(root)
+    status = collect_status(root)
+    diagnostics = list(status.pop("diagnostics", []))
+    payload = diagnostic_envelope(diagnostics, source_root=str(root), **status)
+
+    def human() -> None:
+        intent = status.get("intent") or {}
+        if intent.get("request"):
+            print(f"intent: {intent['request']}")
+        for key in ("last_step", "visual_review", "delivery_caveat"):
+            if status.get(key):
+                print(f"{key.replace('_', ' ')}: {status[key]}")
+        _print_failures([item for item in diagnostics if item["severity"] == "error"])
+    _emit(payload, state, "status", args.json, human=human)
+    return EXIT_OK if payload["passed"] else EXIT_VALIDATION
+
+
+def _run_review(args: argparse.Namespace) -> int:
+    """REVIEW (spec §4.8): record the manual checklist and ``visual_review``."""
+    root = _source_root(args)
+    state = load_target(root)
+    pdf = Path(args.pdf).resolve() if args.pdf else _find_pdf(_output_root(args, root) / "combined")
+    if not pdf or not pdf.is_file():
+        payload = _failure("configuration_error", "no PDF found; pass a PDF path or build first", code="RK_REVIEW_PDF_MISSING")
+        _emit(payload, state, "review", args.json, human=lambda: print("FAIL: no PDF found; pass a PDF path or build first", file=sys.stderr))
+        return EXIT_CONFIG
+    record = write_review(pdf, state, args.visual_review)
+    payload = diagnostic_envelope([], passed=True, review=record)
+
+    def human() -> None:
+        print(f"review: {pdf} visual_review={record.get('visual_review') or 'pending'}")
+        for item in record.get("checklist", []):
+            print(f"- [ ] {item.get('item', item) if isinstance(item, dict) else item}")
+    _emit(payload, state, "review", args.json, human=human)
+    return EXIT_OK
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -714,8 +951,39 @@ def build_parser() -> argparse.ArgumentParser:
     init.add_argument("target", nargs="?", help="consumer publication project to scaffold")
     init.add_argument("--target", dest="target_option", help="consumer publication project to scaffold")
     init.add_argument("--install-fonts", action="store_true", help="install the bundled Libertinus fonts into TEXMFLOCAL")
+    init.add_argument("--publication-type", help="lock the publication structure (see the quickstart selection table)")
+    init.add_argument("--theme", help="lock the publication look")
+    init.add_argument("--source-mode", choices=SOURCE_MODES, help="author as direct TeX or Markdown")
     init.add_argument("--json", action="store_true")
     init.set_defaults(handler=_run_init)
+
+    target = sub.add_parser("target", help=COMMAND_CONTRACT["target"]["summary"], description=COMMAND_CONTRACT["target"]["summary"])
+    target_sub = target.add_subparsers(dest="target_command", required=True)
+    target_set = target_sub.add_parser(
+        "set", help=COMMAND_CONTRACT["target"]["subcommands"]["set"]["summary"],
+        description=COMMAND_CONTRACT["target"]["subcommands"]["set"]["summary"],
+    )
+    target_set.add_argument("--source-root", help="consumer publication project")
+    target_set.add_argument("--publication-type", help="publication structure, or a natural-language alias such as 'magazine'")
+    target_set.add_argument("--theme", help="publication look")
+    target_set.add_argument("--source-mode", choices=SOURCE_MODES, help="author as direct TeX or Markdown")
+    target_set.add_argument("--request", help="the user's verbatim request, stored in .reportkit/intent.json")
+    target_set.add_argument("--reference", help="path to the user's visual reference, if any")
+    target_set.add_argument("--decided-by", choices=DECIDED_BY, help="whether the user confirmed the target or the agent inferred it")
+    target_set.add_argument("--json", action="store_true")
+    target_set.set_defaults(handler=_run_target)
+    target_show = target_sub.add_parser(
+        "show", help=COMMAND_CONTRACT["target"]["subcommands"]["show"]["summary"],
+        description=COMMAND_CONTRACT["target"]["subcommands"]["show"]["summary"],
+    )
+    target_show.add_argument("--source-root", help="consumer publication project")
+    target_show.add_argument("--json", action="store_true")
+    target_show.set_defaults(handler=_run_target)
+
+    status = sub.add_parser("status", help=COMMAND_CONTRACT["status"]["summary"], description=COMMAND_CONTRACT["status"]["summary"])
+    status.add_argument("--source-root", help="consumer publication project")
+    status.add_argument("--json", action="store_true")
+    status.set_defaults(handler=_run_status)
 
     context = sub.add_parser("context", help=COMMAND_CONTRACT["context"]["summary"], description=COMMAND_CONTRACT["context"]["summary"])
     _add_publication_paths(context)
@@ -734,11 +1002,14 @@ def build_parser() -> argparse.ArgumentParser:
     check.add_argument("--json", action="store_true")
     check.set_defaults(handler=_run_check)
 
-    audit_editorial = sub.add_parser("audit-editorial", help=COMMAND_CONTRACT["audit-editorial"]["summary"], description=COMMAND_CONTRACT["audit-editorial"]["summary"])
-    audit_editorial.add_argument("tex", help="hand-authored feature-article TeX source")
-    audit_editorial.add_argument("--brief", required=True, help="JSON brief naming the visual reference and expected editorial roles")
-    audit_editorial.add_argument("--json", action="store_true")
-    audit_editorial.set_defaults(handler=_run_audit_editorial)
+    audit = sub.add_parser(
+        "audit", aliases=COMMAND_CONTRACT["audit"]["aliases"],
+        help=COMMAND_CONTRACT["audit"]["summary"], description=COMMAND_CONTRACT["audit"]["summary"],
+    )
+    audit.add_argument("tex", help="hand-authored TeX source")
+    audit.add_argument("--brief", required=True, help="JSON composition brief naming the visual reference and expected roles")
+    audit.add_argument("--json", action="store_true")
+    audit.set_defaults(handler=_run_audit_editorial)
 
     build = sub.add_parser("build", help=COMMAND_CONTRACT["build"]["summary"], description=COMMAND_CONTRACT["build"]["summary"])
     _add_publication_paths(build)
@@ -779,6 +1050,13 @@ def build_parser() -> argparse.ArgumentParser:
     render.add_argument("--dpi", type=_positive_int, default=150)
     render.add_argument("--json", action="store_true")
     render.set_defaults(handler=_run_render)
+
+    review = sub.add_parser("review", help=COMMAND_CONTRACT["review"]["summary"], description=COMMAND_CONTRACT["review"]["summary"])
+    review.add_argument("pdf", nargs="?")
+    review.add_argument("--source-root", help="consumer publication project")
+    review.add_argument("--visual-review", choices=VISUAL_REVIEW_STATES, help="'unavailable' when the host cannot view rendered pages")
+    review.add_argument("--json", action="store_true")
+    review.set_defaults(handler=_run_review)
 
     package = sub.add_parser("package", help=COMMAND_CONTRACT["package"]["summary"], description=COMMAND_CONTRACT["package"]["summary"])
     _add_publication_paths(package)

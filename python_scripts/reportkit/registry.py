@@ -31,20 +31,37 @@ LEGACY_CHART_NAMES = PUBLIC_CHART_NAMES - {"donut_chart", "risk_reward_chart"}
 PRIMITIVE_KINDS = ("callout", "figure", "chart", "composition", "command")
 COMMANDS = {
     "init": "reportkit init", "doctor": "reportkit doctor", "context": "reportkit context", "check": "reportkit check",
-    "build": "reportkit build", "audit-editorial": "reportkit audit-editorial", "diagnose": "reportkit diagnose", "inspect": "reportkit inspect",
-    "render": "reportkit render",
+    "target": "reportkit target", "status": "reportkit status",
+    "build": "reportkit build", "audit": "reportkit audit", "audit-editorial": "reportkit audit-editorial", "diagnose": "reportkit diagnose", "inspect": "reportkit inspect",
+    "render": "reportkit render", "review": "reportkit review",
     "package": "reportkit package", "analyse-history": "reportkit analyse-history", "docs": "reportkit docs",
 }
+# A record with ``subcommands`` is a command group (``reportkit target set``);
+# its own ``arguments`` name the subcommands and each subcommand record lists
+# its options. ``alias_of`` marks a compatibility spelling of another command.
+_AUDIT_SUMMARY = "Compare a hand-authored publication source with its declared composition brief."
 COMMAND_CONTRACT: dict[str, dict[str, Any]] = {
-    "init": {"summary": "Scaffold a consumer publication project outside the ReportKit clone.", "arguments": ["target", "--target", "--install-fonts", "--json"], "exit_codes": [0, 2, 5, 70]},
+    "init": {"summary": "Scaffold a consumer publication project outside the ReportKit clone.", "arguments": ["target", "--target", "--install-fonts", "--publication-type", "--theme", "--source-mode", "--json"], "exit_codes": [0, 2, 3, 5, 70]},
     "doctor": {"summary": "Inspect build dependencies and pinned-toolchain drift.", "arguments": ["--require", "--json"], "exit_codes": [0, 5, 70]},
     "context": {"summary": "Print the versioned ReportKit capability contract.", "arguments": ["--source-root", "--output-root", "--profile", "--publication-type", "--theme", "--kind", "--slice", "--schema", "--json"], "exit_codes": [0, 2, 70]},
-    "check": {"summary": "Validate publication structure without invoking TeX.", "arguments": ["--source-root", "--output-root", "--profile", "--engine", "--contract-version", "--json"], "exit_codes": [0, 2, 3, 70]},
-    "audit-editorial": {"summary": "Compare a hand-authored feature article with its declared editorial composition brief.", "arguments": ["tex", "--brief", "--json"], "exit_codes": [0, 2, 3, 70]},
+    "target": {
+        "summary": "Declare or show the publication target (structure, look, and source mode).",
+        "arguments": ["set", "show"],
+        "exit_codes": [0, 2, 3, 70],
+        "subcommands": {
+            "set": {"summary": "Lock the publication target in publication.yaml and record the user's intent.", "arguments": ["--source-root", "--publication-type", "--theme", "--source-mode", "--request", "--reference", "--decided-by", "--json"], "exit_codes": [0, 2, 3, 70]},
+            "show": {"summary": "Show the declared or defaulted publication target.", "arguments": ["--source-root", "--json"], "exit_codes": [0, 2, 70]},
+        },
+    },
+    "status": {"summary": "Reconstruct the publication loop's state (target, intent, last step, next step) from disk.", "arguments": ["--source-root", "--json"], "exit_codes": [0, 2, 3, 70]},
+    "check": {"summary": "Validate publication structure without invoking TeX.", "arguments": ["--source-root", "--output-root", "--profile", "--engine", "--contract-version", "--json"], "exit_codes": [0, 2, 3, 5, 70]},
+    "audit": {"summary": _AUDIT_SUMMARY, "arguments": ["tex", "--brief", "--json"], "exit_codes": [0, 2, 3, 70], "aliases": ["audit-editorial"]},
+    "audit-editorial": {"summary": _AUDIT_SUMMARY, "arguments": ["tex", "--brief", "--json"], "exit_codes": [0, 2, 3, 70], "alias_of": "audit"},
     "build": {"summary": "Validate, convert, compile, diagnose, render, and inspect a publication.", "arguments": ["--source-root", "--output-root", "--profile", "--mode", "--section", "--chapter", "--workers", "--engine", "--title", "--author", "--version", "--cover", "--contract-version", "--compile-timeout-seconds", "--memory-limit-mb", "--json"], "exit_codes": [0, 2, 3, 4, 5, 70]},
     "diagnose": {"summary": "Parse a TeX log into source-aware diagnostics.", "arguments": ["log", "--source-root", "--output-root", "--profile", "--allowlist", "--underfull-badness", "--json"], "exit_codes": [0, 2, 3, 70]},
     "inspect": {"summary": "Inspect PDF geometry, metadata, fonts, links, and bookmarks.", "arguments": ["pdf", "--source-root", "--output-root", "--profile", "--json"], "exit_codes": [0, 2, 3, 5, 70]},
     "render": {"summary": "Render selected PDF pages to PNGs for agent visual inspection.", "arguments": ["pdf", "--source-root", "--output-root", "--profile", "--out", "--pages", "--dpi", "--json"], "exit_codes": [0, 2, 3, 5, 70]},
+    "review": {"summary": "Record the manual review checklist and whether rendered pages were viewed.", "arguments": ["pdf", "--source-root", "--visual-review", "--json"], "exit_codes": [0, 2, 70]},
     "package": {"summary": "Package a passing combined build.", "arguments": ["--source-root", "--output-root", "--profile", "--build-dir", "--destination", "--json"], "exit_codes": [0, 2, 3, 70]},
     "analyse-history": {"summary": "Summarize recurring diagnostics in build history.", "arguments": ["--source-root", "--history-dir", "--json"], "exit_codes": [0, 2, 70]},
     "docs": {"summary": "Write or check contract-derived reference sections.", "arguments": ["--write", "--check", "--json"], "exit_codes": [0, 2, 3, 70]},
