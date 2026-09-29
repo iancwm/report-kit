@@ -8,6 +8,7 @@ import re
 from typing import Any, Iterable
 
 from .publications import PUBLICATION_TYPES, availability_for
+from .primitive_targets import targets_for, unmapped_primitives
 
 CALLOUT_ALIASES = {"evidence": "evidencenote", "limitation": "limitationnote", "tip": "tipnote"}
 FIGURE_ENVIRONMENTS = {
@@ -448,6 +449,28 @@ def generate_registry(repo_root: Path | None = None, *, strict: bool = False) ->
         errors.extend(chart_errors)
         for record in chart_records:
             _merge_record(primitives, record, errors)
+    # ``\\maketitle`` is a class-level document command rather than a
+    # source-adjacent primitive. Keep it explicit in the machine-readable
+    # registry so its reviewed @document target role is visible to context
+    # consumers and generated references.
+    primitives["command"]["maketitle"] = {
+        "name": "maketitle", "kind": "command", "signature": "", "source_signature": "",
+        "arity": {"required": 0, "optional": 0}, "arguments": [], "constraints": [],
+        "example": r"\maketitle", "available_in": availability_for(publication_type="technical-report"),
+        "stability": "stable", "since": "1.0.0",
+        "description": "Render the technical report's document title block.",
+        "contract_pointer": _pointer("command", "maketitle"), "docs": _pointer("command", "maketitle"),
+        "source": {"file": "virtual @document command", "line": 0},
+    }
+    # Per-target role declarations are derived from one reviewed inventory,
+    # rather than duplicated in each source-adjacent primitive contract.
+    for records in primitives.values():
+        for record in records.values():
+            record["targets"] = targets_for(record["name"], record["kind"])
+    errors.extend(
+        f"public primitive has no reviewed publication-type role: {item}"
+        for item in unmapped_primitives({"primitives": primitives})
+    )
     class_text = (repo_root / "latex_templates" / "reportkit.cls").read_text(encoding="utf-8")
     class_match = re.search(r"\\ProvidesClass\{[^}]+\}\[[^]]+\s+v([^\s]+)", class_text)
     class_version = class_match.group(1) if class_match else "unknown"
@@ -462,12 +485,20 @@ def generate_registry(repo_root: Path | None = None, *, strict: bool = False) ->
         },
         "charts": sorted(name for name in primitives["chart"] if name in LEGACY_CHART_NAMES), "commands": dict(COMMANDS),
         "command_contract": COMMAND_CONTRACT, "class_version": class_version,
-        "sources": {"primitives": "source-adjacent <reportkit-contract> blocks", "charts": "python_scripts/reportkit/viz/charts/"},
+        "sources": {
+            "primitives": "source-adjacent <reportkit-contract> blocks and explicit virtual commands",
+            "charts": "python_scripts/reportkit/viz/charts/",
+        },
     }
 
 
 def skill_inventory(skill_path: Path) -> dict[str, set[str]]:
-    """Read historical hand-authored inventories during the v1.x transition."""
+    """Read the legacy hand-authored inventory for external v1.x callers.
+
+    The current skill is a router. Source-adjacent generated contracts in
+    ``references/primitive-contract.md`` are authoritative for primitive
+    inventory and are checked by :func:`check_skill_drift`.
+    """
     text = skill_path.read_text(encoding="utf-8")
     figures: set[str] = set()
     for line in text.splitlines():
@@ -488,11 +519,9 @@ def check_skill_drift(repo_root: Path | None = None) -> list[str]:
     try:
         from .documentation import check_documentation
     except ImportError:
-        inventory = skill_inventory(repo_root / "SKILL.md")
-        if set(registry["figures"]) != inventory["figures"]:
-            errors.append("figure inventory drift")
-        if set(registry["callouts"]["public"]) != inventory["callouts"]:
-            errors.append("callout inventory drift")
+        # Primitive inventory is no longer embedded in SKILL.md. If the
+        # generated-doc helper is unavailable, retain source contract errors
+        # without scanning unrelated router prose as an inventory.
         return errors
     errors.extend(check_documentation(repo_root, registry=registry))
     return errors

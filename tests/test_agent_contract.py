@@ -143,7 +143,7 @@ def test_duplicate_primitive_with_conflicting_signature_is_reported() -> None:
 def test_context_is_versioned_filterable_and_legacy_compatible() -> None:
     context = build_context(REPO, kinds=["chart"], publication_type="equity-research")
     assert context["schema_version"] == "1.0.0"
-    assert context["contract_version"] == "1.2.0"
+    assert context["contract_version"] == "1.3.0"
     assert context["reportkit_version"] == "1.9.3"
     assert context["selection"] == {
         "publication_type": "equity-research", "requested_theme": "institutional-research",

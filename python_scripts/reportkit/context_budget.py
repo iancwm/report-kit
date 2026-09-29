@@ -63,32 +63,82 @@ def _language_line(themes: Mapping[str, Any]) -> str:
 
 
 def _target_text(context: Mapping[str, Any]) -> str:
-    """The quickstart's target wording: the loop's TARGET line when the
-    project's target has been resolved (spec §4.2), else the legacy line."""
+    """The quickstart's durable target decision, never a silent default."""
     line = (context.get("target") or {}).get("line")
     if line:
         return str(line)
-    selection = context["selection"]
-    return f"The current target is {selection['publication_type']}/{selection['requested_theme']}/{selection['renderer']}."
+    return "TARGET NOT DECLARED — pick a row below and run `reportkit target set`; the build will refuse until then."
+
+
+def _selection_text(context: Mapping[str, Any]) -> str:
+    """Compact format × look selector with the source-mode contract."""
+    publications = context["capabilities"]["publication_types"]
+    themes = context["capabilities"]["themes"]
+    rows = [
+        "Format (structure) × look (theme): structure selects the page grammar and primitives; look sets typography, colour, and spacing.",
+        "Format | Look | Source modes | Use for",
+        "--- | --- | --- | ---",
+    ]
+    for name, record in publications.items():
+        modes = record.get("source_modes") or {}
+        mode_text = ", ".join(
+            f"{mode}={value}" + (" (lock requires tex)" if mode == "markdown" and value == "opening-only" else "")
+            for mode, value in modes.items()
+        ) or "see target reference"
+        engines = sorted({str(themes[theme].get("required_engine", "unknown")) for theme in record.get("themes", []) if theme in themes})
+        rows.append(
+            f"{name} | {', '.join(record.get('themes', []))} | {mode_text} | "
+            f"{record.get('selection_criteria', '')} Engine: {', '.join(engines)}."
+        )
+    return "\n".join(rows)
 
 
 def _quickstart_text(context: Mapping[str, Any]) -> str:
-    publications = context["capabilities"]["publication_types"]
-    publication_lines = "; ".join(
-        f"{name}: {record['selection_criteria']} Themes: {', '.join(record['themes'])}."
-        for name, record in publications.items()
-    )
     commands = context["commands"]
     return "\n".join([
         "ReportKit host-neutral quickstart.",
-        f"Choose a publication type by intent: {publication_lines}",
+        _selection_text(context),
         _target_text(context),
         _language_line(context["capabilities"]["themes"]),
-        f"Author in a consumer project, then run `{commands['check']} --json` before conversion.",
+        "Lock the selected format and look with `reportkit target set`, then scaffold and author in a consumer project.",
+        f"Run `{commands['check']} --json` before conversion.",
         f"Build with `{commands['build']} --json`; on failure read its structured diagnostics and remediation.",
-        f"For visual feedback run `{commands['render']} --pages 1 --json`, then `{commands['inspect']} --json`.",
+        f"Review with `{commands['render']} --pages 1 --json` and `reportkit review --json --visual-review done|unavailable`.",
+        "After a context reset, or before delivery, run `reportkit status --json`.",
         "Use the selection, primitives, authoring, commands, and toolchain slices only when needed.",
     ])
+
+
+def _compact_primitives(primitives: Mapping[str, Any]) -> dict[str, dict[str, Any]]:
+    """Keep call signatures and examples while omitting full registry provenance."""
+    result: dict[str, dict[str, Any]] = {}
+    for kind, entries in primitives.items():
+        result[str(kind)] = {}
+        if not isinstance(entries, Mapping):
+            continue
+        for name, record in entries.items():
+            if not isinstance(record, Mapping):
+                continue
+            filtered = {
+                "name": record.get("name", name),
+                "kind": record.get("kind", kind),
+                "signature": record.get("signature", ""),
+                "arguments": [
+                    {
+                        key: argument[key]
+                        for key in ("name", "type", "required", "default")
+                        if key in argument
+                    }
+                    for argument in record.get("arguments", [])
+                    if isinstance(argument, Mapping)
+                ],
+                "example": record.get("example", ""),
+            }
+            for key in ("description", "constraints", "role", "targets"):
+                if record.get(key):
+                    filtered[key] = record[key]
+            result[str(kind)][str(name)] = filtered
+    return result
 
 
 def slice_contents(context: Mapping[str, Any]) -> dict[str, Any]:
@@ -104,7 +154,7 @@ def slice_contents(context: Mapping[str, Any]) -> dict[str, Any]:
         },
         "primitives": {
             "filters": context["filters"],
-            "primitives": capabilities["primitives"],
+            "primitives": _compact_primitives(capabilities["primitives"]),
         },
         "authoring": {"authoring": capabilities["authoring"]},
         "commands": {

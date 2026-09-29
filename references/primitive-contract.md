@@ -5,7 +5,7 @@ The exact generated primitive signatures are maintained below.
 <!-- REPORTKIT-CONTRACT:START -->
 ## Generated primitive contract
 
-This section is generated from source-adjacent contract metadata. Do not edit it by hand.
+This section is generated from source-adjacent and explicit virtual contract metadata. Do not edit it by hand.
 
 ### Callout primitives
 
@@ -220,6 +220,7 @@ This section is generated from source-adjacent contract metadata. Do not edit it
 | `lanestep` | `m m m m` | `lane` (text, required)<br>`id` (text, required)<br>`column` (text, required)<br>`label` (text, required) | — | stable since 1.0.0 | <code>\lanestep{Example}{a}{1}{Example}</code> |
 | `leaving` | `m m` | `index` (text, required) — Zero-based index (within the declared \values) the outgoing value targets.<br>`value` (text, required) — Outgoing value. | Only valid inside windowstate.<br>index must be within the declared \values range. | experimental since 1.10.0 | <code>\leaving{2}{7}</code> |
 | `listnode` | `O{} m m` | `options` (options, optional=) — state= one of the nine shared algorithm states.<br>`id` (text, required) — Node id referenced by nextlink, head, and tail.<br>`label` (text, required) — Node value or label. | Only valid inside linkedliststate. | experimental since 1.10.0 | <code>\listnode[state=current]{b}{B}</code> |
+| `maketitle` | `` | — | — | stable since 1.0.0 | <code>\maketitle</code> |
 | `merge` | `O{} m m m` | `options` (options, optional=)<br>`source` (text, required)<br>`target` (text, required)<br>`label` (text, required) | — | stable since 1.0.0 | <code>\merge[]{a}{b}{Example}</code> |
 | `merged` | `O{} m m` | `options` (options, optional=) — state= one of the nine shared algorithm states; defaults to resolved.<br>`start` (text, required) — Merged span start, on the shared numeric axis.<br>`end` (text, required) — Merged span end, on the shared numeric axis. | Only valid inside intervalstate.<br>start must not exceed end. | experimental since 1.10.0 | <code>\merged{1}{6}</code> |
 | `networkedge` | `O{dependency} m m O{}` | `relationship` (options, optional=dependency)<br>`source` (text, required)<br>`target` (text, required)<br>`options` (options, optional=) | — | stable since 1.0.0 | <code>\networkedge[]{a}{b}[]</code> |

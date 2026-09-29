@@ -1,8 +1,8 @@
 # ReportKit
 
-A LaTeX toolkit for producing polished, professionally designed technical
-reports as PDFs, with a versioned host-neutral CLI contract and a Claude Skill
-adapter.
+A publication toolkit for producing polished PDFs across technical reports,
+equity research, executive briefs, features, books, and presentations. It has a
+versioned host-neutral CLI contract and a Claude Skill adapter.
 
 **`AGENTS.md` is the coding-agent entry point** for a fresh clone; it points
 to `SKILL.md` for the full authoring workflow. This file is the human-facing
@@ -42,7 +42,7 @@ Migrating an existing content branch out of this repo is covered in
   (`theme=institutional-research`, requires `lualatex`) is a Letter-geometry,
   Google-Sans institutional research theme.
   `reportkit-theme-editorial.sty` (`theme=editorial`, requires `lualatex`,
-  experimental) is an A4 magazine/thought-leadership theme with a Libertinus
+  stable) is an A4 magazine/thought-leadership theme with a Libertinus
   Serif body and Libertinus Sans metadata.
 - `publication_types/` — structural primitives layered on top of a theme,
   selected via `\documentclass[publication-type=<name>]{reportkit}`.
@@ -64,9 +64,10 @@ Migrating an existing content branch out of this repo is covered in
   see `references/feature-article-authoring.md` and
   `latex_templates/examples/editorial-feature/` (6-page fictional feature).
   For a hand-authored article, declare its visual reference and intended
-  composition in an `editorial-brief.json`, then run `reportkit audit-editorial
-  report.tex --brief editorial-brief.json` before compiling. The audit checks
-  source structure; review the rendered pages separately.
+  composition in a `composition-brief.json`, then run `reportkit audit
+  report.tex --brief composition-brief.json` before compiling. The
+  `audit-editorial` command remains an alias. The audit checks source
+  structure; review the rendered pages separately.
   `reportkit-book.sty` (`publication-type=book`, experimental, `theme=default`,
   `theme=technical` or `theme=editorial`) builds a multi-chapter book on the
   same paged class and long-form helpers: numbered chapter openers, part
@@ -85,7 +86,8 @@ Migrating an existing content branch out of this repo is covered in
 
 ## 2. python_scripts/
 - `reportkit` (from the repository root) — stdlib CLI facade for doctor,
-  init, context, check, build, diagnose, inspect, render, docs, analyse-history, and package; its importable
+  init, target, status, context, check, build, audit, review, diagnose,
+  inspect, render, docs, analyse-history, and package; its importable
   implementation lives under `python_scripts/reportkit/`, including
   `reportkit/themes/` — per-theme Python tokens (`default`,
   `institutional-research`) plus the `technical` compatibility alias for
@@ -139,8 +141,20 @@ See [`publication_pipeline/README.md`](publication_pipeline/README.md).
 - [`agent-contract.md`](references/agent-contract.md) — the v1.9 contract
   versioning policy, diagnostic exits, pinned toolchain, and security/trust
   boundary.
+- [`primitive-contract.md`](references/primitive-contract.md) — generated
+  primitive signatures, arguments, examples, and source metadata.
 - [`callouts-and-image-slots.md`](references/callouts-and-image-slots.md) —
   semantic callout selection and replacement-image authoring guidance.
+- [`visual-grammar.md`](references/visual-grammar.md),
+  [`diagrams-and-algorithms.md`](references/diagrams-and-algorithms.md), and
+  [`charts.md`](references/charts.md) — visual selection and authoring by
+  publication target.
+- [`feature-article-authoring.md`](references/feature-article-authoring.md),
+  [`institutional-research-theme.md`](references/institutional-research-theme.md),
+  [`executive-brief-authoring.md`](references/executive-brief-authoring.md),
+  [`book-authoring.md`](references/book-authoring.md), and
+  [`presentation-authoring.md`](references/presentation-authoring.md) —
+  format-specific authoring references.
 - [`documentation-status.md`](references/documentation-status.md) — the
   required PR-time workflow for keeping specs, plans, and the work index current.
 
@@ -190,8 +204,15 @@ fonts before building:
 ./scripts/setup_tex.sh
 ```
 
-Then use `reportkit init <publication-project>` to scaffold a consumer project
-and install the pinned Python dependencies into its build environment:
+For example, scaffold a generic technical report with:
+
+```bash
+reportkit init <publication-project> --publication-type technical-report \
+  --theme default --source-mode markdown
+```
+
+Choose the flags for the publication you intend to create. Install its pinned
+Python dependencies into the build environment:
 
 ```bash
 python3 -m venv <publication-project>/build/.venv
@@ -200,8 +221,10 @@ python3 -m venv <publication-project>/build/.venv
 ```
 
 Use `reportkit init --install-fonts <publication-project>` when the bundled
-Libertinus subset is needed. See `SKILL.md`'s setup section for the complete
-doctor/build flow.
+Libertinus subset is needed. Then run `reportkit doctor --require full-build`
+from the consumer environment before building. See [`SKILL.md`](SKILL.md) and
+[`references/troubleshooting.md`](references/troubleshooting.md) for the full
+setup and build flow.
 
 ## Versioning
 
@@ -216,4 +239,4 @@ Use a native semantic diagram for qualitative reasoning (such as a strategy
 matrix, risk heatmap, process, architecture, roadmap, or capability map). Use
 `reportkit_viz.py` for figures whose geometry represents measured values. The
 full interfaces, constraints, and acceptance requirements are in
-[`SKILL.md`](SKILL.md#visual-grammar).
+[`references/visual-grammar.md`](references/visual-grammar.md).

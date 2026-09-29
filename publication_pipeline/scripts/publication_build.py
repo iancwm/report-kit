@@ -10,7 +10,7 @@ from __future__ import annotations
 import argparse
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import redirect_stderr, redirect_stdout
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime, timezone
 import hashlib
 import io
@@ -76,7 +76,7 @@ def template_files() -> list[Path]:
     )
 
 
-from reportkit.authoring import render_links_tex, validate_authoring  # noqa: E402
+from reportkit.authoring import AuthoringResult, render_links_tex, validate_authoring  # noqa: E402
 from reportkit.authoring_ir import AuthoringValidationError  # noqa: E402
 from reportkit.config import (  # noqa: E402
     CONFIG_NAME,
@@ -98,9 +98,9 @@ from reportkit.latex import tex_escape  # noqa: E402
 from reportkit.markdown_directives import parse_markdown, replace_placeholders  # noqa: E402
 from reportkit.tex_renderer import render_ir  # noqa: E402
 from reportkit.theme_overrides import ThemeOverrideError, materialize_tex_overrides  # noqa: E402
-from reportkit.publications import PublicationRegistryError, resolve_build_target  # noqa: E402
+from reportkit.publications import PUBLICATION_TYPES, PublicationRegistryError, resolve_build_target  # noqa: E402
 from reportkit.review import compare_intent  # noqa: E402
-from reportkit.target import TargetState, load_target, target_gate  # noqa: E402
+from reportkit.target import TargetState, has_declared_source_mode, load_target, target_gate  # noqa: E402
 from reportkit.tex_target import engine_gate, tex_gates  # noqa: E402
 from reportkit.toolchain import toolchain_context  # noqa: E402
 from reportkit.toolchain import version_line  # noqa: E402
@@ -509,11 +509,42 @@ def _fail(
     state transition without touching the filesystem.
     """
     report["status"] = "failed"
-    report["diagnostics"] = diagnostics
+    report["diagnostics"] = _merge_diagnostic_envelopes(diagnostics, report.get("diagnostics"))
     report["finished_at"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
     if report_path is not None:
         write_report(report, report_path, history_root)
     return code
+
+
+def _diagnostic_records(value: Any) -> list[dict[str, Any]]:
+    """Extract diagnostics from a list or a nested diagnostic envelope."""
+    if isinstance(value, list):
+        return [item for item in value if isinstance(item, dict)]
+    if not isinstance(value, dict):
+        return []
+    nested = value.get("diagnostics", value.get("issues", []))
+    if isinstance(nested, dict):
+        return _diagnostic_records(nested)
+    return [item for item in nested if isinstance(item, dict)] if isinstance(nested, list) else []
+
+
+def _merge_diagnostic_envelopes(primary: Any, additional: Any) -> dict[str, Any]:
+    """Keep distinct gate and build diagnostics in one stable envelope."""
+    result = dict(primary) if isinstance(primary, dict) else {}
+    records: list[dict[str, Any]] = []
+    seen: set[tuple[Any, ...]] = set()
+    for item in [*_diagnostic_records(primary), *_diagnostic_records(additional)]:
+        source = item.get("source") if isinstance(item.get("source"), dict) else {}
+        key = (item.get("code"), item.get("message"), source.get("file"), source.get("line"))
+        if key not in seen:
+            seen.add(key)
+            records.append(item)
+    errors = [item["message"] for item in records if item.get("severity") == "error"]
+    result["diagnostics"] = records
+    result["issues"] = records
+    result["errors"] = errors
+    result["passed"] = bool(result.get("passed", True)) and not errors
+    return result
 
 
 def run(command: list[str], cwd: Path, log: Path, *, timeout: int = 120, memory_limit_mb: int = 2048) -> int:
@@ -571,9 +602,14 @@ class _PreflightResult:
     used_image_slots: dict[str, Any]
     unresolved_used_slots: list[Any]
     target_state: TargetState | None = None
+    source_mode: str = "markdown"
+    source_main: Path | None = None
 
 
-def _target_gates(args: argparse.Namespace, source_root: Path, requested_engine: str | None) -> tuple[TargetState, int | None]:
+def _target_gates(
+    args: argparse.Namespace, source_root: Path, requested_engine: str | None,
+    *, source_main: Path | None = None, document: dict[str, Any] | None = None,
+) -> tuple[TargetState, int | None]:
     """The reasoning loop's CHECK gates, run before any TeX (spec §4.1, §4.3).
 
     Target lock, direct-TeX class options, the target's composition audit
@@ -583,11 +619,35 @@ def _target_gates(args: argparse.Namespace, source_root: Path, requested_engine:
     Returns the target state and, on a blocking finding, the exit code.
     """
     state = load_target(source_root)
+    if document is not None:
+        publication_type = str(document.get("publication_type") or state.publication_type)
+        profile = getattr(args, "profile", None)
+        source_mode_declared = state.source_mode_declared
+        require_declared = state.require_declared
+        try:
+            config = load_publication_config(source_root / CONFIG_NAME)
+            source_mode_declared = has_declared_source_mode(config, profile)
+            require_declared = bool(
+                resolve_validation(config, profile).get("require_declared_target", require_declared)
+            )
+        except (OSError, ValueError):
+            pass
+        state = replace(
+            state,
+            publication_type=publication_type,
+            theme=str(document.get("theme") or state.theme),
+            renderer=str((PUBLICATION_TYPES.get(publication_type) or {}).get("renderer", state.renderer)),
+            source_mode=str(document.get("source_mode") or "markdown"),
+            main=str(document.get("main") or state.main),
+            declared_by=str(document.get("declared_by") or state.declared_by),
+            source_mode_declared=source_mode_declared,
+            require_declared=require_declared,
+        )
     diagnostics = list(target_gate(state))
     if state.source_mode == "tex":
-        diagnostics.extend(tex_gates(state, source_root / state.main))
+        tex = source_main or source_root / state.main
+        diagnostics.extend(tex_gates(state, tex))
         brief = find_brief(source_root, state)
-        tex = source_root / state.main
         if brief is not None and tex.is_file():
             diagnostics.extend(audit_source(tex, brief, state).get("diagnostics", []))
     diagnostics.extend(engine_gate(state, requested_engine))
@@ -597,7 +657,7 @@ def _target_gates(args: argparse.Namespace, source_root: Path, requested_engine:
         print(f"{prefix}: [{item['code']}] {item['message']}", file=sys.stderr)
     collected = getattr(args, "gate_diagnostics", None)
     if isinstance(collected, list):
-        collected.extend(item for item in blocking if item not in collected)
+        collected.extend(item for item in diagnostics if item not in collected)
     if blocking:
         return state, registered_exit_code(blocking) or 3
     return state, None
@@ -624,26 +684,58 @@ def _preflight(args: argparse.Namespace) -> _PreflightResult | int:
     if resource is None or not hasattr(resource, "RLIMIT_AS"):
         print("environment: this platform cannot enforce the required compile memory limit", file=sys.stderr)
         return 5
-    validation = validate_publication(source_root, profile=profile or "draft")
-    for diagnostic in validation.diagnostics:
-        if diagnostic.get("severity") == "warning":
-            print(f"publication validation warning: {diagnostic['message']}", file=sys.stderr)
-    if not validation.ok:
-        for error in validation.errors:
-            print(f"publication validation: {error}", file=sys.stderr)
-        return 3
-    authoring = validate_authoring(source_root)
-    if not authoring.ok:
-        for error in authoring.errors:
-            print(f"authoring validation: {error}", file=sys.stderr)
-        return 3
+    # Read the source-mode declaration before validating Markdown-only
+    # manuscript files. Keep config failures deferred until their historical
+    # position below so the Markdown path retains its existing diagnostics.
+    config: dict[str, Any] | None
+    try:
+        config = load_publication_config(source_root / CONFIG_NAME)
+    except (OSError, ValueError):
+        config = None
+    document_hint = resolve_document(config, profile) if config is not None else {}
+    source_mode = str(document_hint.get("source_mode") or "markdown")
+    source_main: Path | None = None
+    image_slots: dict[str, Any] = {}
+    unresolved_image_slots: list[Any] = []
+    if source_mode == "tex":
+        authoring = AuthoringResult()
+        raw_main = Path(str(document_hint.get("main") or "report.tex"))
+        if raw_main.is_absolute() or ".." in raw_main.parts:
+            print("publication config: document.main must name a TeX file inside the publication root", file=sys.stderr)
+            return 2
+        if raw_main.suffix.lower() != ".tex":
+            print("publication config: document.main must be a .tex file when source_mode is tex", file=sys.stderr)
+            return 2
+        source_main = (source_root / raw_main).resolve()
+        try:
+            source_main.relative_to(source_root.resolve())
+        except ValueError:
+            print("publication config: document.main must remain inside the publication root", file=sys.stderr)
+            return 2
+    else:
+        validation = validate_publication(source_root, profile=profile or "draft")
+        for diagnostic in validation.diagnostics:
+            if diagnostic.get("severity") == "warning":
+                print(f"publication validation warning: {diagnostic['message']}", file=sys.stderr)
+        if not validation.ok:
+            for error in validation.errors:
+                print(f"publication validation: {error}", file=sys.stderr)
+            return 3
+        authoring = validate_authoring(source_root)
+        if not authoring.ok:
+            for error in authoring.errors:
+                print(f"authoring validation: {error}", file=sys.stderr)
+            return 3
+        image_slots = validation.image_slots
+        unresolved_image_slots = validation.unresolved_image_slots
     try:
         license_defaults = load_license_metadata(LICENSE_FILE)
     except (OSError, ValueError) as exc:
         print(f"licensing: {exc}", file=sys.stderr)
         return 2
     try:
-        config = load_publication_config(source_root / CONFIG_NAME)
+        if config is None:
+            config = load_publication_config(source_root / CONFIG_NAME)
         identity = resolve_identity(
             config,
             {"title": getattr(args, "title", None), "author": getattr(args, "author", None), "version": getattr(args, "version", None)},
@@ -661,7 +753,10 @@ def _preflight(args: argparse.Namespace) -> _PreflightResult | int:
         return 2
     document = resolve_document(config, profile)
     requested_engine = getattr(args, "engine", None) or os.environ.get("REPORTKIT_TEX_ENGINE")
-    target_state, gate_exit = _target_gates(args, source_root, requested_engine)
+    resolved_engine = str(requested_engine or document.get("engine", "pdflatex"))
+    target_state, gate_exit = _target_gates(
+        args, source_root, resolved_engine, source_main=source_main, document=document,
+    )
     if gate_exit is not None:
         return gate_exit
     engine = str(requested_engine or document.get("engine", "pdflatex"))
@@ -723,8 +818,13 @@ def _preflight(args: argparse.Namespace) -> _PreflightResult | int:
     except (OSError, ThemeOverrideError, ValueError) as exc:
         print(f"publication config: theme/brand overrides: {exc}", file=sys.stderr)
         return 2
-    entries = order_entries(source_root)
-    if args.mode == "section":
+    entries = order_entries(source_root) if source_mode != "tex" else []
+    if source_mode == "tex":
+        if args.mode != "combined":
+            print("direct TeX source mode builds the complete document; use --mode combined", file=sys.stderr)
+            return 2
+        manuscripts = []
+    elif args.mode == "section":
         chosen = getattr(args, "section", None)
         if not chosen:
             print("--section is required in section mode", file=sys.stderr)
@@ -742,11 +842,11 @@ def _preflight(args: argparse.Namespace) -> _PreflightResult | int:
             return 3
     selected_manuscript_files = {f"manuscript/{path.as_posix()}" for path in manuscripts}
     used_image_slots = {
-        slug: slot for slug, slot in validation.image_slots.items()
+        slug: slot for slug, slot in image_slots.items()
         if image_field(slot, "manuscript_file", None) in selected_manuscript_files
     }
     unresolved_used_slots = [
-        slot for slot in validation.unresolved_image_slots
+        slot for slot in unresolved_image_slots
         if image_field(slot, "manuscript_file", None) in selected_manuscript_files
     ]
     return _PreflightResult(
@@ -756,12 +856,13 @@ def _preflight(args: argparse.Namespace) -> _PreflightResult | int:
         engine=engine, target=target, entrypoint=entrypoint, selection_marker=selection_marker,
         font_policy=font_policy, declared_language=declared_language, effective_theme=effective_theme,
         manuscripts=manuscripts, used_image_slots=used_image_slots, unresolved_used_slots=unresolved_used_slots,
-        target_state=target_state,
+        target_state=target_state, source_mode=source_mode, source_main=source_main,
     )
 
 
 def _stage_build_directory(
     *, output: Path, source_root: Path, entrypoint: Path, effective_theme: Any, target: Any, args: argparse.Namespace,
+    source_mode: str = "markdown", source_main: Path | None = None,
 ) -> tuple[list[dict[str, str]], str | None] | int:
     """Create the isolated build directory and stage its inputs: templates,
     the resolved entrypoint, project assets, an optional brand logo, theme
@@ -776,17 +877,27 @@ def _stage_build_directory(
     # Stable staged/compiled filename (A5), independent of which entrypoint
     # source template was selected -- downstream packaging/inspection reads
     # "publication.tex"/"publication.pdf" regardless of publication_type.
-    try:
-        stage_entrypoint(
-            entrypoint,
-            output / "publication.tex",
-            theme=target.requested_theme,
-            publication_type=target.publication_type,
-            class_name=target.class_name,
-        )
-    except (OSError, ValueError) as exc:
-        print(f"publication config: could not stage resolved entrypoint: {exc}", file=sys.stderr)
-        return 2
+    if source_mode == "tex":
+        if source_main is None or not source_main.is_file():
+            print(f"publication config: direct TeX source is missing: {source_main}", file=sys.stderr)
+            return 3
+        try:
+            shutil.copy2(source_main, output / "publication.tex")
+        except OSError as exc:
+            print(f"publication config: could not stage document.main: {exc}", file=sys.stderr)
+            return 2
+    else:
+        try:
+            stage_entrypoint(
+                entrypoint,
+                output / "publication.tex",
+                theme=target.requested_theme,
+                publication_type=target.publication_type,
+                class_name=target.class_name,
+            )
+        except (OSError, ValueError) as exc:
+            print(f"publication config: could not stage resolved entrypoint: {exc}", file=sys.stderr)
+            return 2
     # Per-renderer shared base files an entrypoint may \input{} (D7) -- e.g.
     # slides-base.tex for presentation.tex. publication-template.tex is
     # still self-contained (no *-base.tex dependency), so this is a no-op
@@ -980,7 +1091,10 @@ def _run_log_gate(
             make_diagnostic("compile_timeout", "diagnostic gate timed out", code="RK_DIAGNOSTIC_TIMEOUT")
         ], passed=False), 4, report_path=report_path, history_root=history_root)
     report["exit_codes"].append({"command": f"{sys.executable} {gate} {log}", "code": gate_result.returncode})
-    report["diagnostics"] = json.loads((output / "diagnostics.json").read_text(encoding="utf-8"))
+    report["diagnostics"] = _merge_diagnostic_envelopes(
+        json.loads((output / "diagnostics.json").read_text(encoding="utf-8")),
+        report.get("diagnostics"),
+    )
     report["gate"] = "passed" if gate_result.returncode == 0 else "failed"
     compiled_pdf = output / "publication.pdf"
     pdf = output / (f"{identity['slug']}.pdf" if args.mode == "combined" else "section.pdf")
@@ -1104,21 +1218,25 @@ def build(args: argparse.Namespace) -> int:
     staged = _stage_build_directory(
         output=output, source_root=source_root, entrypoint=entrypoint,
         effective_theme=effective_theme, target=target, args=args,
+        source_mode=preflight.source_mode, source_main=preflight.source_main,
     )
     if isinstance(staged, int):
         return staged
     staged_assets, cover_name = staged
 
-    body_files = _render_manuscript_bodies(
-        source_root=source_root, output=output, manuscripts=manuscripts, target=target,
-        authoring=authoring, used_image_slots=used_image_slots, timeout=timeout, memory_limit_mb=memory_limit_mb,
-    )
-    if isinstance(body_files, int):
-        return body_files
+    if preflight.source_mode == "tex":
+        manuscript_text = ""
+    else:
+        body_files = _render_manuscript_bodies(
+            source_root=source_root, output=output, manuscripts=manuscripts, target=target,
+            authoring=authoring, used_image_slots=used_image_slots, timeout=timeout, memory_limit_mb=memory_limit_mb,
+        )
+        if isinstance(body_files, int):
+            return body_files
 
-    body = output / "body.tex"
-    body.write_text("\n".join(f"\\input{{{path.stem}}}" for path in body_files) + "\n", encoding="utf-8")
-    manuscript_text = "\n".join((source_root / "manuscript" / path).read_text(encoding="utf-8") for path in manuscripts)
+        body = output / "body.tex"
+        body.write_text("\n".join(f"\\input{{{path.stem}}}" for path in body_files) + "\n", encoding="utf-8")
+        manuscript_text = "\n".join((source_root / "manuscript" / path).read_text(encoding="utf-8") for path in manuscripts)
     # Pandoc's other table form, the "simple table" (no pipes: a header row
     # followed by two or more space-separated runs of dashes), is at least
     # as common in hand-written Markdown as the pipe form and also lowers to
@@ -1129,18 +1247,19 @@ def build(args: argparse.Namespace) -> int:
         for line in manuscript_text.splitlines()
     )
     uses_code = "```" in manuscript_text or "~~~" in manuscript_text
-    write_metadata(
-        output / "metadata.tex", identity=identity, combined=args.mode == "combined",
-        license_values=license_values, cover_name=cover_name, uses_tables=uses_tables, uses_code=uses_code,
-        font_policy=font_policy, language=declared_language,
-    )
-    links_file = source_root / "links.yaml"
-    if links_file.is_file():
-        try:
-            render_links_tex(links_file, output / "links.tex")
-        except (OSError, ValueError) as exc:
-            print(f"link registry: {exc}", file=sys.stderr)
-            return 2
+    if preflight.source_mode != "tex":
+        write_metadata(
+            output / "metadata.tex", identity=identity, combined=args.mode == "combined",
+            license_values=license_values, cover_name=cover_name, uses_tables=uses_tables, uses_code=uses_code,
+            font_policy=font_policy, language=declared_language,
+        )
+        links_file = source_root / "links.yaml"
+        if links_file.is_file():
+            try:
+                render_links_tex(links_file, output / "links.tex")
+            except (OSError, ValueError) as exc:
+                print(f"link registry: {exc}", file=sys.stderr)
+                return 2
     tex = output / "publication.tex"
     log = output / "publication.log"
     validation_config = resolve_validation(config, profile)
@@ -1183,15 +1302,23 @@ def build(args: argparse.Namespace) -> int:
     for slot in unresolved_used_slots
     ]
     table_count = len(re.findall(r"(?m)^\s*\|.*\n\s*\|?\s*:?-{3,}", manuscript_text))
-    report_inputs = [
-        {"path": str(path), "sha256": sha256(source_root / "manuscript" / path)}
-        for path in manuscripts
-    ]
+    if preflight.source_mode == "tex":
+        report_inputs = [{
+            "path": str(preflight.source_main.relative_to(source_root)),
+            "sha256": sha256(preflight.source_main),
+        }] if preflight.source_main is not None else []
+    else:
+        report_inputs = [
+            {"path": str(path), "sha256": sha256(source_root / "manuscript" / path)}
+            for path in manuscripts
+        ]
     image_manifest = source_root / "image-slots.yaml"
     if used_image_slots and image_manifest.is_file():
         report_inputs.append({"path": image_manifest.name, "sha256": sha256(image_manifest)})
     matches_intent, _ = (
-        compare_intent(target.as_dict(), preflight.target_state) if preflight.target_state is not None else (None, [])
+        compare_intent(
+            {**target.as_dict(), "source_mode": preflight.target_state.source_mode}, preflight.target_state,
+        ) if preflight.target_state is not None else (None, [])
     )
     report = {
         "schema_version": BUILD_REPORT_SCHEMA_VERSION,
@@ -1213,23 +1340,62 @@ def build(args: argparse.Namespace) -> int:
         # like "technical" from what actually rendered).
         # Agent reasoning loop spec §4.2/§4.8: where the target was declared
         # and whether it matches .reportkit/intent.json (null until recorded).
-        "selection": {**target.as_dict(), "declared_by": None, "matches_intent": matches_intent},
+        "selection": {
+            **target.as_dict(),
+            "declared_by": preflight.target_state.declared_by if preflight.target_state else None,
+            "source_mode": preflight.target_state.source_mode if preflight.target_state else None,
+            "matches_intent": matches_intent,
+        },
         "effective_theme": effective_theme.as_dict(),
         # Agent-contract spec section 13: how the declared language resolved
         # (null when publication.yaml declares none and en-US applies).
         "language": resolve_language(declared_language, target.requested_theme).as_dict() if declared_language else None,
         "font_policy": font_policy,
-        "commands": [], "exit_codes": [], "diagnostics": {}, "figures": figure_count,
+        "commands": [], "exit_codes": [],
+        "diagnostics": diagnostic_envelope(getattr(args, "gate_diagnostics", []), passed=True),
+        "figures": figure_count,
         "images": image_report_items,
         "unresolved_image_count": len(unresolved_image_report_items),
         "unresolved_image_slots": unresolved_image_report_items,
         "tables": table_count, "pdf_sha256": None,
     }
     report_path = output / "build-report.json"
+    if preflight.source_mode == "markdown" and preflight.target_state is not None:
+        brief = find_brief(source_root, preflight.target_state)
+        if brief is not None and tex.is_file():
+            composition = audit_source(tex, brief, preflight.target_state)
+            composition_diagnostics = composition.get("diagnostics", [])
+            if isinstance(composition_diagnostics, list):
+                report["diagnostics"] = _merge_diagnostic_envelopes(
+                    report["diagnostics"], composition_diagnostics,
+                )
+                collected = getattr(args, "gate_diagnostics", None)
+                if isinstance(collected, list):
+                    collected.extend(item for item in composition_diagnostics if item not in collected)
+                for item in composition_diagnostics:
+                    prefix = "publication composition" if item.get("severity") == "error" else "publication composition warning"
+                    print(f"{prefix}: [{item['code']}] {item['message']}", file=sys.stderr)
+                blocking_composition = [
+                    item for item in composition_diagnostics
+                    if isinstance(item, dict) and item.get("severity") == "error"
+                ]
+                if blocking_composition:
+                    return _fail(
+                        report, composition, 3, report_path=report_path, history_root=history_root,
+                    )
     templates_root = REPO_ROOT / "latex_templates"
     # Keep the TeX search path explicit: the staged output plus the known
     # class/theme/publication roots are the complete ReportKit input surface.
-    texinputs = f"{output}:{templates_root}:{templates_root / 'themes'}:{templates_root / 'publication_types'}:"
+    # Direct-TeX sources may reference project-owned fragments; include the
+    # main source directory and consumer root alongside the staged build and
+    # pinned ReportKit templates.
+    source_directories = [output]
+    if preflight.source_main is not None:
+        source_directories.append(preflight.source_main.parent)
+    if source_root not in source_directories:
+        source_directories.append(source_root)
+    source_directories.extend((templates_root, templates_root / "themes", templates_root / "publication_types"))
+    texinputs = ":".join(str(path) for path in source_directories) + ":"
 
     tex_failure = _compile_tex_passes(
         engine=engine, tex=tex, log=log, output=output, texinputs=texinputs, timeout=timeout, memory_limit_mb=memory_limit_mb,
@@ -1345,10 +1511,11 @@ def main() -> int:
             return failure
         return build(args)
 
+    # Keep structured target and composition findings in both the manifest and
+    # the JSON facade, including non-blocking warnings on successful builds.
+    args.gate_diagnostics = []
     if not args.json:
         return execute()
-    # Blocking target-gate diagnostics keep their codes in the JSON envelope.
-    args.gate_diagnostics = []
     stdout, stderr = io.StringIO(), io.StringIO()
     with redirect_stdout(stdout), redirect_stderr(stderr):
         try:
@@ -1366,10 +1533,11 @@ def main() -> int:
     ), None)
     report = json.loads(report_path.read_text(encoding="utf-8")) if report_path else None
     nested = report.get("diagnostics", {}) if isinstance(report, dict) else {}
-    diagnostics = list(nested.get("diagnostics", nested.get("issues", []))) if isinstance(nested, dict) else []
+    diagnostics = _diagnostic_records(nested)
+    diagnostics = _diagnostic_records(_merge_diagnostic_envelopes(
+        {"diagnostics": diagnostics, "passed": code == 0}, args.gate_diagnostics,
+    ))
     message = stderr.getvalue().strip() or stdout.getvalue().strip()
-    if code and not diagnostics and args.gate_diagnostics:
-        diagnostics = list(args.gate_diagnostics)
     if code and not diagnostics:
         kind = {2: "configuration_error", 3: "publication_validation", 4: "compile_failure", 5: "environment_error"}.get(code, "internal_error")
         diagnostics = [make_diagnostic(kind, message or "publication build failed", code={

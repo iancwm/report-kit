@@ -1,0 +1,15 @@
+{
+  "schema_version": "1.0.0",
+  "visual_reference": "latex_templates/examples/equity-research/report.tex (canonical equity-research example)",
+  "required": [
+    "researchfrontpage",
+    "ratingstrip",
+    "whatschanged",
+    "exhibit",
+    "financialtable"
+  ],
+  "manual_review": [
+    "Reconcile every displayed estimate, valuation, and scenario with its cited source.",
+    "Confirm rating, price target, risks, and disclosures remain legible in the rendered pages."
+  ]
+}

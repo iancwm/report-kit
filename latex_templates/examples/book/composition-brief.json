@@ -1,0 +1,14 @@
+{
+  "schema_version": "1.0.0",
+  "visual_reference": "latex_templates/examples/book/report.tex and book-body.tex (canonical book example)",
+  "required": [
+    "bookdetails",
+    "bookpart",
+    "bookappendix",
+    "bookreferences"
+  ],
+  "manual_review": [
+    "Check front matter, part starts, appendices, references, and running furniture across the full book.",
+    "Confirm cross-references and page breaks remain correct in the rendered PDF."
+  ]
+}

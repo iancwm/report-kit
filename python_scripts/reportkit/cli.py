@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import argparse
-from dataclasses import asdict
+from dataclasses import asdict, replace
 import json
 import os
 from pathlib import Path
@@ -22,6 +22,7 @@ from .config import (
     resolve_document,
     resolve_output,
     resolve_theme,
+    resolve_validation,
     theme_font_policy_conflict,
 )
 from .composition_audit import audit_source, find_brief
@@ -38,7 +39,7 @@ from .diagnostics import (
 )
 from .documentation import check_documentation, write_documentation
 from .editorial_audit import audit_editorial_source
-from .initialization import ensure_outside_repository, initialize, install_fonts
+from .initialization import ensure_outside_repository, initialize, install_fonts, scaffold_target
 from .languages import language_diagnostics
 from .loop import next_step, target_line, target_payload
 from .publications import (
@@ -50,7 +51,9 @@ from .publications import (
 from .registry import COMMAND_CONTRACT, PRIMITIVE_KINDS, ContractError, generate_registry
 from .review import VISUAL_REVIEW_STATES, compare_intent, write_review
 from .status import collect_status
-from .target import DECIDED_BY, SOURCE_MODES, TargetState, load_target, set_target, target_gate
+from .target import (
+    DECIDED_BY, SOURCE_MODES, TargetState, has_declared_source_mode, load_target, set_target, target_gate,
+)
 from .tex_target import engine_gate, tex_gates
 from .version import CONTRACT_VERSION
 from .publication_validation import validate_publication
@@ -91,7 +94,7 @@ def _loop_fields(payload: Any, state: TargetState | None, command: str) -> Any:
     if not isinstance(payload, dict):
         return payload
     result = dict(payload)
-    target = target_payload(state) if state is not None else {}
+    target = target_payload(state)
     if target:
         # `init --json` has reported its project path as `target` since v1;
         # there the loop's target object is `publication_target` instead.
@@ -120,7 +123,7 @@ def _emit(
     if as_json:
         _json_or_print(_loop_fields(payload, state, command), True)
         return
-    line = target_line(state) if state is not None else ""
+    line = target_line(state)
     if line:
         print(line)
     if human is not None:
@@ -254,6 +257,7 @@ def _run_init(args: argparse.Namespace) -> int:
     # Agent reasoning loop spec §4.2: `init --publication-type/--theme/
     # --source-mode` locks the target the same way `target set` does.
     target_diagnostics: list[dict[str, Any]] = []
+    target_created: tuple[str, ...] = ()
     if args.publication_type or args.theme or args.source_mode:
         _, target_diagnostics = set_target(
             result.target, publication_type=args.publication_type, theme=args.theme, source_mode=args.source_mode,
@@ -263,7 +267,24 @@ def _run_init(args: argparse.Namespace) -> int:
             payload = diagnostic_envelope(target_diagnostics, passed=False, target=str(result.target), created=list(result.created))
             _emit(payload, load_target(result.target), "init", args.json, human=lambda: _print_failures(blocking))
             return registered_exit_code(blocking) or EXIT_CONFIG
+        state = load_target(result.target)
+        try:
+            target_created = scaffold_target(
+                result.target, state.publication_type, state.theme, state.source_mode, main=state.main,
+            )
+        except (OSError, ValueError, json.JSONDecodeError) as exc:
+            diagnostic = make_diagnostic(
+                "configuration_error", f"cannot scaffold target source: {exc}", code="RK_INIT_SCAFFOLD_FAILED",
+                docs="#/commands/init",
+            )
+            payload = diagnostic_envelope(
+                [*target_diagnostics, diagnostic], passed=False, target=str(result.target),
+                created=[*result.created, *target_created],
+            )
+            _emit(payload, state, "init", args.json, human=lambda: print(f"FAIL [{diagnostic['code']}]: {diagnostic['message']}", file=sys.stderr))
+            return EXIT_CONFIG
     state = load_target(result.target)
+    created = [*result.created, *target_created]
 
     font_status = None
     if args.install_fonts:
@@ -293,7 +314,7 @@ def _run_init(args: argparse.Namespace) -> int:
         payload = diagnostic_envelope(
             [*target_diagnostics, *diagnostics],
             passed=doctor_payload.get("passed", not diagnostics),
-            target=str(result.target), created=list(result.created), fonts=font_status,
+            target=str(result.target), created=created, fonts=font_status,
             mode=doctor_payload.get("mode"), toolchain=doctor_payload.get("toolchain"),
             checks=doctor_payload.get("checks", []),
         )
@@ -302,7 +323,7 @@ def _run_init(args: argparse.Namespace) -> int:
         def human() -> None:
             print("== ReportKit init ==")
             print(f"consumer project: {result.target}")
-            print("created: " + (", ".join(result.created) if result.created else "nothing (already initialized)"))
+            print("created: " + (", ".join(created) if created else "nothing (already initialized)"))
             for item in target_diagnostics:
                 print(f"WARN [{item['code']}]: {item['message']}", file=sys.stderr)
             if font_status:
@@ -444,6 +465,18 @@ def _run_check(args: argparse.Namespace) -> int:
         diagnostics.append(diagnostic)
         config = {}
     document = resolve_document(config, args.profile)
+    target_type = str(document.get("publication_type") or state.publication_type)
+    state = replace(
+        state,
+        publication_type=target_type,
+        theme=str(document.get("theme") or state.theme),
+        renderer=str((PUBLICATION_TYPES.get(target_type) or {}).get("renderer", state.renderer)),
+        source_mode=str(document.get("source_mode") or state.source_mode),
+        main=str(document.get("main") or state.main),
+        declared_by=str(document.get("declared_by") or state.declared_by),
+        require_declared=bool(resolve_validation(config, args.profile).get("require_declared_target", state.require_declared)),
+        source_mode_declared=has_declared_source_mode(config, args.profile),
+    )
     engine_override = getattr(args, "engine", None) or os.environ.get("REPORTKIT_TEX_ENGINE")
     if engine_override:
         document = {**document, "engine": engine_override}
@@ -827,23 +860,31 @@ def _run_audit_editorial(args: argparse.Namespace) -> int:
     brief = Path(args.brief).resolve()
     if not tex.is_file() or not brief.is_file():
         missing = tex if not tex.is_file() else brief
-        payload = _failure("configuration_error", f"missing editorial audit input: {missing}", code="RK_EDITORIAL_INPUT")
+        payload = _failure("configuration_error", f"missing composition audit input: {missing}", code="RK_COMPOSITION_INPUT")
         _emit(payload, None, args.command, args.json)
         return EXIT_CONFIG
     try:
-        payload = audit_editorial_source(tex, brief)
+        if args.command == "audit-editorial":
+            # Preserve the legacy alias's original feature-only behavior.
+            state = None
+            payload = audit_editorial_source(tex, brief)
+        else:
+            candidates = [*tex.parents, *brief.parents]
+            source_root = next((path for path in candidates if (path / CONFIG_NAME).is_file()), tex.parent)
+            state = load_target(source_root)
+            payload = audit_source(tex, brief, state)
     except (OSError, ValueError, json.JSONDecodeError) as exc:
-        payload = _failure("configuration_error", str(exc), code="RK_EDITORIAL_BRIEF")
+        payload = _failure("configuration_error", str(exc), code="RK_COMPOSITION_BRIEF_INVALID")
         _emit(payload, None, args.command, args.json)
         return EXIT_CONFIG
 
     def human() -> None:
-        print(f"{'PASS' if payload['passed'] else 'FAIL'}: editorial source audit")
+        print(f"{'PASS' if payload['passed'] else 'FAIL'}: publication composition audit")
         print("  Composition: " + ", ".join(f"{name}={count}" for name, count in payload["inventory"].items()))
         for item in payload["diagnostics"]:
             print(f"  {item['code']}: {item['message']}")
         print("  Manual page and evidence review is still required.")
-    _emit(payload, None, args.command, args.json, human=human)
+    _emit(payload, state, args.command, args.json, human=human)
     return EXIT_OK if payload["passed"] else EXIT_VALIDATION
 
 
@@ -888,6 +929,9 @@ def _run_target(args: argparse.Namespace) -> int:
     def human() -> None:
         print(f"target: structure={state.publication_type} look={state.theme} renderer={state.renderer} "
               f"source={state.source_mode} declared={state.declared_by}")
+        alias = (state.intent or {}).get("alias")
+        if alias:
+            print(f"alias: {alias} → structure={state.publication_type} look={state.theme}")
         _print_failures(blocking)
         for item in diagnostics:
             if item["severity"] != "error":

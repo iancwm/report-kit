@@ -49,9 +49,15 @@ Run the acceptance check directly and confirm it passes:
 bash scripts/acceptance_check.sh
 ```
 Then do a fresh-clone dry run: clone the repo into a scratch directory,
-run `reportkit init <publication-project>` and `reportkit build
---source-root <publication-project>`, and confirm the doctor reports
-`MODE: FULL BUILD` before tagging.
+initialize and build an explicitly selected target, then confirm the doctor
+reports `MODE: FULL BUILD` before tagging:
+
+```bash
+reportkit init <publication-project> --publication-type technical-report \
+  --theme default --source-mode markdown
+reportkit doctor --require full-build
+reportkit build --source-root <publication-project>
+```
 
 For Python tooling outside the pinned container, install the supported set:
 ```bash

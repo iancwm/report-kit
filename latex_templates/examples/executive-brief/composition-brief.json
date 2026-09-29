@@ -1,0 +1,15 @@
+{
+  "schema_version": "1.0.0",
+  "visual_reference": "latex_templates/examples/executive-brief/brief.tex (canonical executive-brief example)",
+  "required": [
+    "briefheader",
+    "decisionpoint",
+    "exhibit",
+    "briefactions",
+    "briefsources"
+  ],
+  "manual_review": [
+    "Confirm the decision and requested approval are clear on the first page.",
+    "Check that every action has an owner or timing and every exhibit names its source."
+  ]
+}

@@ -1,7 +1,9 @@
 # ReportKit agent reasoning loop: target lock, scoped context, and target-aware gates
 
-Status: proposed (open questions resolved 2026-09-28)
+**Status:** Implementation for lanes A–F is in PR #77; Lane G and acceptance
+evidence remain open.
 Date: 2026-09-28
+**Last updated:** 2026-09-29
 Owner: engine
 
 ## 1. Problem

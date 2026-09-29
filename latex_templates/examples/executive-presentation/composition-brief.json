@@ -1,0 +1,13 @@
+{
+  "schema_version": "1.0.0",
+  "visual_reference": "latex_templates/examples/executive-presentation/report.tex (canonical presentation example)",
+  "required": [
+    "titleslide",
+    "evidenceslide",
+    "dense-layout mix"
+  ],
+  "manual_review": [
+    "Review each slide at presentation size for readable text and one clear assertion.",
+    "Confirm evidence is legible and the closing slide states the requested action."
+  ]
+}

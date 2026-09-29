@@ -1,5 +1,9 @@
 # ReportKit Agent Reasoning Loop Implementation Plan (multi-agent)
 
+**Status:** The Wave 0 contract is merged; lanes A–F are implemented in PR #77.
+Lane G's agent-evaluation harness and the full acceptance matrix remain open.
+**Last updated:** 2026-09-29
+
 > **For agentic workers:** this plan is built for parallel execution. One
 > agent lands **Wave 0** alone. After it merges, the **Wave 1 lanes** run
 > concurrently, each in its own git worktree and branch. **Wave 2** is one
@@ -16,6 +20,15 @@ acceptance criteria.)
 
 **Tech stack:** Python 3.11+, argparse CLI (`python_scripts/reportkit/cli.py`),
 PyYAML, pytest, ruff, LuaLaTeX/pdfLaTeX via `publication_pipeline/scripts/publication_build.py`.
+
+## Implementation status
+
+The integrated branch contains the implementation and documentation work for
+lanes A–F, on top of the merged Wave 0 contract. Lane G's deterministic oracle
+harness and the four §4.9 scenarios are not implemented. The pytest/ruff suite,
+AC1–AC12 matrix, fresh-project TeX builds, and legacy build comparison have not been
+run for PR #77, so the plan's acceptance checklists remain open until that
+evidence is recorded.
 
 ---
 

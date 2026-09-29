@@ -132,6 +132,7 @@
           "required": ["technical-report", "equity-research", "executive-brief", "feature-article", "book", "presentation"],
           "additionalProperties": false
         },
+        "role": {"enum": ["native", "allowed", "discouraged", "absent"]},
         "stability": {"enum": ["stable", "experimental", "deprecated"]},
         "since": {"type": "string"}, "description": {"type": "string"},
         "contract_pointer": {"type": "string", "pattern": "^#/capabilities/primitives/"},
@@ -145,7 +146,7 @@
     "schema_version": {"const": "1.0.0"},
     "passed": {"const": true},
     "diagnostics": {"type": "array", "items": {"$ref": "#/$defs/diagnostic"}},
-    "contract_version": {"const": "1.2.0"},
+    "contract_version": {"const": "1.3.0"},
     "reportkit_version": {"const": "1.9.3"},
     "revision": {"type": "string"},
     "selection": {

@@ -18,24 +18,22 @@ reportkit context --schema context
 reportkit context --schema context-slice
 reportkit context --schema diagnostic
 reportkit docs --check --json
-reportkit audit-editorial report.tex --brief editorial-brief.json --json
+reportkit audit report.tex --brief composition-brief.json --json
 ```
 
-`audit-editorial` is a publication-specific composition check for hand-authored
-feature articles. Its JSON brief names the visual reference and expected
-feature roles. It catches the case where `theme=editorial` compiles but the
-article omits the chosen editorial rhythm. A passing source audit still reports
-`manual_review_required: true`; a human or agent must inspect every rendered
-page and verify evidence, quotes, and exhibit purpose. The canonical fixture's
-pinned visual regression checks the engine, not a consumer article's design.
+`audit` checks the hand-authored source against its target's composition brief;
+`audit-editorial` remains as a compatibility alias for feature articles. A
+passing source audit still reports `manual_review_required: true`; a human or
+agent must inspect every rendered page and verify evidence, quotes, and exhibit
+purpose. The canonical fixture's pinned visual regression checks the engine,
+not a consumer publication's design.
 
-Contract version `1.2.0` describes the combinations registered today:
+Contract version `1.3.0` describes the combinations registered today:
 `technical-report/{default,technical}/paged`,
 `equity-research/institutional-research/paged`,
-`presentation/executive/slides`, the stable
-`feature-article/editorial/paged` target, and the experimental
-`executive-brief/{executive,institutional-research}/paged` and
-`book/{default,technical,editorial}/paged` targets. Theme entries expose semantic
+`executive-brief/{executive,institutional-research}/paged`,
+`feature-article/editorial/paged`, `book/{default,technical,editorial}/paged`,
+and `presentation/{executive,venture}/slides`. Theme entries expose semantic
 capability names, not visual values; `technical` resolves to the same
 implementation as `default`. English with Latin script is verified;
 Vietnamese is metadata-only, and RTL is unsupported.

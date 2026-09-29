@@ -1,0 +1,19 @@
+{
+  "schema_version": "1.0.0",
+  "visual_reference": "latex_templates/examples/editorial-feature/report.tex (pinned six-page visual baseline)",
+  "required": [
+    "openingvisual",
+    "dropcap",
+    "featurecolumns",
+    "pullquote",
+    "featuresidebar",
+    "graphic-exhibit",
+    "full-width-exhibit"
+  ],
+  "minimum_exhibits": 3,
+  "manual_review": [
+    "Compare every rendered page with the chosen editorial reference for visual rhythm, whitespace, and legibility.",
+    "Verify that every pull quote appears in the article or a named source; never invent quotation or attribution.",
+    "Verify that each exhibit answers a reader question and credits its evidence; do not invent chart data."
+  ]
+}

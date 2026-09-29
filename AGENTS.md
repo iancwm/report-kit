@@ -1,32 +1,12 @@
 # ReportKit agent instructions
 
-When creating a PDF with this repository, read `SKILL.md` before drafting or
-building. This checkout is the publication engine. Put each publication in a
-separate directory outside this clone.
-
-## First run
-
-1. Read the user's requested format, template, theme, and design guidelines.
-   Record the chosen `document.publication_type` and `document.theme` in the
-   consumer project's `publication.yaml` before writing the manuscript. Use
-   the selection table and matching authoring reference in `SKILL.md`. If the
-   request is ambiguous, clarify the choice before drafting.
-2. In a fresh Debian/Ubuntu environment, run `scripts/setup_tex.sh` before
-   building. It installs TeX and fonts, then compiles editorial and
-   institutional LuaLaTeX smoke documents. Run `scripts/setup_tex.sh --check`
-   when dependencies are already installed. On Windows, or any host without
-   the native toolchain, use `scripts/reportkit_container.py` with a pinned
-   image digest instead of `scripts/setup_tex.sh` — see
-   `references/docker-workflow.md`.
-3. Initialize the separate project with `./reportkit init <project-dir>` and
-   install the Python environment as shown in `SKILL.md`. Run
-   `<project-dir>/build/.venv/bin/python ./reportkit doctor --require full-build`
-   before promising a PDF.
-4. Build using the selected target, inspect `build-report.json`'s `selection`,
-   and visually review the rendered pages against the user's design guidelines.
-   For container builds, inspect `container-build.json` → `selection` instead.
-
-Do not copy `latex_templates/REPORT_TEMPLATE.tex` for a requested article,
-brief, book, equity report, or presentation. It is only the generic technical
-report starter. Do not silently replace an unavailable requested target with
-the default theme; report the specific build failure and fix the setup.
+For every PDF publication, read [SKILL.md](SKILL.md) before selecting a target or drafting.
+Follow the loop and each CLI `next_step`; `reportkit status` recovers saved state after a reset.
+Keep publication projects and their artifacts outside this engine checkout.
+Use the skill's format table to choose structure, look, source mode, and reference.
+On fresh Debian/Ubuntu hosts, run `scripts/setup_tex.sh` before drafting/building; use `--check` when installed.
+On Windows or without a native toolchain, use `scripts/reportkit_container.py` with a pinned image digest ([workflow](references/docker-workflow.md)).
+Initialize a separate project and install its Python environment as described in SKILL.md.
+Run the consumer project's `reportkit doctor --require full-build` before promising a PDF.
+Build the selected target and render the pages. Inspect `build-report.json` selection, or `container-build.json` selection for container builds.
+Report when visual review is unavailable; never claim it was completed.

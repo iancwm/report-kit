@@ -9,6 +9,7 @@
     "selection": {
       "type": "object",
       "properties": {
+        "source_mode": {"enum": ["tex", "markdown", null]},
         "declared_by": {
           "description": "Where the built target was declared (agent reasoning loop spec §4.2); null when not recorded.",
           "enum": ["publication.yaml", "tex-class-options", "default", null]
