@@ -333,13 +333,16 @@ def test_audit_and_its_alias_share_one_handler() -> None:
         assert json.loads(result.stdout)["passed"] is True
 
 
-def test_emit_adds_loop_fields_only_when_the_hooks_return_them(monkeypatch: pytest.MonkeyPatch, capsys) -> None:
+def test_emit_always_adds_loop_fields_and_preserves_hook_overrides(monkeypatch: pytest.MonkeyPatch, capsys) -> None:
     from reportkit import cli
     from reportkit.target import load_target
 
     state = load_target(REPO / "publication_pipeline" / "example_publication")
     cli._emit({"passed": True, "diagnostics": []}, state, "check", True)
-    assert set(json.loads(capsys.readouterr().out)) == {"passed", "diagnostics"}
+    payload = json.loads(capsys.readouterr().out)
+    assert {"passed", "diagnostics", "target", "next_step"} <= set(payload)
+    assert payload["target"]["line"].startswith("TARGET structure=technical-report look=default")
+    assert payload["next_step"]["command"] == "reportkit build --json"
     monkeypatch.setattr(cli, "target_payload", lambda _state: {"publication_type": "book"})
     monkeypatch.setattr(cli, "target_line", lambda _state: "TARGET book/default/paged")
     monkeypatch.setattr(cli, "next_step", lambda *_args: {"command": "reportkit build --json", "reason": "check passed"})
