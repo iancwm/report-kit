@@ -371,14 +371,27 @@ def _profile_section(config: dict[str, Any], name: str, profile: str | None) -> 
 
 def resolve_document(config: dict[str, Any], profile: str | None = None) -> dict[str, Any]:
     document = _profile_section(config, "document", profile)
-    document.setdefault("main", "report.tex")
-    document.setdefault("class", "reportkit")
-    document.setdefault("publication_type", "technical-report")
+    # Keep the historical effective values for absent or placeholder fields,
+    # while recording whether the publication structure was declared. A blank
+    # target in the new ``init`` placeholder is therefore still defaulted and
+    # can be rejected by the target gate without resolving to ``None``.
+    declared_by = "publication.yaml" if document.get("publication_type") not in (None, "", {}) else "default"
+    if document.get("main") in (None, "", {}):
+        document["main"] = "report.tex"
+    if document.get("class") in (None, "", {}):
+        document["class"] = "reportkit"
+    if document.get("publication_type") in (None, "", {}):
+        document["publication_type"] = "technical-report"
     publication = PUBLICATION_TYPES.get(str(document["publication_type"]))
     default_target = (publication or {}).get("default_target", {})
-    document.setdefault("theme", default_target.get("theme", "default"))
+    if document.get("theme") in (None, "", {}):
+        document["theme"] = default_target.get("theme", "default")
     theme = THEMES.get(str(document["theme"]))
-    document.setdefault("engine", (theme or {}).get("required_engine", "pdflatex"))
+    if document.get("engine") in (None, "", {}):
+        document["engine"] = (theme or {}).get("required_engine", "pdflatex")
+    if document.get("source_mode") in (None, "", {}):
+        document["source_mode"] = "markdown"
+    document["declared_by"] = declared_by
     # decision D5 (multi-format publication architecture spec): a canvas-based
     # renderer (slides) never gets a fake "paper" value -- an omitted paper
     # key must stay omitted so context/build-report honestly report a canvas

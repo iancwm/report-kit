@@ -28,6 +28,11 @@ title:
 # keywords:
 # disclaimer:
 # project_url:
+document:
+  publication_type:   # REQUIRED: run `reportkit target set` (see SKILL.md selection table)
+  theme:
+validation:
+  require_declared_target: true
 """
 PUBLICATION_CONTENT = PUBLICATION_CONFIG
 
