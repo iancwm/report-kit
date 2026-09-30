@@ -90,10 +90,99 @@ def _fragment_text(node: DirectiveNode, fragment_root: Path | None) -> str:
     return path.read_text(encoding="utf-8")
 
 
+def _line_macro_constraint(record: Mapping[str, Any]) -> Mapping[str, Any] | None:
+    for constraint in record.get("constraints", []):
+        if isinstance(constraint, Mapping) and constraint.get("code") == "line_macros":
+            return constraint
+    return None
+
+
+def _escape_line_text(value: str) -> str:
+    """Keep source indentation as active TeX spaces, then escape its payload."""
+    indentation = len(value) - len(value.lstrip(" "))
+    return "~" * indentation + tex_escape(value[indentation:])
+
+
+def _split_fields(value: str, separator: str) -> list[str]:
+    """Split a row while trimming one conventional space around each pipe."""
+    fields = value.split(separator)
+    result: list[str] = []
+    for index, field in enumerate(fields):
+        if index > 0 and field.startswith(" "):
+            field = field[1:]
+        if field.endswith(" "):
+            field = field[:-1]
+        result.append(field)
+    return result
+
+
+def _render_line_macro_content(content: str, constraint: Mapping[str, Any]) -> str:
+    """Render line-macro content from the primitive's contract metadata."""
+    rendered: list[str] = []
+    if "prefixes" in constraint:
+        prefixes = constraint.get("prefixes", [])
+        if not isinstance(prefixes, list):
+            prefixes = []
+        default_macro = str(constraint.get("default", ""))
+        for line in content.split("\n"):
+            macro = default_macro
+            payload = line
+            for pair in prefixes:
+                if not isinstance(pair, (list, tuple)) or len(pair) != 2:
+                    continue
+                prefix, candidate = str(pair[0]), str(pair[1])
+                if line.startswith(prefix):
+                    macro = candidate
+                    payload = line[len(prefix):]
+                    # Prefix contracts may include their separator ("$ ") or
+                    # name only the marker ("+", "-", "@@"). Remove one
+                    # conventional separator in the latter form, preserving
+                    # any additional indentation for the code payload.
+                    if not prefix.endswith((" ", "\t")) and payload.startswith(" "):
+                        payload = payload[1:]
+                    break
+            if not macro:
+                raise ValueError("line_macros prefix constraints require a default macro")
+            rendered.append(f"\\{macro}{{{_escape_line_text(payload)}}}")
+        return "\n".join(rendered)
+
+    if "split" in constraint:
+        separator = str(constraint.get("split", ""))
+        macro = str(constraint.get("macro", ""))
+        if not separator or not macro:
+            raise ValueError("line_macros split constraints require split and macro values")
+        for line in content.split("\n"):
+            if not line.strip():
+                continue
+            fields = _split_fields(line, separator)
+            if macro == "capabilityrow":
+                if len(fields) not in {2, 3}:
+                    raise ValueError("capabilitygrid rows need name|cells or name|tag|cells")
+                cells = fields[-1]
+                invalid = sorted(set(char for char in cells if char not in {"D", "U", "-"}))
+                if invalid:
+                    raise ValueError("capabilitygrid cells may contain only D, U, or -")
+                name = _escape_line_text(fields[0])
+                tag = _escape_line_text(fields[1]) if len(fields) == 3 else ""
+                rendered.append(f"\\{macro}[{tag}]{{{name}}}{{{_escape_line_text(cells)}}}")
+            else:
+                arguments = "".join(f"{{{_escape_line_text(field)}}}" for field in fields)
+                rendered.append(f"\\{macro}{arguments}")
+        return "\n".join(rendered)
+
+    raise ValueError("line_macros constraints need prefixes or split/macro metadata")
+
+
 def _body(node: DirectiveNode, fragment_root: Path | None, records: Mapping[str, Mapping[str, Any]]) -> str:
     pieces: list[str] = []
     if node.content:
-        pieces.append(tex_escape(node.content))
+        line_macros = _line_macro_constraint(records.get(node.primitive, {}))
+        if line_macros is None:
+            pieces.append(tex_escape(node.content))
+        else:
+            rendered_lines = _render_line_macro_content(node.content, line_macros)
+            if rendered_lines:
+                pieces.append(rendered_lines)
     trusted = _fragment_text(node, fragment_root)
     if trusted:
         pieces.append(trusted.rstrip("\n"))

@@ -20,6 +20,7 @@ other Markdown is returned unchanged for Pandoc.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from functools import lru_cache
 import hashlib
 import json
 from pathlib import Path
@@ -29,6 +30,7 @@ from typing import Any, Mapping
 
 from .authoring_ir import AuthoringIR, DirectiveNode, SourceLocation
 from .diagnostics import make_diagnostic
+from .registry import generate_registry
 
 
 _FENCE = re.compile(r"^(?P<indent>[ \t]{0,3})(?P<mark>`{3,}|~{3,})(?P<info>[^\n]*)\n?$")
@@ -86,6 +88,46 @@ def _line_diagnostic(file: str, line: int, message: str, *, rule: str, details: 
     )
 
 
+@lru_cache(maxsize=1)
+def _line_macro_specs() -> dict[str, Mapping[str, Any]]:
+    """Index the source-adjacent line-macro contracts for parser handling."""
+    result: dict[str, Mapping[str, Any]] = {}
+    data = generate_registry()
+    for records in data.get("primitives", {}).values():
+        if not isinstance(records, Mapping):
+            continue
+        for name, record in records.items():
+            if not isinstance(record, Mapping):
+                continue
+            constraint = next(
+                (
+                    item for item in record.get("constraints", [])
+                    if isinstance(item, Mapping) and item.get("code") == "line_macros"
+                ),
+                None,
+            )
+            if constraint is not None:
+                result[str(name)] = constraint
+    return result
+
+
+def _line_macro_spec(primitive: str | None) -> Mapping[str, Any] | None:
+    return _line_macro_specs().get(primitive or "")
+
+
+def _pipe_fields(value: str) -> list[str]:
+    """Split a row while removing one conventional space around each pipe."""
+    fields = value.split("|")
+    result: list[str] = []
+    for index, field in enumerate(fields):
+        if index > 0 and field.startswith(" "):
+            field = field[1:]
+        if field.endswith(" "):
+            field = field[:-1]
+        result.append(field)
+    return result
+
+
 def _is_reportkit_info(info: str) -> tuple[bool, str | None]:
     value = info.strip()
     if not value:
@@ -140,6 +182,9 @@ def _parse_body(
     primitive, arguments = _parse_inline_selector(selector)
     values: dict[str, Any] = {}
     content_lines: list[str] = []
+    content_is_block = False
+    content_source_lines: list[int] = []
+    content_value_line = start_line + 1
     nonblank = [line for line in body_lines if line.strip()]
     if len(nonblank) == 1 and nonblank[0].lstrip().startswith("{"):
         try:
@@ -151,6 +196,9 @@ def _parse_body(
                 diagnostics.append(_line_diagnostic(source_file, start_line, "ReportKit directive JSON must be an object", rule="directive_syntax"))
             else:
                 values.update(decoded)
+                if "content" in decoded:
+                    content_source_lines = [start_line + 1]
+                    content_value_line = start_line + 1
     else:
         index = 0
         while index < len(body_lines):
@@ -168,14 +216,22 @@ def _parse_body(
                 if _KEY.fullmatch(key):
                     value = value.strip()
                     if value == "|":
+                        content_is_block = True
                         index += 1
                         multiline: list[str] = []
+                        content_source_lines = []
                         while index < len(body_lines):
                             multiline.append(body_lines[index][2:] if body_lines[index].startswith("  ") else body_lines[index])
+                            content_source_lines.append(start_line + 1 + index)
                             index += 1
-                        values[key] = "\n".join(multiline).rstrip("\n")
+                        values[key] = "\n".join(multiline)
+                        content_value_line = content_source_lines[0] if content_source_lines else start_line + 1 + index
                         continue
                     values[key] = _clean_value(value)
+                    if key == "content":
+                        content_is_block = False
+                        content_source_lines = [start_line + 1 + index]
+                        content_value_line = start_line + 1 + index
                     index += 1
                     continue
             if "=" in raw:
@@ -190,6 +246,12 @@ def _parse_body(
             else:
                 content_lines.append(raw)
             index += 1
+
+    selected_primitive = primitive
+    for key, value in values.items():
+        if str(key) in _SELECTOR_KEYS:
+            selected_primitive = _clean_value(value)
+    line_macro_spec = _line_macro_spec(selected_primitive)
 
     for key, value in values.items():
         key = str(key)
@@ -218,7 +280,10 @@ def _parse_body(
                     else:
                         diagnostics.append(_line_diagnostic(source_file, start_line, f"directive {key} must be a JSON object", rule="directive_syntax"))
         elif key == "content":
-            content_lines = [_clean_value(value)]
+            if content_is_block and line_macro_spec is not None:
+                content_lines = [str(value)]
+            else:
+                content_lines = [_clean_value(value)]
         elif key in _ESCAPE_KEYS:
             # Handled separately below; keep it out of primitive arguments.
             continue
@@ -231,7 +296,43 @@ def _parse_body(
         if key in values:
             fragment = _clean_value(values[key])
             break
-    content = "\n".join(content_lines).strip("\n")
+    joined_content = "\n".join(content_lines)
+    if content_is_block and line_macro_spec is not None:
+        content = joined_content
+    else:
+        content = joined_content.strip("\n")
+
+    if line_macro_spec is not None and line_macro_spec.get("split") == "|":
+        macro = str(line_macro_spec.get("macro", ""))
+        if macro == "capabilityrow":
+            for row_index, row in enumerate(content.split("\n")):
+                if not row.strip():
+                    continue
+                source_line = (
+                    content_source_lines[row_index]
+                    if row_index < len(content_source_lines)
+                    else content_value_line
+                )
+                fields = _pipe_fields(row)
+                if len(fields) not in {2, 3}:
+                    diagnostics.append(_line_diagnostic(
+                        source_file,
+                        source_line,
+                        "capabilitygrid row must contain either name|cells or name|tag|cells",
+                        rule="capability_fields",
+                        details={"field_count": len(fields)},
+                    ))
+                    continue
+                cells = fields[-1]
+                invalid = sorted(set(char for char in cells if char not in {"D", "U", "-"}))
+                if invalid:
+                    diagnostics.append(_line_diagnostic(
+                        source_file,
+                        source_line,
+                        "capabilitygrid cells may contain only D, U, or -",
+                        rule="capability_cells",
+                        details={"invalid_characters": invalid},
+                    ))
     return primitive, arguments, content, fragment, diagnostics
 
 
