@@ -1,47 +1,337 @@
-% ReportKit identity and capability primitive signatures.
-% Wave 0 contract stubs are replaced with theme-token rendering by Lane I.
+% ReportKit product identity and capability primitives.
+% Appearance is supplied by the selected theme through reportkit-core.sty's
+% identity/capability tokens; this module owns only structure and behavior.
 \NeedsTeXFormat{LaTeX2e}
 \ProvidesPackage{reportkit-identity}[2026/09/30 v1.0.0 ReportKit identity primitives]
 \RequirePackage{xparse}
+\RequirePackage{etoolbox}
+\RequirePackage{graphicx}
+\RequirePackage{tikz}
+
+% Private alignment environment names used by the prose-only avatar check.
+% This catches the standard LaTeX table/math alignment environments while
+% leaving ordinary prose boxes (for example, a minipage) usable.
+\makeatletter
+\ExplSyntaxOn
+
+\seq_new:N \l__rk_identity_headers_seq
+\seq_new:N \l__rk_identity_cells_seq
+\tl_new:N \l__rk_identity_preamble_tl
+\tl_new:N \l__rk_identity_header_tl
+\tl_new:N \l__rk_identity_rows_tl
+\str_new:N \l__rk_identity_environment_str
+\str_new:N \l__rk_identity_cell_str
+\int_new:N \l__rk_identity_header_count_int
+\int_new:N \l__rk_identity_cell_count_int
+\int_new:N \l__rk_identity_score_int
+\bool_new:N \l__rk_identity_score_auto_bool
+\bool_new:N \l__rk_identity_avatar_allowed_bool
+
+\keys_define:nn { reportkit/identity/grid }
+  {
+    score .choice:,
+    score / auto .code:n = { \bool_set_true:N \l__rk_identity_score_auto_bool },
+    score / none .code:n = { \bool_set_false:N \l__rk_identity_score_auto_bool },
+    score .initial:n = none,
+  }
+
+\cs_new_protected:Npn \rk_identity_check_avatar_context:
+  {
+    \bool_set_true:N \l__rk_identity_avatar_allowed_bool
+    \str_set:Nx \l__rk_identity_environment_str { \@currenvir }
+    \str_case:VnF \l__rk_identity_environment_str
+      {
+        { tabular } { \rk_identity_avatar_alignment_error: }
+        { tabular* } { \rk_identity_avatar_alignment_error: }
+        { tabularx } { \rk_identity_avatar_alignment_error: }
+        { longtable } { \rk_identity_avatar_alignment_error: }
+        { array } { \rk_identity_avatar_alignment_error: }
+        { align } { \rk_identity_avatar_alignment_error: }
+        { align* } { \rk_identity_avatar_alignment_error: }
+        { aligned } { \rk_identity_avatar_alignment_error: }
+        { gather } { \rk_identity_avatar_alignment_error: }
+        { gather* } { \rk_identity_avatar_alignment_error: }
+        { matrix } { \rk_identity_avatar_alignment_error: }
+        { pmatrix } { \rk_identity_avatar_alignment_error: }
+        { bmatrix } { \rk_identity_avatar_alignment_error: }
+        { Bmatrix } { \rk_identity_avatar_alignment_error: }
+        { vmatrix } { \rk_identity_avatar_alignment_error: }
+        { Vmatrix } { \rk_identity_avatar_alignment_error: }
+        { smallmatrix } { \rk_identity_avatar_alignment_error: }
+        { cases } { \rk_identity_avatar_alignment_error: }
+      }
+      { }
+  }
+
+\cs_new_protected:Npn \rk_identity_avatar_alignment_error:
+  {
+    \bool_set_false:N \l__rk_identity_avatar_allowed_bool
+    \PackageError{reportkit-identity}
+      {\string\productavatar~cannot~be~used~inside~alignment~environment~'\@currenvir'}
+      {Use~the~text-only~\string\productchip~inside~tables.}
+  }
+
+\cs_new_protected:Npn \rk_identity_grid_begin:nn #1#2
+  {
+    \RKAssertIdentityTokens
+    \bool_set_false:N \l__rk_identity_score_auto_bool
+    \keys_set:nn { reportkit/identity/grid } { #1 }
+    \seq_set_split:Nnn \l__rk_identity_headers_seq { , } { #2 }
+    \tl_clear:N \l__rk_identity_rows_tl
+    \int_set:Nn \l__rk_identity_header_count_int
+      { \seq_count:N \l__rk_identity_headers_seq }
+    \tl_if_blank:nT { #2 }
+      {
+        \PackageError{reportkit-identity}
+          {capabilitygrid~requires~at~least~one~column~heading}
+          {Add~a~comma-separated~heading~to~the~environment~argument.}
+      }
+
+    % TeX reads the entire alignment preamble when tabular begins, so compute
+    % its repeated columns before opening the environment. No alignment tabs
+    % are emitted by this loop.
+    \tl_set:Nx \l__rk_identity_preamble_tl
+      { p{\RKTokCapabilityProductWidth} }
+    \int_step_inline:nn { \l__rk_identity_header_count_int }
+      { \tl_put_right:Nn \l__rk_identity_preamble_tl { c } }
+    \bool_if:NT \l__rk_identity_score_auto_bool
+      { \tl_put_right:Nn \l__rk_identity_preamble_tl { c } }
+
+    \tl_set:Nn \l__rk_identity_header_tl
+      { {\RKTokCapabilityHeaderFont~Product} }
+    \seq_map_inline:Nn \l__rk_identity_headers_seq
+      {
+        \tl_if_blank:nT { ##1 }
+          {
+            \PackageError{reportkit-identity}
+              {capabilitygrid~contains~an~empty~column~heading}
+              {Supply~a~non-empty~heading~for~each~column.}
+          }
+        \tl_put_right:Nn \l__rk_identity_header_tl
+          { & {\RKTokCapabilityHeaderFont\rotatebox{90}{\tl_trim_spaces:n { ##1 }}} }
+      }
+    \bool_if:NT \l__rk_identity_score_auto_bool
+      { \tl_put_right:Nn \l__rk_identity_header_tl { & {\RKTokCapabilityHeaderFont~Score} } }
+
+  }
+
+\cs_new_protected:Npn \rk_identity_begin_tabular:n #1
+  { \begin{tabular}{#1} }
+
+\cs_new_protected:Npn \rk_identity_grid_end:
+  {
+    \par\medskip
+    \exp_args:NV \rk_identity_begin_tabular:n \l__rk_identity_preamble_tl
+    \toprule
+    \tl_use:N \l__rk_identity_header_tl \\
+    \midrule
+    \tl_use:N \l__rk_identity_rows_tl
+    \bottomrule
+    \end{tabular}
+    \par\medskip
+  }
+
+\cs_new_protected:Npn \rk_identity_append_cell:n #1
+  {
+    \int_compare:nNnTF
+      { \l__rk_identity_cell_count_int } > { \l__rk_identity_header_count_int }
+      { }
+      { \seq_put_right:Nn \l__rk_identity_cells_seq { #1 } }
+  }
+
+\cs_new_protected:Npn \rk_identity_validate_cell:n #1
+  {
+    \int_incr:N \l__rk_identity_cell_count_int
+    \str_case:nnF { #1 }
+      {
+        { D }
+          {
+            \int_incr:N \l__rk_identity_score_int
+            \rk_identity_append_cell:n { \capdocumented }
+          }
+        { U } { \rk_identity_append_cell:n { \capunestablished } }
+        { - } { \rk_identity_append_cell:n { \textemdash } }
+      }
+      {
+        \PackageError{reportkit-identity}
+          {Invalid~capability~marker~'#1'~in~product~row~'\l__rk_identity_row_name_tl'}
+          {Use~only~D~(documented),~U~(unestablished),~or~-.}
+        \rk_identity_append_cell:n { \capunestablished }
+      }
+  }
+
+\tl_new:N \l__rk_identity_row_name_tl
+
+\cs_new_protected:Npn \rk_identity_grid_row:nnn #1#2#3
+  {
+    \RKAssertIdentityTokens
+    \tl_set:Nn \l__rk_identity_row_name_tl { #2 }
+    \int_zero:N \l__rk_identity_cell_count_int
+    \int_zero:N \l__rk_identity_score_int
+    \seq_clear:N \l__rk_identity_cells_seq
+    \str_set:Nn \l__rk_identity_cell_str { #3 }
+    \str_map_inline:Nn \l__rk_identity_cell_str
+      { \rk_identity_validate_cell:n { ##1 } }
+
+    \int_compare:nNnF
+      { \l__rk_identity_cell_count_int } = { \l__rk_identity_header_count_int }
+      {
+        \PackageError{reportkit-identity}
+          {Product~row~'#2'~has~\int_use:N \l__rk_identity_cell_count_int~cells,~but~the~grid~has~\int_use:N \l__rk_identity_header_count_int~columns}
+          {Supply~exactly~one~D,~U,~or~-~marker~for~each~capability~heading.}
+      }
+
+    % Keep the row width stable after a recoverable PackageError: missing
+    % cells are shown as unestablished and excess cells are omitted.
+    \int_while_do:nn { \l__rk_identity_cell_count_int < \l__rk_identity_header_count_int }
+      {
+        \seq_put_right:Nn \l__rk_identity_cells_seq { \capunestablished }
+        \int_incr:N \l__rk_identity_cell_count_int
+      }
+
+    % Store a complete row while we are still outside the tabular alignment.
+    % The final expandable token-list insertion below supplies every `&`
+    % before TeX scans the alignment, while validation can use assignments.
+    \tl_put_right:Nn \l__rk_identity_rows_tl
+      { \rk_identity_grid_row_label:nn {#1}{#2} }
+    \seq_map_inline:Nn \l__rk_identity_cells_seq
+      {
+        \tl_put_right:Nn \l__rk_identity_rows_tl { & }
+        \tl_put_right:Nn \l__rk_identity_rows_tl { ##1 }
+      }
+    \bool_if:NT \l__rk_identity_score_auto_bool
+      {
+        \tl_put_right:Nn \l__rk_identity_rows_tl { & }
+        \tl_put_right:Nx \l__rk_identity_rows_tl { \int_use:N \l__rk_identity_score_int }
+      }
+    \tl_put_right:Nn \l__rk_identity_rows_tl { \\ }
+  }
+
+\cs_new_protected:Npn \rk_identity_grid_row_label:nn #1#2
+  {
+    {\RKTokCapabilityRowFont
+      \tl_if_blank:nTF { #1 }
+        { {\RKTokIdentityNameFont #2} }
+        { \productchip { } { #2 } { #1 } }
+    }
+  }
+
+\cs_new_protected:Npn \rk_identity_productchip:nnn #1#2#3
+  {
+    \RKAssertIdentityTokens
+    {\RKTokIdentityNameFont #2}
+    \tl_if_blank:nF { #3 }
+      {\space{\RKTokIdentityTagFont\color{\RKTokIdentityTagColor}[#3]}}
+  }
+
+\cs_new_protected:Npn \rk_identity_productavatar:nnn #1#2#3
+  {
+    \RKAssertIdentityTokens
+    \rk_identity_check_avatar_context:
+    \bool_if:NT \l__rk_identity_avatar_allowed_bool
+      {
+        \tikz[baseline=-2pt]
+          \node[circle,fill=\RKTokIdentityAvatarFill,draw=\RKTokIdentityAvatarDraw,
+                minimum size=\RKTokIdentityAvatarSize,inner sep=0pt,
+                font=\RKTokIdentityAvatarFont] {#1};
+        \hspace{3pt}{\RKTokIdentityNameFont #2}
+        \tl_if_blank:nF { #3 }
+          {\hspace{4pt}{\RKTokIdentityTagFont\color{\RKTokIdentityTagColor}[#3]}}
+      }
+  }
+
+\cs_new_protected:Npn \rk_identity_pricepill:nn #1#2
+  {
+    \RKAssertIdentityTokens
+    \tikz[baseline=-1pt]
+      \node[fill=\RKTokIdentityPillFill,draw=\RKTokIdentityPillDraw,
+            rounded corners=\RKTokIdentityPillArc,inner sep=4pt,
+            font=\RKTokIdentityPillFont]
+        {#1\space{\color{\RKTokIdentityTagColor}#2}};
+  }
+
+\cs_new_protected:Npn \rk_identity_statusdot:n #1
+  {
+    \tikz[baseline=-2.2pt]
+      \node[circle,fill=#1,minimum size=\RKTokIdentityDotSize,inner sep=0pt] {};
+  }
+
+\cs_new_protected:Npn \rk_identity_capdocumented:
+  {
+    \RKAssertIdentityTokens
+    \tikz[baseline=-2.2pt]
+      \fill[\RKTokCapabilityDocumentedFill]
+        (0,0) circle[radius=\RKTokCapabilityGlyphRadius];
+  }
+
+\cs_new_protected:Npn \rk_identity_capunestablished:
+  {
+    \RKAssertIdentityTokens
+    \tikz[baseline=-2.2pt]
+      \draw[draw=\RKTokCapabilityUnestablishedDraw,
+            line width=\RKTokCapabilityGlyphRule]
+        (0,0) circle[radius=\RKTokCapabilityGlyphRadius];
+  }
 
 % <reportkit-contract>
 % {"kind":"command","description":"Render a compact text-only product label that is safe in table cells.","arguments":[{"name":"initial","type":"string","description":"Accepted for API symmetry; not shown by the compact form."},{"name":"name","type":"string","description":"Product name."},{"name":"tag","type":"string","description":"Short product category or provenance tag."}],"constraints":[],"example":"\\productchip{A}{Atlas CLI}{first-party}","stability":"experimental","since":"1.10.0"}
 % </reportkit-contract>
-\NewDocumentCommand{\productchip}{mmm}{[chip:#2]}
+\NewDocumentCommand{\productchip}{mmm}{\rk_identity_productchip:nnn {#1}{#2}{#3}}
 
 % <reportkit-contract>
 % {"kind":"command","description":"Render a product label with an initial avatar for prose contexts.","arguments":[{"name":"initial","type":"string","description":"One or more initials for the avatar."},{"name":"name","type":"string","description":"Product name."},{"name":"tag","type":"string","description":"Short product category or provenance tag."}],"constraints":[{"code":"prose_only","description":"Use outside table alignments."}],"example":"\\productavatar{A}{Atlas CLI}{first-party}","stability":"experimental","since":"1.10.0"}
 % </reportkit-contract>
-\NewDocumentCommand{\productavatar}{mmm}{[avatar:#2]}
+\NewDocumentCommand{\productavatar}{mmm}{\rk_identity_productavatar:nnn {#1}{#2}{#3}}
 
 % <reportkit-contract>
 % {"kind":"command","description":"Render a product price and plan in a compact pill.","arguments":[{"name":"price","type":"string","description":"Price text."},{"name":"plan","type":"string","description":"Plan name."}],"constraints":[],"example":"\\pricepill{\\$12}{Team}","stability":"experimental","since":"1.10.0"}
 % </reportkit-contract>
-\NewDocumentCommand{\pricepill}{mm}{[price:#1 #2]}
+\NewDocumentCommand{\pricepill}{mm}{\rk_identity_pricepill:nn {#1}{#2}}
 
 % <reportkit-contract>
 % {"kind":"command","description":"Render a status marker from a named semantic state.","arguments":[{"name":"state","type":"enum","description":"One of verified, flag, accent, or neutral."}],"constraints":[{"code":"enum","values":["verified","flag","accent","neutral"],"description":"Select one of the supported semantic states."}],"example":"\\statusdot{verified}","stability":"experimental","since":"1.10.0"}
 % </reportkit-contract>
-\NewDocumentCommand{\statusdot}{m}{[status:#1]}
+\NewDocumentCommand{\statusdot}{m}
+  {
+    \RKAssertIdentityTokens
+    \str_case:nnF {#1}
+      {
+        {verified}{\rk_identity_statusdot:n {\RKTokIdentityStateVerified}}
+        {flag}{\rk_identity_statusdot:n {\RKTokIdentityStateFlag}}
+        {accent}{\rk_identity_statusdot:n {\RKTokIdentityStateAccent}}
+        {neutral}{\rk_identity_statusdot:n {\RKTokIdentityStateNeutral}}
+      }
+      {
+        \PackageError{reportkit-identity}
+          {Unknown~status~state~'#1'}
+          {Use~one~of:~verified,~flag,~accent,~or~neutral.}
+        \rk_identity_statusdot:n {\RKTokIdentityStateNeutral}
+      }
+  }
 
 % <reportkit-contract>
 % {"kind":"command","description":"Mark a documented capability with a filled glyph.","arguments":[],"constraints":[],"example":"\\capdocumented","stability":"experimental","since":"1.10.0"}
 % </reportkit-contract>
-\NewDocumentCommand{\capdocumented}{}{D}
+\NewDocumentCommand{\capdocumented}{}{\rk_identity_capdocumented:}
 
 % <reportkit-contract>
 % {"kind":"command","description":"Mark an unestablished capability with a hollow glyph.","arguments":[],"constraints":[],"example":"\\capunestablished","stability":"experimental","since":"1.10.0"}
 % </reportkit-contract>
-\NewDocumentCommand{\capunestablished}{}{U}
+\NewDocumentCommand{\capunestablished}{}{\rk_identity_capunestablished:}
 
 % <reportkit-contract>
 % {"kind":"composition","description":"Build a capability table from comma-separated column headers.","arguments":[{"name":"options","type":"option","description":"Optional score policy: score=auto or score=none."},{"name":"columns","type":"list","description":"Comma-separated capability headings."}],"constraints":[{"code":"line_macros","split":"|","macro":"capabilityrow"}],"example":"\\begin{capabilitygrid}{Local,Remote}\n\\capabilityrow[first-party]{Atlas CLI}{DU}\n\\end{capabilitygrid}","stability":"experimental","since":"1.10.0"}
 % </reportkit-contract>
-\NewDocumentEnvironment{capabilitygrid}{O{}m}{\par\textbf{Capabilities: }#2\par}{\par}
+\NewDocumentEnvironment{capabilitygrid}{O{}m}
+  {\rk_identity_grid_begin:nn {#1}{#2}}
+  {\rk_identity_grid_end:}
 
 % <reportkit-contract>
 % {"kind":"command","description":"Render one product row in a capability grid.","arguments":[{"name":"tag","type":"string","description":"Optional product tag."},{"name":"name","type":"string","description":"Product name."},{"name":"cells","type":"string","description":"A sequence of D, U, or - capability markers."}],"constraints":[{"code":"cell_markers","values":["D","U","-"],"description":"One marker for each declared capability column."}],"example":"\\capabilityrow[first-party]{Atlas CLI}{DU-}","stability":"experimental","since":"1.10.0"}
 % </reportkit-contract>
-\NewDocumentCommand{\capabilityrow}{O{}mm}{#2\space[#1]: #3\par}
+\NewDocumentCommand{\capabilityrow}{O{}mm}
+  {\rk_identity_grid_row:nnn {#1}{#2}{#3}}
 
+\ExplSyntaxOff
+\makeatother
 \endinput
