@@ -91,7 +91,7 @@ For a capability grid, put the comma-separated headings in `columns:` and use on
 ````markdown
 ```reportkit capabilitygrid
 columns: Local,Remote,Plans,MCP
-score: auto
+options: score=auto
 content: |
   Atlas CLI | first-party | DDUD
   Beacon Studio | open-source | DUDU
