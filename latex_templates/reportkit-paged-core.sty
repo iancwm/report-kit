@@ -37,6 +37,14 @@
 % definition in reportkit-core.sty for why this must not move earlier.
 \AtBeginDocument{\RKRegisterDocumentMetadata}
 
+% Theme-neutral table font hook. Its core default is empty, preserving the
+% existing theme output; themes may opt into a family/size for every table
+% environment, including Pandoc's longtable.
+\AtBeginEnvironment{tabular}{\RKTokTableFont}
+\AtBeginEnvironment{tabular*}{\RKTokTableFont}
+\AtBeginEnvironment{tabularx}{\RKTokTableFont}
+\AtBeginEnvironment{longtable}{\RKTokTableFont}
+
 % -----------------------------------------------------------------------------
 % Renderer hook implementations (paged renderer)
 % -----------------------------------------------------------------------------

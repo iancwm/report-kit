@@ -53,12 +53,32 @@ _FEATURE = ("feature-article",)
 _BOOK = ("book",)
 _PRESENTATION = ("presentation",)
 _PAGED_GENERAL = ("technical-report", "equity-research", "executive-brief", "book")
+_IDENTITY_COMMANDS = (
+    "productchip", "productavatar", "pricepill", "statusdot", "capdocumented",
+    "capunestablished", "capabilityrow",
+)
+_EXECUTION_COMMANDS = ("termline", "termprompt", "termcomment", "diffadd", "diffdel", "diffctx", "diffhunk")
+_IDENTITY_COMPOSITIONS = ("capabilitygrid",)
+_EXECUTION_COMPOSITIONS = ("terminalblock", "diffblock")
+_OPERATOR_CHARTS = ("stacked_bar_chart", "line_chart")
 
 # Keys are source families (LaTeX package or chart module). Each family lists
 # its complete current public inventory by kind; name overrides keep shared
 # packages curated where a publication uses only a small part of their grammar.
 # Roles for all six publication types are explicit after _roles() expansion.
 ROLE_TABLE: dict[str, Any] = {
+    "reportkit-identity.sty": _family(
+        members={"composition": _IDENTITY_COMPOSITIONS, "command": _IDENTITY_COMMANDS},
+        native=(*_REPORT, *_BOOK), allowed=(*_RESEARCH, *_BRIEF),
+    ),
+    "reportkit-execution.sty": _family(
+        members={"composition": _EXECUTION_COMPOSITIONS, "command": _EXECUTION_COMMANDS},
+        native=(*_REPORT, *_BOOK), allowed=(*_RESEARCH, *_BRIEF),
+    ),
+    "operator.py": _family(
+        members={"chart": _OPERATOR_CHARTS},
+        native=(*_REPORT, *_BOOK), allowed=(*_RESEARCH, *_BRIEF),
+    ),
     "reportkit-boxes.sty": _family(
         members={"callout": (
             "principle", "decisionpoint", "researchproblem", "assumption", "redflag",
@@ -223,9 +243,9 @@ _NATIVE: dict[str, dict[str, tuple[str, ...]]] = {
     "technical-report": {
         "callout": (*_CALLOUTS, "execsummary"),
         "figure": ("evidencestack", "reportcycle", "reporttimeline", "reportflow", "reportmatrix", "riskheatmap", "reportarchitecture", "reportroadmap"),
-        "chart": ("bar_chart", "timeseries", "waterfall_chart", "scatter_plot", "timeline_chart"),
-        "composition": ("algorithmblock", "codeblock", "outputblock", "diagram", "RKShortListing"),
-        "command": ("AlgorithmInput", "AlgorithmOutput", "RKLink", "maketitle", "step", "flowedge", "quadrant", "point", "event"),
+        "chart": ("bar_chart", "timeseries", "waterfall_chart", "scatter_plot", "timeline_chart", *_OPERATOR_CHARTS),
+        "composition": ("algorithmblock", "codeblock", "outputblock", "diagram", "RKShortListing", *_IDENTITY_COMPOSITIONS, *_EXECUTION_COMPOSITIONS),
+        "command": ("AlgorithmInput", "AlgorithmOutput", "RKLink", "maketitle", "step", "flowedge", "quadrant", "point", "event", *_IDENTITY_COMMANDS, *_EXECUTION_COMMANDS),
     },
     "equity-research": {
         "callout": ("researchproblem", "assumption", "redflag", "metric"),
@@ -262,13 +282,13 @@ _NATIVE: dict[str, dict[str, tuple[str, ...]]] = {
     },
     "book": {
         "figure": ("reportcycle", "reporttimeline", "reportflow", "reportmatrix", "reportarchitecture", "reportroadmap"),
-        "chart": ("bar_chart", "timeseries", "waterfall_chart", "timeline_chart"),
+        "chart": ("bar_chart", "timeseries", "waterfall_chart", "timeline_chart", *_OPERATOR_CHARTS),
         "composition": (
-            "codeblock", "outputblock", "diagram", "RKShortListing", "bookdetails", "bookreferences", "bookglossary",
+            "codeblock", "outputblock", "diagram", "RKShortListing", "bookdetails", "bookreferences", "bookglossary", *_IDENTITY_COMPOSITIONS, *_EXECUTION_COMPOSITIONS,
         ),
         "command": (
             "RKLink", "RKPath", "RKTitlePage", "step", "flowedge", "quadrant", "point", "event",
-            "bookpart", "bookdetail", "bookappendix", "glossaryterm",
+            "bookpart", "bookdetail", "bookappendix", "glossaryterm", *_IDENTITY_COMMANDS, *_EXECUTION_COMMANDS,
         ),
     },
     "presentation": {
@@ -282,6 +302,16 @@ _NATIVE: dict[str, dict[str, tuple[str, ...]]] = {
     },
 }
 _ALLOWED: dict[str, dict[str, tuple[str, ...]]] = {
+    "equity-research": {
+        "chart": _OPERATOR_CHARTS,
+        "composition": (*_IDENTITY_COMPOSITIONS, *_EXECUTION_COMPOSITIONS),
+        "command": (*_IDENTITY_COMMANDS, *_EXECUTION_COMMANDS),
+    },
+    "executive-brief": {
+        "chart": _OPERATOR_CHARTS,
+        "composition": (*_IDENTITY_COMPOSITIONS, *_EXECUTION_COMPOSITIONS),
+        "command": (*_IDENTITY_COMMANDS, *_EXECUTION_COMMANDS),
+    },
     "feature-article": {
         "callout": _CALLOUTS,
         "figure": ("reportflow",),

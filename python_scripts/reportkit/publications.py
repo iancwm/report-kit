@@ -288,6 +288,13 @@ THEMES: dict[str, dict[str, Any]] = {
         common_package="reportkit-theme-editorial", stability="stable", since="1.10.0",
         renderer_adapters={"paged": "reportkit-theme-editorial-paged"},
     ),
+    # O2 records the author's pdfLaTeX/Latin Modern requirement as an explicit
+    # exception to decision D9's LuaLaTeX default for new visual themes.
+    "operator": _theme(
+        "operator", renderers=["paged"], required_engine="pdflatex",
+        common_package="reportkit-theme-operator", stability="experimental", since="1.10.0",
+        renderer_adapters={"paged": "reportkit-theme-operator-paged"},
+    ),
 }
 
 
@@ -309,7 +316,7 @@ PUBLICATION_TYPES: dict[str, dict[str, Any]] = {
         "name": "technical-report",
         "renderer": "paged",
         "paper": "a4",
-        "themes": ["default", "technical"],
+        "themes": ["default", "technical", "operator"],
         "default_target": {"theme": "default", "paper": "a4"},
         "template": "technical-report.tex",
         "package": None,

@@ -18,11 +18,51 @@ import numpy as np
 import pandas as pd
 
 from ..figure import _title, legend_above, new_figure, style_axes
-from ._shared import _apply_formatter
+from ._shared import _apply_formatter, _format_chart_value
+
+
+def _expand_limits_for_outside_labels(
+    ax: mpl.axes.Axes,
+    labels: Sequence[mpl.text.Annotation],
+    *,
+    horizontal: bool,
+) -> None:
+    """Expand the value axis until every outside label fits within the axes."""
+    if not labels:
+        return
+    fig = ax.figure
+    for _ in range(8):
+        fig.canvas.draw()
+        renderer = fig.canvas.get_renderer()
+        axes_box = ax.get_window_extent(renderer)
+        extents = [label.get_window_extent(renderer) for label in labels]
+        if horizontal:
+            low_overflow = max((axes_box.x0 - extent.x0 for extent in extents), default=0.0)
+            high_overflow = max((extent.x1 - axes_box.x1 for extent in extents), default=0.0)
+            axis_pixels = axes_box.width
+            low, high = ax.get_xlim()
+        else:
+            low_overflow = max((axes_box.y0 - extent.y0 for extent in extents), default=0.0)
+            high_overflow = max((extent.y1 - axes_box.y1 for extent in extents), default=0.0)
+            axis_pixels = axes_box.height
+            low, high = ax.get_ylim()
+        low_overflow = max(0.0, low_overflow)
+        high_overflow = max(0.0, high_overflow)
+        if low_overflow < 0.5 and high_overflow < 0.5:
+            break
+        span = max(abs(high - low), 1e-12)
+        low_fraction = min((low_overflow + 1.0) / max(axis_pixels, 1.0), 0.45)
+        high_fraction = min((high_overflow + 1.0) / max(axis_pixels, 1.0), 0.45)
+        low_pad = span * low_fraction / (1.0 - low_fraction)
+        high_pad = span * high_fraction / (1.0 - high_fraction)
+        if horizontal:
+            ax.set_xlim(low - low_pad, high + high_pad)
+        else:
+            ax.set_ylim(low - low_pad, high + high_pad)
 
 
 # <reportkit-contract>
-# {"kind":"chart","description":"Clean categorical bar chart, useful for exposures and decompositions.","arguments":[{"name":"data","type":"data","description":"Data."},{"name":"horizontal","type":"option","description":"Horizontal."},{"name":"highlight","type":"option","description":"Highlight."},{"name":"value_formatter","type":"option","description":"Value formatter."},{"name":"axis_label","type":"option","description":"Axis label."},{"name":"sort","type":"option","description":"Sort."},{"name":"zero_line","type":"option","description":"Zero line."},{"name":"size","type":"option","description":"Size."},{"name":"title","type":"option","description":"Title."}],"constraints":[],"example":"fig, ax = rkv.bar_chart({\"A\": 2, \"B\": 1})","stability":"stable","since":"1.0.0"}
+# {"kind":"chart","description":"Clean categorical bar chart, useful for exposures and decompositions.","arguments":[{"name":"data","type":"data","description":"Data."},{"name":"horizontal","type":"option","description":"Horizontal."},{"name":"highlight","type":"option","description":"Highlight."},{"name":"value_formatter","type":"option","description":"Value formatter."},{"name":"value_labels","type":"option","description":"Set to outside to label values past the bar ends."},{"name":"axis_label","type":"option","description":"Axis label."},{"name":"sort","type":"option","description":"Sort."},{"name":"zero_line","type":"option","description":"Zero line."},{"name":"size","type":"option","description":"Size."},{"name":"title","type":"option","description":"Title."}],"constraints":[{"code":"enum","values":["outside"],"description":"Only the outside placement is supported; omit the option to disable labels."}],"example":"fig, ax = rkv.bar_chart({\"A\": 2, \"B\": 1}, value_labels=\"outside\")","stability":"stable","since":"1.0.0"}
 # </reportkit-contract>
 def bar_chart(
     data: pd.Series | Mapping[str, float],
@@ -30,6 +70,7 @@ def bar_chart(
     horizontal: bool = True,
     highlight: str | Sequence[str] | None = None,
     value_formatter: FuncFormatter | str | None = None,
+    value_labels: str | None = None,
     axis_label: str | None = None,
     sort: bool = False,
     zero_line: bool = True,
@@ -39,13 +80,18 @@ def bar_chart(
     """Clean categorical bar chart, useful for exposures and decompositions."""
     from .. import core
 
+    if value_labels not in (None, "outside"):
+        raise ValueError("value_labels must be None or 'outside'")
     s = pd.Series(data, dtype=float)
     if sort:
         s = s.sort_values()
+    if value_labels == "outside" and not np.isfinite(s.to_numpy(dtype=float)).all():
+        raise ValueError("outside value labels require finite bar values")
     highlights = {highlight} if isinstance(highlight, str) else set(highlight or [])
     colors = [core.PRIMARY if (not highlights or str(idx) in highlights) else "#A8B1BA" for idx in s.index]
 
     fig, ax = new_figure(size)
+    outside_labels: list[mpl.text.Annotation] = []
     if horizontal:
         ax.barh([str(x) for x in s.index], s.values, color=colors, height=0.62)
         ax.invert_yaxis()
@@ -55,13 +101,47 @@ def bar_chart(
         _apply_formatter(ax.xaxis, value_formatter)
         ax.set_xlabel(axis_label or "")
         ax.set_ylabel("")
+        if value_labels == "outside":
+            for position, value in enumerate(s.values):
+                positive = value >= 0
+                label = ax.annotate(
+                    _format_chart_value(float(value), value_formatter),
+                    xy=(float(value), position),
+                    xytext=(4 if positive else -4, 0),
+                    textcoords="offset points",
+                    ha="left" if positive else "right",
+                    va="center",
+                    color=core.INK,
+                    fontsize=8.0,
+                    annotation_clip=False,
+                    clip_on=False,
+                )
+                outside_labels.append(label)
     else:
         ax.bar([str(x) for x in s.index], s.values, color=colors, width=0.62)
         style_axes(ax, grid="y", zero_line=zero_line)
         _apply_formatter(ax.yaxis, value_formatter)
         ax.set_ylabel(axis_label or "")
         ax.set_xlabel("")
+        if value_labels == "outside":
+            for position, value in enumerate(s.values):
+                positive = value >= 0
+                label = ax.annotate(
+                    _format_chart_value(float(value), value_formatter),
+                    xy=(position, float(value)),
+                    xytext=(0, 4 if positive else -4),
+                    textcoords="offset points",
+                    ha="center",
+                    va="bottom" if positive else "top",
+                    color=core.INK,
+                    fontsize=8.0,
+                    annotation_clip=False,
+                    clip_on=False,
+                )
+                outside_labels.append(label)
     _title(ax, title)
+    if value_labels == "outside":
+        _expand_limits_for_outside_labels(ax, outside_labels, horizontal=horizontal)
     return fig, ax
 
 

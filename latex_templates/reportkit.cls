@@ -105,5 +105,7 @@
 \RequirePackage{reportkit-diagrams}
 \RequirePackage{reportkit-algorithm-viz}
 \RequirePackage{reportkit-grammar}
+\RequirePackage{reportkit-identity}
+\RequirePackage{reportkit-execution}
 
 \endinput

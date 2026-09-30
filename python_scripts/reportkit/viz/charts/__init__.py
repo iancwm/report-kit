@@ -7,11 +7,12 @@ helpers used by more than one of those files. See each module's docstring for
 its grouping rationale.
 """
 from .composition import donut_chart, tornado_chart, treemap_chart, waterfall_chart
+from .operator import line_chart, stacked_bar_chart
 from .relationships import bar_chart, bubble_matrix, distribution, heatmap, scatter_plot
 from .timeseries import drawdown_chart, risk_reward_chart, timeline_chart, timeseries
 
 __all__ = [
     "bar_chart", "bubble_matrix", "distribution", "donut_chart", "drawdown_chart", "heatmap",
     "risk_reward_chart", "scatter_plot", "timeline_chart", "timeseries", "tornado_chart",
-    "treemap_chart", "waterfall_chart",
+    "treemap_chart", "waterfall_chart", "line_chart", "stacked_bar_chart",
 ]

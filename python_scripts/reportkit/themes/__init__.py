@@ -91,6 +91,10 @@ class ChartTokens:
     line_width: float
     grid_style: str
     legend_style: str
+    # Non-color encodings applied to series in order. Empty defaults preserve
+    # the current appearance of every existing theme.
+    hatches: tuple[str, ...] = ()
+    dashes: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -205,6 +209,7 @@ _MODULES = {
     "institutional-research": "reportkit.themes.institutional_research",
     "executive": "reportkit.themes.executive",
     "editorial": "reportkit.themes.editorial",
+    "operator": "reportkit.themes.operator",
     "venture": "reportkit.themes.venture",
 }
 
