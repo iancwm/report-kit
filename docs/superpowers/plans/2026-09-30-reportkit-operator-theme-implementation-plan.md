@@ -1,6 +1,6 @@
 # ReportKit Operator Theme Implementation Plan (multi-agent)
 
-**Status:** Wave 0 and implementation lanes are integrated on `feat/reportkit-operator-theme`. Tests, builds, acceptance gates and visual review were not run; see Wave 2 and Wave 3 for remaining work.
+**Status:** Wave 0 and implementation lanes are merged to `main` via PR #79. The full acceptance matrix and visual review remain open; see Wave 2 and Wave 3.
 **Last updated:** 2026-09-30
 
 > **For agentic workers:** this plan is built for parallel execution. One

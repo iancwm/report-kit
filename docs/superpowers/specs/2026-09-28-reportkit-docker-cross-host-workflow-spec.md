@@ -1,8 +1,9 @@
 # ReportKit Docker workflow: cross-host image and publication builds
 
-**Status:** Draft specification
+**Status:** Implementation integrated in `main` through `70a8f28` (2026-09-28). Linux CI and the digest-bound release workflow are wired; the real Windows/Docker Desktop gate remains required for each image release.
 **Target:** `iancwm/report-kit`
 **Date:** 28 September 2026
+**Last updated:** 2026-09-30
 
 > Saved verbatim from the specification supplied on 2026-09-28. The
 > implementation plan is `docs/superpowers/plans/2026-09-28-reportkit-docker-cross-host-workflow.md`.

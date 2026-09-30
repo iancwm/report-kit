@@ -24,10 +24,12 @@ and [references/documentation-status.md](references/documentation-status.md).
 | [2026-09-24-reportkit-callout-titles-and-image-slots-spec.md](docs/superpowers/specs/2026-09-24-reportkit-callout-titles-and-image-slots-spec.md) | Implementation merged in PR #54 at `f6293d4`; focused contract/validation tests and mixed supplied/missing-image pipeline coverage are green; native visual/release verification remains. | P2 |
 | [2026-09-24-reportkit-callout-titles-and-image-slots-implementation-plan.md](docs/superpowers/plans/2026-09-24-reportkit-callout-titles-and-image-slots-implementation-plan.md) | Implementation complete in the merged mainline; focused tests and the docs/context checks are complete; full acceptance/build gates and visual review remain. | P2 |
 | [2026-09-25-reportkit-multi-format-visual-review-plan.md](docs/superpowers/plans/2026-09-25-reportkit-multi-format-visual-review-plan.md) | Phase E editorial review complete; venture, executive-brief and book remain. | P2 |
-| [2026-09-28-reportkit-agent-reasoning-loop-spec.md](docs/superpowers/specs/2026-09-28-reportkit-agent-reasoning-loop-spec.md) | Lanes A–F are implemented in PR #77; Lane G and acceptance evidence remain open. | P2 |
-| [2026-09-28-reportkit-agent-reasoning-loop-implementation-plan.md](docs/superpowers/plans/2026-09-28-reportkit-agent-reasoning-loop-implementation-plan.md) | Lanes A–F are implemented in PR #77; Lane G and acceptance evidence remain open. | P2 |
-| [2026-09-30-reportkit-operator-theme-spec.md](docs/superpowers/specs/2026-09-30-reportkit-operator-theme-spec.md) | Implementation is on `feat/reportkit-operator-theme`; acceptance and pinned visual release gates remain. | P3 |
-| [2026-09-30-reportkit-operator-theme-implementation-plan.md](docs/superpowers/plans/2026-09-30-reportkit-operator-theme-implementation-plan.md) | Wave 0 and implementation lanes are integrated on `feat/reportkit-operator-theme`; build, acceptance, and visual gates were not run. | P3 |
+| [2026-09-28-reportkit-docker-cross-host-workflow-spec.md](docs/superpowers/specs/2026-09-28-reportkit-docker-cross-host-workflow-spec.md) | Implementation is integrated in `main`; a real Windows digest gate remains required for each image release. | P2 |
+| [2026-09-28-reportkit-docker-cross-host-workflow.md](docs/superpowers/plans/2026-09-28-reportkit-docker-cross-host-workflow.md) | Launcher, in-image build, CI/release workflow, and docs are integrated in `main`; release qualification remains operational work. | P2 |
+| [2026-09-28-reportkit-agent-reasoning-loop-spec.md](docs/superpowers/specs/2026-09-28-reportkit-agent-reasoning-loop-spec.md) | Lanes A–F are merged to `main` via PR #77; Lane G and acceptance evidence remain open. | P2 |
+| [2026-09-28-reportkit-agent-reasoning-loop-implementation-plan.md](docs/superpowers/plans/2026-09-28-reportkit-agent-reasoning-loop-implementation-plan.md) | Lanes A–F are merged to `main` via PR #77; Lane G and acceptance evidence remain open. | P2 |
+| [2026-09-30-reportkit-operator-theme-spec.md](docs/superpowers/specs/2026-09-30-reportkit-operator-theme-spec.md) | Implementation is merged to `main` via PR #79; acceptance and pinned visual release gates remain. | P3 |
+| [2026-09-30-reportkit-operator-theme-implementation-plan.md](docs/superpowers/plans/2026-09-30-reportkit-operator-theme-implementation-plan.md) | Implementation is merged to `main` via PR #79; full acceptance and visual gates remain. | P3 |
 
 ## Open work
 
@@ -44,7 +46,7 @@ and [references/documentation-status.md](references/documentation-status.md).
 ### P2
 
 - **Agent reasoning loop — acceptance and evaluation.** Wave 0 is merged and
-  lanes A–F are implemented in [PR #77](https://github.com/iancwm/report-kit/pull/77).
+  lanes A–F are merged to `main` in [PR #77](https://github.com/iancwm/report-kit/pull/77).
   The Lane G oracle harness and four §4.9 scenarios remain. Run the pytest and
   Ruff suites, record AC1–AC12 evidence, build each target from a fresh project,
   and compare the legacy fixture before treating the plan's acceptance gates
@@ -66,10 +68,17 @@ and [references/documentation-status.md](references/documentation-status.md).
   [2026-09-25-reportkit-multi-format-visual-review-plan.md](docs/superpowers/plans/2026-09-25-reportkit-multi-format-visual-review-plan.md);
   the remaining formats is linked above.
 
+- **Docker workflow — release qualification.** The host launcher, in-image
+  build, Linux CI gate, and digest-bound release workflow are integrated in
+  `main`. A release still requires the repository's `toolchain-release`
+  environment and GHCR package permissions, followed by the real Windows /
+  Docker Desktop gate described in [docker-workflow.md](references/docker-workflow.md).
+
 ### P3
 
-- **Operator theme — acceptance and visual release gates.** Implementation is
-  available on `feat/reportkit-operator-theme`. Run the pinned build and
+- **Operator theme — acceptance and visual release gates.** Implementation
+  merged to `main` in [PR #79](https://github.com/iancwm/report-kit/pull/79).
+  Run the pinned build and
   acceptance matrix, review every fixture page, and record the result before
   promoting the experimental theme.
 
@@ -136,6 +145,17 @@ verification notes are retained in `History` below.
 - The agent-facing A′/B′ contract, constrained Markdown/typed-IR authoring
   path, standalone render loop, progressive-disclosure budget slices, and
   generated OpenAI adapter are implemented. Tagged-PDF remains listed above.
+- The target-aware reasoning-loop implementation for lanes A–F is merged in
+  PR #77. Lane G's oracle harness and full acceptance matrix remain open
+  (listed above).
+- The operator theme implementation is merged in PR #79, including its
+  experimental registration, identity/execution primitives, chart encodings,
+  canonical fixture, visual-QA tooling, and authoring guide. Pinned acceptance
+  and visual release gates remain open (listed above).
+- The digest-pinned Docker cross-host workflow is implemented: the launcher,
+  in-image build entrypoint, result verification, Linux CI gate, release
+  workflow, and consumer guidance are integrated. Its release process still
+  requires the real Windows gate for each published image digest (listed above).
 - **Multi-format Phase D — venture theme and controlled branding** is
   implemented as experimental: the venture paged/slides theme, a
   theme-neutral light/dark frame-role hook shared with executive (no venture
@@ -247,6 +267,14 @@ from a session provisioned this way.
   explicitly open; no baseline pixels were changed.
 
 ## History
+
+- 2026-09-30: synchronized this index against `main` at `ebb285b`. Operator
+  theme implementation merged in PR #79; the theme remains experimental until
+  its pinned acceptance and visual release gates are recorded. The target-aware
+  reasoning loop merged in PR #77; Lane G and its acceptance matrix remain
+  open. The Docker cross-host workflow implementation is integrated in `main`;
+  its release process still requires repository setup and the real Windows
+  gate.
 
 - 2026-09-29: opened PR #77 for the target-aware agent reasoning loop. Lanes
   A–F add persisted target selection, scoped context, direct-TeX gates,

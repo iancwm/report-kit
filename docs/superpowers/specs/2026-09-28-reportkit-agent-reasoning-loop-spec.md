@@ -1,9 +1,9 @@
 # ReportKit agent reasoning loop: target lock, scoped context, and target-aware gates
 
-**Status:** Implementation for lanes A–F is in PR #77; Lane G and acceptance
-evidence remain open.
+**Status:** Lanes A–F are merged to `main` via PR #77. Lane G and the full
+acceptance evidence remain open.
 Date: 2026-09-28
-**Last updated:** 2026-09-29
+**Last updated:** 2026-09-30
 Owner: engine
 
 ## 1. Problem

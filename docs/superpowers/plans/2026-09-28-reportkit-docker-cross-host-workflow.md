@@ -1,5 +1,8 @@
 # ReportKit Docker Cross-Host Workflow Implementation Plan
 
+**Status:** The launcher, in-image build, Linux CI gate, digest-bound release workflow, and consumer documentation are integrated in `main` through `70a8f28`. A real Windows/Docker Desktop gate remains required for each image release; the task checkboxes below retain the original execution checklist.
+**Last updated:** 2026-09-30
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Build a digest-pinned `linux/amd64` ReportKit toolchain image through a gated release workflow, and turn a separate publication project into a PDF inside that image from Windows (NTFS, Docker Desktop in Linux-container mode) or Linux (ext4) with one stdlib-only host launcher.

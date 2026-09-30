@@ -1,6 +1,6 @@
 # ReportKit Operator Theme Spec
 
-**Status:** Implemented on `feat/reportkit-operator-theme`; acceptance and pinned visual review remain.
+**Status:** Implementation merged to `main` via PR #79; pinned acceptance and visual release review remain. The theme stays experimental until those gates pass.
 **Last updated:** 2026-09-30
 **Implementation plan:** [2026-09-30-reportkit-operator-theme-implementation-plan.md](../plans/2026-09-30-reportkit-operator-theme-implementation-plan.md)
 
