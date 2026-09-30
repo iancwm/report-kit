@@ -1,19 +1,6 @@
-% ReportKit theme adapter: operator / paged renderer (Wave 0 stub).
-% Phase A4 of the multi-format publication architecture spec
-% (docs/superpowers/specs/2026-09-09-reportkit-multi-format-publication-architecture-spec.md,
-% decision D11) splits every theme into a common file (palette, fonts,
-% renderer-neutral semantic appearance -- shared by any future renderer the
-% theme supports) and one adapter per renderer it actually supports (page
-% geometry, running furniture, and other renderer-specific component values).
-%
-% This file is that adapter for theme=default under the paged renderer
-% (reportkit.cls). It is loaded immediately after reportkit-theme-default.sty
-% resolves, before the selected publication type. Nothing below was rewritten
-% -- every value here is moved verbatim out of reportkit-theme-default.sty
-% v1.6.1, which owned all of it (undifferentiated by renderer) before this
-% split, back when paged was the only renderer that existed. A future
-% executive theme supplies both -paged and -slides adapters over one shared
-% common file; default remains paged-only.
+% ReportKit theme adapter: operator / paged renderer.
+% The common operator theme supplies palette and renderer-neutral tokens;
+% this adapter owns page geometry, furniture, headings, title and captions.
 \NeedsTeXFormat{LaTeX2e}
 \ProvidesPackage{reportkit-theme-operator-paged}[2026/09/30 v1.0.0 ReportKit operator theme / paged adapter]
 
@@ -31,13 +18,12 @@
 % -----------------------------------------------------------------------------
 \setlength{\headheight}{16pt}
 \pagecolor{PageBg}
+\captionsetup{font=small,labelfont={bf,sf},textfont={sf,color=Muted}}
 \pagestyle{fancy}
 \fancyhf{}
-\fancyhead[L]{\sffamily\fontsize{7.7}{9}\selectfont\color{Muted}\MakeUppercase{\rk@leftheader}}
-\fancyhead[R]{\sffamily\fontsize{7.7}{9}\selectfont\color{Muted}\nouppercase{\leftmark}}
-\fancyfoot[L]{\sffamily\fontsize{7.4}{9}\selectfont\color{Muted}\rk@footer\ · \rk@version}
-\fancyfoot[R]{\sffamily\fontsize{7.4}{9}\selectfont\color{Muted}\thepage}
-\renewcommand{\headrulewidth}{0.35pt}
+\fancyhead[L]{\small\sffamily\color{Muted}\MakeUppercase{\rk@leftheader}}
+\fancyfoot[C]{\sffamily\fontsize{7.4}{9}\selectfont\color{Muted}\rk@footer\quad\textperiodcentered\quad\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
 \renewcommand{\footrulewidth}{0pt}
 \renewcommand{\headrule}{\hbox to\headwidth{\color{Hairline}\leaders\hrule height \headrulewidth\hfill}}
 
@@ -50,10 +36,12 @@
 \newcommand{\RKSectionNeed}{14\baselineskip}
 \newcommand{\RKSubsectionNeed}{7\baselineskip}
 
-\titleformat{\section}{\RKReserveSpace{\RKSectionNeed}\sffamily\bfseries\Large\color{Ink}}{\color{LinkBlue}\thesection}{0.7em}{}
+\titleformat{\section}{\RKReserveSpace{\RKSectionNeed}\sffamily\bfseries\Large\color{Ink}}{\sffamily\small\color{Muted}\thesection\enspace\textbar\enspace}{0pt}{}
 \titlespacing*{\section}{0pt}{15pt plus 3pt minus 2pt}{6pt}
-\titleformat{\subsection}{\RKReserveSpace{\RKSubsectionNeed}\sffamily\bfseries\large\color{Ink}}{\color{LinkBlue}\thesubsection}{0.65em}{}
+\titleformat{\subsection}{\RKReserveSpace{\RKSubsectionNeed}\sffamily\bfseries\large\color{Ink}}{\sffamily\small\color{Muted}\thesubsection\enspace\textbar\enspace}{0pt}{}
 \titlespacing*{\subsection}{0pt}{12pt plus 2pt minus 2pt}{4pt}
+\titleformat{\subsubsection}{\RKReserveSpace{4\baselineskip}\sffamily\bfseries\normalsize\color{Ink}}{\sffamily\small\color{Muted}\thesubsubsection\enspace\textbar\enspace}{0pt}{}
+\titlespacing*{\subsubsection}{0pt}{10pt plus 2pt minus 1pt}{3pt}
 
 % -----------------------------------------------------------------------------
 % Title
@@ -72,10 +60,8 @@
 
 % -----------------------------------------------------------------------------
 % Book-composition tokens (reportkit-core.sty's contract, read only by
-% reportkit-book.sty when publication-type=book). Phase F2. They restate the
-% default report grammar at chapter scale -- sans bold headings, a LinkBlue
-% uppercase label, hairline rules -- and change nothing for any other
-% publication type.
+% reportkit-book.sty when publication-type=book). They carry the operator
+% palette and sans hierarchy into chapter-scale openings and details.
 % -----------------------------------------------------------------------------
 \renewcommand{\RKTokBookOpeningPageStyle}{empty}
 \renewcommand{\RKTokBookPartTopSkip}{0.28\textheight}
