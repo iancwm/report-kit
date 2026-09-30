@@ -123,6 +123,9 @@ def _render_line_macro_content(content: str, constraint: Mapping[str, Any]) -> s
         prefixes = constraint.get("prefixes", [])
         if not isinstance(prefixes, list):
             prefixes = []
+        preserve_prefixes = constraint.get("preserve_prefixes", [])
+        if not isinstance(preserve_prefixes, list):
+            preserve_prefixes = []
         default_macro = str(constraint.get("default", ""))
         for line in content.split("\n"):
             macro = default_macro
@@ -133,7 +136,9 @@ def _render_line_macro_content(content: str, constraint: Mapping[str, Any]) -> s
                 prefix, candidate = str(pair[0]), str(pair[1])
                 if line.startswith(prefix):
                     macro = candidate
-                    payload = line[len(prefix):]
+                    # Most matched prefixes classify a row and are removed.
+                    # Some contracts preserve a prefix as displayed content.
+                    payload = line if prefix in preserve_prefixes else line[len(prefix):]
                     # Prefix contracts may include their separator ("$ ") or
                     # name only the marker ("+", "-", "@@"). Remove one
                     # conventional separator in the latter form, preserving

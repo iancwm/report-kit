@@ -299,6 +299,12 @@ def _parse_body(
     joined_content = "\n".join(content_lines)
     if content_is_block and line_macro_spec is not None:
         content = joined_content
+        if not content and content_source_lines:
+            # A single explicitly empty block line otherwise collapses to the
+            # same empty string as a block with no lines, which the IR cannot
+            # distinguish. Keep one inert space so the renderer emits that
+            # blank source line as a line macro.
+            content = " "
     else:
         content = joined_content.strip("\n")
 
