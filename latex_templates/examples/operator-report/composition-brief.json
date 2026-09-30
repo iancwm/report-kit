@@ -1,0 +1,26 @@
+{
+  "schema_version": "1.0.0",
+  "visual_reference": "latex_templates/examples/operator-report/report.tex (fictional eight-page technical report fixture)",
+  "required": [
+    "product identity and fictional price/status labels",
+    "nine-column capabilitygrid with documented/unestablished legend",
+    "three booktabs tables including tabularx X and a wide table",
+    "decisionpoint, assumption, limitationnote, and redflag callouts",
+    "Figure 3 evidence status bar chart",
+    "Figure 5 stacked review and inference cost chart",
+    "Figure 6 conditional cost line chart with credit-cap marker",
+    "terminalblock with prompt, comment, and output lines",
+    "diffblock long enough to continue across a page boundary"
+  ],
+  "page_count": {
+    "minimum": 6,
+    "maximum": 8
+  },
+  "manual_review": [
+    "Review every page for clipping, collisions, and deliberate whitespace.",
+    "Confirm table text uses Latin Modern Sans and prose uses Latin Modern Roman.",
+    "Confirm terminal text is light on its dark surface and diff bands remain continuous across the page break.",
+    "Check that all figures identify their fictional data and remain legible without color alone.",
+    "Keep operator experimental until a pinned-toolchain visual review is recorded."
+  ]
+}

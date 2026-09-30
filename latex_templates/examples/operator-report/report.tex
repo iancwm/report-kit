@@ -1,42 +1,339 @@
 \documentclass[publication-type=technical-report,theme=operator]{reportkit}
-\title{Operator Theme Contract Fixture}
-\author{ReportKit Example Team}
+% Canonical fictional fixture for the experimental Operator theme.
+% All product names, prices, observations, and code below are invented.
+% Regenerate the analytical exhibits with:
+%   PYTHONPATH=python_scripts python3 latex_templates/examples/operator-report/figures.py
+\setreportkitleftheader{Workbench evaluation}
+\setreportkitfooter{Fictional systems review}
+\setreportkitversion{Fixture 1.0}
+\setreportkitsubject{A fictional review of local-first workbench tools}
+\setreportkitkeywords{ReportKit, operator theme, technical report, fictional}
+\setreportkitlanguage{en-US}
+\title{A workbench that stays inspectable}
+\author{Systems Methods Desk}
 \date{September 2026}
 
 \begin{document}
 \maketitle
 
-\section{Product identity}
-\productchip{A}{Atlas CLI}{fictional}
-\quad\productavatar{B}{Beacon Studio}{fictional}
-\quad\pricepill{\$12}{Team}
-\quad\statusdot{verified}
+\section{Decision summary}
+This fictional evaluation compares three small workbench products for teams
+that need local execution, visible usage costs, and a reviewable record of
+changes. The exercise is deliberately narrow: it asks whether an operator can
+reproduce a run, understand its limits, and explain its cost without relying
+on a vendor dashboard.
 
-\IfFileExists{sections/identity.tex}{\input{sections/identity.tex}}{}
+\productavatar{K}{Kestrel Loom}{fictional local workbench} is the reference
+candidate in this report. The compact identity \productchip{}{Morrow Dock}{hosted
+runner} appears in tables, where a text label is easier to scan than an avatar.
+The fictional Kestrel Team offer is \pricepill{\$18}{per seat/month}, with
+\statusdot{verified} a documented local mode. A second offer,
+\pricepill{\$31}{per seat/month}, adds a managed queue. These invented list
+prices are scenario inputs, not market quotations.
 
-\section{Capability grid}
-\begin{capabilitygrid}{Local,Remote,Plans}
-\capabilityrow[fictional]{Atlas CLI}{DDU}
-\capabilityrow[fictional]{Beacon Studio}{DUD}
+The evidence points to a conditional recommendation. Kestrel Loom has the
+clearest local audit trail in the constructed comparison, while Morrow Dock
+reduces setup work for a team that already accepts hosted execution. Neither
+score should be read as a quality ranking: the capability grid records only
+what this fixture says is documented or not established.
+
+\begin{decisionpoint}{Adopt a local pilot with a hosted fallback}
+Run Kestrel Loom with two synthetic services for four weeks. Keep Morrow Dock
+available for jobs that require a managed queue, and require an exported
+run record before expanding either path.
+\end{decisionpoint}
+
+\clearpage
+\section{Products and price envelope}
+The comparison treats the products as separate operating models. Kestrel Loom
+keeps its worktree and run ledger on the operator's machine. Morrow Dock
+starts jobs in a hosted workspace. Cinder Relay accepts a local worker but
+stores the queue and audit events in a fictional managed control plane. The
+three names denote invented products created only for this fixture.
+
+\begin{center}
+\captionof{table}{Fictional product packages}\label{tab:operator-packages}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{3.0cm}X>{\raggedleft\arraybackslash}p{2.7cm}c@{}}
+\toprule
+Product & Execution and support boundary & List price & Record state \\
+\midrule
+\productchip{K}{Kestrel Loom}{local} & Local runner; community updates; exportable signed run ledger & \$18 / seat-month & \statusdot{verified} \\
+\productchip{M}{Morrow Dock}{hosted} & Managed worker pool; email support; workspace retention for 30 days & \$24 / seat-month & \statusdot{neutral} \\
+\productchip{C}{Cinder Relay}{hybrid} & Local worker with hosted queue; priority support; 90-day event history & \$31 / seat-month & \statusdot{flag} \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+The package rows put price beside the boundary that gives it meaning. The
+managed queue is not a like-for-like substitute for a local ledger, and the
+longer event history is not equivalent to a signed export. The fictional
+packages are included to exercise the theme's table typography and semantic
+identity markers, not to imply an external purchasing recommendation.
+
+\begin{assumption}{Prices remain constant during the pilot}
+The cost illustrations use the monthly prices shown above and do not include
+tax, currency conversion, annual discounts, or support overages. A real
+procurement decision would replace each value with a dated written offer.
+\end{assumption}
+
+\clearpage
+\section{Capability evidence}
+The grid uses a compact legend: a filled mark means the capability is
+documented in this fictional evidence set; a hollow mark means it is not
+established here; a dash means the capability is outside the comparison.
+An unestablished mark is not a negative finding. It signals a question for
+the pilot owner to close with a reproducible demonstration.
+
+\begin{capabilitygrid}{Local,Remote,Plans,MCP,Agents,Worktree,Batch,Audit,Hooks}
+\capabilityrow[fictional]{Kestrel Loom}{DDDDDDDDD}
+\capabilityrow[fictional]{Morrow Dock}{UDDDDUDDU}
+\capabilityrow[fictional]{Cinder Relay}{DUDDDDDDU}
 \end{capabilitygrid}
 
-\IfFileExists{sections/capability.tex}{\input{sections/capability.tex}}{}
+For this table, “audit” means that an operator can export a record with the
+input revision, selected model, tool calls, and outcome. “Hooks” means a
+documented callback can stop a run before an external write. The labels avoid
+claims about security certification or general product quality. The marks
+\capdocumented and \capunestablished show the two evidence states in the grid.
 
-\newpage
-\section{Execution surfaces}
-\begin{terminalblock}[Build output]
-\termcomment{A fictional fixture uses line-level terminal content.}
-\termprompt{reportkit build --target operator}
-\termline{Build complete: 3 pages}
+\begin{center}
+\captionof{table}{Fictional deployment envelope}\label{tab:operator-envelope}
+\begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}lrrrrrr@{}}
+\toprule
+Product & Setup (min) & Run cap & Retention (days) & Export & Queue & Offline \\
+\midrule
+Kestrel Loom & 14 & 80 & 365 & Signed & Local & Yes \\
+Morrow Dock & 5 & 64 & 30 & JSON & Hosted & No \\
+Cinder Relay & 11 & 72 & 90 & JSON & Hosted & Partial \\
+\bottomrule
+\end{tabular*}
+\end{center}
+
+\begin{limitationnote}{Documentation is the boundary of this comparison}
+The grid reflects only the fictional briefs prepared for this example. It
+does not certify that any implementation works as described, nor does it
+convert missing documentation into evidence of absence.
+\end{limitationnote}
+
+\clearpage
+\section{Evidence status and measured cost}
+The first figure summarizes how many of the nine capability statements have
+a documented result in the fixture's evidence packet. It is a count of
+records, not a weighted score; every capability receives equal treatment.
+
+\setcounter{figure}{2}
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.91\linewidth]{figures/fig-3-evidence-status.pdf}
+\caption{Documented capability statements in a fictional evidence packet.}
+\label{fig:operator-evidence-status}
+\end{figure}
+
+The cost model separates one-time review work from recurring inference. In
+the fictional run set, review time falls as a team reuses its runbook, while
+inference cost grows with attempts. This distinction matters because a
+monthly seat price alone does not reveal which operating activity drives the
+total.
+
+\begin{center}
+\captionof{table}{Illustrative monthly run assumptions}\label{tab:operator-cost-inputs}
+\begin{tabular}{@{}lrrr@{}}
+\toprule
+Scenario & Attempts & Review minutes & Inference credits \\
+\midrule
+Small pilot & 20 & 180 & 12 \\
+Routine month & 48 & 240 & 41 \\
+Credit-cap month & 80 & 270 & 64 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{decisionpoint}{Keep review effort visible in the operating budget}
+The pilot owner should report review time and inference credits as separate
+lines. A single combined cost can hide whether automation reduced operator
+work or only moved it into a meter.
+\end{decisionpoint}
+
+\clearpage
+\section{Cost curves and controls}
+The stacked exhibit shows the fictional review and inference components for
+four workloads. Hatching marks review effort; the solid segment shows
+inference charges. The small final segment remains visible so a low-volume
+case is not mistaken for zero consumption.
+
+\setcounter{figure}{4}
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.88\linewidth]{figures/fig-5-cost-per-attempt.pdf}
+\caption{Fictional monthly review and inference cost by workload.}
+\label{fig:operator-cost-stacks}
+\end{figure}
+
+The line exhibit holds the seat price constant and varies the number of
+attempts. The vertical marker denotes a fictional credit allowance of 64
+attempts; beyond it, the model charges direct inference at the same unit
+rate. Solid and dashed strokes distinguish the three scenarios without
+depending on hue alone.
+
+\setcounter{figure}{5}
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.88\linewidth]{figures/fig-6-conditional-cost.pdf}
+\caption{Conditional monthly cost under three fictional run policies.}
+\label{fig:operator-conditional-cost}
+\end{figure}
+
+\begin{redflag}{A credit allowance is not a spending limit}
+The illustrative allowance changes the billing curve but does not stop a
+run. A real pilot should use a separate attempt limit and alert before the
+credit threshold is reached.
+\end{redflag}
+
+\clearpage
+\section{Execution record}
+An operator needs a concise record that can be checked against the revision
+under review. The terminal excerpt below is invented and demonstrates the
+command, comment, and output line forms. Its placeholder paths do not point
+to a real system.
+
+\begin{terminalblock}[Fictional rehearsal — workspace K-17]
+\termcomment{Dry run only; no external writes are enabled.}
+\termprompt{loom inspect --workspace K-17 --revision 7ac31e2}
+\termline{Workspace: K-17 (fictional)}
+\termline{Revision: 7ac31e2}
+\termline{Policy: local-only, hooks-required}
+\termline{Tools proposed: 4; tools executed: 0}
+\termline{Ledger: artifacts/run-0042.json (synthetic)}
+\termcomment{Review the patch before approving an execution token.}
 \end{terminalblock}
 
-\begin{diffblock}[src/example.py]
-\diffhunk{@@ -1,1 +1,1 @@}
-\diffdel{price = 12}
-\diffadd{price = 14}
-\diffctx{plan = "team"}
+The change below illustrates how a configuration review can preserve a
+default-deny policy while documenting a deliberate allowance. It is long by
+design: the excerpt should cross a page boundary while remaining a single
+breakable diff surface. Every identifier, path, and value is fictional.
+
+\begin{diffblock}[config/pilot-policy.yaml — fictional patch]
+\diffhunk{@@ -1,18 +1,24 @@}
+\diffctx{policy:}
+\diffdel{  external-writes: allow}
+\diffadd{  external-writes: deny}
+\diffctx{  require-operator-review: true}
+\diffctx{  max-attempts: 64}
+\diffctx{}
+\diffhunk{@@ -8,6 +14,12 @@ tools}
+\diffctx{  - name: inspect-workspace}
+\diffctx{    access: read-only}
+\diffctx{    timeout-seconds: 20}
+\diffctx{    record-result: true}
+\diffctx{}
+\diffadd{  - name: propose-patch}
+\diffadd{    access: staged-write}
+\diffadd{    approval: required}
+\diffadd{    timeout-seconds: 45}
+\diffadd{    record-result: true}
+\diffctx{}
+\diffctx{  - name: compare-run}
+\diffctx{    access: read-only}
+\diffctx{    timeout-seconds: 15}
+\diffctx{    record-result: true}
+\diffctx{}
+\diffhunk{@@ -19,5 +31,11 @@ ledger}
+\diffctx{ledger:}
+\diffctx{  enabled: true}
+\diffctx{  include-input-digest: true}
+\diffctx{  include-tool-arguments: true}
+\diffctx{  redact-secrets: true}
+\diffctx{  retention-days: 365}
+\diffctx{}
+\diffadd{  export-format: jsonl}
+\diffadd{  export-after-each-run: true}
+\diffctx{}
+\diffhunk{@@ -28,4 +46,12 @@ hooks}
+\diffctx{hooks:}
+\diffctx{  before-external-write:}
+\diffctx{    require-named-approver: true}
+\diffctx{    require-ticket-reference: true}
+\diffctx{    reject-unresolved-findings: true}
+\diffctx{}
+\diffadd{  before-model-retry:}
+\diffadd{    max-retries: 2}
+\diffadd{    preserve-previous-output: true}
+\diffadd{    record-reason: true}
+\diffctx{}
+\diffhunk{@@ -35,3 +61,14 @@ reporting}
+\diffctx{reporting:}
+\diffctx{  summary: concise}
+\diffctx{  include-cost-estimate: true}
+\diffctx{  include-policy-decisions: true}
+\diffctx{  include-revision: true}
+\diffctx{}
+\diffadd{  evidence-bundle:}
+\diffadd{    include-run-ledger: true}
+\diffadd{    include-patch-digest: true}
+\diffadd{    include-tool-inventory: true}
+\diffadd{    include-approvals: true}
+\diffadd{    include-limitations: true}
+\diffctx{}
+\diffhunk{@@ -41,2 +78,8 @@ workspace}
+\diffctx{workspace:}
+\diffctx{  retain-on-failure: true}
+\diffadd{  cleanup-requires-review: true}
+\diffadd{  preserve-failed-run: true}
+\diffadd{  export-path: artifacts/pilot-run.jsonl}
+\diffctx{}
+\diffhunk{@@ -45,1 +86,5 @@ operator}
+\diffctx{operator:}
+\diffctx{  alias: sample-reviewer}
+\diffadd{  second-review-required: true}
+\diffadd{  approval-expires-hours: 8}
+\diffctx{  acknowledge-limits: true}
+\diffctx{}
+\diffhunk{@@ -48,0 +94,7 @@}
+\diffadd{audit:}
+\diffadd{  schema-version: 1}
+\diffadd{  checksum-algorithm: sha256}
+\diffadd{  verify-before-export: true}
+\diffadd{  include-clock-source: true}
+\diffadd{  include-runtime-version: true}
+\diffadd{  include-policy-version: true}
+\diffctx{}
+\diffhunk{@@ -52,0 +103,8 @@}
+\diffadd{limits:}
+\diffadd{  max-output-bytes: 64000}
+\diffadd{  max-tool-calls: 24}
+\diffadd{  max-wall-seconds: 900}
+\diffadd{  stop-on-missing-evidence: true}
+\diffadd{  stop-on-policy-mismatch: true}
+\diffadd{  stop-on-unknown-tool: true}
+\diffctx{}
+\diffhunk{@@ -96,0 +170,6 @@}
+\diffadd{closing:}
+\diffadd{  result: no-external-changes}
+\diffadd{  ledger: synthetic-example}
+\diffadd{  approval: not-requested}
+\diffadd{  next-step: inspect-rendered-pages}
+\diffctx{}
 \end{diffblock}
 
-\IfFileExists{sections/execution.tex}{\input{sections/execution.tex}}{}
+\clearpage
+\section{Pilot boundary}
+The patch is illustrative, not a deployment template. Before a real trial,
+the operator would replace its synthetic identity, validate every hook
+against the selected runtime, set an owner for data retention, and rehearse
+both the denied-write path and the recovery path. The report's purpose is to
+make those obligations visible beside the product comparison and cost model.
+
+\begin{evidencenote}{What this fixture demonstrates}
+The document uses semantic product identity, a nine-capability grid, named
+statuses, price pills, four existing callout types, three booktabs tables,
+three chart APIs, and line-based terminal and diff surfaces. Every measured
+value belongs to the fictional scenario declared in the neighboring figure
+script.
+\end{evidencenote}
+
+The pilot should end with a short operator record: the exact revision,
+approved scope, attempted actions, rejected actions, export checksum, and
+open questions. If that record cannot be reconstructed by another reviewer,
+the system is not ready for a wider trial.
 
 \end{document}
