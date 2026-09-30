@@ -14,6 +14,8 @@ from . import (
     TypographyTokens,
 )
 
+# These chart-facing roles mirror the canonical semantic colors in the
+# operator LaTeX theme; its additional names are aliases of these roles.
 INK = "#111111"
 MUTED = "#6B6B68"
 HAIRLINE = "#E8E8E3"
@@ -27,8 +29,8 @@ EVIDENCE = "#00C2A8"
 LIMITATION = MUTED
 METRIC = PRIMARY
 DELIVERABLE = "#00C2A8"
-SURFACE = "#F6F6F5"
-WHITE = "#FFFFFF"
+SURFACE = "#FFFFFF"
+WHITE = SURFACE
 
 # 210 mm page - 20 mm side margins = 170 mm of text width.
 TEXT_WIDTH_IN = 170 / 25.4
@@ -97,7 +99,7 @@ THEME = Theme(
         "MetricAccent": METRIC,
         "Deliverable": DELIVERABLE,
     },
-    surface=WHITE,
+    surface=SURFACE,
     white=WHITE,
     data_colors=(PRIMARY, TIP, "#606060", RED_FLAG),
     benchmark=MUTED,
