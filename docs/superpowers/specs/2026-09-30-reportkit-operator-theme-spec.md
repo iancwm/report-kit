@@ -1,6 +1,6 @@
 # ReportKit Operator Theme Spec
 
-**Status:** Proposed. Not implemented.
+**Status:** Implemented on `feat/reportkit-operator-theme`; acceptance and pinned visual review remain.
 **Last updated:** 2026-09-30
 **Implementation plan:** [2026-09-30-reportkit-operator-theme-implementation-plan.md](../plans/2026-09-30-reportkit-operator-theme-implementation-plan.md)
 
@@ -295,7 +295,7 @@ Line classification is declared in each primitive's contract metadata as a
 
 ```json
 {"code":"line_macros","prefixes":[["$ ","termprompt"],["# ","termcomment"]],"default":"termline"}
-{"code":"line_macros","prefixes":[["@@","diffhunk"],["+","diffadd"],["-","diffdel"]],"default":"diffctx"}
+{"code":"line_macros","prefixes":[["@@","diffhunk"],["+","diffadd"],["-","diffdel"]],"preserve_prefixes":["@@"],"default":"diffctx"}
 {"code":"line_macros","split":"|","macro":"capabilityrow"}
 ```
 
@@ -315,8 +315,10 @@ the rest of the payload is passed through `tex_escape`.
 | `diffblock` | `+` → `\diffadd`, `-` → `\diffdel`, `@@` → `\diffhunk`, anything else (including a leading space) → `\diffctx` |
 | `capabilitygrid` | each line split on `\|` into name, tag, cells → `\capabilityrow[tag]{name}{cells}` (two fields: name and cells, no tag) |
 
-The one-character prefix (and its following space, if any) is stripped
-before escaping; leading spaces after it become `~` so indentation survives.
+The matched prefix is stripped before escaping, except prefixes listed in
+`preserve_prefixes`; the `@@` diff-hunk marker is retained so the directive
+matches the hand-written `\diffhunk{@@ … @@}` form. Leading spaces after a
+stripped prefix become `~` so indentation survives.
 Two existing parser behaviours must change for these primitives only (plan
 Lane R): `_clean_value` strips the whole `content` value, which would drop the
 first line's indentation, and `_body` escapes the content as one paragraph.

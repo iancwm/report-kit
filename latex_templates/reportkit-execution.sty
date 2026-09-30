@@ -142,7 +142,7 @@
 }
 
 % <reportkit-contract>
-% {"kind":"composition","description":"Render a diff surface whose body is authored one line macro at a time.","arguments":[{"name":"title","type":"string","description":"Optional file path or diff title."}],"constraints":[{"code":"line_macros","prefixes":[["@@","diffhunk"],["+","diffadd"],["-","diffdel"]],"default":"diffctx"}],"example":"\\begin{diffblock}[src/app.py]\n\\diffdel{x = 1}\n\\diffadd{x = 2}\n\\end{diffblock}","stability":"experimental","since":"1.10.0"}
+% {"kind":"composition","description":"Render a diff surface whose body is authored one line macro at a time.","arguments":[{"name":"title","type":"string","description":"Optional file path or diff title."}],"constraints":[{"code":"line_macros","prefixes":[["@@","diffhunk"],["+","diffadd"],["-","diffdel"]],"preserve_prefixes":["@@"],"default":"diffctx"}],"example":"\\begin{diffblock}[src/app.py]\n\\diffdel{x = 1}\n\\diffadd{x = 2}\n\\end{diffblock}","stability":"experimental","since":"1.10.0"}
 % </reportkit-contract>
 \NewDocumentEnvironment{diffblock}{O{}}{%
   \RKAssertExecutionTokens

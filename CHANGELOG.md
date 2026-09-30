@@ -7,6 +7,11 @@ tags on this repository, not a published package registry.
 ## [Unreleased]
 
 ### Added
+- An experimental `operator` theme for `technical-report` publications, with
+  product identity and capability-grid primitives, breakable terminal and
+  diff surfaces, Markdown line-macro rendering, accessible chart encodings,
+  and a fictional canonical fixture. Pinned build and visual review remain
+  release gates.
 - Authors can now lock a publication's structure and look, recover that choice
   after a session reset, and build either Markdown or direct TeX through the
   same target gates. ReportKit saves the decision in `publication.yaml` and

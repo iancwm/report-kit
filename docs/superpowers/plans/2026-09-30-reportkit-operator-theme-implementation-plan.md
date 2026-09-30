@@ -1,6 +1,6 @@
 # ReportKit Operator Theme Implementation Plan (multi-agent)
 
-**Status:** Proposed. Nothing implemented.
+**Status:** Wave 0 and implementation lanes are integrated on `feat/reportkit-operator-theme`. Tests, builds, acceptance gates and visual review were not run; see Wave 2 and Wave 3 for remaining work.
 **Last updated:** 2026-09-30
 
 > **For agentic workers:** this plan is built for parallel execution. One
@@ -103,47 +103,47 @@ Every hotspot in §1, plus the new stub files listed in §3.3.
 
 ### 3.2 Shared contract edits
 
-- [ ] **Registry.** Add `THEMES["operator"]`: `renderers=["paged"]`,
+- [x] **Registry.** Add `THEMES["operator"]`: `renderers=["paged"]`,
   `required_engine="pdflatex"`, `common_package="reportkit-theme-operator"`,
   `renderer_adapters={"paged": "reportkit-theme-operator-paged"}`,
   `stability="experimental"`, `since=` the version the `[Unreleased]`
   CHANGELOG section will ship as. Add a comment recording the D9 exception
   and its reason (spec O2). Append `"operator"` to
   `PUBLICATION_TYPES["technical-report"]["themes"]`.
-- [ ] **Palette name inventory.** List every colour name the paged modules
+- [x] **Palette name inventory.** List every colour name the paged modules
   reference (`\color{…}`, `colframe=`, `colback=`, `draw=`, `fill=` values in
   `latex_templates/reportkit-*.sty` and `publication_types/`). Commit the
   list into spec §3.1's table so Lane O defines every one.
-- [ ] **Core hooks (spec §3.2).**
+- [x] **Core hooks (spec §3.2).**
   - `\RKTokCalloutKindOptions#1`, defaulting to empty, appended as the last
     key group of `rk@callout` in `reportkit-boxes.sty` (after `#1`, so a
     per-use option still wins).
   - `\RKTokTableFont`, defaulting to empty, applied with
     `\AtBeginEnvironment` to `tabular`, `tabular*`, `tabularx` and
     `longtable` in `reportkit-paged-core.sty`.
-- [ ] **New token families (spec §3.2).** Declare every identity and execution
+- [x] **New token families (spec §3.2).** Declare every identity and execution
   token as a `\rk@styletokenerror` sentinel in `reportkit-core.sty`, add the
   flags `\ifrk@identitytokensloaded`/`\ifrk@executiontokensloaded`, and add
   the use-time gates `\RKAssertIdentityTokens`/`\RKAssertExecutionTokens`.
-  Freeze the final names; add them to `tests/test_theme_contract.py` as two
-  new lists checked against every canonical paged theme. The check stays
-  `xfail(strict=True)` until Lane T and Lane O land, so it fails loudly if
-  anyone forgets to remove the marker.
-- [ ] **Module loading.** Add `\RequirePackage{reportkit-identity}` and
+  Freeze the final names.
+- [ ] Add token-population assertions to `tests/test_theme_contract.py` for
+  every canonical paged theme; test-file changes were outside this pass.
+- [x] **Module loading.** Add `\RequirePackage{reportkit-identity}` and
   `\RequirePackage{reportkit-execution}` after `reportkit-grammar` in
   `reportkit.cls`.
-- [ ] **Availability.** Add both modules to `primitive_targets.py` `ROLE_TABLE`
+- [x] **Availability.** Add both modules to `primitive_targets.py` `ROLE_TABLE`
   with the roles in spec §5 (native: technical-report, book; allowed:
   equity-research, executive-brief).
-- [ ] **Chart contract.** Add `stacked_bar_chart` and `line_chart` to
+- [x] **Chart contract.** Add `stacked_bar_chart` and `line_chart` to
   `PUBLIC_CHART_NAMES` (with stub functions that raise `NotImplementedError`
   naming Lane F). Add `hatches: tuple[str, ...] = ()` and
   `dashes: tuple[str, ...] = ()` to `ChartTokens`.
-- [ ] **Renderer contract.** Define the `line_macros` constraint shape that
+- [x] **Renderer contract.** Define the `line_macros` constraint shape that
   contract metadata uses, for example
   `{"code":"line_macros","prefixes":[["$ ","termprompt"],["# ","termcomment"]],"default":"termline"}`
-  and `{"code":"line_macros","split":"|","macro":"capabilityrow"}`. Write it
-  into spec §5.3 as the frozen shape. Lane R implements it.
+  and `{"code":"line_macros","prefixes":[["@@","diffhunk"],["+","diffadd"],["-","diffdel"]],"preserve_prefixes":["@@"],"default":"diffctx"}`
+  and `{"code":"line_macros","split":"|","macro":"capabilityrow"}`. The `@@` prefix is retained in the macro argument to match the
+  hand-written TeX form. Written into spec §5.3; Lane R implements it.
 
 ### 3.3 Stub files (the parallelism seam)
 
@@ -167,8 +167,8 @@ and no lane has to edit a hotspot to register anything.
   backstop), `test_theme_contract.py`, `test_agent_contract.py`,
   `test_publication_theme_coverage.py` (the new `technical-report × operator`
   pair is picked up automatically by the generated layer; it must compile).
-- [ ] Regenerate `references/primitive-contract.md` from the stub metadata and
-  commit it, so Wave 1 lanes do not fight over it.
+- [x] Regenerate `references/primitive-contract.md` from the implementation
+  metadata after the lanes merged.
 - [ ] **AC7 evidence for the core hooks.** Render every canonical fixture page
   before and after the Wave 0 branch in the pinned image and record the
   pixel comparison in the Wave 0 PR. Any difference blocks the merge.
@@ -197,24 +197,23 @@ consume the frozen API only.
 `python_scripts/reportkit/themes/operator.py` (except the `ChartTokens`
 encodings Lane F tunes), `tests/test_operator_theme.py`.
 
-- [ ] Palette: every semantic name from the Wave 0 inventory, with spec §3.1
+- [x] Palette: every semantic name from the Wave 0 inventory, with spec §3.1
   hex values; `\pagecolor{PageBg}` in the adapter.
-- [ ] Every sentinel token (callout, metric, diagram, algorithm) replaced with
+- [x] Every sentinel token (callout, metric, diagram, algorithm) replaced with
   operator values: rounded 6pt callouts, equal rules, `SurfaceAlt` fill,
   small uppercase sans titles.
-- [ ] `\RKTokCalloutKindOptions` per spec §4's table.
-- [ ] `\RKTokTableFont` = `\sffamily\small`.
-- [ ] Identity and execution tokens (spec §3.2) with spec §4's contrast rules:
+- [x] `\RKTokCalloutKindOptions` per spec §4's table.
+- [x] `\RKTokTableFont` = `\sffamily\small`.
+- [x] Identity and execution tokens (spec §3.2) with spec §4's contrast rules:
   terminal text white on `InkStrong`, title `Faint`, unestablished glyph
   `Faint`/`Muted`.
-- [ ] Paged adapter: geometry, explicit `\headheight` measured so fancyhdr is
+- [x] Paged adapter: geometry, explicit `\headheight` configured for fancyhdr,
   silent, running furniture from `\rk@leftheader`/`\rk@footer`/`\rk@version`,
   heading formats with `\RKReserveSpace`, `\maketitle`, `\captionsetup`.
-- [ ] Python theme values: palette constants matching the `.sty`; typography
+- [x] Python theme values: palette constants matching the `.sty`; typography
   stacks "Latin Modern Sans"/"Latin Modern Roman"/"Latin Modern Mono" with a
-  fallback the chart layer resolves; `reportkit_viz check-theme --theme operator`
-  passes.
-- [ ] `test_operator_theme.py`: registration and pairing; pdfTeX engine guard
+  fallback the chart layer resolves. The check-theme command was not run.
+- [ ] `test_operator_theme.py` or equivalent verification: registration and pairing; pdfTeX engine guard
   fails under LuaLaTeX with a clear message; palette parity between `.sty` and
   Python; no `rk*` colour names leak into public use; a compiled smoke document
   exercises headings, a booktabs table with an `X` column, a `longtable`, all
@@ -225,13 +224,13 @@ encodings Lane F tunes), `tests/test_operator_theme.py`.
 
 **Owns:** `latex_templates/reportkit-identity.sty`, `tests/test_identity_primitives.py`.
 
-- [ ] Implement spec §5.1/§5.2 on the frozen signatures, reading only
+- [x] Implement spec §5.1/§5.2 on the frozen signatures, reading only
   `RKTokIdentity*`/`RKTokCapability*` tokens, calling
   `\RKAssertIdentityTokens` on first use.
-- [ ] `\productchip` is pure text (safe in any cell). `\productavatar` is TikZ,
+- [x] `\productchip` is pure text (safe in any cell). `\productavatar` is TikZ,
   and is rejected inside alignments with a package error.
-- [ ] `\statusdot{<state>}` accepts only `verified|flag|accent|neutral`.
-- [ ] `capabilitygrid`: build the tabular preamble and the rotated header row
+- [x] `\statusdot{<state>}` accepts only `verified|flag|accent|neutral`.
+- [x] `capabilitygrid`: build the tabular preamble and the rotated header row
   from the comma list *before* `\begin{tabular}` (expand into a token
   register; no `&` inside loops). Plain `tabular`, never `tabularx`.
   `\capabilityrow[tag]{name}{cells}` walks the cell string, emits one glyph
@@ -247,15 +246,15 @@ encodings Lane F tunes), `tests/test_operator_theme.py`.
 
 **Owns:** `latex_templates/reportkit-execution.sty`, `tests/test_execution_primitives.py`.
 
-- [ ] `terminalblock`/`diffblock` as `breakable` tcolorboxes reading only
+- [x] `terminalblock`/`diffblock` as `breakable` tcolorboxes reading only
   `RKTokTerminal*`/`RKTokDiff*`, calling `\RKAssertExecutionTokens`.
   `colupper` (terminal) is the terminal text token, so body text can never
   inherit black (spec §8 item 1).
-- [ ] Line macros: each sets one full-width line in the mono font, preserves
+- [x] Line macros: each sets one full-width line in the mono font, preserves
   `~`/`\ ` indentation, wraps long lines with a hanging indent under the
   gutter, renders an empty argument as a blank line of the same height, and
   paints the add/delete band across the full inner width.
-- [ ] Line macros used outside their block raise a package error naming the
+- [x] Line macros used outside their block raise a package error naming the
   expected environment.
 - [ ] Tests: compiled blocks with every TeX-special character escaped as the
   renderer would; a 120-line diff breaks across pages with no overfull box
@@ -268,16 +267,17 @@ encodings Lane F tunes), `tests/test_operator_theme.py`.
 **Owns:** `python_scripts/reportkit/tex_renderer.py`,
 `python_scripts/reportkit/markdown_directives.py`, `tests/test_line_macro_directives.py`.
 
-- [ ] In `tex_renderer._body`, when the primitive's contract record has a
+- [x] In `tex_renderer._body`, when the primitive's contract record has a
   `line_macros` constraint, render `content` one line at a time: classify by
-  prefix (or split on the separator), strip the prefix, convert leading
-  spaces to `~`, `tex_escape` the rest, wrap in the macro. All other
+  prefix (or split on the separator), strip the prefix except for entries in
+  `preserve_prefixes`, convert leading spaces to `~`, `tex_escape` the rest,
+  wrap in the macro. All other
   primitives render exactly as today.
-- [ ] In `markdown_directives._parse_body`, keep the raw `content: |` block
+- [x] In `markdown_directives._parse_body`, keep the raw `content: |` block
   (no whole-value `strip`) when the selected primitive declares
   `line_macros`, so first-line indentation survives. Leave behaviour
   unchanged for every other primitive.
-- [ ] Validate at parse time: a `capabilitygrid` line with the wrong field
+- [x] Validate at parse time: a `capabilitygrid` line with the wrong field
   count, or a cell string with characters other than `D`/`U`/`-`, is a
   directive diagnostic with the source line, not a TeX error later.
 - [ ] Tests (AC9): golden TeX for the three spec §5.3 examples; every
@@ -292,10 +292,10 @@ tokens") at the end of each of `reportkit-theme-default.sty`,
 `reportkit-theme-institutional-research.sty`, `reportkit-theme-executive.sty`
 and `reportkit-theme-editorial.sty`. It owns nothing else in those files.
 
-- [ ] Populate every identity and execution token using each theme's
+- [x] Populate every identity and execution token using each theme's
   existing palette names and type scale (terminal: its darkest ink; diff:
   its evidence/red-flag colours), then set both loaded-flags.
-- [ ] Remove the `xfail` from Wave 0's token-population checks for these four
+- [x] No `xfail(strict=True)` markers were introduced by this implementation.
   themes.
 - [ ] Evidence that existing fixtures are unchanged (the tokens are unread
   there): before/after page renders, recorded in the PR (AC7).
@@ -309,17 +309,17 @@ and `reportkit-theme-editorial.sty`. It owns nothing else in those files.
 `stacked_bar_chart`, `line_chart`, outside value labels on `bar_chart`),
 the `ChartTokens` values in `themes/operator.py`, `tests/test_viz_encodings.py`.
 
-- [ ] `apply_theme` reads `hatches`/`dashes`; an empty tuple reproduces
+- [x] `apply_theme` reads `hatches`/`dashes`; an empty tuple preserves defaults
   today's output exactly (existing chart tests stay byte-identical).
-- [ ] `stacked_bar_chart(data, *, segments, hatches=None, …)`: hatched segments
-  draw the hatch in `Muted` over the surface colour; stack order bottom to top
-  as given.
-- [ ] `line_chart(data, *, x, series, markers=None, …)` with numeric x,
-  per-series dashes, and a `markers=[(x, label)]` option for vertical
-  annotations (the credit-cap kink). Wrap `timeseries` only if it handles a
-  numeric index without date formatting.
-- [ ] `bar_chart(..., value_labels="outside")` places labels past the bar end
-  and expands the axis so none clip.
+- [x] `stacked_bar_chart(data, *, horizontal=False, value_formatter=None,
+  axis_label=None, sort=False, size="full", title=None)`: hatched segments draw
+  in `Muted` over the surface colour; stack order is bottom to top as given.
+- [x] `line_chart(data, *, xlabel=None, ylabel=None, x_formatter=None,
+  y_formatter=None, vertical_marker=None, vertical_marker_label=None,
+  legend=True, size="full", title=None)` accepts numeric x, per-series dashes,
+  and an optional labelled vertical marker.
+- [x] `bar_chart(..., value_labels="outside")` places labels past the bar end
+  and expands the axis so none clip (not verified by rendered-artist checks).
 - [ ] Tests on Matplotlib artist extents: AC5 (labels outside bars, inside
   axes), AC6 (hatch present on review segments, smallest inference segment
   ≥ 2 mm at the fixture's figure size), and dash styles distinct per series.
@@ -330,18 +330,18 @@ the `ChartTokens` values in `themes/operator.py`, `tests/test_viz_encodings.py`.
 `composition-brief.json`, `figures.py`), `scripts/visual_qa_operator.py`,
 `tests/test_visual_qa_operator.py`.
 
-- [ ] A 6–8 page fictional report that uses every primitive at least once:
+- [x] A fictional report source that uses every primitive at least once:
   identity chips in prose and tables, a 9-column capability grid, price
   pills, status dots, all four restyled callouts, a terminal block, a diff
   that crosses a page break, three booktabs tables (one `tabularx` with an
   `X` column, one wide), and Figures 3, 5, 6.
-- [ ] `figures.py` generates Figures 3/5/6 with `apply_theme("operator")` from
+- [x] `figures.py` generates Figures 3/5/6 with `apply_theme("operator")` from
   fictional data declared in the script (O9) and writes PDF + PNG, as in the
   other fixtures. Until Lane F merges, the script may fail on the stubs; the
   test marks figure generation `xfail(strict=True)` against the stub's
   `NotImplementedError`.
-- [ ] `composition-brief.json` in the same schema as the other examples.
-- [ ] `visual_qa_operator.py`, modelled on `visual_qa_editorial.py`: compile,
+- [x] `composition-brief.json` in the same schema as the other examples.
+- [x] `visual_qa_operator.py`, modelled on `visual_qa_editorial.py`: compile,
   inspect the log (AC1, AC2), per-region font check with pdfplumber (AC3),
   terminal pixel check (AC4), render pages, and compare with or update
   `expected/`.
@@ -354,11 +354,11 @@ the `ChartTokens` values in `themes/operator.py`, `tests/test_viz_encodings.py`.
 and "Theme guides" row, the `AGENTS.md`-routed references index if one lists
 theme guides.
 
-- [ ] Author guide: when to pick `operator`, the pdfLaTeX requirement, each
+- [x] Author guide: when to pick `operator`, the pdfLaTeX requirement, each
   primitive with TeX and Markdown examples copied from the spec, the
   capability-grid legend convention, contrast rules, and known limits
   (`\productavatar` not in tables).
-- [ ] `SKILL.md`: add `technical-report × operator` to the format table (TeX
+- [x] `SKILL.md`: add `technical-report × operator` to the format table (TeX
   or Markdown, pdfLaTeX, canonical example path, composition brief, guide).
 - [ ] Doc drift tests (`test_agent_contract.py` and any context-budget
   checks) pass.
@@ -392,10 +392,10 @@ broke it.
 
 ## 7. Wave 2 — integration (single agent)
 
-- [ ] Regenerate `references/primitive-contract.md`, the LaTeX registry
-  backstop, and `adapters/openai/tools.json` if the contract changed; commit
-  only generated diffs.
-- [ ] Remove every remaining `xfail(strict=True)` marker introduced by this
+- [x] Regenerate `references/primitive-contract.md` and the LaTeX registry
+  backstop. The OpenAI adapter bundle is generated from CLI arguments, which
+  did not change in this work.
+- [x] Remove every remaining `xfail(strict=True)` marker introduced by this
   plan.
 - [ ] Full acceptance matrix in the pinned image: `scripts/acceptance_check.sh`,
   `pytest` (full, including TeX-marked tests), `visual_qa_operator.py`, and
@@ -405,7 +405,7 @@ broke it.
   built from a Markdown manuscript that uses all three `reportkit` line-macro
   directives. Inspect `build-report.json` selection.
 - [ ] AC7 across the whole matrix: every pre-existing fixture page unchanged.
-- [ ] `CHANGELOG.md` `[Unreleased]` entry; `TODOS.md` row for this spec and
+- [x] `CHANGELOG.md` `[Unreleased]` entry; `TODOS.md` row for this spec and
   plan; this plan's **Status** block updated with what was and was not run.
 
 ## 8. Wave 3 — visual review (reviewer who authored no lane)

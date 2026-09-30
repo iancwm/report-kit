@@ -98,7 +98,7 @@ content: |
 ```
 ````
 
-In Markdown, the directive renderer escapes line payloads for TeX and preserves leading spaces. The TeX grid still checks that each row has exactly one marker per declared heading.
+In Markdown, the directive renderer escapes line payloads for TeX and preserves leading spaces. It removes classifier prefixes such as `+` and `-`; the `@@` hunk marker is retained as part of the `\diffhunk` argument. The TeX grid still checks that each row has exactly one marker per declared heading.
 
 ## Charts
 

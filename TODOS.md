@@ -26,8 +26,8 @@ and [references/documentation-status.md](references/documentation-status.md).
 | [2026-09-25-reportkit-multi-format-visual-review-plan.md](docs/superpowers/plans/2026-09-25-reportkit-multi-format-visual-review-plan.md) | Phase E editorial review complete; venture, executive-brief and book remain. | P2 |
 | [2026-09-28-reportkit-agent-reasoning-loop-spec.md](docs/superpowers/specs/2026-09-28-reportkit-agent-reasoning-loop-spec.md) | Lanes A–F are implemented in PR #77; Lane G and acceptance evidence remain open. | P2 |
 | [2026-09-28-reportkit-agent-reasoning-loop-implementation-plan.md](docs/superpowers/plans/2026-09-28-reportkit-agent-reasoning-loop-implementation-plan.md) | Lanes A–F are implemented in PR #77; Lane G and acceptance evidence remain open. | P2 |
-| [2026-09-30-reportkit-operator-theme-spec.md](docs/superpowers/specs/2026-09-30-reportkit-operator-theme-spec.md) | Proposed; not implemented. Registers `operator` as an experimental pdfLaTeX theme for `technical-report` with identity, capability-grid and execution-surface primitives. | P3 |
-| [2026-09-30-reportkit-operator-theme-implementation-plan.md](docs/superpowers/plans/2026-09-30-reportkit-operator-theme-implementation-plan.md) | Proposed multi-agent plan; Wave 0 not started. | P3 |
+| [2026-09-30-reportkit-operator-theme-spec.md](docs/superpowers/specs/2026-09-30-reportkit-operator-theme-spec.md) | Implementation is on `feat/reportkit-operator-theme`; acceptance and pinned visual release gates remain. | P3 |
+| [2026-09-30-reportkit-operator-theme-implementation-plan.md](docs/superpowers/plans/2026-09-30-reportkit-operator-theme-implementation-plan.md) | Wave 0 and implementation lanes are integrated on `feat/reportkit-operator-theme`; build, acceptance, and visual gates were not run. | P3 |
 
 ## Open work
 
@@ -67,6 +67,11 @@ and [references/documentation-status.md](references/documentation-status.md).
   the remaining formats is linked above.
 
 ### P3
+
+- **Operator theme — acceptance and visual release gates.** Implementation is
+  available on `feat/reportkit-operator-theme`. Run the pinned build and
+  acceptance matrix, review every fixture page, and record the result before
+  promoting the experimental theme.
 
 - **Agent contract — tagged-PDF spike.** Revisit tagged PDF only through the
   separate toolchain-gated `\DocumentMetadata` investigation; the current
