@@ -97,6 +97,8 @@ FIGURE_SIZES: dict[str, tuple[float, float]] = {}
 SANS_FONT = SERIF_FONT = MONO_FONT = ""
 CHART_GRID_STYLE = "y"
 CHART_LEGEND_STYLE = "above"
+CHART_HATCHES: tuple[str, ...] = ()
+CHART_DASHES: tuple[str, ...] = ()
 
 
 apply_theme()
@@ -212,7 +214,7 @@ __all__ = [
     "RESEARCH", "TIP", "RED_FLAG", "ASSUMPTION", "EVIDENCE", "LIMITATION", "METRIC", "DELIVERABLE",
     "SURFACE", "WHITE", "DATA_COLORS", "BENCHMARK", "DATA_WARM", "DATA_POSITIVE", "DATA_NEGATIVE",
     "LATEX_THEME_COLORS", "TEXT_WIDTH_IN", "FIGURE_SIZES", "SANS_FONT", "SERIF_FONT", "MONO_FONT",
-    "CHART_GRID_STYLE", "CHART_LEGEND_STYLE", "plt",
+    "CHART_GRID_STYLE", "CHART_LEGEND_STYLE", "CHART_HATCHES", "CHART_DASHES", "plt",
     "apply_theme", "new_figure", "style_axes", "legend_above",
     "series_style", "save_figure", "percent_formatter", "bps_formatter", "number_formatter", "integer_formatter",
     "currency_formatter", "multiple_formatter", "timeseries", "bar_chart", "distribution", "scatter_plot",

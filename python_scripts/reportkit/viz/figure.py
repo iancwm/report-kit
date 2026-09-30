@@ -109,9 +109,10 @@ def series_style(index: int, *, benchmark: bool = False) -> dict:
     if benchmark:
         return {"color": core.BENCHMARK, "linestyle": "--", "linewidth": 1.35}
     i = index % len(core.DATA_COLORS)
+    line_styles = core.CHART_DASHES or core.LINE_STYLES
     return {
         "color": core.DATA_COLORS[i],
-        "linestyle": core.LINE_STYLES[i % len(core.LINE_STYLES)],
+        "linestyle": line_styles[index % len(line_styles)],
         "marker": core.MARKERS[i % len(core.MARKERS)],
         "linewidth": 1.75 if i == 0 else 1.5,
     }

@@ -85,6 +85,8 @@ def apply_theme(theme: str = "default") -> None:
     core.FIGURE_SIZES = dict(resolved.figure_sizes)
     core.CHART_GRID_STYLE = resolved.charts.grid_style
     core.CHART_LEGEND_STYLE = resolved.charts.legend_style
+    core.CHART_HATCHES = tuple(resolved.charts.hatches)
+    core.CHART_DASHES = tuple(resolved.charts.dashes)
 
     sans_font = _available_font(resolved.sans_candidates)
     serif_font = _available_font(resolved.serif_candidates)
