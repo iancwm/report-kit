@@ -1,0 +1,47 @@
+% ReportKit identity and capability primitive signatures.
+% Wave 0 contract stubs are replaced with theme-token rendering by Lane I.
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{reportkit-identity}[2026/09/30 v1.0.0 ReportKit identity primitives]
+\RequirePackage{xparse}
+
+% <reportkit-contract>
+% {"kind":"command","description":"Render a compact text-only product label that is safe in table cells.","arguments":[{"name":"initial","type":"string","description":"Accepted for API symmetry; not shown by the compact form."},{"name":"name","type":"string","description":"Product name."},{"name":"tag","type":"string","description":"Short product category or provenance tag."}],"constraints":[],"example":"\\productchip{A}{Atlas CLI}{first-party}","stability":"experimental","since":"1.10.0"}
+% </reportkit-contract>
+\NewDocumentCommand{\productchip}{mmm}{[chip:#2]}
+
+% <reportkit-contract>
+% {"kind":"command","description":"Render a product label with an initial avatar for prose contexts.","arguments":[{"name":"initial","type":"string","description":"One or more initials for the avatar."},{"name":"name","type":"string","description":"Product name."},{"name":"tag","type":"string","description":"Short product category or provenance tag."}],"constraints":[{"code":"prose_only","description":"Use outside table alignments."}],"example":"\\productavatar{A}{Atlas CLI}{first-party}","stability":"experimental","since":"1.10.0"}
+% </reportkit-contract>
+\NewDocumentCommand{\productavatar}{mmm}{[avatar:#2]}
+
+% <reportkit-contract>
+% {"kind":"command","description":"Render a product price and plan in a compact pill.","arguments":[{"name":"price","type":"string","description":"Price text."},{"name":"plan","type":"string","description":"Plan name."}],"constraints":[],"example":"\\pricepill{\\$12}{Team}","stability":"experimental","since":"1.10.0"}
+% </reportkit-contract>
+\NewDocumentCommand{\pricepill}{mm}{[price:#1 #2]}
+
+% <reportkit-contract>
+% {"kind":"command","description":"Render a status marker from a named semantic state.","arguments":[{"name":"state","type":"enum","description":"One of verified, flag, accent, or neutral."}],"constraints":[{"code":"enum","values":["verified","flag","accent","neutral"],"description":"Select one of the supported semantic states."}],"example":"\\statusdot{verified}","stability":"experimental","since":"1.10.0"}
+% </reportkit-contract>
+\NewDocumentCommand{\statusdot}{m}{[status:#1]}
+
+% <reportkit-contract>
+% {"kind":"command","description":"Mark a documented capability with a filled glyph.","arguments":[],"constraints":[],"example":"\\capdocumented","stability":"experimental","since":"1.10.0"}
+% </reportkit-contract>
+\NewDocumentCommand{\capdocumented}{}{D}
+
+% <reportkit-contract>
+% {"kind":"command","description":"Mark an unestablished capability with a hollow glyph.","arguments":[],"constraints":[],"example":"\\capunestablished","stability":"experimental","since":"1.10.0"}
+% </reportkit-contract>
+\NewDocumentCommand{\capunestablished}{}{U}
+
+% <reportkit-contract>
+% {"kind":"composition","description":"Build a capability table from comma-separated column headers.","arguments":[{"name":"options","type":"option","description":"Optional score policy: score=auto or score=none."},{"name":"columns","type":"list","description":"Comma-separated capability headings."}],"constraints":[{"code":"line_macros","split":"|","macro":"capabilityrow"}],"example":"\\begin{capabilitygrid}{Local,Remote}\n\\capabilityrow[first-party]{Atlas CLI}{DU}\n\\end{capabilitygrid}","stability":"experimental","since":"1.10.0"}
+% </reportkit-contract>
+\NewDocumentEnvironment{capabilitygrid}{O{}m}{\par\textbf{Capabilities: }#2\par}{\par}
+
+% <reportkit-contract>
+% {"kind":"command","description":"Render one product row in a capability grid.","arguments":[{"name":"tag","type":"string","description":"Optional product tag."},{"name":"name","type":"string","description":"Product name."},{"name":"cells","type":"string","description":"A sequence of D, U, or - capability markers."}],"constraints":[{"code":"cell_markers","values":["D","U","-"],"description":"One marker for each declared capability column."}],"example":"\\capabilityrow[first-party]{Atlas CLI}{DU-}","stability":"experimental","since":"1.10.0"}
+% </reportkit-contract>
+\NewDocumentCommand{\capabilityrow}{O{}mm}{#2\space[#1]: #3\par}
+
+\endinput

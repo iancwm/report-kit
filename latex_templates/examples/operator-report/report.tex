@@ -1,0 +1,42 @@
+\documentclass[publication-type=technical-report,theme=operator]{reportkit}
+\title{Operator Theme Contract Fixture}
+\author{ReportKit Example Team}
+\date{September 2026}
+
+\begin{document}
+\maketitle
+
+\section{Product identity}
+\productchip{A}{Atlas CLI}{fictional}
+\quad\productavatar{B}{Beacon Studio}{fictional}
+\quad\pricepill{\$12}{Team}
+\quad\statusdot{verified}
+
+\IfFileExists{sections/identity.tex}{\input{sections/identity.tex}}{}
+
+\section{Capability grid}
+\begin{capabilitygrid}{Local,Remote,Plans}
+\capabilityrow[fictional]{Atlas CLI}{DDU}
+\capabilityrow[fictional]{Beacon Studio}{DUD}
+\end{capabilitygrid}
+
+\IfFileExists{sections/capability.tex}{\input{sections/capability.tex}}{}
+
+\newpage
+\section{Execution surfaces}
+\begin{terminalblock}[Build output]
+\termcomment{A fictional fixture uses line-level terminal content.}
+\termprompt{reportkit build --target operator}
+\termline{Build complete: 3 pages}
+\end{terminalblock}
+
+\begin{diffblock}[src/example.py]
+\diffhunk{@@ -1,1 +1,1 @@}
+\diffdel{price = 12}
+\diffadd{price = 14}
+\diffctx{plan = "team"}
+\end{diffblock}
+
+\IfFileExists{sections/execution.tex}{\input{sections/execution.tex}}{}
+
+\end{document}

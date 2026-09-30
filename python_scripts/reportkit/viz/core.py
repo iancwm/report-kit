@@ -49,9 +49,9 @@ import matplotlib.pyplot as plt
 # and theme modules never need to import the compatibility facade.
 from reportkit.themes import get_theme
 from .charts import (
-    bar_chart, bubble_matrix, distribution, donut_chart, drawdown_chart, heatmap,
+    bar_chart, bubble_matrix, distribution, donut_chart, drawdown_chart, heatmap, line_chart,
     risk_reward_chart, scatter_plot, timeline_chart, timeseries, tornado_chart,
-    treemap_chart, waterfall_chart,
+    treemap_chart, waterfall_chart, stacked_bar_chart,
 )
 from .demo import build_demo
 from .figure import legend_above, new_figure, save_figure, series_style, style_axes
@@ -217,7 +217,7 @@ __all__ = [
     "series_style", "save_figure", "percent_formatter", "bps_formatter", "number_formatter", "integer_formatter",
     "currency_formatter", "multiple_formatter", "timeseries", "bar_chart", "distribution", "scatter_plot",
     "heatmap", "drawdown_chart", "risk_reward_chart", "donut_chart", "waterfall_chart", "treemap_chart",
-    "tornado_chart", "bubble_matrix", "timeline_chart", "annotate_point", "shade_period", "theme_file_for",
+    "tornado_chart", "bubble_matrix", "timeline_chart", "line_chart", "stacked_bar_chart", "annotate_point", "shade_period", "theme_file_for",
     "validate_palette_against_latex", "validate_theme_contract_against_latex", "build_demo", "__version__",
 ]
 

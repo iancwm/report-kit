@@ -224,6 +224,10 @@
 \newcommand{\RKTokCalloutPadBottom}{\rk@styletokenerror{\RKTokCalloutPadBottom}}
 \newcommand{\RKTokCalloutBeforeSkip}{\rk@styletokenerror{\RKTokCalloutBeforeSkip}}
 \newcommand{\RKTokCalloutAfterSkip}{\rk@styletokenerror{\RKTokCalloutAfterSkip}}
+% Additive appearance hooks stay no-op until a theme opts in. Existing themes
+% therefore retain their current callout and table output without edits.
+\providecommand{\RKTokCalloutKindOptions}[1]{}
+\providecommand{\RKTokTableFont}{}
 % A theme's font-role tokens are executed as ordinary TeX code (they sit
 % inside a tcolorbox title's token list, typeset when the box renders, not
 % parsed as a pgfkeys value), so each bundles its own \fontsize{}{}\selectfont
@@ -486,6 +490,72 @@
 \newcommand{\RKTokAlgorithmIntervalAxisWidth}{\rk@styletokenerror{\RKTokAlgorithmIntervalAxisWidth}}
 \newcommand{\RKTokAlgorithmHeapEdgeColor}{\rk@styletokenerror{\RKTokAlgorithmHeapEdgeColor}}
 \newcommand{\RKTokAlgorithmHeapEdgeWidth}{\rk@styletokenerror{\RKTokAlgorithmHeapEdgeWidth}}
+
+% Product identity and capability primitives (ReportKit Operator Theme spec
+% §3.2). These have a separate use-time gate so existing themes do not need
+% to populate them unless a document actually uses one of the new primitives.
+\newcommand{\RKTokIdentityNameFont}{\rk@styletokenerror{\RKTokIdentityNameFont}}
+\newcommand{\RKTokIdentityTagFont}{\rk@styletokenerror{\RKTokIdentityTagFont}}
+\newcommand{\RKTokIdentityTagColor}{\rk@styletokenerror{\RKTokIdentityTagColor}}
+\newcommand{\RKTokIdentityAvatarFill}{\rk@styletokenerror{\RKTokIdentityAvatarFill}}
+\newcommand{\RKTokIdentityAvatarDraw}{\rk@styletokenerror{\RKTokIdentityAvatarDraw}}
+\newcommand{\RKTokIdentityAvatarSize}{\rk@styletokenerror{\RKTokIdentityAvatarSize}}
+\newcommand{\RKTokIdentityAvatarFont}{\rk@styletokenerror{\RKTokIdentityAvatarFont}}
+\newcommand{\RKTokIdentityPillFill}{\rk@styletokenerror{\RKTokIdentityPillFill}}
+\newcommand{\RKTokIdentityPillDraw}{\rk@styletokenerror{\RKTokIdentityPillDraw}}
+\newcommand{\RKTokIdentityPillArc}{\rk@styletokenerror{\RKTokIdentityPillArc}}
+\newcommand{\RKTokIdentityPillFont}{\rk@styletokenerror{\RKTokIdentityPillFont}}
+\newcommand{\RKTokIdentityDotSize}{\rk@styletokenerror{\RKTokIdentityDotSize}}
+\newcommand{\RKTokIdentityStateVerified}{\rk@styletokenerror{\RKTokIdentityStateVerified}}
+\newcommand{\RKTokIdentityStateFlag}{\rk@styletokenerror{\RKTokIdentityStateFlag}}
+\newcommand{\RKTokIdentityStateAccent}{\rk@styletokenerror{\RKTokIdentityStateAccent}}
+\newcommand{\RKTokIdentityStateNeutral}{\rk@styletokenerror{\RKTokIdentityStateNeutral}}
+\newcommand{\RKTokCapabilityDocumentedFill}{\rk@styletokenerror{\RKTokCapabilityDocumentedFill}}
+\newcommand{\RKTokCapabilityUnestablishedDraw}{\rk@styletokenerror{\RKTokCapabilityUnestablishedDraw}}
+\newcommand{\RKTokCapabilityGlyphRadius}{\rk@styletokenerror{\RKTokCapabilityGlyphRadius}}
+\newcommand{\RKTokCapabilityGlyphRule}{\rk@styletokenerror{\RKTokCapabilityGlyphRule}}
+\newcommand{\RKTokCapabilityHeaderFont}{\rk@styletokenerror{\RKTokCapabilityHeaderFont}}
+\newcommand{\RKTokCapabilityRowFont}{\rk@styletokenerror{\RKTokCapabilityRowFont}}
+\newcommand{\RKTokCapabilityProductWidth}{\rk@styletokenerror{\RKTokCapabilityProductWidth}}
+\newif\ifrk@identitytokensloaded
+\rk@identitytokensloadedfalse
+\newcommand{\RKAssertIdentityTokens}{%
+  \ifrk@identitytokensloaded\else
+    \PackageError{reportkit-core}{Theme \rk@theme\space has not populated the required identity tokens}%
+      {Select a theme that provides the RKTokIdentity and RKTokCapability tokens before using identity primitives.}%
+  \fi
+}
+
+% Terminal and diff execution surfaces have their own use-time theme gate.
+\newcommand{\RKTokTerminalBack}{\rk@styletokenerror{\RKTokTerminalBack}}
+\newcommand{\RKTokTerminalText}{\rk@styletokenerror{\RKTokTerminalText}}
+\newcommand{\RKTokTerminalTitleColor}{\rk@styletokenerror{\RKTokTerminalTitleColor}}
+\newcommand{\RKTokTerminalTitleFont}{\rk@styletokenerror{\RKTokTerminalTitleFont}}
+\newcommand{\RKTokTerminalFont}{\rk@styletokenerror{\RKTokTerminalFont}}
+\newcommand{\RKTokTerminalPromptColor}{\rk@styletokenerror{\RKTokTerminalPromptColor}}
+\newcommand{\RKTokTerminalCommentColor}{\rk@styletokenerror{\RKTokTerminalCommentColor}}
+\newcommand{\RKTokTerminalArc}{\rk@styletokenerror{\RKTokTerminalArc}}
+\newcommand{\RKTokTerminalPad}{\rk@styletokenerror{\RKTokTerminalPad}}
+\newcommand{\RKTokDiffBack}{\rk@styletokenerror{\RKTokDiffBack}}
+\newcommand{\RKTokDiffFrame}{\rk@styletokenerror{\RKTokDiffFrame}}
+\newcommand{\RKTokDiffFont}{\rk@styletokenerror{\RKTokDiffFont}}
+\newcommand{\RKTokDiffAddColor}{\rk@styletokenerror{\RKTokDiffAddColor}}
+\newcommand{\RKTokDiffAddBack}{\rk@styletokenerror{\RKTokDiffAddBack}}
+\newcommand{\RKTokDiffDelColor}{\rk@styletokenerror{\RKTokDiffDelColor}}
+\newcommand{\RKTokDiffDelBack}{\rk@styletokenerror{\RKTokDiffDelBack}}
+\newcommand{\RKTokDiffCtxColor}{\rk@styletokenerror{\RKTokDiffCtxColor}}
+\newcommand{\RKTokDiffHunkColor}{\rk@styletokenerror{\RKTokDiffHunkColor}}
+\newcommand{\RKTokDiffArc}{\rk@styletokenerror{\RKTokDiffArc}}
+\newcommand{\RKTokDiffPad}{\rk@styletokenerror{\RKTokDiffPad}}
+\newif\ifrk@executiontokensloaded
+\rk@executiontokensloadedfalse
+\newcommand{\RKAssertExecutionTokens}{%
+  \ifrk@executiontokensloaded\else
+    \PackageError{reportkit-core}{Theme \rk@theme\space has not populated the required execution tokens}%
+      {Select a theme that provides the RKTokTerminal and RKTokDiff tokens before using execution primitives.}%
+  \fi
+}
+
 \newif\ifrk@styletokensloaded
 \rk@styletokensloadedfalse
 % Called by reportkit-boxes.sty (or any future style-token consumer)

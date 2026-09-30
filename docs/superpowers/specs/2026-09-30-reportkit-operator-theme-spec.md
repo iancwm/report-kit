@@ -69,12 +69,21 @@ already read. The `rk*` names from Appendix A are not public.
 | `rkBorder` | `E8E8E3` | `Hairline` |
 | `rkBorderStrong` | `111111` | `InkStrong`, `Decision` (frame) |
 | `rkText` | `111111` | `Ink` |
-| `rkMuted` | `6B6B68` | `Muted`, `Limitation` |
+| `rkMuted` | `6B6B68` | `Muted`, `Limitation`, `Research` |
 | `rkFaint` | `9A9A97` | `Faint` |
 | `rkAccent` | `5B5BD6` | `LinkBlue`, `Principle`, `Assumption`, `Accent`, `MetricAccent` |
 | `rkAccent2` | `FF4D5A` | `RedFlag` |
-| `rkAccent3` | `00C2A8` | `Evidence`, `Tip`, `Verified` |
+| `rkAccent3` | `00C2A8` | `Evidence`, `Tip`, `Verified`, `Deliverable` |
 | `rkGrid` | `EAEAE6` | `Grid` |
+
+The paged modules also read `Accent`, `Principle`, `Decision`, `Assumption`,
+`RedFlag`, `MetricAccent`, and `Surface`. The operator theme defines those
+names as aliases of the semantic colors above: `Accent` aliases `LinkBlue`,
+`Principle`/`Assumption`/`MetricAccent` alias `Accent`, `Decision` aliases
+`InkStrong`, `RedFlag` aliases `Accent2`, and `Surface` aliases `rkSurface`.
+The other callout names (`Research`, `Tip`, `Evidence`, `Limitation`, and
+`Deliverable`) are included in the semantic-name column above. The sole
+non-theme color name in the paged modules is xcolor's built-in `white`.
 
 Wave 0 of the plan fixes the complete list by reading every colour name the
 paged modules reference (`grep -o '\\color{[A-Za-z]*}'` plus tcolorbox
@@ -283,6 +292,22 @@ content: |
 Line classification is declared in each primitive's contract metadata as a
 `line_macros` constraint and is implemented once, generically, in
 `tex_renderer.py`:
+
+```json
+{"code":"line_macros","prefixes":[["$ ","termprompt"],["# ","termcomment"]],"default":"termline"}
+{"code":"line_macros","prefixes":[["@@","diffhunk"],["+","diffadd"],["-","diffdel"]],"default":"diffctx"}
+{"code":"line_macros","split":"|","macro":"capabilityrow"}
+```
+
+For `prefixes`, entries are ordered pairs of literal prefix and macro name;
+the first matching prefix wins, its text is removed, and `default` handles
+unmatched lines. Multi-character prefixes such as `@@` precede their
+single-character alternatives. For `split`, the renderer splits each line
+on the literal separator and accepts either `name|cells` or
+`name|tag|cells`, emitting `\capabilityrow{}{name}{cells}` or
+`\capabilityrow[tag]{name}{cells}` respectively. In both forms, leading
+spaces remaining after the prefix or separator handling become `~` before
+the rest of the payload is passed through `tex_escape`.
 
 | Primitive | Prefix → macro |
 | --- | --- |

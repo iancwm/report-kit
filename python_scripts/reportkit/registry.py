@@ -26,7 +26,7 @@ CALLOUT_ENVIRONMENTS = {
 PUBLIC_CHART_NAMES = {
     "timeseries", "bar_chart", "distribution", "scatter_plot", "heatmap", "drawdown_chart",
     "risk_reward_chart", "donut_chart", "waterfall_chart", "treemap_chart", "tornado_chart",
-    "bubble_matrix", "timeline_chart",
+    "bubble_matrix", "timeline_chart", "stacked_bar_chart", "line_chart",
 }
 LEGACY_CHART_NAMES = PUBLIC_CHART_NAMES - {"donut_chart", "risk_reward_chart"}
 PRIMITIVE_KINDS = ("callout", "figure", "chart", "composition", "command")

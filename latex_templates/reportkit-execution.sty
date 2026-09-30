@@ -1,0 +1,52 @@
+% ReportKit terminal and diff primitive signatures.
+% Wave 0 contract stubs are replaced with breakable theme-token rendering by Lane X.
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{reportkit-execution}[2026/09/30 v1.0.0 ReportKit execution primitives]
+\RequirePackage{xparse}
+
+% <reportkit-contract>
+% {"kind":"composition","description":"Render a terminal surface whose body is authored one line macro at a time.","arguments":[{"name":"title","type":"string","description":"Optional terminal surface title."}],"constraints":[{"code":"line_macros","prefixes":[["$ ","termprompt"],["# ","termcomment"]],"default":"termline"}],"example":"\\begin{terminalblock}[Build]\n\\termprompt{reportkit build}\n\\termline{Build complete}\n\\end{terminalblock}","stability":"experimental","since":"1.10.0"}
+% </reportkit-contract>
+\NewDocumentEnvironment{terminalblock}{O{}}{\par\IfValueT{#1}{\textbf{#1}\par}}{\par}
+
+% <reportkit-contract>
+% {"kind":"command","description":"Render one monospace terminal output line.","arguments":[{"name":"text","type":"string","description":"One line of terminal output."}],"constraints":[{"code":"environment","value":"terminalblock","description":"Use inside terminalblock."}],"example":"\\termline{Build complete}","stability":"experimental","since":"1.10.0"}
+% </reportkit-contract>
+\NewDocumentCommand{\termline}{m}{\texttt{#1}\par}
+
+% <reportkit-contract>
+% {"kind":"command","description":"Render one terminal command line with a prompt marker.","arguments":[{"name":"text","type":"string","description":"Command text."}],"constraints":[{"code":"environment","value":"terminalblock","description":"Use inside terminalblock."}],"example":"\\termprompt{reportkit build}","stability":"experimental","since":"1.10.0"}
+% </reportkit-contract>
+\NewDocumentCommand{\termprompt}{m}{\texttt{\$ #1}\par}
+
+% <reportkit-contract>
+% {"kind":"command","description":"Render one muted terminal comment line.","arguments":[{"name":"text","type":"string","description":"Comment text."}],"constraints":[{"code":"environment","value":"terminalblock","description":"Use inside terminalblock."}],"example":"\\termcomment{# generated output}","stability":"experimental","since":"1.10.0"}
+% </reportkit-contract>
+\NewDocumentCommand{\termcomment}{m}{\textit{#1}\par}
+
+% <reportkit-contract>
+% {"kind":"composition","description":"Render a diff surface whose body is authored one line macro at a time.","arguments":[{"name":"title","type":"string","description":"Optional file path or diff title."}],"constraints":[{"code":"line_macros","prefixes":[["@@","diffhunk"],["+","diffadd"],["-","diffdel"]],"default":"diffctx"}],"example":"\\begin{diffblock}[src/app.py]\n\\diffdel{x = 1}\n\\diffadd{x = 2}\n\\end{diffblock}","stability":"experimental","since":"1.10.0"}
+% </reportkit-contract>
+\NewDocumentEnvironment{diffblock}{O{}}{\par\IfValueT{#1}{\textbf{#1}\par}}{\par}
+
+% <reportkit-contract>
+% {"kind":"command","description":"Render one added diff line.","arguments":[{"name":"text","type":"string","description":"Added source text without its leading plus."}],"constraints":[{"code":"environment","value":"diffblock","description":"Use inside diffblock."}],"example":"\\diffadd{x = 2}","stability":"experimental","since":"1.10.0"}
+% </reportkit-contract>
+\NewDocumentCommand{\diffadd}{m}{\texttt{+ #1}\par}
+
+% <reportkit-contract>
+% {"kind":"command","description":"Render one deleted diff line.","arguments":[{"name":"text","type":"string","description":"Deleted source text without its leading minus."}],"constraints":[{"code":"environment","value":"diffblock","description":"Use inside diffblock."}],"example":"\\diffdel{x = 1}","stability":"experimental","since":"1.10.0"}
+% </reportkit-contract>
+\NewDocumentCommand{\diffdel}{m}{\texttt{- #1}\par}
+
+% <reportkit-contract>
+% {"kind":"command","description":"Render one unchanged diff context line.","arguments":[{"name":"text","type":"string","description":"Context text."}],"constraints":[{"code":"environment","value":"diffblock","description":"Use inside diffblock."}],"example":"\\diffctx{if ready:}","stability":"experimental","since":"1.10.0"}
+% </reportkit-contract>
+\NewDocumentCommand{\diffctx}{m}{\texttt{#1}\par}
+
+% <reportkit-contract>
+% {"kind":"command","description":"Render one diff hunk header.","arguments":[{"name":"text","type":"string","description":"Hunk metadata, such as @@ -3 +3 @@."}],"constraints":[{"code":"environment","value":"diffblock","description":"Use inside diffblock."}],"example":"\\diffhunk{@@ -3 +3 @@}","stability":"experimental","since":"1.10.0"}
+% </reportkit-contract>
+\NewDocumentCommand{\diffhunk}{m}{\texttt{#1}\par}
+
+\endinput
