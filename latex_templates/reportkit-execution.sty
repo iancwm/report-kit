@@ -1,52 +1,199 @@
-% ReportKit terminal and diff primitive signatures.
-% Wave 0 contract stubs are replaced with breakable theme-token rendering by Lane X.
+% ReportKit terminal and diff execution surfaces.
+% Each source line is an ordinary macro call, so the outer tcolorbox remains
+% breakable and authors do not need verbatim catcode changes or shell escape.
 \NeedsTeXFormat{LaTeX2e}
 \ProvidesPackage{reportkit-execution}[2026/09/30 v1.0.0 ReportKit execution primitives]
+\RequirePackage[most]{tcolorbox}
 \RequirePackage{xparse}
+\RequirePackage{xcolor}
+\RequirePackage{etoolbox}
+\RequirePackage{textcomp}
+
+\makeatletter
+
+\newif\ifrk@execution@terminalactive
+\newif\ifrk@execution@diffactive
+\rk@execution@terminalactivefalse
+\rk@execution@diffactivefalse
+
+% Use one fixed-width marker slot for every line in a surface. A positive
+% hangindent with hangafter=1 keeps subsequent wrapped rows under the source
+% text, not under the marker. The parbox gives add/delete bands a full-width
+% background across all wrapped physical rows; each source line remains a
+% separate box, so the surrounding breakable tcolorbox can split between lines.
+\newcommand{\rk@execution@line}[7]{%
+  \par\noindent
+  \begingroup
+    \setlength{\fboxsep}{0pt}%
+    \colorbox{#1}{%
+      \parbox{\linewidth}{%
+        #2%
+        \hangindent=#3\relax
+        \hangafter=1
+        \noindent\makebox[#3][l]{{\color{#5}#4}}%
+        {\color{#6}#7\strut}\par
+      }%
+    }%
+  \endgroup
+  \par
+}
+
+\newcommand{\rk@execution@checkterminal}[1]{%
+  \ifrk@execution@terminalactive\else
+    \PackageError{reportkit-execution}%
+      {\string#1 must be used inside terminalblock}%
+      {Move this line macro inside a terminalblock environment.}%
+  \fi
+}
+\newcommand{\rk@execution@checkdiff}[1]{%
+  \ifrk@execution@diffactive\else
+    \PackageError{reportkit-execution}%
+      {\string#1 must be used inside diffblock}%
+      {Move this line macro inside a diffblock environment.}%
+  \fi
+}
+
+\tcbset{%
+  reportkit terminal base/.style={%
+    enhanced,breakable,
+    colback=\RKTokTerminalBack,
+    colframe=\RKTokTerminalBack,
+    boxrule=0pt,
+    arc=\RKTokTerminalArc,outer arc=\RKTokTerminalArc,
+    left=\RKTokTerminalPad,right=\RKTokTerminalPad,
+    top=\RKTokTerminalPad,bottom=\RKTokTerminalPad,
+    colupper=\RKTokTerminalText,
+    fontupper=\RKTokTerminalFont,
+    coltitle=\RKTokTerminalTitleColor,
+    colbacktitle=\RKTokTerminalBack,
+    fonttitle=\RKTokTerminalTitleFont,
+    before skip=6pt,after skip=7pt
+  },
+  reportkit diff base/.style={%
+    enhanced,breakable,
+    colback=\RKTokDiffBack,
+    colframe=\RKTokDiffFrame,
+    boxrule=.4pt,
+    arc=\RKTokDiffArc,outer arc=\RKTokDiffArc,
+    left=\RKTokDiffPad,right=\RKTokDiffPad,
+    top=\RKTokDiffPad,bottom=\RKTokDiffPad,
+    colupper=\RKTokDiffCtxColor,
+    fontupper=\RKTokDiffFont,
+    coltitle=\RKTokDiffHunkColor,
+    colbacktitle=\RKTokDiffBack,
+    fonttitle=\RKTokDiffFont,
+    before skip=6pt,after skip=7pt
+  }
+}
+
+\newcommand{\rk@execution@openterminal}[1]{%
+  \ifstrempty{#1}%
+    {\begin{tcolorbox}[reportkit terminal base]}%
+    {\begin{tcolorbox}[reportkit terminal base,title={#1}]}%
+}
+\newcommand{\rk@execution@opendiff}[1]{%
+  \ifstrempty{#1}%
+    {\begin{tcolorbox}[reportkit diff base]}%
+    {\begin{tcolorbox}[reportkit diff base,title={#1}]}%
+}
 
 % <reportkit-contract>
 % {"kind":"composition","description":"Render a terminal surface whose body is authored one line macro at a time.","arguments":[{"name":"title","type":"string","description":"Optional terminal surface title."}],"constraints":[{"code":"line_macros","prefixes":[["$ ","termprompt"],["# ","termcomment"]],"default":"termline"}],"example":"\\begin{terminalblock}[Build]\n\\termprompt{reportkit build}\n\\termline{Build complete}\n\\end{terminalblock}","stability":"experimental","since":"1.10.0"}
 % </reportkit-contract>
-\NewDocumentEnvironment{terminalblock}{O{}}{\par\IfValueT{#1}{\textbf{#1}\par}}{\par}
+\NewDocumentEnvironment{terminalblock}{O{}}{%
+  \RKAssertExecutionTokens
+  \par
+  \rk@execution@terminalactivetrue
+  \rk@execution@openterminal{#1}%
+}{%
+  \end{tcolorbox}%
+  \rk@execution@terminalactivefalse
+  \par
+}
 
 % <reportkit-contract>
 % {"kind":"command","description":"Render one monospace terminal output line.","arguments":[{"name":"text","type":"string","description":"One line of terminal output."}],"constraints":[{"code":"environment","value":"terminalblock","description":"Use inside terminalblock."}],"example":"\\termline{Build complete}","stability":"experimental","since":"1.10.0"}
 % </reportkit-contract>
-\NewDocumentCommand{\termline}{m}{\texttt{#1}\par}
+\NewDocumentCommand{\termline}{m}{%
+  \RKAssertExecutionTokens
+  \rk@execution@checkterminal\termline
+  \rk@execution@line{\RKTokTerminalBack}{\RKTokTerminalFont}{1.8em}{}%
+    {\RKTokTerminalText}{\RKTokTerminalText}{#1}%
+}
 
 % <reportkit-contract>
 % {"kind":"command","description":"Render one terminal command line with a prompt marker.","arguments":[{"name":"text","type":"string","description":"Command text."}],"constraints":[{"code":"environment","value":"terminalblock","description":"Use inside terminalblock."}],"example":"\\termprompt{reportkit build}","stability":"experimental","since":"1.10.0"}
 % </reportkit-contract>
-\NewDocumentCommand{\termprompt}{m}{\texttt{\$ #1}\par}
+\NewDocumentCommand{\termprompt}{m}{%
+  \RKAssertExecutionTokens
+  \rk@execution@checkterminal\termprompt
+  \rk@execution@line{\RKTokTerminalBack}{\RKTokTerminalFont}{1.8em}{\$}%
+    {\RKTokTerminalPromptColor}{\RKTokTerminalText}{#1}%
+}
 
 % <reportkit-contract>
 % {"kind":"command","description":"Render one muted terminal comment line.","arguments":[{"name":"text","type":"string","description":"Comment text."}],"constraints":[{"code":"environment","value":"terminalblock","description":"Use inside terminalblock."}],"example":"\\termcomment{# generated output}","stability":"experimental","since":"1.10.0"}
 % </reportkit-contract>
-\NewDocumentCommand{\termcomment}{m}{\textit{#1}\par}
+\NewDocumentCommand{\termcomment}{m}{%
+  \RKAssertExecutionTokens
+  \rk@execution@checkterminal\termcomment
+  \rk@execution@line{\RKTokTerminalBack}{\RKTokTerminalFont}{1.8em}{}%
+    {\RKTokTerminalCommentColor}{\RKTokTerminalCommentColor}{#1}%
+}
 
 % <reportkit-contract>
 % {"kind":"composition","description":"Render a diff surface whose body is authored one line macro at a time.","arguments":[{"name":"title","type":"string","description":"Optional file path or diff title."}],"constraints":[{"code":"line_macros","prefixes":[["@@","diffhunk"],["+","diffadd"],["-","diffdel"]],"default":"diffctx"}],"example":"\\begin{diffblock}[src/app.py]\n\\diffdel{x = 1}\n\\diffadd{x = 2}\n\\end{diffblock}","stability":"experimental","since":"1.10.0"}
 % </reportkit-contract>
-\NewDocumentEnvironment{diffblock}{O{}}{\par\IfValueT{#1}{\textbf{#1}\par}}{\par}
+\NewDocumentEnvironment{diffblock}{O{}}{%
+  \RKAssertExecutionTokens
+  \par
+  \rk@execution@diffactivetrue
+  \rk@execution@opendiff{#1}%
+}{%
+  \end{tcolorbox}%
+  \rk@execution@diffactivefalse
+  \par
+}
 
 % <reportkit-contract>
 % {"kind":"command","description":"Render one added diff line.","arguments":[{"name":"text","type":"string","description":"Added source text without its leading plus."}],"constraints":[{"code":"environment","value":"diffblock","description":"Use inside diffblock."}],"example":"\\diffadd{x = 2}","stability":"experimental","since":"1.10.0"}
 % </reportkit-contract>
-\NewDocumentCommand{\diffadd}{m}{\texttt{+ #1}\par}
+\NewDocumentCommand{\diffadd}{m}{%
+  \RKAssertExecutionTokens
+  \rk@execution@checkdiff\diffadd
+  \rk@execution@line{\RKTokDiffAddBack}{\RKTokDiffFont}{1.8em}{+}%
+    {\RKTokDiffAddColor}{\RKTokDiffAddColor}{#1}%
+}
 
 % <reportkit-contract>
 % {"kind":"command","description":"Render one deleted diff line.","arguments":[{"name":"text","type":"string","description":"Deleted source text without its leading minus."}],"constraints":[{"code":"environment","value":"diffblock","description":"Use inside diffblock."}],"example":"\\diffdel{x = 1}","stability":"experimental","since":"1.10.0"}
 % </reportkit-contract>
-\NewDocumentCommand{\diffdel}{m}{\texttt{- #1}\par}
+\NewDocumentCommand{\diffdel}{m}{%
+  \RKAssertExecutionTokens
+  \rk@execution@checkdiff\diffdel
+  \rk@execution@line{\RKTokDiffDelBack}{\RKTokDiffFont}{1.8em}{\textminus}%
+    {\RKTokDiffDelColor}{\RKTokDiffDelColor}{#1}%
+}
 
 % <reportkit-contract>
 % {"kind":"command","description":"Render one unchanged diff context line.","arguments":[{"name":"text","type":"string","description":"Context text."}],"constraints":[{"code":"environment","value":"diffblock","description":"Use inside diffblock."}],"example":"\\diffctx{if ready:}","stability":"experimental","since":"1.10.0"}
 % </reportkit-contract>
-\NewDocumentCommand{\diffctx}{m}{\texttt{#1}\par}
+\NewDocumentCommand{\diffctx}{m}{%
+  \RKAssertExecutionTokens
+  \rk@execution@checkdiff\diffctx
+  \rk@execution@line{\RKTokDiffBack}{\RKTokDiffFont}{1.8em}{}%
+    {\RKTokDiffCtxColor}{\RKTokDiffCtxColor}{#1}%
+}
 
 % <reportkit-contract>
 % {"kind":"command","description":"Render one diff hunk header.","arguments":[{"name":"text","type":"string","description":"Hunk metadata, such as @@ -3 +3 @@."}],"constraints":[{"code":"environment","value":"diffblock","description":"Use inside diffblock."}],"example":"\\diffhunk{@@ -3 +3 @@}","stability":"experimental","since":"1.10.0"}
 % </reportkit-contract>
-\NewDocumentCommand{\diffhunk}{m}{\texttt{#1}\par}
+\NewDocumentCommand{\diffhunk}{m}{%
+  \RKAssertExecutionTokens
+  \rk@execution@checkdiff\diffhunk
+  \rk@execution@line{\RKTokDiffBack}{\RKTokDiffFont}{1.8em}{}%
+    {\RKTokDiffHunkColor}{\RKTokDiffHunkColor}{#1}%
+}
 
+\makeatother
 \endinput
