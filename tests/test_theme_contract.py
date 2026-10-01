@@ -239,3 +239,13 @@ def test_algorithm_viz_requires_the_modules_that_skip_their_own_assertion() -> N
         assert rf"\RequirePackage{{{package}}}" in algo_viz_text, (
             f"reportkit-algorithm-viz.sty no longer requires {module}; it must assert style tokens itself"
         )
+
+
+@pytest.mark.parametrize("theme_name", CANONICAL_THEMES)
+def test_check_theme_passes_against_latex_for_every_theme(theme_name: str) -> None:
+    """Regression: the checker once only recognised \\newcommand declarations,
+    so sentinels declared with \\providecommand in reportkit-core.sty failed
+    for every theme."""
+    from reportkit.viz.palette import validate_theme_contract_against_latex
+
+    assert validate_theme_contract_against_latex(theme_name, repo_root=REPO) == []
