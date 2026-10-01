@@ -267,14 +267,16 @@ def test_load_target_distinguishes_declared_from_defaulted(tmp_path: Path) -> No
     assert declared.intent_path == tmp_path / ".reportkit" / "intent.json"
 
 
-def test_authoring_template_stub_is_the_previous_skeleton() -> None:
+def test_authoring_template_is_the_target_aware_starter() -> None:
     from reportkit.authoring_templates import document_template
 
-    assert document_template("feature-article", "editorial") == (
+    template = document_template("feature-article", "editorial")
+    assert template.startswith(
         "\\documentclass[theme=editorial,publication-type=feature-article]{reportkit}\n"
-        "\\title{Contract acceptance}\n\\author{ReportKit}\n"
-        "\\begin{document}\n\\maketitle\n{{body}}\n\\end{document}\n"
     )
+    assert "\\begin{featureopening}" in template
+    assert "{{body}}" in template
+    assert template.endswith("\\end{document}\n")
 
 
 # -- CLI wiring ---------------------------------------------------------------
@@ -338,6 +340,11 @@ def test_emit_adds_loop_fields_only_when_the_hooks_return_them(monkeypatch: pyte
     from reportkit.target import load_target
 
     state = load_target(REPO / "publication_pipeline" / "example_publication")
+    # The loop is implemented, so the real hooks always return fields; stub
+    # them empty to prove the envelope only gains fields when they do.
+    monkeypatch.setattr(cli, "target_payload", lambda _state: None)
+    monkeypatch.setattr(cli, "target_line", lambda _state: "")
+    monkeypatch.setattr(cli, "next_step", lambda *_args: None)
     cli._emit({"passed": True, "diagnostics": []}, state, "check", True)
     assert set(json.loads(capsys.readouterr().out)) == {"passed", "diagnostics"}
     monkeypatch.setattr(cli, "target_payload", lambda _state: {"publication_type": "book"})

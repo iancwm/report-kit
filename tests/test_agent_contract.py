@@ -77,11 +77,11 @@ def test_every_in_tree_xparse_specifier_is_supported() -> None:
 def test_registry_is_complete_and_preserves_legacy_inventory() -> None:
     registry = generate_registry(REPO, strict=True)
     assert {kind: len(records) for kind, records in registry["primitives"].items()} == {
-        "callout": 14, "figure": 34, "chart": 13, "composition": 49, "command": 122,
+        "callout": 14, "figure": 34, "chart": 15, "composition": 52, "command": 137,
     }
     assert len(registry["figures"]) == 34
     assert len(registry["callouts"]["public"]) == 10
-    assert len(registry["charts"]) == 11
+    assert len(registry["charts"]) == 13
     assert "risk_reward_chart" in registry["primitives"]["chart"]
     assert "donut_chart" in registry["primitives"]["chart"]
     assert "pd.Series | pd.DataFrame" in registry["primitives"]["chart"]["timeseries"]["source_signature"]
@@ -245,14 +245,15 @@ def test_context_catalog_contains_only_the_current_publication_matrix() -> None:
     # F2 added the experimental book type over default/technical and editorial.
     assert set(capabilities["publication_types"]) == {"technical-report", "equity-research", "executive-brief", "presentation", "feature-article", "book"}
     assert capabilities["publication_types"]["executive-brief"]["themes"] == ["executive", "institutional-research"]
-    assert capabilities["publication_types"]["technical-report"]["themes"] == ["default", "technical"]
+    assert capabilities["publication_types"]["technical-report"]["themes"] == ["default", "technical", "operator"]
     assert capabilities["publication_types"]["equity-research"]["themes"] == ["institutional-research"]
+    # The experimental operator theme was added to technical-report.
     # Phase D added the venture slide theme over the same publication type.
     assert capabilities["publication_types"]["presentation"]["themes"] == ["executive", "venture"]
     assert capabilities["publication_types"]["feature-article"]["themes"] == ["editorial"]
     assert capabilities["publication_types"]["book"]["themes"] == ["default", "technical", "editorial"]
     assert set(capabilities["renderers"]) == {"paged", "slides"}
-    assert set(capabilities["themes"]) == {"default", "technical", "institutional-research", "executive", "editorial", "venture"}
+    assert set(capabilities["themes"]) == {"default", "technical", "institutional-research", "executive", "editorial", "venture", "operator"}
     assert all(theme["language_support"]["rtl"] == "unsupported" for theme in capabilities["themes"].values())
     assert all(theme["language_support"]["scripts"]["verified"] == ["Latn"] for theme in capabilities["themes"].values())
 
@@ -345,7 +346,7 @@ def test_contract_major_mismatch_is_structured_exit_two() -> None:
 def test_newer_same_major_contract_is_structured_exit_two() -> None:
     result = subprocess.run(
         [str(REPO / "reportkit"), "check", "--source-root", str(REPO / "publication_pipeline" / "example_publication"),
-         "--contract-version", "1.3.0", "--json"],
+         "--contract-version", "1.99.0", "--json"],
         capture_output=True, text=True,
     )
     payload = json.loads(result.stdout)

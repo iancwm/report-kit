@@ -1360,7 +1360,13 @@ def build(args: argparse.Namespace) -> int:
         "tables": table_count, "pdf_sha256": None,
     }
     report_path = output / "build-report.json"
-    if preflight.source_mode == "markdown" and preflight.target_state is not None:
+    # Targets whose Markdown path is "fragments" use the generic paged
+    # entrypoint (their opening and role structure live in the direct-TeX
+    # witness), so the role brief cannot apply to the staged Markdown output.
+    markdown_support = (
+        PUBLICATION_TYPES.get(target.publication_type, {}).get("source_modes", {}).get("markdown")
+    )
+    if preflight.source_mode == "markdown" and markdown_support != "fragments" and preflight.target_state is not None:
         brief = find_brief(source_root, preflight.target_state)
         if brief is not None and tex.is_file():
             composition = audit_source(tex, brief, preflight.target_state)
@@ -1538,11 +1544,13 @@ def main() -> int:
         {"diagnostics": diagnostics, "passed": code == 0}, args.gate_diagnostics,
     ))
     message = stderr.getvalue().strip() or stdout.getvalue().strip()
-    if code and not diagnostics:
+    # Non-blocking findings (for example an implicit-target warning) must not
+    # mask the failure itself: synthesize one unless an error is already present.
+    if code and not any(item.get("severity") == "error" for item in diagnostics):
         kind = {2: "configuration_error", 3: "publication_validation", 4: "compile_failure", 5: "environment_error"}.get(code, "internal_error")
         diagnostics = [make_diagnostic(kind, message or "publication build failed", code={
             2: "RK_BUILD_CONFIG", 3: "RK_BUILD_VALIDATION", 4: "RK_BUILD_COMPILE", 5: "RK_BUILD_ENVIRONMENT",
-        }.get(code, "RK_BUILD_INTERNAL"))]
+        }.get(code, "RK_BUILD_INTERNAL")), *diagnostics]
     payload = diagnostic_envelope(
         diagnostics, passed=code == 0, exit_code=code, report=report,
         report_path=str(report_path) if report_path else None,

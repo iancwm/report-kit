@@ -88,13 +88,18 @@ def test_font_stacks_name_fonts_the_theme_package_actually_selects(theme_name: s
         "Libertinus Serif": r"\RequirePackage{libertinus}",
         "Libertinus Sans": r"\RequirePackage{libertinus}",
         "Libertinus Mono": r"\RequirePackage{libertinus}",
-        "Latin Modern Mono": r"\RequirePackage{fontspec}",
+        # XeLaTeX themes load the family via fontspec; the pdfLaTeX operator
+        # theme gets all Latin Modern families from lmodern.
+        "Latin Modern Mono": (r"\RequirePackage{fontspec}", r"\RequirePackage{lmodern}"),
+        "Latin Modern Sans": (r"\RequirePackage{fontspec}", r"\RequirePackage{lmodern}"),
     }
     for script, stack in get_theme(theme_name).script_coverage.font_stacks.items():
         for role in ("body", "heading", "mono"):
             for family in getattr(stack, role):
-                marker = provided_by.get(family, family)
-                assert marker in text, (
+                markers = provided_by.get(family, family)
+                if isinstance(markers, str):
+                    markers = (markers,)
+                assert any(marker in text for marker in markers), (
                     f"{package.name} does not select {family!r} declared in font_stacks[{script!r}].{role}"
                 )
 

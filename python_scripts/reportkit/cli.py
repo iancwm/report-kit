@@ -855,6 +855,39 @@ def _run_analysis(args: argparse.Namespace) -> int:
     return 0
 
 
+def _tex_class_option_target(state: TargetState, tex: Path) -> TargetState:
+    """Resolve an undeclared target from the TeX file's ``\\documentclass`` options.
+
+    A project without ``publication.yaml`` that audits a file already naming
+    ``publication-type=`` and ``theme=`` should be judged against that target
+    rather than the silent technical-report default.
+    """
+    if state.declared_by != "default":
+        return state
+    try:
+        head = tex.read_text(encoding="utf-8")[:4096]
+    except (OSError, UnicodeError):
+        return state
+    match = re.search(r"\\documentclass\[([^\]]*)\]\{reportkit\}", head)
+    if match is None:
+        return state
+    options = dict(
+        (key.strip(), value.strip())
+        for key, _, value in (item.partition("=") for item in match.group(1).split(","))
+    )
+    publication_type = options.get("publication-type")
+    if publication_type not in PUBLICATION_TYPES:
+        return state
+    theme = options.get("theme", state.theme)
+    return replace(
+        state,
+        publication_type=publication_type,
+        theme=theme,
+        renderer=str(PUBLICATION_TYPES[publication_type]["renderer"]),
+        declared_by="tex-class-options",
+    )
+
+
 def _run_audit_editorial(args: argparse.Namespace) -> int:
     tex = Path(args.tex).resolve()
     brief = Path(args.brief).resolve()
@@ -871,7 +904,7 @@ def _run_audit_editorial(args: argparse.Namespace) -> int:
         else:
             candidates = [*tex.parents, *brief.parents]
             source_root = next((path for path in candidates if (path / CONFIG_NAME).is_file()), tex.parent)
-            state = load_target(source_root)
+            state = _tex_class_option_target(load_target(source_root), tex)
             payload = audit_source(tex, brief, state)
     except (OSError, ValueError, json.JSONDecodeError) as exc:
         payload = _failure("configuration_error", str(exc), code="RK_COMPOSITION_BRIEF_INVALID")

@@ -19,6 +19,12 @@ elif [[ $# -gt 0 ]]; then
 fi
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# When run from a git hook, GIT_DIR/GIT_INDEX_FILE/etc. point at the repository
+# being committed. Every git command below (the fresh clone, and git calls made
+# by the tests) must act on its own repository, never rewrite the committer's
+# index or refs, so drop the hook-provided repository environment.
+unset GIT_DIR GIT_INDEX_FILE GIT_WORK_TREE GIT_PREFIX GIT_OBJECT_DIRECTORY \
+  GIT_ALTERNATE_OBJECT_DIRECTORIES GIT_QUARANTINE_PATH
 # luaotfload's pinned multiscript loader is locale-sensitive; keep every TeX
 # subprocess deterministic even when the caller inherits C.UTF-8 or a GUI
 # locale that is not installed in the build image.
