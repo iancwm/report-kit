@@ -1,6 +1,6 @@
 # ReportKit — Outstanding Work
 
-**Last updated:** 2026-09-30
+**Last updated:** 2026-10-01
 
 This is the current-work index, not an audit. The front of the document contains
 only work that is still actionable. Completed implementation records and dated
@@ -30,6 +30,7 @@ and [references/documentation-status.md](references/documentation-status.md).
 | [2026-09-28-reportkit-agent-reasoning-loop-implementation-plan.md](docs/superpowers/plans/2026-09-28-reportkit-agent-reasoning-loop-implementation-plan.md) | Lanes A–F are merged to `main` via PR #77; Lane G and acceptance evidence remain open. | P2 |
 | [2026-09-30-reportkit-operator-theme-spec.md](docs/superpowers/specs/2026-09-30-reportkit-operator-theme-spec.md) | Implementation is merged to `main` via PR #79; acceptance and pinned visual release gates remain. | P3 |
 | [2026-09-30-reportkit-operator-theme-implementation-plan.md](docs/superpowers/plans/2026-09-30-reportkit-operator-theme-implementation-plan.md) | Implementation is merged to `main` via PR #79; full acceptance and visual gates remain. | P3 |
+| [2026-10-01-operator-sans-body-typography.md](docs/superpowers/specs/2026-10-01-operator-sans-body-typography.md) | Proposed typography revision for operator theme body text (Latin Modern Sans instead of Roman). Required changes S1–S6 and existing theme verification remain. | P3 |
 
 ## Open work
 
@@ -75,6 +76,14 @@ and [references/documentation-status.md](references/documentation-status.md).
   Docker Desktop gate described in [docker-workflow.md](references/docker-workflow.md).
 
 ### P3
+
+- **Operator theme — sans-serif body typography.** A proposed typography
+  revision ([2026-10-01 spec](docs/superpowers/specs/2026-10-01-operator-sans-body-typography.md))
+  addresses the mismatch between the operator theme's sans titles and its
+  Roman body text by making Latin Modern Sans the default text family
+  throughout. Required changes include TeX and Python theme updates (S1–S2),
+  reference documentation revision (S3), contract tests (S4), fixture builds
+  and visual inspection (S5), and regression verification for other themes (S6).
 
 - **Operator theme — acceptance and visual release gates.** Implementation
   merged to `main` in [PR #79](https://github.com/iancwm/report-kit/pull/79).
