@@ -84,6 +84,25 @@ def _filter_primitives(
             # Preserve the v1.x full context record. The on-demand primitive
             # slice applies its own compact projection in context_budget.py.
             filtered = deepcopy(record)
+            filtered_available = filtered["available_in"]
+            if publication_type:
+                filtered_available["publication_types"] = [publication_type]
+                compatible_themes = set(PUBLICATION_TYPES[publication_type]["themes"])
+                filtered_available["themes"] = [
+                    value for value in filtered_available["themes"] if value in compatible_themes
+                ]
+            if theme:
+                filtered_available["themes"] = [theme]
+                compatible_publications = {
+                    value for value, publication in PUBLICATION_TYPES.items() if theme in publication["themes"]
+                }
+                filtered_available["publication_types"] = [
+                    value for value in filtered_available["publication_types"] if value in compatible_publications
+                ]
+            filtered_available["renderers"] = sorted({
+                PUBLICATION_TYPES[value]["renderer"]
+                for value in filtered_available["publication_types"]
+            })
             if role is not None:
                 filtered["role"] = role
                 filtered["targets"] = targets_for(name, kind)

@@ -311,6 +311,10 @@ def resolve_alias(text: str) -> tuple[str, str] | None:
 def target_gate(state: TargetState) -> list[dict[str, Any]]:
     """Require explicit target lock for opted-in projects; warn for legacy ones."""
     record = PUBLICATION_TYPES.get(state.publication_type, {})
+    if not record:
+        # An unknown type is a configuration error that the build-target
+        # registry reports precisely (exit 2); do not mask it as a source-mode gate.
+        return []
     modes = record.get("source_modes", {})
     mode_support = modes.get(state.source_mode)
     if mode_support in (None, "unsupported") or (

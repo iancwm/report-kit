@@ -96,7 +96,9 @@ def validate_theme_contract_against_latex(
     else:
         core_text = core_path.read_text(encoding="utf-8")
 
-    declared = set(re.findall(r"\\newcommand\{\\(RKTok[A-Za-z0-9]+)\}", core_text))
+    required_tokens = set(re.findall(r"\\newcommand\{\\(RKTok[A-Za-z0-9]+)\}", core_text))
+    # \providecommand hooks ship an empty default, so themes may leave them unset.
+    declared = required_tokens | set(re.findall(r"\\providecommand\{\\(RKTok[A-Za-z0-9]+)\}", core_text))
     semantic_modules = (
         "reportkit-boxes.sty",
         "reportkit-diagrams.sty",
@@ -115,7 +117,7 @@ def validate_theme_contract_against_latex(
     for token in sorted(used):
         if token not in declared:
             errors.append(f"{token} is used by a semantic module but not declared in reportkit-core.sty")
-        if not re.search(rf"\\renewcommand\{{\\{re.escape(token)}\}}", common_text):
+        if token in required_tokens and not re.search(rf"\\renewcommand\{{\\{re.escape(token)}\}}", common_text):
             errors.append(f"{common_package}.sty does not populate {token}")
 
     for renderer in record.get("renderers", []):

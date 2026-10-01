@@ -20,7 +20,7 @@ REPO = Path(__file__).resolve().parents[1]
 
 def test_catalog_is_referentially_complete() -> None:
     assert check_publication_registry(REPO) == []
-    assert PUBLICATION_TYPES["technical-report"]["themes"] == ["default", "technical"]
+    assert PUBLICATION_TYPES["technical-report"]["themes"] == ["default", "technical", "operator"]
     assert THEMES["technical"]["alias_of"] == "default"
 
 

@@ -1,6 +1,6 @@
 # Operator theme: sans-serif body typography
 
-**Status:** Proposed  
+**Status:** Implemented-pending-verification  
 **Date:** 2026-10-01  
 **Scope:** `operator` theme for paged technical reports
 

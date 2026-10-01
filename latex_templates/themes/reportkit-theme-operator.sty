@@ -12,6 +12,10 @@
 \RequirePackage[T1]{fontenc}
 \RequirePackage[utf8]{inputenc}
 \RequirePackage{lmodern}
+% Deliberate typography revision: Latin Modern Sans is the operator default text
+% family (prose, lists, notes, ordinary table/callout text). \ttfamily and math
+% keep their own fonts; \normalfont and inheriting tokens resolve to sans.
+\renewcommand{\familydefault}{\sfdefault}
 
 % Semantic colors read by the shared paged primitives. The aliases retain
 % the existing public color names while sharing the compact operator palette.

@@ -38,7 +38,7 @@ TEXT_WIDTH_IN = 170 / 25.4
 TYPOGRAPHY = TypographyTokens(
     display="Latin Modern Sans",
     heading="Latin Modern Sans",
-    body="Latin Modern Roman",
+    body="Latin Modern Sans",
     metadata="Latin Modern Sans",
     table="Latin Modern Sans",
     chart="Latin Modern Sans",
@@ -72,13 +72,13 @@ SCRIPT_COVERAGE = ScriptCoverageTokens(
     rtl="unsupported",
     font_stacks={
         "Latn": ScriptFontStack(
-            body=("Latin Modern Roman",),
+            body=("Latin Modern Sans",),
             heading=("Latin Modern Sans",),
             mono=("Latin Modern Mono",),
         ),
     },
     verified_languages=("en",),
-    metadata_only_languages=(),
+    metadata_only_languages=("vi",),
 )
 
 THEME = Theme(

@@ -133,6 +133,7 @@
 \expandafter\def\csname RKThemeLanguage@institutional-research@vi\endcsname{metadata-only}
 \expandafter\def\csname RKThemeScripts@institutional-research\endcsname{Latn}
 \expandafter\def\csname RKThemeLanguage@operator@en\endcsname{verified}
+\expandafter\def\csname RKThemeLanguage@operator@vi\endcsname{metadata-only}
 \expandafter\def\csname RKThemeScripts@operator\endcsname{Latn}
 \expandafter\def\csname RKThemeLanguage@technical@en\endcsname{verified}
 \expandafter\def\csname RKThemeLanguage@technical@vi\endcsname{metadata-only}

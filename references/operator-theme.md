@@ -2,7 +2,7 @@
 
 > Scope: `technical-report` structure × `operator` look. This pairing is experimental and uses pdfLaTeX. TeX and Markdown source are supported. The [canonical fixture](../latex_templates/examples/operator-report/) shows the complete target; [its composition brief](../latex_templates/examples/operator-report/composition-brief.json) is a starting point for report planning.
 
-The `technical-report` structure supplies page roles and authoring primitives. The `operator` theme supplies the visual system: Latin Modern typography, a compact indigo-and-teal palette, sans-serif tables, product identity, capability glyphs, and dark terminal and diff surfaces. Set the target before authoring and use the resolved target context as the source of truth for available primitives:
+The `technical-report` structure supplies page roles and authoring primitives. The `operator` theme supplies the visual system: Latin Modern typography with a Latin Modern Sans body (a deliberate typography revision; Latin Modern Mono for code, terminal and diff), a compact indigo-and-teal palette, sans-serif tables, product identity, capability glyphs, and dark terminal and diff surfaces. Set the target before authoring and use the resolved target context as the source of truth for available primitives:
 
 ```sh
 reportkit target set \
