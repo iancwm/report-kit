@@ -1,6 +1,6 @@
 # ReportKit — Outstanding Work
 
-**Last updated:** 2026-10-01
+**Last updated:** 2026-10-01 (local `main` at `a104cfa`)
 
 This is the current-work index, not an audit. The front of the document contains
 only work that is still actionable. Completed implementation records and dated
@@ -30,7 +30,7 @@ and [references/documentation-status.md](references/documentation-status.md).
 | [2026-09-28-reportkit-agent-reasoning-loop-implementation-plan.md](docs/superpowers/plans/2026-09-28-reportkit-agent-reasoning-loop-implementation-plan.md) | Lanes A–F are merged to `main` via PR #77; Lane G and acceptance evidence remain open. | P2 |
 | [2026-09-30-reportkit-operator-theme-spec.md](docs/superpowers/specs/2026-09-30-reportkit-operator-theme-spec.md) | Implementation is merged to `main` via PR #79; acceptance and pinned visual release gates remain. | P3 |
 | [2026-09-30-reportkit-operator-theme-implementation-plan.md](docs/superpowers/plans/2026-09-30-reportkit-operator-theme-implementation-plan.md) | Implementation is merged to `main` via PR #79; full acceptance and visual gates remain. | P3 |
-| [2026-10-01-operator-sans-body-typography.md](docs/superpowers/specs/2026-10-01-operator-sans-body-typography.md) | Proposed typography revision for operator theme body text (Latin Modern Sans instead of Roman). Required changes S1–S6 and existing theme verification remain. | P3 |
+| [2026-10-01-operator-sans-body-typography.md](docs/superpowers/specs/2026-10-01-operator-sans-body-typography.md) | Implemented in `main` (TeX/Python theme, docs, O2/AC3 revised). S1–S3 and S5 font-span and visual verification remain; blocked by the operator fixture compile defect below. | P3 |
 
 ## Open work
 
@@ -77,19 +77,27 @@ and [references/documentation-status.md](references/documentation-status.md).
 
 ### P3
 
-- **Operator theme — sans-serif body typography.** A proposed typography
-  revision ([2026-10-01 spec](docs/superpowers/specs/2026-10-01-operator-sans-body-typography.md))
-  addresses the mismatch between the operator theme's sans titles and its
-  Roman body text by making Latin Modern Sans the default text family
-  throughout. Required changes include TeX and Python theme updates (S1–S2),
-  reference documentation revision (S3), contract tests (S4), fixture builds
-  and visual inspection (S5), and regression verification for other themes (S6).
+- **Operator theme — fix fixture compile defects (blocks every gate below).**
+  The merged theme does not yet compile its canonical fixture. Strict xfails
+  in the new operator tests document the open defects: `reportkit-identity.sty`
+  uses multi-word TikZ keys inside `\ExplSyntaxOn` (spaces dropped), so
+  `\pricepill`, `\statusdot`, `\productavatar` and `\capunestablished`
+  fail; diff context lines with leading spaces render as `~~`; a minimal
+  operator document logs `\headheight is too small` (AC2); and the fixture
+  reports `tabularx` undefined. Fix these and remove the xfail markers.
+
+- **Operator theme — sans-serif body verification.** The change
+  ([2026-10-01 spec](docs/superpowers/specs/2026-10-01-operator-sans-body-typography.md))
+  is implemented in `main`. No fixture has been rebuilt or rendered with it.
+  Verify S1–S3 on actual prose spans (not just a font inventory), S5 build
+  logs and pagination, and S6 non-operator baselines unchanged.
 
 - **Operator theme — acceptance and visual release gates.** Implementation
-  merged to `main` in [PR #79](https://github.com/iancwm/report-kit/pull/79).
-  Run the pinned build and
-  acceptance matrix, review every fixture page, and record the result before
-  promoting the experimental theme.
+  merged in [PR #79](https://github.com/iancwm/report-kit/pull/79); automated
+  tests for AC5, AC6, AC9 and AC10 were added on 2026-10-01. AC1–AC4, AC7 and
+  AC11 need the pinned OCI toolchain (`scripts/visual_qa_operator.py`, no
+  `expected/` baseline exists yet); AC12 needs a human page-by-page review.
+  Do not promote the experimental theme until these are recorded.
 
 - **Agent contract — tagged-PDF spike.** Revisit tagged PDF only through the
   separate toolchain-gated `\DocumentMetadata` investigation; the current
@@ -276,6 +284,16 @@ from a session provisioned this way.
   explicitly open; no baseline pixels were changed.
 
 ## History
+
+- 2026-10-01: farmed out operator-theme work to parallel agents. Added the
+  sans-body typography change, six operator test files, and the check-theme
+  fix (`\providecommand` hooks are optional). Repaired 16 failures that
+  already existed on `main` after PR #79 (stale registry/contract counts,
+  authoring templates, context filtering, audit/build facade bugs) and made
+  the pre-commit hook pass again; `acceptance_check.sh` now unsets `GIT_*`
+  variables. Audit finding: the operator fixture does not compile (see Open
+  work); AC1–AC4, AC7, AC11 and AC12 were not run. Host is TinyTeX, not the
+  pinned toolchain.
 
 - 2026-09-30: synchronized this index against `main` at `ebb285b`. Operator
   theme implementation merged in PR #79; the theme remains experimental until
