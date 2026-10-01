@@ -50,9 +50,18 @@ def _restore_default_theme():
 
 
 def test_available_themes_lists_declared_aliases() -> None:
-    # Phase B added the slide-only "executive" theme; Phase D the slide-only
-    # "venture" theme; Phase E the paged "editorial" theme.
-    assert available_themes() == ("default", "editorial", "executive", "institutional-research", "technical", "venture")
+    # Slide-only: executive, venture. Paged: editorial, operator, plus the
+    # default/technical alias pair and institutional-research.
+    assert available_themes() == (
+        "default",
+        "editorial",
+        "executive",
+        "institutional-research",
+        "operator",
+        "technical",
+        "venture",
+    )
+    assert set(available_themes()) == set(PUBLICATION_THEMES) | {"default"}
 
 
 def test_get_theme_unknown_name_raises_with_known_themes_listed() -> None:

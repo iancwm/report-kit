@@ -96,7 +96,12 @@ def validate_theme_contract_against_latex(
     else:
         core_text = core_path.read_text(encoding="utf-8")
 
-    declared = set(re.findall(r"\\newcommand\{\\(RKTok[A-Za-z0-9]+)\}", core_text))
+    # \newcommand sentinels are mandatory: every theme must populate them.
+    # \providecommand tokens are additive hooks with a no-op default, so a
+    # theme may opt in (via \renewcommand) but is not required to.
+    required = set(re.findall(r"\\newcommand\{\\(RKTok[A-Za-z0-9]+)\}", core_text))
+    optional = set(re.findall(r"\\providecommand\{\\(RKTok[A-Za-z0-9]+)\}", core_text))
+    declared = required | optional
     semantic_modules = (
         "reportkit-boxes.sty",
         "reportkit-diagrams.sty",
@@ -115,7 +120,7 @@ def validate_theme_contract_against_latex(
     for token in sorted(used):
         if token not in declared:
             errors.append(f"{token} is used by a semantic module but not declared in reportkit-core.sty")
-        if not re.search(rf"\\renewcommand\{{\\{re.escape(token)}\}}", common_text):
+        if token in required and not re.search(rf"\\renewcommand\{{\\{re.escape(token)}\}}", common_text):
             errors.append(f"{common_package}.sty does not populate {token}")
 
     for renderer in record.get("renderers", []):
