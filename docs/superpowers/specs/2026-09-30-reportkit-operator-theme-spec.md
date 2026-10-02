@@ -1,6 +1,6 @@
 # ReportKit Operator Theme Spec
 
-**Status:** Implementation merged to `main` via PR #79; pinned acceptance and visual release review remain. The theme stays experimental until those gates pass.
+**Status:** Implementation merged to `main` via PR #79, but the canonical fixture does not yet compile (identity-primitive TikZ keys, `tabularx`, `\headheight`; tracked as strict xfails in the operator tests). Pinned acceptance and visual release review remain. The theme stays experimental until those gates pass. O2 and AC3 are revised by the 2026-10-01 sans-body spec.
 **Last updated:** 2026-09-30
 **Implementation plan:** [2026-09-30-reportkit-operator-theme-implementation-plan.md](../plans/2026-09-30-reportkit-operator-theme-implementation-plan.md)
 

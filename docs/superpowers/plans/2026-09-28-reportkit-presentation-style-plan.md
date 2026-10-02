@@ -1,6 +1,6 @@
 # ReportKit presentation style implementation plan
 
-**Status:** Proposed
+**Status:** Proposed; not started as of 2026-10-02
 
 **Goal:** Add reusable explanatory slide patterns to venture and a distinct analyst briefing presentation theme while keeping compositions theme neutral.
 

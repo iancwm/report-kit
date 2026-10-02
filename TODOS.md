@@ -1,6 +1,6 @@
 # ReportKit — Outstanding Work
 
-**Last updated:** 2026-10-01 (local `main` at `a104cfa`)
+**Last updated:** 2026-10-02 (`main` at `3c09cb3`)
 
 This is the current-work index, not an audit. The front of the document contains
 only work that is still actionable. Completed implementation records and dated
@@ -28,9 +28,10 @@ and [references/documentation-status.md](references/documentation-status.md).
 | [2026-09-28-reportkit-docker-cross-host-workflow.md](docs/superpowers/plans/2026-09-28-reportkit-docker-cross-host-workflow.md) | Launcher, in-image build, CI/release workflow, and docs are integrated in `main`; release qualification remains operational work. | P2 |
 | [2026-09-28-reportkit-agent-reasoning-loop-spec.md](docs/superpowers/specs/2026-09-28-reportkit-agent-reasoning-loop-spec.md) | Lanes A–F are merged to `main` via PR #77; Lane G and acceptance evidence remain open. | P2 |
 | [2026-09-28-reportkit-agent-reasoning-loop-implementation-plan.md](docs/superpowers/plans/2026-09-28-reportkit-agent-reasoning-loop-implementation-plan.md) | Lanes A–F are merged to `main` via PR #77; Lane G and acceptance evidence remain open. | P2 |
-| [2026-09-30-reportkit-operator-theme-spec.md](docs/superpowers/specs/2026-09-30-reportkit-operator-theme-spec.md) | Implementation is merged to `main` via PR #79; acceptance and pinned visual release gates remain. | P3 |
-| [2026-09-30-reportkit-operator-theme-implementation-plan.md](docs/superpowers/plans/2026-09-30-reportkit-operator-theme-implementation-plan.md) | Implementation is merged to `main` via PR #79; full acceptance and visual gates remain. | P3 |
-| [2026-10-01-operator-sans-body-typography.md](docs/superpowers/specs/2026-10-01-operator-sans-body-typography.md) | Implemented in `main` (TeX/Python theme, docs, O2/AC3 revised). S1–S3 and S5 font-span and visual verification remain; blocked by the operator fixture compile defect below. | P3 |
+| [2026-09-30-reportkit-operator-theme-spec.md](docs/superpowers/specs/2026-09-30-reportkit-operator-theme-spec.md) | Implementation is merged to `main` via PR #79, but the canonical fixture does not yet compile (identity-primitive, `tabularx` and `\headheight` defects, tracked as strict xfails); acceptance and pinned visual release gates remain. | P3 |
+| [2026-09-30-reportkit-operator-theme-implementation-plan.md](docs/superpowers/plans/2026-09-30-reportkit-operator-theme-implementation-plan.md) | Implementation is merged to `main` via PR #79; fixture compile defects, the full acceptance matrix and visual review remain (Waves 2–3). | P3 |
+| [2026-10-01-operator-sans-body-typography.md](docs/superpowers/specs/2026-10-01-operator-sans-body-typography.md) | Implemented in `main` (TeX/Python theme, docs, O2/AC3 revised). S1–S3 and S5 font-span and visual verification remain; blocked by the operator fixture compile defects. | P3 |
+| [2026-09-28-reportkit-presentation-style-plan.md](docs/superpowers/plans/2026-09-28-reportkit-presentation-style-plan.md) | Proposed; not started. Adds venture explanatory patterns (before/after, funnel, connected framework) and an `analyst-briefing` slides theme. Re-scope step 3 against the merged venture polish work (`fix/venture-presentation-polish`, 2026-09-26). The spec it cites is not checked in. | P3 |
 
 ## Open work
 
@@ -98,6 +99,16 @@ and [references/documentation-status.md](references/documentation-status.md).
   AC11 need the pinned OCI toolchain (`scripts/visual_qa_operator.py`, no
   `expected/` baseline exists yet); AC12 needs a human page-by-page review.
   Do not promote the experimental theme until these are recorded.
+
+- **Presentation style — venture patterns and analyst-briefing theme.**
+  [Plan](docs/superpowers/plans/2026-09-28-reportkit-presentation-style-plan.md)
+  is proposed and untouched. Its premises still hold on `main`: the
+  `assertionslide`, `reportcompare`, `reportfunnel` and `reportnetwork`
+  primitives exist, shared presentation compositions still force `\sffamily`
+  (blocking a serif analyst headline), and no `analyst-briefing` theme or
+  registry entry exists. Before starting: re-scope the venture step against
+  the merged venture polish commits, and either check in the source spec or
+  record that the reference deck is unavailable.
 
 - **Agent contract — tagged-PDF spike.** Revisit tagged PDF only through the
   separate toolchain-gated `\DocumentMetadata` investigation; the current
@@ -167,8 +178,12 @@ verification notes are retained in `History` below.
   (listed above).
 - The operator theme implementation is merged in PR #79, including its
   experimental registration, identity/execution primitives, chart encodings,
-  canonical fixture, visual-QA tooling, and authoring guide. Pinned acceptance
-  and visual release gates remain open (listed above).
+  canonical fixture, visual-QA tooling, and authoring guide. The fixture does
+  not yet compile (see Open work), and pinned acceptance and visual release
+  gates remain open. A sans-serif body default (2026-10-01 spec) is also in
+  `main`, unverified on rendered pages.
+- The editorial composition gate (PR #66) is merged: a brief-driven editorial
+  composition audit, with two-column text as the standard reading measure.
 - The digest-pinned Docker cross-host workflow is implemented: the launcher,
   in-image build entrypoint, result verification, Linux CI gate, release
   workflow, and consumer guidance are integrated. Its release process still
@@ -284,6 +299,16 @@ from a session provisioned this way.
   explicitly open; no baseline pixels were changed.
 
 ## History
+
+- 2026-10-02: synchronized this index against every spec and plan dated on or
+  after 2026-09-22. All were already indexed except the 2026-09-28
+  presentation-style plan, now added as P3 (checked: its primitives and the
+  forced `\sffamily` still match `main`; the venture polish branch merged
+  2026-09-26 and overlaps its step 3). Operator spec and plan status lines now
+  record the fixture compile defects. Added the editorial composition gate
+  (PR #66), previously unrecorded, to the completed slices. A fixer agent for
+  the operator compile defects stopped before committing; its partial work is
+  only in a local worktree and nothing from it is on `main`.
 
 - 2026-10-01: farmed out operator-theme work to parallel agents. Added the
   sans-body typography change, six operator test files, and the check-theme
