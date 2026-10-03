@@ -304,16 +304,53 @@
 % The shared callout primitive appends these keys after its base appearance.
 % Its legacy semantic rail stays at zero width; these per-kind left borders
 % match the box rule so every card has a uniform outline.
+%
+% \RKTokCalloutKindOptions is spliced directly into a tcolorbox/pgfkeys
+% option list (reportkit-boxes.sty's \rk@begin@callout). That list is
+% comma- and equals-split at the token level before anything is expanded,
+% so neither a macro that expands to several "key=value" pairs (the
+% \ifstrequal chain this used to be: etoolbox's \ifstrequal is also
+% \protected, so it could not even reduce that far) nor one that expands to
+% a single multi-key string works here -- pgfkeys always treated the
+% *expanded* text as one already-delimited key and rejected it ("I do not
+% know the key ..."), because the real splitting had already happened on
+% the unexpanded macro call. Every callout in this theme (principle,
+% decisionpoint, assumption, redflag, ...) failed to compile as a result.
+% The fix is to never hand pgfkeys more than one key at this position:
+% register each kind's appearance as a named tcolorbox style (which pgfkeys
+% expands through its own, comma-safe style mechanism) and have
+% \RKTokCalloutKindOptions expand to nothing but that bare style name.
+% tcolorbox is not yet loaded when this theme package runs (it is loaded by
+% reportkit-boxes.sty, later in reportkit.cls's preamble), so the styles are
+% registered on \AtBeginDocument, after every package is in place.
+\AtBeginDocument{%
+  \tcbset{
+    rk@calloutkind@Limitation/.style={colframe=Hairline,colback=SurfaceAlt,boxrule=.6pt,leftrule=.6pt},
+    rk@calloutkind@Assumption/.style={colframe=Accent,colback=SurfaceAlt,boxrule=.8pt,leftrule=.8pt},
+    rk@calloutkind@RedFlag/.style={colframe=RedFlag,colback=Surface,boxrule=.8pt,leftrule=.8pt},
+    rk@calloutkind@Decision/.style={colframe=InkStrong,colback=Surface,boxrule=1pt,leftrule=1pt},
+    rk@calloutkind@default/.style={colframe=Hairline,colback=SurfaceAlt,boxrule=.6pt,leftrule=.6pt},
+  }%
+}
+\newcommand{\rk@calloutkindmarker@Limitation}{}
+\newcommand{\rk@calloutkindmarker@Assumption}{}
+\newcommand{\rk@calloutkindmarker@RedFlag}{}
+\newcommand{\rk@calloutkindmarker@Decision}{}
 \renewcommand{\RKTokCalloutKindOptions}[1]{%
-  \ifstrequal{#1}{Limitation}%
-    {colframe=Hairline,colback=SurfaceAlt,boxrule=.6pt,leftrule=.6pt}{%
-  \ifstrequal{#1}{Assumption}%
-    {colframe=Accent,colback=SurfaceAlt,boxrule=.8pt,leftrule=.8pt}{%
-  \ifstrequal{#1}{RedFlag}%
-    {colframe=RedFlag,colback=Surface,boxrule=.8pt,leftrule=.8pt}{%
-  \ifstrequal{#1}{Decision}%
-    {colframe=InkStrong,colback=Surface,boxrule=1pt,leftrule=1pt}{%
-    colframe=Hairline,colback=SurfaceAlt,boxrule=.6pt,leftrule=.6pt%
-  }}}}
+  \ifcsname rk@calloutkindmarker@#1\endcsname
+    rk@calloutkind@#1%
+  \else
+    rk@calloutkind@default%
+  \fi
 }
 \renewcommand{\RKTokTableFont}{\sffamily\small}
+
+% Every other paged theme defines \source as the muted figure/table
+% provenance line (reportkit-paged-core.sty's \RKDiagramSource delegates to
+% it, and reportkit-exhibits.sty calls it for exhibit sources); this theme
+% never did, so any \source{...} call -- including every \begin{diagram}'s
+% default source={Conceptual diagram.} -- hit "Undefined control sequence."
+% Sized to match this theme's own small muted caption text
+% (\RKTokDiagramStructureMutedFont above) rather than guessing another
+% theme's point size.
+\newcommand{\source}[1]{\par\vspace{1pt}{\sffamily\fontsize{6.9}{8.2}\selectfont\color{Muted}Source: #1}\par}
