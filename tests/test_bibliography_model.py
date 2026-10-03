@@ -7,6 +7,7 @@ import pytest
 
 from reportkit.bibliography import (
     BibliographyConfigError,
+    bibliography_diagnostics,
     markdown_citation_keys,
     resolve_bibliography,
     scan_bib_keys,
@@ -125,3 +126,67 @@ def test_tex_citation_keys_cover_natbib_forms_and_skip_comments() -> None:
         "\\nocite{*}\n"
     )
     assert tex_citation_keys(text) == [("a", 1), ("b", 1), ("c", 1), ("d", 3), ("e", 3), ("f", 3), ("g", 3)]
+
+
+def _md_project(root: Path, manuscript: str, *, bib: str | None, yaml_extra: str = "") -> tuple[dict, dict]:
+    (root / "manuscript").mkdir()
+    (root / "manuscript" / "01.md").write_text(manuscript, encoding="utf-8")
+    if bib is not None:
+        (root / "references.bib").write_text(bib, encoding="utf-8")
+        yaml_extra = "bibliography:\n  file: references.bib\n" + yaml_extra
+    config = _write_config(root, "document:\n  publication_type: technical-report\n  source_mode: markdown\n" + yaml_extra)
+    return config, {"publication_type": "technical-report", "source_mode": "markdown", "main": "report.tex"}
+
+
+def _codes(diagnostics: list[dict]) -> list[tuple[str, str]]:
+    return [(item["code"], item["severity"]) for item in diagnostics]
+
+
+def test_clean_project_has_no_bibliography_diagnostics(tmp_path: Path) -> None:
+    config, document = _md_project(tmp_path, "Cited [@a].\n", bib="@book{a, title={A}}\n")
+    assert bibliography_diagnostics(tmp_path, config, None, document) == []
+
+
+def test_undefined_citation_is_an_error_with_location(tmp_path: Path) -> None:
+    config, document = _md_project(tmp_path, "Intro.\nCited [@missing].\n", bib="@book{a, title={A}}\n")
+    diagnostics = bibliography_diagnostics(tmp_path, config, None, document)
+    assert _codes(diagnostics) == [("RK_CITATION_UNDEFINED", "error")]
+    assert diagnostics[0]["source"]["file"] == "manuscript/01.md"
+    assert diagnostics[0]["source"]["line"] == 2
+
+
+def test_duplicate_bib_key_is_an_error(tmp_path: Path) -> None:
+    config, document = _md_project(tmp_path, "[@a]\n", bib="@book{a, title={A}}\n@misc{a, title={B}}\n")
+    assert _codes(bibliography_diagnostics(tmp_path, config, None, document)) == [("RK_BIBLIOGRAPHY_DUPLICATE_KEY", "error")]
+
+
+def test_citations_without_bibliography_section_are_an_error(tmp_path: Path) -> None:
+    config, document = _md_project(tmp_path, "[@a]\n", bib=None)
+    assert _codes(bibliography_diagnostics(tmp_path, config, None, document)) == [("RK_CITATION_WITHOUT_BIBLIOGRAPHY", "error")]
+
+
+def test_config_errors_surface_as_configuration_diagnostics(tmp_path: Path) -> None:
+    config, document = _md_project(tmp_path, "[@a]\n", bib="", yaml_extra="  style: apa\n")
+    diagnostics = bibliography_diagnostics(tmp_path, config, None, document)
+    assert _codes(diagnostics) == [("RK_BIBLIOGRAPHY_STYLE_INVALID", "error")]
+    assert diagnostics[0]["type"] == "configuration_error"
+
+
+def test_tex_source_without_rkbibliography_warns(tmp_path: Path) -> None:
+    (tmp_path / "references.bib").write_text("@book{a, title={A}}\n", encoding="utf-8")
+    (tmp_path / "report.tex").write_text("\\documentclass{reportkit}\n\\begin{document}\n\\citep{a}\n\\end{document}\n", encoding="utf-8")
+    config = _write_config(tmp_path, "bibliography:\n  file: references.bib\n")
+    document = {"publication_type": "technical-report", "source_mode": "tex", "main": "report.tex"}
+    assert _codes(bibliography_diagnostics(tmp_path, config, None, document)) == [("RK_BIBLIOGRAPHY_NOT_PLACED", "warning")]
+
+
+def test_tex_fragments_are_scanned(tmp_path: Path) -> None:
+    (tmp_path / "references.bib").write_text("@book{a, title={A}}\n", encoding="utf-8")
+    (tmp_path / "report.tex").write_text("\\citep{a}\n\\RKBibliography\n", encoding="utf-8")
+    (tmp_path / "fragments").mkdir()
+    (tmp_path / "fragments" / "fig-x.tex").write_text("\\citet{nope}\n", encoding="utf-8")
+    config = _write_config(tmp_path, "bibliography:\n  file: references.bib\n")
+    document = {"publication_type": "technical-report", "source_mode": "tex", "main": "report.tex"}
+    diagnostics = bibliography_diagnostics(tmp_path, config, None, document)
+    assert _codes(diagnostics) == [("RK_CITATION_UNDEFINED", "error")]
+    assert diagnostics[0]["source"]["file"] == "fragments/fig-x.tex"

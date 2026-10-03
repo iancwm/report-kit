@@ -25,6 +25,7 @@ from .config import (
     resolve_validation,
     theme_font_policy_conflict,
 )
+from .bibliography import bibliography_diagnostics
 from .composition_audit import audit_source, find_brief
 from .context import build_context
 from .context_budget import CONTEXT_SLICE_NAMES, build_context_slice
@@ -494,6 +495,7 @@ def _run_check(args: argparse.Namespace) -> int:
     font_policy_conflict = theme_font_policy_conflict(theme_config)
     if font_policy_conflict:
         diagnostics.append(make_diagnostic("configuration_error", font_policy_conflict, code="RK_CONFIG_FONT_POLICY", primitive="theme.font_policy"))
+    diagnostics.extend(bibliography_diagnostics(root, config, args.profile, document))
     requested_theme = str(document.get("theme"))
     if requested_theme in THEMES:
         # Agent-contract spec section 13: fail early on RTL, malformed, or (under

@@ -25,7 +25,7 @@ _MD_FENCE = re.compile(r"^\s{0,3}(`{3,}|~{3,})")
 _MD_CODE_SPAN = re.compile(r"`+[^`]*`+")
 # Pandoc citation: '@' not preceded by a word character (excludes e-mail),
 # key starts with a letter/digit/underscore, may contain :.#$%&-+?<>~/ internally.
-_MD_CITATION = re.compile(r"(?<![\w.@])-?@(?P<key>[A-Za-z0-9_][A-Za-z0-9_:.#$%&\-+?<>~/]*[A-Za-z0-9_])")
+_MD_CITATION = re.compile(r"(?<![\w.@])-?@(?P<key>[A-Za-z0-9_](?:[A-Za-z0-9_:.#$%&\-+?<>~/]*[A-Za-z0-9_])?)")
 _TEX_CITE = re.compile(
     r"\\(?:cite|citep|citet|citealp|citealt|citeauthor|citeyear|citeyearpar|citenum|Citep|Citet|Citealp|Citealt|Citeauthor)\*?"
     r"(?:\s*\[[^\]]*\]){0,2}\s*\{(?P<keys>[^}]*)\}"
@@ -125,3 +125,73 @@ def tex_citation_keys(text: str) -> list[tuple[str, int]]:
                 if key and key != "*":
                     keys.append((key, number))
     return keys
+
+
+from .diagnostics import make_diagnostic
+
+_PLACEMENT = re.compile(r"\\RKBibliography\b")
+_MD_PLACEMENT = re.compile(r"^\s{0,3}(?:`{3,}|~{3,}|:::?)\s*reportkit[\s:/]+(?:references|RKBibliography)\b", re.MULTILINE)
+
+
+def _citation_sources(source_root: Path, document: dict[str, Any]) -> list[tuple[str, list[tuple[str, int]], str]]:
+    """Return (relative file, citations, text) for every authored source."""
+    sources: list[tuple[str, list[tuple[str, int]], str]] = []
+    if str(document.get("source_mode") or "markdown") == "tex":
+        candidates = [source_root / str(document.get("main") or "report.tex")]
+        fragments = source_root / "fragments"
+        if fragments.is_dir():
+            candidates.extend(sorted(fragments.glob("*.tex")))
+        extract = tex_citation_keys
+    else:
+        manuscript = source_root / "manuscript"
+        candidates = sorted(manuscript.glob("*.md")) if manuscript.is_dir() else []
+        extract = markdown_citation_keys
+    for path in candidates:
+        if not path.is_file():
+            continue
+        text = path.read_text(encoding="utf-8")
+        sources.append((path.relative_to(source_root).as_posix(), extract(text), text))
+    return sources
+
+
+def bibliography_diagnostics(
+    source_root: Path, config: dict[str, Any], profile: str | None, document: dict[str, Any],
+) -> list[dict[str, Any]]:
+    publication_type = str(document.get("publication_type") or "technical-report")
+    sources = _citation_sources(source_root, document)
+    cited = [(key, file, line) for file, keys, _ in sources for key, line in keys]
+    try:
+        settings = resolve_bibliography(config, profile, publication_type, source_root)
+    except BibliographyConfigError as exc:
+        return [make_diagnostic("configuration_error", str(exc), code=exc.code, source={"file": "publication.yaml"})]
+    if settings is None:
+        if not cited:
+            return []
+        key, file, line = cited[0]
+        return [make_diagnostic(
+            "configuration_error",
+            f"{file}:{line}: citation @{key} but publication.yaml has no bibliography section",
+            code="RK_CITATION_WITHOUT_BIBLIOGRAPHY", source={"file": file, "line": line},
+        )]
+    diagnostics: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for key, line in scan_bib_keys(settings.path.read_text(encoding="utf-8")):
+        if key in seen:
+            diagnostics.append(make_diagnostic(
+                "publication_validation", f"{settings.file}:{line}: duplicate .bib key {key!r}",
+                code="RK_BIBLIOGRAPHY_DUPLICATE_KEY", source={"file": settings.file, "line": line},
+            ))
+        seen.add(key)
+    for key, file, line in cited:
+        if key not in seen:
+            diagnostics.append(make_diagnostic(
+                "publication_validation", f"{file}:{line}: citation key {key!r} is not in {settings.file}",
+                code="RK_CITATION_UNDEFINED", source={"file": file, "line": line},
+            ))
+    if cited and str(document.get("source_mode") or "markdown") == "tex":
+        if not any(_PLACEMENT.search(text) for _, _, text in sources):
+            diagnostics.append(make_diagnostic(
+                "publication_validation", "sources cite bibliography entries but never call \\RKBibliography",
+                code="RK_BIBLIOGRAPHY_NOT_PLACED", source={"file": str(document.get("main") or "report.tex")},
+            ))
+    return diagnostics
