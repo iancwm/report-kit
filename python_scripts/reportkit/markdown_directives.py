@@ -39,6 +39,8 @@ _KEY = re.compile(r"^[A-Za-z][A-Za-z0-9_-]*$")
 _SELECTOR_KEYS = ("primitive", "name", "composition", "directive")
 _ESCAPE_KEYS = {"fragment", "trusted_fragment"}
 _PLACEHOLDER_PREFIX = "REPORTKITDIRECTIVE"
+# Friendly directive names for engine-wide commands (bibliography-and-contents spec §3).
+DIRECTIVE_ALIASES: dict[str, str] = {"references": "RKBibliography", "contents": "RKContents"}
 
 
 @dataclass(frozen=True)
@@ -408,7 +410,7 @@ def parse_markdown(text: str, *, source_file: str | Path = "<memory>") -> Parsed
                     start_line=index + 1,
                 )
                 diagnostics.extend(parse_errors)
-                primitive = primitive or ""
+                primitive = DIRECTIVE_ALIASES.get(primitive or "", primitive or "")
                 kind = None
                 # Keep the parse result typed even when validation will report
                 # the missing selector; this lets later directives validate.

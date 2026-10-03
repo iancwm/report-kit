@@ -190,3 +190,16 @@ def test_tex_fragments_are_scanned(tmp_path: Path) -> None:
     diagnostics = bibliography_diagnostics(tmp_path, config, None, document)
     assert _codes(diagnostics) == [("RK_CITATION_UNDEFINED", "error")]
     assert diagnostics[0]["source"]["file"] == "fragments/fig-x.tex"
+
+
+from reportkit.markdown_directives import parse_markdown
+from reportkit.tex_renderer import render_ir
+
+
+def test_references_and_contents_directives_render_engine_commands() -> None:
+    text = "```reportkit contents\n```\n\nBody.\n\n```reportkit references\ntitle: Works cited\n```\n"
+    parsed = parse_markdown(text)
+    assert [node.primitive for node in parsed.directives] == ["RKContents", "RKBibliography"]
+    rendered = list(render_ir(parsed.ir, publication_type="technical-report", theme="default", renderer="paged").values())
+    assert rendered[0].startswith("\\RKContents")
+    assert rendered[1] == "\\RKBibliography[Works cited]"
