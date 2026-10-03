@@ -176,4 +176,18 @@
   \end{enumerate}%
 }
 
+% -----------------------------------------------------------------------------
+% BibTeX sources and compact contents (bibliography-and-contents spec §2.3).
+% Contents appear only where the author calls \RKContents.
+% -----------------------------------------------------------------------------
+\newcommand{\RKContentsTitle}{Contents}
+\newcommand{\RKContentsSkin}[1]{%
+  \par{\sffamily\rksourcesize\color{Muted}\textbf{#1}\quad\rkcontents@inline{\quad\textbullet\quad}\par}%
+}
+\newcommand{\RKBibSkinBegin}[1]{%
+  \par\RKReserveSpace{3\baselineskip}%
+  {\sffamily\bfseries\rksourcesize\color{Ink}#1\par}\setlength{\bibsep}{2pt}%
+}
+\newcommand{\RKBibSkinItemFont}{\sffamily\rksourcesize\color{Muted}}
+
 \endinput

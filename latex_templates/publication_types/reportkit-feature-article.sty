@@ -305,4 +305,26 @@
   \end{enumerate}%
 }
 
+% -----------------------------------------------------------------------------
+% BibTeX references and "In this issue" contents (bibliography-and-contents
+% spec §2.3). References share featurereferences' heading and type; contents
+% is an inline strip that never breaks the page.
+% -----------------------------------------------------------------------------
+\newcommand{\RKContentsTitle}{In this issue}
+\newcommand{\RKContentsSkin}[1]{%
+  \par\vspace{\RKTokFeatureElementSkip}%
+  {\RKTokFeatureReferenceTitleFont\color{\RKTokFeatureSectionColor}#1\par}%
+  \vspace{\RKTokFeatureElementSkip}%
+  {\RKTokFeatureReferenceFont\color{\RKTokFeatureReferenceColor}\rkcontents@inline{\quad\textbullet\quad}\par}%
+  \vspace{\RKTokFeatureSectionSkip}%
+}
+\newcommand{\RKBibSkinBegin}[1]{%
+  \par\RKReserveSpace{6\baselineskip}%
+  \vspace{\RKTokFeatureSectionSkip}%
+  \phantomsection\addcontentsline{toc}{section}{#1}%
+  {\RKTokFeatureReferenceTitleFont\color{\RKTokFeatureSectionColor}#1\par}%
+  \vspace{\RKTokFeatureElementSkip}%
+}
+\newcommand{\RKBibSkinItemFont}{\RKTokFeatureReferenceFont\color{\RKTokFeatureReferenceColor}}
+
 \endinput

@@ -296,4 +296,18 @@
 % </reportkit-contract>
 \NewDocumentCommand{\bearcase}{m m}{\rkscenario{Bear}{BearRed}{#1}{#2}}
 
+% -----------------------------------------------------------------------------
+% BibTeX sources and "In this report" contents (bibliography-and-contents spec
+% §2.3). The contents list fits the sidebar; sources precede disclosures.
+% -----------------------------------------------------------------------------
+\newcommand{\RKContentsTitle}{In this report}
+\newcommand{\RKContentsSkin}[1]{%
+  \par{\sffamily\bfseries\rksidebarsize\color{Ink}#1\par}\vspace{2pt}%
+  {\sffamily\rksidebarsize\color{Muted}\rkcontents@list}%
+}
+\newcommand{\RKBibSkinBegin}[1]{%
+  \section*{#1}\phantomsection\addcontentsline{toc}{section}{#1}%
+}
+\newcommand{\RKBibSkinItemFont}{\sffamily\rksourcesize\color{Ink}}
+
 \endinput

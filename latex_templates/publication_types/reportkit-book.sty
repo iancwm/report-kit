@@ -193,4 +193,13 @@
 % </reportkit-contract>
 \NewDocumentCommand{\glossaryterm}{m m}{\item[{#1}]#2\par}
 
+% -----------------------------------------------------------------------------
+% BibTeX reference list skin (bibliography-and-contents spec §2.3): the same
+% unnumbered, contents-listed chapter opener and type as bookreferences. The
+% contents page stays the long-form page.
+% -----------------------------------------------------------------------------
+\newcommand{\RKContentsTitle}{Contents}
+\newcommand{\RKBibSkinBegin}[1]{\rkbook@unnumbered{#1}\let\@mkboth\@gobbletwo}
+\newcommand{\RKBibSkinItemFont}{\RKTokBookReferenceFont\color{\RKTokBookReferenceColor}}
+
 \endinput
