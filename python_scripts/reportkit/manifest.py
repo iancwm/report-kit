@@ -11,9 +11,10 @@ def write_report(report: dict[str, Any], path: Path, history_root: Path | None =
     path.parent.mkdir(parents=True, exist_ok=True)
     payload = json.dumps(report, indent=2, sort_keys=True) + "\n"
     path.write_text(payload, encoding="utf-8")
-    if history_root is not None:
+    build_id = report.get("build_id")
+    if history_root is not None and build_id is not None:
         history_root.mkdir(parents=True, exist_ok=True)
-        history_path = history_root / f"{report['build_id']}.json"
+        history_path = history_root / f"{build_id}.json"
         history_path.write_text(payload, encoding="utf-8")
 
 

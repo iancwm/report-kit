@@ -99,6 +99,17 @@ from reportkit.markdown_directives import parse_markdown, replace_placeholders  
 from reportkit.tex_renderer import render_ir  # noqa: E402
 from reportkit.theme_overrides import ThemeOverrideError, materialize_tex_overrides  # noqa: E402
 from reportkit.publications import PUBLICATION_TYPES, PublicationRegistryError, resolve_build_target  # noqa: E402
+from reportkit.bibliography import (  # noqa: E402
+    CONFIG_FILENAME,
+    BibliographySettings,
+    aux_has_citations,
+    bibliography_diagnostics,
+    blg_diagnostics,
+    count_bbl_entries,
+    markdown_citation_keys,
+    resolve_bibliography,
+    write_bibliography_config,
+)
 from reportkit.review import compare_intent  # noqa: E402
 from reportkit.target import TargetState, has_declared_source_mode, load_target, target_gate  # noqa: E402
 from reportkit.tex_target import engine_gate, tex_gates  # noqa: E402
@@ -198,6 +209,7 @@ def render_markdown(
     image_slots: dict[str, object] | None = None,
     timeout: int = 120,
     memory_limit_mb: int = 2048,
+    natbib: bool = False,
 ) -> None:
     # --slide-level=1 (Beamer writer only): without it, Pandoc's own
     # heuristic ("the highest header level immediately followed by content")
@@ -244,6 +256,7 @@ def render_markdown(
         return run_limited(
             [
                 "pandoc", "-f", "markdown-raw_tex", "-t", writer,
+                *(["--natbib"] if natbib else []),
                 f"--lua-filter={TABLE_WIDTHS_FILTER}", *slide_level, str(input_path),
             ],
             cwd=root.parent, timeout=timeout, memory_limit_mb=memory_limit_mb, capture_output=True, text=True,
@@ -604,6 +617,7 @@ class _PreflightResult:
     target_state: TargetState | None = None
     source_mode: str = "markdown"
     source_main: Path | None = None
+    bibliography: BibliographySettings | None = None
 
 
 def _target_gates(
@@ -752,6 +766,15 @@ def _preflight(args: argparse.Namespace) -> _PreflightResult | int:
         print(f"licensing: {exc}", file=sys.stderr)
         return 2
     document = resolve_document(config, profile)
+    bibliography_errors = [
+        item for item in bibliography_diagnostics(source_root, config, profile, document)
+        if item["severity"] == "error"
+    ]
+    for item in bibliography_errors:
+        print(f"bibliography: [{item['code']}] {item['message']}", file=sys.stderr)
+    if bibliography_errors:
+        return 2 if any(item["type"] == "configuration_error" for item in bibliography_errors) else 3
+    bibliography = resolve_bibliography(config, profile, str(document.get("publication_type") or "technical-report"), source_root)
     requested_engine = getattr(args, "engine", None) or os.environ.get("REPORTKIT_TEX_ENGINE")
     resolved_engine = str(requested_engine or document.get("engine", "pdflatex"))
     target_state, gate_exit = _target_gates(
@@ -857,12 +880,14 @@ def _preflight(args: argparse.Namespace) -> _PreflightResult | int:
         font_policy=font_policy, declared_language=declared_language, effective_theme=effective_theme,
         manuscripts=manuscripts, used_image_slots=used_image_slots, unresolved_used_slots=unresolved_used_slots,
         target_state=target_state, source_mode=source_mode, source_main=source_main,
+        bibliography=bibliography,
     )
 
 
 def _stage_build_directory(
     *, output: Path, source_root: Path, entrypoint: Path, effective_theme: Any, target: Any, args: argparse.Namespace,
     source_mode: str = "markdown", source_main: Path | None = None,
+    bibliography: BibliographySettings | None = None,
 ) -> tuple[list[dict[str, str]], str | None] | int:
     """Create the isolated build directory and stage its inputs: templates,
     the resolved entrypoint, project assets, an optional brand logo, theme
@@ -940,17 +965,26 @@ def _stage_build_directory(
             return 2
         cover_name = "reportkit-cover.pdf"
         shutil.copy2(cover, output / cover_name)
+    if bibliography is not None:
+        destination = output / bibliography.file
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(bibliography.path, destination)
+        staged_assets.append({"path": bibliography.file, "sha256": sha256(bibliography.path)})
+        write_bibliography_config(output / CONFIG_FILENAME, bibliography)
     return staged_assets, cover_name
 
 
 def _render_manuscript_bodies(
     *, source_root: Path, output: Path, manuscripts: list[Path], target: Any, authoring: Any,
     used_image_slots: dict[str, Any], timeout: int, memory_limit_mb: int,
-) -> list[Path] | int:
+    bibliography: BibliographySettings | None = None,
+    report_bibliography: dict | None = None,
+) -> tuple[list[Path], bool] | int:
     """Run Pandoc (via render_markdown) over every selected manuscript file.
 
-    Returns the list of rendered body-NN.tex paths in manuscript order on
-    success, or a failure exit code (already printed to stderr).
+    Returns the list of rendered body-NN.tex paths in manuscript order plus
+    whether the reference list was auto-placed, or a failure exit code
+    (already printed to stderr).
     """
     body_files: list[Path] = []
     for index, manuscript in enumerate(manuscripts):
@@ -966,6 +1000,7 @@ def _render_manuscript_bodies(
                 image_slots=used_image_slots,
                 timeout=timeout,
                 memory_limit_mb=memory_limit_mb,
+                natbib=bibliography is not None,
             )
         except subprocess.TimeoutExpired:
             print(f"compile timeout: pandoc exceeded {timeout} seconds", file=sys.stderr)
@@ -981,43 +1016,57 @@ def _render_manuscript_bodies(
             print(f"compile failure: {exc}", file=sys.stderr)
             return 4
         body_files.append(rendered)
-    return body_files
+    auto_placed = False
+    if bibliography is not None:
+        texts = [(source_root / "manuscript" / name).read_text(encoding="utf-8") for name in manuscripts]
+        cites = any(markdown_citation_keys(text) for text in texts)
+        placed = any(re.search(r"reportkit[\s:/]+(?:references|RKBibliography)\b", text) for text in texts)
+        if cites and not placed:
+            auto = output / "reportkit-auto-bibliography.tex"
+            auto.write_text("\\RKBibliography\n", encoding="utf-8")
+            body_files.append(auto)
+            auto_placed = True
+            if report_bibliography is not None:
+                report_bibliography["auto_placed"] = True
+    return body_files, auto_placed
 
 
 def _compile_tex_passes(
     *, engine: str, tex: Path, log: Path, output: Path, texinputs: str, timeout: int, memory_limit_mb: int,
     selection_marker: str, report: dict[str, Any], report_path: Path, history_root: Path,
+    bibliography: BibliographySettings | None = None,
 ) -> int | None:
-    """Run the two required TeX passes, updating ``report`` in place.
+    """Run the required TeX passes (two, or three with a bibtex pass when a configured bibliography is cited).
 
-    Returns ``None`` on success (both passes exited 0, and the final log is
+    Returns ``None`` on success (every pass exited 0, and the final log is
     staged with the selection marker appended). On failure, finalizes and
     persists ``report`` via ``_fail`` and returns the process exit code.
     """
-    for pass_number in range(1, 3):
+    env = dict(
+        os.environ,
+        TEXINPUTS=texinputs,
+        # luaotfload reads the installed Unicode ScriptExtensions.txt and
+        # Scripts.txt through Lua's file API during LuaLaTeX startup. The
+        # pinned TeX Live toolchain cannot resolve those absolute
+        # kpathsea paths under paranoid input mode; the visual-QA
+        # LuaLaTeX runners use the same setting. Markdown and fragment
+        # validation still constrain all user-controlled inputs, and
+        # output writes remain restricted below.
+        openin_any="a" if engine == "lualatex" else "p",
+        openout_any="p",
+        # The pinned luaotfload build can fail while loading its
+        # multiscript module under the runner's C.UTF-8 locale.  Keep
+        # every normal-pipeline TeX invocation on the same stable C
+        # locale as the renderer and acceptance-test subprocesses.
+        LC_ALL="C",
+        SOURCE_DATE_EPOCH="1",
+        FORCE_SOURCE_DATE="1",
+        TZ="UTC",
+    )
+
+    def tex_pass(pass_number: int, final: bool) -> int | None:
         command = [engine, "-file-line-error", "-interaction=nonstopmode", "-halt-on-error", tex.name]
         report["commands"].append(" ".join(command))
-        env = dict(
-            os.environ,
-            TEXINPUTS=texinputs,
-            # luaotfload reads the installed Unicode ScriptExtensions.txt and
-            # Scripts.txt through Lua's file API during LuaLaTeX startup. The
-            # pinned TeX Live toolchain cannot resolve those absolute
-            # kpathsea paths under paranoid input mode; the visual-QA
-            # LuaLaTeX runners use the same setting. Markdown and fragment
-            # validation still constrain all user-controlled inputs, and
-            # output writes remain restricted below.
-            openin_any="a" if engine == "lualatex" else "p",
-            openout_any="p",
-            # The pinned luaotfload build can fail while loading its
-            # multiscript module under the runner's C.UTF-8 locale.  Keep
-            # every normal-pipeline TeX invocation on the same stable C
-            # locale as the renderer and acceptance-test subprocesses.
-            LC_ALL="C",
-            SOURCE_DATE_EPOCH="1",
-            FORCE_SOURCE_DATE="1",
-            TZ="UTC",
-        )
         pass_log = output / f"publication-pass-{pass_number}.log"
         with pass_log.open("w", encoding="utf-8") as stream:
             stream.write("$ " + " ".join(command) + "\n")
@@ -1047,7 +1096,7 @@ def _compile_tex_passes(
                     )
                 ], passed=False)
             return _fail(report, diagnostics, 4, report_path=report_path, history_root=history_root)
-        if pass_number == 2:
+        if final:
             shutil.copy2(pass_log, log)
             # Log-visible half of the resolved-selection marker (the other
             # half is the stdout print() above, which --json mode's stdout
@@ -1056,7 +1105,54 @@ def _compile_tex_passes(
             # inspect_log()'s/check_build_log.py's diagnostic parsing.
             with log.open("a", encoding="utf-8") as stream:
                 stream.write("\n" + selection_marker + "\n")
-    return None
+        return None
+
+    failure = tex_pass(1, final=False)
+    if failure is not None:
+        return failure
+    aux = output / tex.with_suffix(".aux").name
+    aux_text = aux.read_text(encoding="utf-8", errors="replace") if aux.is_file() else ""
+    if bibliography is not None and aux_has_citations(aux_text):
+        command = ["bibtex", tex.stem]
+        report["commands"].append(" ".join(command))
+        bib_env = dict(env, BIBINPUTS=f"{output}:", BSTINPUTS="")
+        bib_log = output / "publication-bibtex.log"
+        with bib_log.open("w", encoding="utf-8") as stream:
+            try:
+                proc = run_limited(
+                    command, cwd=output, timeout=timeout, memory_limit_mb=memory_limit_mb,
+                    env=bib_env, stdout=stream, stderr=subprocess.STDOUT, text=True,
+                )
+            except subprocess.TimeoutExpired:
+                return _fail(report, diagnostic_envelope([
+                    make_diagnostic("compile_timeout", f"bibtex exceeded {timeout} seconds", code="RK_COMPILE_TIMEOUT")
+                ], passed=False), 4, report_path=report_path, history_root=history_root)
+            except FileNotFoundError:
+                return _fail(report, diagnostic_envelope([
+                    make_diagnostic("environment_error", "bibtex is not installed", code="RK_BIBTEX_MISSING")
+                ], passed=False), 5, report_path=report_path, history_root=history_root)
+        report["exit_codes"].append({"command": " ".join(command), "code": proc.returncode})
+        blg = output / tex.with_suffix(".blg").name
+        blg_text = blg.read_text(encoding="utf-8", errors="replace") if blg.is_file() else ""
+        bbl = output / tex.with_suffix(".bbl").name
+        record = report.setdefault("bibliography", {})
+        record["bibtex_exit"] = proc.returncode
+        record["diagnostics"] = blg_diagnostics(blg_text)
+        record["entries_cited"] = count_bbl_entries(bbl.read_text(encoding="utf-8", errors="replace")) if bbl.is_file() else 0
+        # bibtex exits 1 for warnings only, 2+ for errors.
+        if proc.returncode > 1:
+            return _fail(report, diagnostic_envelope([
+                make_diagnostic("compile_failure", f"bibtex exited with status {proc.returncode}: {blg_text[-500:]}", code="RK_BIBTEX_FAILURE"),
+                *record["diagnostics"],
+            ], passed=False), 4, report_path=report_path, history_root=history_root)
+        for item in record["diagnostics"]:
+            print(f"bibliography warning: {item['message']}", file=sys.stderr)
+        for pass_number, final in ((2, False), (3, True)):
+            failure = tex_pass(pass_number, final=final)
+            if failure is not None:
+                return failure
+        return None
+    return tex_pass(2, final=True)
 
 
 def _run_log_gate(
@@ -1219,20 +1315,24 @@ def build(args: argparse.Namespace) -> int:
         output=output, source_root=source_root, entrypoint=entrypoint,
         effective_theme=effective_theme, target=target, args=args,
         source_mode=preflight.source_mode, source_main=preflight.source_main,
+        bibliography=preflight.bibliography,
     )
     if isinstance(staged, int):
         return staged
     staged_assets, cover_name = staged
 
+    bibliography_auto_placed = False
     if preflight.source_mode == "tex":
         manuscript_text = ""
     else:
-        body_files = _render_manuscript_bodies(
+        rendered_bodies = _render_manuscript_bodies(
             source_root=source_root, output=output, manuscripts=manuscripts, target=target,
             authoring=authoring, used_image_slots=used_image_slots, timeout=timeout, memory_limit_mb=memory_limit_mb,
+            bibliography=preflight.bibliography,
         )
-        if isinstance(body_files, int):
-            return body_files
+        if isinstance(rendered_bodies, int):
+            return rendered_bodies
+        body_files, bibliography_auto_placed = rendered_bodies
 
         body = output / "body.tex"
         body.write_text("\n".join(f"\\input{{{path.stem}}}" for path in body_files) + "\n", encoding="utf-8")
@@ -1358,6 +1458,10 @@ def build(args: argparse.Namespace) -> int:
         "unresolved_image_count": len(unresolved_image_report_items),
         "unresolved_image_slots": unresolved_image_report_items,
         "tables": table_count, "pdf_sha256": None,
+        "bibliography": None if preflight.bibliography is None else {
+            "file": preflight.bibliography.file, "style": preflight.bibliography.style,
+            "entries_cited": 0, "bibtex_exit": None, "auto_placed": bibliography_auto_placed, "diagnostics": [],
+        },
     }
     report_path = output / "build-report.json"
     # Targets whose Markdown path is "fragments" use the generic paged
@@ -1406,6 +1510,7 @@ def build(args: argparse.Namespace) -> int:
     tex_failure = _compile_tex_passes(
         engine=engine, tex=tex, log=log, output=output, texinputs=texinputs, timeout=timeout, memory_limit_mb=memory_limit_mb,
         selection_marker=selection_marker, report=report, report_path=report_path, history_root=history_root,
+        bibliography=preflight.bibliography,
     )
     if tex_failure is not None:
         return tex_failure
