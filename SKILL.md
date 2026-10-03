@@ -50,7 +50,7 @@ If more than one pair plausibly fits, ask which format the user intends. The ali
 - Separate facts, interpretation, uncertainty, and recommendation. Never invent citations, data, or spurious precision.
 - Make the executive summary a short narrative: problem, strongest evidence, conclusion, and implication.
 - Choose visuals to answer a reader’s question. Cite every figure and diagram with `\source{...}`; a conceptual visual may use `Conceptual diagram.` as its source.
-- Use callouts only when the meaning matters. Keep supporting explanation in the main prose, and put full citations in the publication’s source section.
+- Use callouts only when the meaning matters. Keep supporting explanation in the main prose. Put sources in the project's `.bib` file, cite them with `\citep`/`\citet` or `[@key]`, and place `\RKBibliography`; never invent a bibliography entry.
 
 ## References
 
@@ -64,5 +64,6 @@ If more than one pair plausibly fits, ask which format the user intends. The ali
 | Books | [Book authoring](references/book-authoring.md) |
 | Presentations | [Presentation authoring](references/presentation-authoring.md) |
 | Callouts and image slots | [Callouts and image slots](references/callouts-and-image-slots.md) |
+| Citations, references, contents | [Bibliography and contents](references/bibliography-and-contents.md) |
 | Setup and troubleshooting | [Troubleshooting](references/troubleshooting.md), [font setup](references/font-setup.md), [container workflow](references/docker-workflow.md) |
 | Commands, schemas, and repository boundary | [Agent contract](references/agent-contract.md), [repository boundary](references/repository-boundary.md) |

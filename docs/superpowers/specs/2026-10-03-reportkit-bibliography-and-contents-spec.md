@@ -1,6 +1,6 @@
 # BibTeX bibliography and themed contents pages
 
-**Status:** Approved design · implementation not started · 3 October 2026
+**Status:** Implemented on `feat/bibliography-and-contents` · visual review pending · 3 October 2026
 **Scope:** Reusable ReportKit engine (TeX packages, build pipeline, validation, context contracts, docs). Consumer `.bib` files and manuscripts stay in consumer projects.
 
 ## Problem and evidence
@@ -166,3 +166,25 @@ Visual: render page images for each new fixture and record a human review in the
 ## Out of scope
 
 biblatex/biber, CSL/citeproc, named academic styles, per-chapter bibliographies, footnote citation styles, multiple `.bib` files (a later list form of `file` can extend this), and automatic insertion of contents pages.
+
+## Plan-time amendments
+
+Recorded from the implementation plan's Global Constraints; each supersedes
+the corresponding spec text above:
+
+1. Settings reach TeX through a generated `reportkit-bibliography-config.tex`,
+   not `reportkit-options.tex` (which is a checked-in parser, not generated).
+   Reason: natbib must load only when configured, because `author-year`
+   natbib raises a hard error on the plain `\bibitem`s that `bookreferences`
+   uses.
+2. `\RKContents`'s dispatcher lives in a new `reportkit-contents.sty`; the
+   longform page becomes the `\providecommand` default skin.
+3. Markdown directives are spelled the ReportKit way: `` ```reportkit
+   references `` and `` ```reportkit contents `` (aliases for
+   `RKBibliography` and `RKContents`), not bare `::: references`.
+4. `reportkit doctor --require full-build` treats `bibtex` as part of a full
+   build (it is present in both supported toolchains); the doctor has no
+   project context to make it conditional.
+5. Pipeline combined builds of feature-article and equity-research already
+   call `\RKContents`; they now render the type's skin instead of the
+   longform page. Neither has a pixel baseline.

@@ -160,7 +160,7 @@ def main() -> int:
     pymupdf_ok = record("PyMuPDF (publication pipeline renderer)", check_pymupdf())
 
     tex_ok = pdflatex_ok or lualatex_ok
-    full_ok = py_ok and viz_ok and tex_ok and fonts_ok and algorithms_ok and pandoc_ok and pymupdf_ok
+    full_ok = py_ok and viz_ok and tex_ok and fonts_ok and algorithms_ok and pandoc_ok and pymupdf_ok and bibtex_ok
     toolchain = resolved_toolchain(REPO_ROOT)
     pinned_ok = toolchain["status"] == "pinned"
     mode = "FULL BUILD" if full_ok else ("SOURCE BUILD + FIGURES" if py_ok and viz_ok else "SOURCE BUILD")
@@ -208,8 +208,11 @@ def main() -> int:
     print()
     if full_ok:
         print("MODE: FULL BUILD")
-        if not (bibtex_ok or biber_ok):
-            print("NOTE: bibliography tool not found; reports without external bibliography can still compile.")
+        if biber_ok and not bibtex_ok:
+            print("NOTE: biber is installed but ReportKit bibliographies use bibtex.")
+    elif py_ok and viz_ok and tex_ok and fonts_ok and algorithms_ok and pandoc_ok and pymupdf_ok and not bibtex_ok:
+        print("MODE: SOURCE BUILD + FIGURES")
+        print("bibtex is missing: run scripts/setup_tex.sh or use the pinned container.")
     elif py_ok and viz_ok and tex_ok and not (fonts_ok and algorithms_ok):
         print("MODE: SOURCE BUILD + FIGURES")
         if not fonts_ok:

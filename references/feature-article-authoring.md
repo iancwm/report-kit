@@ -26,6 +26,16 @@ Use the canonical [`composition-brief.json`](../latex_templates/examples/editori
 
 The editorial theme uses Libertinus Serif for body text, Libertinus Serif Display for headlines and section openers, Libertinus Serif Initials for drop caps, and Libertinus Sans for metadata and visual text. English Latin-script typography is verified; Vietnamese is metadata-only; RTL is unsupported. Charts should use `rkv.apply_theme("editorial")`; see [charts](charts.md) for export guidance.
 
+## References and contents
+
+Features default to author-year citations with a References list in the
+`featurereferences` style, while `\RKContents` renders an inline "In this
+issue" strip that never breaks the page. Declare `bibliography.file` in
+`publication.yaml`, cite with `\citet`/`\citep`, and place both commands where
+they belong. Without a `.bib` file, use the manual `featurereferences`
+environment instead. See [bibliography and
+contents](bibliography-and-contents.md).
+
 <!-- REPORTKIT-CONTRACT:START -->
 ## Generated primitive contract
 
@@ -46,6 +56,8 @@ This section is generated from source-adjacent and explicit virtual contract met
 
 | Name | Signature | Arguments | Constraints | Stability | Canonical example |
 | --- | --- | --- | --- | --- | --- |
+| `RKBibliography` | `O{}` | `title` (text, optional=) — Optional heading; defaults to bibliography.title or the publication type's references title. | publication.yaml must declare bibliography.file; otherwise RK_BIBLIOGRAPHY_UNCONFIGURED.<br>Cite only entries that exist in the .bib file. | experimental since 1.11.0 | <code>\RKBibliography</code> |
+| `RKContents` | `O{}` | `title` (text, optional=) — Optional heading; defaults to the publication type's contents title. | Call at most once; it reads the contents file. | experimental since 1.11.0 | <code>\RKContents</code> |
 | `dropcap` | `m m` | `initial` (text, required) — The single initial letter.<br>`lead` (text, required) — The rest of the first word or first few words, set in the lead-in style. | Use only at the very start of a paragraph, at most once per section. | experimental since 1.10.0 | <code>\dropcap{T}{he river} rose twice that spring before anyone thought to measure it.</code> |
 | `featurebyline` | `m o` | `byline` (text, required) — Author credit, e.g. By Name.<br>`detail` (text, optional) — Optional dateline, role or reading-time detail. | — | experimental since 1.10.0 | <code>\featurebyline{By Mara Ellison}[Field report]</code> |
 | `featuredeck` | `m` | `deck` (text, required) — Deck text. | Keep the deck to one or two sentences; it is not a summary section. | experimental since 1.10.0 | <code>\featuredeck{How a fictional delta town rebuilt its flood defences around measurement.}</code> |

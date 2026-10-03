@@ -28,6 +28,15 @@ The font policy may fall back through the configured sans-serif families or be s
 
 Use the canonical [`composition-brief.json`](../latex_templates/examples/equity-research/composition-brief.json) as a starting point and adapt its roles to the actual assignment. `reportkit check --source-root <project> --json` checks source composition before TeX, and `reportkit build` applies the same gate. Review every rendered page for evidence hierarchy, table fit, caption/source readability, and chart meaning.
 
+## References and contents
+
+Equity research defaults to author-year citations with a Sources list in
+exhibit/source type, placed before the disclosures, while `\RKContents`
+renders an "In this report" page-numbered list sized for the sidebar. Declare
+`bibliography.file` in `publication.yaml`, cite with `\citet`/`\citep`, and
+place both commands where they belong. See [bibliography and
+contents](bibliography-and-contents.md).
+
 <!-- REPORTKIT-CONTRACT:START -->
 ## Generated primitive contract
 
@@ -88,6 +97,8 @@ This section is generated from source-adjacent and explicit virtual contract met
 
 | Name | Signature | Arguments | Constraints | Stability | Canonical example |
 | --- | --- | --- | --- | --- | --- |
+| `RKBibliography` | `O{}` | `title` (text, optional=) — Optional heading; defaults to bibliography.title or the publication type's references title. | publication.yaml must declare bibliography.file; otherwise RK_BIBLIOGRAPHY_UNCONFIGURED.<br>Cite only entries that exist in the .bib file. | experimental since 1.11.0 | <code>\RKBibliography</code> |
+| `RKContents` | `O{}` | `title` (text, optional=) — Optional heading; defaults to the publication type's contents title. | Call at most once; it reads the contents file. | experimental since 1.11.0 | <code>\RKContents</code> |
 | `basecase` | `m m` | `value` (text, required)<br>`detail` (text, required) | — | stable since 1.8.0 | <code>\basecase{1}{Example}</code> |
 | `bearcase` | `m m` | `value` (text, required)<br>`detail` (text, required) | — | stable since 1.8.0 | <code>\bearcase{1}{Example}</code> |
 | `bullcase` | `m m` | `value` (text, required)<br>`detail` (text, required) | — | stable since 1.8.0 | <code>\bullcase{1}{Example}</code> |

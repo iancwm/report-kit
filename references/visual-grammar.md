@@ -37,3 +37,11 @@ The distinction is strict:
 - Architecture layers express separation of responsibility; capability maps group business capabilities; neither is a measurement.
 
 Meaning must remain clear without colour: use labels, position, shape, and solid/dashed line semantics. Do not rely on red/green or intensity alone.
+
+## References and contents
+
+Technical reports default to numeric citations with a References list and a
+full Contents page: declare `bibliography.file` in `publication.yaml`, cite
+with `\citep`/`\citet` or `[@key]`, and place `\RKBibliography` (or the
+`reportkit references` fence) and `\RKContents` where they belong. See
+[bibliography and contents](bibliography-and-contents.md) for the full workflow.
