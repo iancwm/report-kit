@@ -26,10 +26,12 @@
 \pretocmd{\section}{\ifRKSectionOpensPage\clearpage\fi}{}{}
 \renewcommand{\contentsname}{Contents}
 \setcounter{tocdepth}{1}
-\newcommand{\RKContents}{%
-  \clearpage\phantomsection\pdfbookmark[1]{Contents}{reportkit-contents}%
+% \RKContents (reportkit-contents.sty) dispatches here unless the
+% publication type supplies its own skin. Unchanged long-form contents page.
+\providecommand{\RKContentsSkin}[1]{%
+  \clearpage\phantomsection\pdfbookmark[1]{#1}{reportkit-contents}%
   \thispagestyle{fancy}%
-  \begingroup\sffamily\tableofcontents\endgroup\clearpage
+  \begingroup\renewcommand{\contentsname}{#1}\sffamily\tableofcontents\endgroup\clearpage
 }
 
 % Use these around publication preliminaries and the main matter. They are

@@ -58,6 +58,7 @@ _IDENTITY_COMMANDS = (
     "capunestablished", "capabilityrow",
 )
 _EXECUTION_COMMANDS = ("termline", "termprompt", "termcomment", "diffadd", "diffdel", "diffctx", "diffhunk")
+_REFERENCES_COMMANDS = ("RKBibliography", "RKContents")
 _IDENTITY_COMPOSITIONS = ("capabilitygrid",)
 _EXECUTION_COMPOSITIONS = ("terminalblock", "diffblock")
 _OPERATOR_CHARTS = ("stacked_bar_chart", "line_chart")
@@ -217,10 +218,15 @@ ROLE_TABLE: dict[str, Any] = {
     "reportkit-presentation.sty": _family(
         members={"composition": (
             "titleslide", "sectiondivider", "appendixdivider", "messageslide", "assertionslide", "referenceslide",
+            "agendaslide",
             "evidenceslide", "cardgrid", "visualtext", "chartslide", "tableslide", "fullvisual",
             "architectureslide", "comparison", "threepart", "herometric", "closingslide",
         ), "command": ("referenceitem", "carditem", "comparisoncolumn", "threepartcolumn")},
         native=_PRESENTATION,
+    ),
+    "references_and_contents": _family(
+        members={"command": ("RKBibliography", "RKContents")},
+        native=_PUBLICATION_TYPES,
     ),
     # The core class command is not emitted by the source registry, but giving
     # it a role makes the canonical template policy explicit too.
@@ -245,7 +251,7 @@ _NATIVE: dict[str, dict[str, tuple[str, ...]]] = {
         "figure": ("evidencestack", "reportcycle", "reporttimeline", "reportflow", "reportmatrix", "riskheatmap", "reportarchitecture", "reportroadmap"),
         "chart": ("bar_chart", "timeseries", "waterfall_chart", "scatter_plot", "timeline_chart", *_OPERATOR_CHARTS),
         "composition": ("algorithmblock", "codeblock", "outputblock", "diagram", "RKShortListing", *_IDENTITY_COMPOSITIONS, *_EXECUTION_COMPOSITIONS),
-        "command": ("AlgorithmInput", "AlgorithmOutput", "RKLink", "maketitle", "step", "flowedge", "quadrant", "point", "event", *_IDENTITY_COMMANDS, *_EXECUTION_COMMANDS),
+        "command": ("AlgorithmInput", "AlgorithmOutput", "RKLink", "maketitle", "step", "flowedge", "quadrant", "point", "event", *_IDENTITY_COMMANDS, *_EXECUTION_COMMANDS, *_REFERENCES_COMMANDS),
     },
     "equity-research": {
         "callout": ("researchproblem", "assumption", "redflag", "metric"),
@@ -256,7 +262,7 @@ _NATIVE: dict[str, dict[str, tuple[str, ...]]] = {
             "researchsidebar", "analystblock", "marketdatablock", "estimatesblock", "whatschanged",
             "financialmodelpage", "financialtable", "exhibit", "fullwidthexhibit", "exhibitgrid", "exhibitpair",
         ),
-        "command": ("ratingitem", "sidebarrow", "change", "rkscenario", "bullcase", "basecase", "bearcase", "exhibitpane"),
+        "command": ("ratingitem", "sidebarrow", "change", "rkscenario", "bullcase", "basecase", "bearcase", "exhibitpane", *_REFERENCES_COMMANDS),
     },
     "executive-brief": {
         "callout": ("principle", "decisionpoint", "assumption", "redflag", "metric"),
@@ -266,7 +272,7 @@ _NATIVE: dict[str, dict[str, tuple[str, ...]]] = {
             "codeblock", "outputblock", "diagram", "briefheader", "briefactions", "briefsources",
             "financialtable", "exhibit", "fullwidthexhibit", "exhibitgrid", "exhibitpair",
         ),
-        "command": ("briefmeta", "briefaction", "exhibitpane"),
+        "command": ("briefmeta", "briefaction", "exhibitpane", *_REFERENCES_COMMANDS),
     },
     "feature-article": {
         "figure": (),
@@ -277,7 +283,7 @@ _NATIVE: dict[str, dict[str, tuple[str, ...]]] = {
         ),
         "command": (
             "RKLink", "step", "flowedge", "featureheadline", "featuredeck", "featurebyline", "imagecredit",
-            "dropcap", "pullquote", "featuresection",
+            "dropcap", "pullquote", "featuresection", *_REFERENCES_COMMANDS,
         ),
     },
     "book": {
@@ -289,16 +295,17 @@ _NATIVE: dict[str, dict[str, tuple[str, ...]]] = {
         "command": (
             "RKLink", "RKPath", "RKTitlePage", "step", "flowedge", "quadrant", "point", "event",
             "bookpart", "bookdetail", "bookappendix", "glossaryterm", *_IDENTITY_COMMANDS, *_EXECUTION_COMMANDS,
+            *_REFERENCES_COMMANDS,
         ),
     },
     "presentation": {
         "chart": ("bar_chart", "timeseries", "waterfall_chart", "scatter_plot", "timeline_chart"),
         "composition": (
             "diagram", "titleslide", "sectiondivider", "appendixdivider", "messageslide", "assertionslide",
-            "referenceslide", "evidenceslide", "cardgrid", "visualtext", "chartslide", "tableslide", "fullvisual",
+            "referenceslide", "agendaslide", "evidenceslide", "cardgrid", "visualtext", "chartslide", "tableslide", "fullvisual",
             "architectureslide", "comparison", "threepart", "herometric", "closingslide",
         ),
-        "command": ("referenceitem", "carditem", "comparisoncolumn", "threepartcolumn"),
+        "command": ("referenceitem", "carditem", "comparisoncolumn", "threepartcolumn", *_REFERENCES_COMMANDS),
     },
 }
 _ALLOWED: dict[str, dict[str, tuple[str, ...]]] = {

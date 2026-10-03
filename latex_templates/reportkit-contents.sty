@@ -1,0 +1,49 @@
+% ReportKit contents dispatcher (bibliography-and-contents spec §2.2).
+% \RKContents is one authoring entry point; its layout is the selected
+% publication type's \RKContentsSkin. Publication-type packages (loaded after
+% this file) define \RKContentsSkin and \RKContentsTitle with \newcommand;
+% reportkit-longform.sty provides the full contents page with
+% \providecommand; anything still undefined at the end of the preamble gets
+% the plain defaults below.
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{reportkit-contents}[2026/10/03 v1.0.0 ReportKit contents dispatcher]
+\RequirePackage{xparse}
+\RequirePackage{etoolbox}
+
+% <reportkit-contract>
+% {"kind":"command","description":"Contents in the publication type's own style: a contents page (technical report, book), an inline strip (feature article, executive brief), a page-numbered list (equity research), or an agenda slide (presentation). Call once.","arguments":[{"name":"title","type":"text","specifier":"O","description":"Optional heading; defaults to the publication type's contents title.","default":""}],"constraints":[{"code":"once_per_document","description":"Call at most once; it reads the contents file."}],"example":"\\RKContents","stability":"experimental","since":"1.11.0"}
+% </reportkit-contract>
+\NewDocumentCommand{\RKContents}{O{}}{%
+  \ifstrempty{#1}{\RKContentsSkin{\RKContentsTitle}}{\RKContentsSkin{#1}}%
+}
+
+% Inline: "Title page  sep  Title page"; only section-level entries.
+\newcommand{\rkcontents@inline}[1]{%
+  \begingroup
+  \def\rkcontents@sep{}%
+  \def\numberline##1{}%
+  \def\l@part##1##2{}%
+  \def\l@section##1##2{\rkcontents@sep##1\nobreakspace##2\def\rkcontents@sep{#1}}%
+  \def\l@subsection##1##2{}%
+  \def\l@subsubsection##1##2{}%
+  \@starttoc{toc}%
+  \endgroup
+}
+% List: one line per section, page number flush right.
+\newcommand{\rkcontents@list}{%
+  \begingroup
+  \def\numberline##1{}%
+  \def\l@part##1##2{}%
+  \def\l@section##1##2{\noindent##1\hfill##2\par}%
+  \def\l@subsection##1##2{}%
+  \def\l@subsubsection##1##2{}%
+  \@starttoc{toc}%
+  \endgroup
+}
+
+\AtEndPreamble{%
+  \providecommand{\RKContentsTitle}{Contents}%
+  \providecommand{\RKContentsSkin}[1]{%
+    \section*{#1}\begingroup\renewcommand{\contentsname}{}\rkcontents@list\endgroup}%
+}
+\endinput
