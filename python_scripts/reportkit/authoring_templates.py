@@ -240,7 +240,6 @@ _CHART_EXAMPLE = "\n".join([
 
 def document_template(publication_type: str, theme: str) -> str:
     """Return a TeX starter using ``publication_type``'s canonical opening."""
-    publication = PUBLICATION_TYPES[publication_type]
     opening = _opening(publication_type)
     native_examples = "\n".join([
         _NATIVE_EXAMPLES[publication_type],

@@ -252,7 +252,6 @@ def audit_source(tex: Path, brief: Path | None, state: TargetState) -> dict[str,
             inventory={}, manual_review_required=False, manual_review=[],
         )
     try:
-        source = Path(tex).read_text(encoding="utf-8")
         request = _read_brief(Path(brief))
     except (OSError, UnicodeError, ValueError, json.JSONDecodeError) as exc:
         diagnostic = make_diagnostic(
