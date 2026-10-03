@@ -106,6 +106,38 @@ DIAGNOSTIC_CODES: dict[str, dict[str, Any]] = {
             "Remove the local styling command and use the declared theme's primitives; rerun `reportkit check`."
         ),
     },
+    "RK_BIBLIOGRAPHY_FILE_MISSING": {
+        "type": "configuration_error", "severity": "error", "exit_code": 2,
+        "remediation": "Set bibliography.file to a .bib file inside the project (letters, digits, '_', '-', '.', '/').",
+    },
+    "RK_BIBLIOGRAPHY_STYLE_INVALID": {
+        "type": "configuration_error", "severity": "error", "exit_code": 2,
+        "remediation": "Set bibliography.style to numeric or author-year, or remove it to use the publication type's default.",
+    },
+    "RK_BIBLIOGRAPHY_DUPLICATE_KEY": {
+        "type": "publication_validation", "severity": "error", "exit_code": 3,
+        "remediation": "Give every .bib entry a unique key and update citations that used the duplicate.",
+    },
+    "RK_CITATION_UNDEFINED": {
+        "type": "publication_validation", "severity": "error", "exit_code": 3,
+        "remediation": "Add the entry to the .bib file or correct the citation key. Never invent a bibliography entry.",
+    },
+    "RK_CITATION_WITHOUT_BIBLIOGRAPHY": {
+        "type": "configuration_error", "severity": "error", "exit_code": 2,
+        "remediation": "Add a bibliography section with file: <name>.bib to publication.yaml.",
+    },
+    "RK_BIBLIOGRAPHY_NOT_PLACED": {
+        "type": "publication_validation", "severity": "warning", "exit_code": 0,
+        "remediation": "Call \\RKBibliography where the reference list belongs, usually at the end of the document.",
+    },
+    "RK_BIBTEX_MISSING": {
+        "type": "environment_error", "severity": "error", "exit_code": 5,
+        "remediation": "Install bibtex (scripts/setup_tex.sh) or build in the pinned container.",
+    },
+    "RK_BIBTEX_FAILURE": {
+        "type": "compile_failure", "severity": "error", "exit_code": 4,
+        "remediation": "Fix the .bib syntax reported in the .blg log and rebuild.",
+    },
     "RK_INTENT_MISMATCH": {
         "type": "target_contract", "severity": "error", "exit_code": 3,
         "remediation": (

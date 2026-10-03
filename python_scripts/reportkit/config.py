@@ -43,8 +43,10 @@ VALIDATION_KEYS = (
     "require_declared_target",
 )
 OUTPUT_KEYS = ("directory",)
+# Optional BibTeX bibliography (bibliography-and-contents spec §1).
+BIBLIOGRAPHY_KEYS = ("file", "style", "title", "include_uncited")
 KNOWN = IDENTITY_KEYS + DOCUMENT_KEYS + LICENSE_KEYS + VALIDATION_KEYS + OUTPUT_KEYS + THEME_KEYS
-SECTIONS = ("publication", "document", "license", "theme", "brand", "profiles", "validation", "output")
+SECTIONS = ("publication", "document", "license", "theme", "brand", "profiles", "validation", "output", "bibliography")
 
 
 def _strip_comment(value: str) -> str:
@@ -228,6 +230,7 @@ def _known_for(section: str) -> tuple[str, ...]:
         "brand": BRAND_KEYS,
         "validation": VALIDATION_KEYS,
         "output": OUTPUT_KEYS,
+        "bibliography": BIBLIOGRAPHY_KEYS,
     }.get(section, KNOWN)
 
 
@@ -252,7 +255,7 @@ def _validate_and_normalize(raw: dict[str, Any], source: Path) -> dict[str, Any]
     if unknown_top:
         key = sorted(unknown_top)[0]
         raise ValueError(f"{source}: unknown key {key}; known keys: {', '.join(SECTIONS)}")
-    for section in ("publication", "document", "license", "theme", "brand", "validation", "output"):
+    for section in ("publication", "document", "license", "theme", "brand", "validation", "output", "bibliography"):
         value = raw.get(section)
         if value is not None and not isinstance(value, dict):
             raise ValueError(f"{source}: {section} must be a mapping")
@@ -535,6 +538,10 @@ resolve_brand_overrides = resolve_brand
 
 def resolve_validation(config: dict[str, Any], profile: str | None = None) -> dict[str, Any]:
     return _profile_section(config, "validation", profile)
+
+
+def resolve_bibliography_section(config: dict[str, Any], profile: str | None = None) -> dict[str, Any]:
+    return _profile_section(config, "bibliography", profile)
 
 
 def resolve_output(config: dict[str, Any], source_root: Path, profile: str | None = None) -> Path | None:

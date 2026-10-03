@@ -28,6 +28,17 @@ Use a short source line for the visual on the slide and full citations on a refe
 
 `reportkit check --source-root <project> --json` runs the target's source checks. Build through ReportKit, render the relevant slides, then record the manual review with `reportkit review`. See [charts](charts.md), [visual grammar](visual-grammar.md), and [repository-boundary.md](repository-boundary.md) for topic guidance.
 
+## References and contents
+
+Decks default to numeric citations with a References list that paginates at
+eight entries per frame (with a `(cont.)` continuation title), while
+`\RKContents` emits an agenda frame listing every `sectiondivider` title.
+Declare `bibliography.file` in `publication.yaml` and use `\RKBibliography`
+outside any frame; for a hand-written agenda, wrap `agendaslide` in a frame.
+Without a `.bib` file, use the manual `referenceslide` with `\referenceitem`
+entries instead. See [bibliography and
+contents](bibliography-and-contents.md).
+
 <!-- REPORTKIT-CONTRACT:START -->
 ## Generated primitive contract
 
@@ -37,6 +48,7 @@ This section is generated from source-adjacent and explicit virtual contract met
 
 | Name | Signature | Arguments | Constraints | Stability | Canonical example |
 | --- | --- | --- | --- | --- | --- |
+| `agendaslide` | `O{}` | `title` (text, optional=) — Heading; defaults to Agenda. | Content only; wrap in \begin{frame}...\end{frame}. | experimental since 1.11.0 | <code>\begin{frame}&lt;br&gt;\begin{agendaslide}&lt;br&gt;\end{agendaslide}&lt;br&gt;\end{frame}</code> |
 | `appendixdivider` | `m` | `title` (text, required) — Appendix title, also registered as a \section (prefixed Appendix:) for the PDF outline/bookmarks. | Content only; wrap in \begin{frame}[plain]...\end{frame}. | stable since 1.9.3 | <code>\begin{frame}[plain]&lt;br&gt;\begin{appendixdivider}{Example}&lt;br&gt;\end{appendixdivider}&lt;br&gt;\end{frame}</code> |
 | `architectureslide` | `O{} O{}` | `caption` (text, optional=) — Optional caption, typeset the same way a diagram's is.<br>`source` (text, optional=) — Optional source line. | Same layout as fullvisual; named separately so an author or agent authoring an architecture slide finds it directly.<br>Content only; wrap in \begin{frame}...\end{frame}. | stable since 1.9.3 | <code>\begin{frame}&lt;br&gt;\begin{architectureslide}[][]&lt;br&gt;Example content.&lt;br&gt;\end{architectureslide}&lt;br&gt;\end{frame}</code> |
 | `assertionslide` | `O{} m O{}` | `options` (options, optional=) — Optional key list; currently supports kicker={...}.<br>`assertion` (text, required) — The single working-slide assertion.<br>`deck` (text, optional=) — Optional short supporting sentence in the deck hierarchy. | Content only; wrap in \begin{frame}...\end{frame}.<br>The header is measured and reserved at a fixed maximum height; body typography is not reduced to rescue an invalid assertion.<br>The assertion resolves to standard, compact, or invalid; invalid emits PRESENTATION_ASSERTION_TOO_LONG. | stable since 1.9.3 | <code>\begin{frame}&lt;br&gt;\begin{assertionslide}[kicker={Parenting constitution}]{Six household rules prevent most major unforced errors.}[Agree on these before you are tired.]&lt;br&gt;Evidence body.&lt;br&gt;\end{assertionslide}&lt;br&gt;\end{frame}</code> |
@@ -59,6 +71,8 @@ This section is generated from source-adjacent and explicit virtual contract met
 
 | Name | Signature | Arguments | Constraints | Stability | Canonical example |
 | --- | --- | --- | --- | --- | --- |
+| `RKBibliography` | `O{}` | `title` (text, optional=) — Optional heading; defaults to bibliography.title or the publication type's references title. | publication.yaml must declare bibliography.file; otherwise RK_BIBLIOGRAPHY_UNCONFIGURED.<br>Cite only entries that exist in the .bib file. | experimental since 1.11.0 | <code>\RKBibliography</code> |
+| `RKContents` | `O{}` | `title` (text, optional=) — Optional heading; defaults to the publication type's contents title. | Call at most once; it reads the contents file. | experimental since 1.11.0 | <code>\RKContents</code> |
 | `carditem` | `O{} m m` | `variant` (options, optional=) — plain, surface, accent-rail, numbered, or emphasis; defaults to the parent grid variant.<br>`heading` (text, required) — Card heading.<br>`body` (text, required) — Dense evidence text. | Use inside cardgrid.<br>Only plain, surface, accent-rail, numbered, and emphasis are supported. | stable since 1.9.3 | <code>\carditem[accent-rail]{Heading}{Evidence}</code> |
 | `comparisoncolumn` | `m m` | `heading` (text, required) — Column heading.<br>`body` (text, required) — Column content. | Only valid inside a comparison environment. | stable since 1.9.3 | <code>\comparisoncolumn{Example}{Example}</code> |
 | `referenceitem` | `m` | `reference` (text, required) — One short source or reference entry. | Only valid inside referenceslide. | stable since 1.9.3 | <code>\referenceitem{Author (2026), Title.}</code> |

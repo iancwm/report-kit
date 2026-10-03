@@ -52,6 +52,18 @@
         "additionalProperties": true
       }
     },
+    "bibliography": {
+      "type": ["object", "null"],
+      "properties": {
+        "file": {"type": "string"},
+        "style": {"enum": ["numeric", "author-year"]},
+        "entries_cited": {"type": "integer", "minimum": 0},
+        "bibtex_exit": {"type": ["integer", "null"]},
+        "auto_placed": {"type": "boolean"},
+        "diagnostics": {"type": "array"}
+      },
+      "required": ["file", "style", "entries_cited", "bibtex_exit", "auto_placed"]
+    },
     "unresolved_image_count": {"type": "integer", "minimum": 0},
     "unresolved_image_slots": {
       "type": "array",

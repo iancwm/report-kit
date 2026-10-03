@@ -90,6 +90,12 @@
 \edef\rk@themeadapter{\csname RKThemeAdapter@\rk@theme\string @\rk@classrenderer\endcsname}
 \expandafter\RequirePackage\expandafter{\rk@themeadapter}
 
+% Engine-wide contents dispatcher and (config-gated) BibTeX bibliography.
+% Loaded before the publication-type package so its skins can define the
+% hooks these packages default at the end of the preamble.
+\RequirePackage{reportkit-contents}
+\RequirePackage{reportkit-bibliography}
+
 % Publication types layer primitives on top of the selected theme. The package
 % name is also registry-backed so a future renderer/publication adapter cannot
 % silently inherit a filename convention it does not own.

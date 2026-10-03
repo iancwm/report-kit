@@ -32,6 +32,8 @@ and [references/documentation-status.md](references/documentation-status.md).
 | [2026-09-30-reportkit-operator-theme-implementation-plan.md](docs/superpowers/plans/2026-09-30-reportkit-operator-theme-implementation-plan.md) | Implementation is merged to `main` via PR #79; fixture compile defects, the full acceptance matrix and visual review remain (Waves 2–3). | P3 |
 | [2026-10-01-operator-sans-body-typography.md](docs/superpowers/specs/2026-10-01-operator-sans-body-typography.md) | Implemented in `main` (TeX/Python theme, docs, O2/AC3 revised). S1–S3 and S5 font-span and visual verification remain; blocked by the operator fixture compile defects. | P3 |
 | [2026-09-28-reportkit-presentation-style-plan.md](docs/superpowers/plans/2026-09-28-reportkit-presentation-style-plan.md) | Proposed; not started. Adds venture explanatory patterns (before/after, funnel, connected framework) and an `analyst-briefing` slides theme. Re-scope step 3 against the merged venture polish work (`fix/venture-presentation-polish`, 2026-09-26). The spec it cites is not checked in. | P3 |
+| [2026-10-03-reportkit-bibliography-and-contents-spec.md](docs/superpowers/specs/2026-10-03-reportkit-bibliography-and-contents-spec.md) | Implemented on branch; human visual review of the six skins remains. | P2 |
+| [2026-10-03-reportkit-bibliography-and-contents.md](docs/superpowers/plans/2026-10-03-reportkit-bibliography-and-contents.md) | Implemented on branch; human visual review of the six skins remains. | P2 |
 
 ## Open work
 
@@ -46,6 +48,14 @@ and [references/documentation-status.md](references/documentation-status.md).
   and final/release-profile acceptance run.
 
 ### P2
+
+- **Bibliography and contents — human visual review of the six skins.** The
+  BibTeX pipeline, per-type reference/contents skins, `agendaslide`, doctor
+  bibtex gate, and guides are implemented on the feature branch with focused
+  tests green. Render each skin fixture (see
+  `tests/test_bibliography_skins.py`), review the six reference lists and
+  contents elements page by page, and promote pixel baselines through the
+  existing per-format visual-review process before release.
 
 - **Agent reasoning loop — acceptance and evaluation.** Wave 0 is merged and
   lanes A–F are merged to `main` in [PR #77](https://github.com/iancwm/report-kit/pull/77).

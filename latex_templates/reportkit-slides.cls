@@ -60,6 +60,12 @@
 \edef\rk@themeadapter{\csname RKThemeAdapter@\rk@theme\string @\rk@classrenderer\endcsname}
 \expandafter\RequirePackage\expandafter{\rk@themeadapter}
 
+% Engine-wide contents dispatcher and (config-gated) BibTeX bibliography.
+% Loaded before the publication-type package so its skins can define the
+% hooks these packages default at the end of the preamble.
+\RequirePackage{reportkit-contents}
+\RequirePackage{reportkit-bibliography}
+
 % Publication types layer primitives on top of the selected theme, exactly
 % as in reportkit.cls. publication-type=presentation (the only registered
 % slides publication type) loads reportkit-presentation.

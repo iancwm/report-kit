@@ -545,4 +545,52 @@
   \vfill
 }
 
+% -----------------------------------------------------------------------------
+% Agenda and BibTeX references (bibliography-and-contents spec §2.3).
+% \RKBibliography is used outside any frame: it opens an allowframebreaks
+% frame and forces a break after every eighth entry, so a long list never
+% shrinks below the theme's source size. \RKContents emits an agenda frame
+% listing the sections sectiondivider registers.
+% -----------------------------------------------------------------------------
+\newcommand{\RKContentsTitle}{Agenda}
+
+% <reportkit-contract>
+% {"kind":"composition","description":"Agenda slide listing the deck's sections (registered by sectiondivider) in order.","arguments":[{"name":"title","type":"text","specifier":"O","description":"Heading; defaults to Agenda.","default":""}],"constraints":[{"code":"content_only_wrap_in_frame","description":"Content only; wrap in \\begin{frame}...\\end{frame}."}],"example":"\\begin{frame}\n\\begin{agendaslide}\n\\end{agendaslide}\n\\end{frame}","stability":"experimental","since":"1.11.0"}
+% </reportkit-contract>
+\NewDocumentEnvironment{agendaslide}{O{}}{%
+  \RKTokPresentationSurface{content}%
+  {\sffamily\bfseries\RKTokPresentationAssertionFont\color{Ink}\ifstrempty{#1}{\RKContentsTitle}{#1}\par}%
+  \vspace{3mm}%
+  {\sffamily\RKTokPresentationBodyFont\color{Ink}%
+   \setbeamertemplate{section in toc}{\inserttocsection\par}%
+   \tableofcontents[hideallsubsections]}%
+}{}
+
+\newcommand{\RKContentsSkin}[1]{%
+  \begin{frame}\begin{agendaslide}[#1]\end{agendaslide}\end{frame}%
+}
+
+\newcounter{rkpresentation@bibitems}
+\newcommand{\RKBibRender}[1]{%
+  \begingroup
+  \setbeamertemplate{frametitle}{%
+    {\sffamily\bfseries\RKTokPresentationAssertionFont\color{Ink}\insertframetitle\par}\vspace{3mm}}%
+  \setbeamertemplate{frametitle continuation}{(cont.)}%
+  \renewcommand{\bibsection}{}%
+  \renewcommand{\bibfont}{\sffamily\RKTokPresentationSourceFont\color{Ink}}%
+  \setcounter{rkpresentation@bibitems}{0}%
+  \let\rkpresentation@natbibitem\bibitem
+  \def\bibitem{%
+    \ifnum\value{rkpresentation@bibitems}=8
+      \setcounter{rkpresentation@bibitems}{0}\framebreak
+    \fi
+    \stepcounter{rkpresentation@bibitems}\rkpresentation@natbibitem}%
+  \begin{frame}[allowframebreaks]{#1}%
+    \RKTokPresentationSurface{content}%
+    \bibliographystyle{\rk@bib@bst}%
+    \bibliography{\RKBibFile}%
+  \end{frame}%
+  \endgroup
+}
+
 \endinput
