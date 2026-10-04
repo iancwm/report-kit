@@ -72,6 +72,23 @@ DIAGNOSTIC_CODES: dict[str, dict[str, Any]] = {
             "--theme <theme>` to record the decision in publication.yaml and .reportkit/intent.json."
         ),
     },
+    "RK_COMPOSITION_BRIEF_MISSING": {
+        "type": "target_contract", "severity": "warning", "exit_code": 0,
+        "remediation": (
+            "No composition brief was found, so the target's composition audit did not run. Rerun "
+            "`reportkit init <project-dir> --publication-type <type> --theme <theme> --source-mode <tex|markdown>` "
+            "to scaffold composition-brief.json without overwriting existing files."
+        ),
+    },
+    "RK_IMAGE_SLOTS_TEX_MODE": {
+        "type": "target_contract", "severity": "error", "exit_code": 3,
+        "remediation": (
+            "Image slots are Markdown-only. Either switch the project to Markdown with `reportkit target set "
+            "--source-mode markdown` (if the format allows it), or remove image-slots.yaml and the "
+            "[[REPORTKIT-IMAGE:...]] markers and place local images with the target's figure primitives. "
+            "See references/callouts-and-image-slots.md."
+        ),
+    },
     "RK_TARGET_MISMATCH": {
         "type": "target_contract", "severity": "error", "exit_code": 3,
         "remediation": (

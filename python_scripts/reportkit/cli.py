@@ -55,7 +55,7 @@ from .status import collect_status
 from .target import (
     DECIDED_BY, SOURCE_MODES, TargetState, has_declared_source_mode, load_target, set_target, target_gate,
 )
-from .tex_target import engine_gate, tex_gates
+from .tex_target import engine_gate, tex_gates, tex_image_slot_gate
 from .version import CONTRACT_VERSION
 from .publication_validation import validate_publication
 
@@ -436,6 +436,7 @@ def _target_diagnostics(
     diagnostics = list(target_gate(state))
     if state.source_mode == "tex":
         diagnostics.extend(tex_gates(state, root / state.main))
+        diagnostics.extend(tex_image_slot_gate(root, state))
     diagnostics.extend(engine_gate(state, engine))
     composition = None
     brief = find_brief(root, state)
@@ -444,6 +445,16 @@ def _target_diagnostics(
         if tex is not None and tex.is_file():
             composition = audit_source(tex, brief, state)
             diagnostics.extend(composition.get("diagnostics", []))
+    elif state.declared_by != "default" and state.publication_type in PUBLICATION_TYPES:
+        # An undeclared or unresolvable target already fails (RK_TARGET_UNDECLARED /
+        # RK_CONFIG_BUILD_TARGET); only a valid declared one should hear that its
+        # composition audit was skipped.
+        diagnostics.append(make_diagnostic(
+            "target_contract",
+            "No composition brief (composition-brief.json or editorial-brief.json) was found; "
+            "the composition audit was skipped.",
+            code="RK_COMPOSITION_BRIEF_MISSING",
+        ))
     return diagnostics, composition
 
 
@@ -504,6 +515,14 @@ def _run_check(args: argparse.Namespace) -> int:
             resolve_declared_language(config, args.profile), requested_theme,
             font_policy=str(theme_config.get("font_policy", "fallback")),
         ))
+    if state.source_mode == "tex":
+        # Image-slot validation assumes Markdown sentinels; in direct TeX its
+        # orphan and missing-file findings point at a fix that cannot work.
+        # RK_IMAGE_SLOTS_TEX_MODE from _target_diagnostics replaces them.
+        diagnostics = [
+            item for item in diagnostics
+            if not (str(item.get("code", "")).startswith("RK_VALIDATION_") and "IMAGE" in str(item.get("code", "")))
+        ]
     loop_diagnostics, composition = _target_diagnostics(args, root, state, engine_override)
     diagnostics.extend(loop_diagnostics)
     errors = [item["message"] for item in diagnostics if item["severity"] == "error"]
