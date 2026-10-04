@@ -109,3 +109,16 @@ def test_markdown_project_keeps_image_validation(tmp_path: Path) -> None:
     _, payload = _check(root)
     assert "RK_VALIDATION_ORPHAN_IMAGE_DECLARATION" in _codes(payload)
     assert "RK_IMAGE_SLOTS_TEX_MODE" not in _codes(payload)
+
+
+def test_tex_check_payload_has_no_image_slot_fields_but_markdown_does(tmp_path: Path) -> None:
+    tex = _project(tmp_path / "tex", "tex")
+    (tex / "image-slots.yaml").write_text(MANIFEST.read_text(encoding="utf-8"), encoding="utf-8")
+    _, tex_payload = _check(tex)
+    assert tex_payload["image_slots"] == {}
+    assert tex_payload["unresolved_image_slots"] == []
+    md = _project(tmp_path / "md", "markdown")
+    (md / "image-slots.yaml").write_text(MANIFEST.read_text(encoding="utf-8"), encoding="utf-8")
+    _, md_payload = _check(md)
+    assert md_payload["image_slots"]
+    assert md_payload["unresolved_image_slots"]

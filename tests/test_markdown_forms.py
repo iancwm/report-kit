@@ -53,3 +53,11 @@ def test_project_file_examples_validate(tmp_path: Path) -> None:
     assert result.ok, result.errors
     assert result.links == ["field-survey-data"]
     assert result.sources == ["field-survey"]
+
+
+def test_links_form_rules_scope_rklink_to_markdown_fragments() -> None:
+    links = next(form for form in markdown_forms()["forms"] if form["name"] == "links")
+    rules = " ".join(links["rules"])
+    assert "RKLink" in rules
+    assert "Markdown" in rules and "fragments" in rules
+    assert "TeX sources" not in rules

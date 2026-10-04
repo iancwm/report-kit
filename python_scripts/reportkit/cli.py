@@ -534,8 +534,8 @@ def _run_check(args: argparse.Namespace) -> int:
         visuals=result.slugs,
         labels=result.labels,
         profile=result.profile,
-        image_slots={slug: asdict(slot) for slug, slot in result.image_slots.items()},
-        unresolved_image_slots=[asdict(slot) for slot in result.unresolved_image_slots],
+        image_slots={} if state.source_mode == "tex" else {slug: asdict(slot) for slug, slot in result.image_slots.items()},
+        unresolved_image_slots=[] if state.source_mode == "tex" else [asdict(slot) for slot in result.unresolved_image_slots],
         sources=authoring.sources,
         chapters=authoring.chapters,
         links=authoring.links,
@@ -1008,7 +1008,7 @@ def _run_status(args: argparse.Namespace) -> int:
         intent = status.get("intent") or {}
         if intent.get("request"):
             print(f"intent: {intent['request']}")
-        for key in ("last_step", "visual_review", "delivery_caveat"):
+        for key in ("last_step", "visual_review", "delivery_caveat", "image_caveat"):
             if status.get(key):
                 print(f"{key.replace('_', ' ')}: {status[key]}")
         _print_failures([item for item in diagnostics if item["severity"] == "error"])

@@ -95,3 +95,14 @@ def test_status_with_image_fields_matches_the_schema(tmp_path: Path) -> None:
         _write_report(root, unresolved)
         jsonschema.Draft202012Validator(schema).validate(collect_status(root))
     assert {"unresolved_images", "image_caveat"} <= set(schema["properties"])
+
+
+def test_human_status_prints_the_image_caveat(tmp_path: Path) -> None:
+    root = _declared_project(tmp_path)
+    _write_report(root, [ITEM])
+    result = subprocess.run(
+        [str(REPO / "reportkit"), "status", "--source-root", str(root)],
+        capture_output=True, text=True,
+    )
+    assert "image caveat:" in result.stdout, result.stdout + result.stderr
+    assert "field-photo" in result.stdout

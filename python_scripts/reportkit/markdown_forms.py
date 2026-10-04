@@ -84,7 +84,7 @@ def markdown_forms() -> dict[str, Any]:
                 "types": sorted(LINK_TYPES),
                 "rules": [
                     "Each link needs url, label, and one of the listed types.",
-                    "TeX sources and fragments reference a link with \\RKLink{<key>}.",
+                    "In a Markdown project, trusted fragments in fragments/ reference a link with \\RKLink{<key>}; a direct-TeX project uses \\href instead.",
                 ],
             },
             {

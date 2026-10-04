@@ -56,8 +56,9 @@ Optional files at the project root. `reportkit check` validates them.
 
 `links.yaml` names external links. `type` is one of `citation`,
 `documentation`, `repository`, `dataset`, `further_reading`, or
-`interactive_resource`. TeX sources and fragments reference a link with
-`\RKLink{<key>}`.
+`interactive_resource`. In a Markdown project, trusted fragments in `fragments/`
+reference a link with `\RKLink{<key>}`; a direct-TeX project does not generate
+the link macros and uses `\href` directly.
 
 ```yaml
 links:
