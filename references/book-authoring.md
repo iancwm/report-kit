@@ -8,6 +8,12 @@ For Markdown source, each top-level heading starts a numbered chapter after the 
 
 The book's structure is independent of its look. Select a supported theme explicitly and let `reportkit build` choose its engine. Use the canonical [`composition-brief.json`](../latex_templates/examples/book/composition-brief.json) as a reference, adapt it to the publication, then run `reportkit check --source-root <project> --json` and review rendered pages for chapter openings, contents, appendices, references, and page breaks.
 
+## Photographs and illustrations
+
+In Markdown chapters, place a photograph with an image slot and a diagram or
+chart with a visual marker; see [Markdown authoring](markdown-authoring.md).
+Direct-TeX books use the target's figure primitives with local files.
+
 ## References and contents
 
 Books default to author-year citations with a References list and the

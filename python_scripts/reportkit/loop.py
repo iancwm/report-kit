@@ -144,7 +144,10 @@ def next_step(command: str, state: TargetState | None, outcome: Mapping[str, Any
         elif last_name == "REVIEW" and not visual_review:
             destination, reason = "reportkit review --json --visual-review done|unavailable", "Record whether rendered pages were viewed."
         elif visual_review in {"done", "unavailable"}:
-            destination, reason = "Deliver the publication and quote the TARGET line from this status output.", "The loop state is ready for the delivery message."
+            destination = "Deliver the publication and quote the TARGET line from this status output."
+            reason = "The loop state is ready for the delivery message."
+            if outcome.get("unresolved_images"):
+                reason += " Include image_caveat: the build still has unresolved image slots."
         elif last_name == "CHECK":
             destination, reason = "reportkit build --json", "The target and source checks passed."
         elif last_name in {"LOCK", "SCAFFOLD"}:

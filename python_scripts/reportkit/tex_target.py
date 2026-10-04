@@ -7,6 +7,7 @@ from typing import Any
 
 from .config import theme_engine_conflict
 from .diagnostics import make_diagnostic
+from .image_slots import IMAGE_SENTINEL_MARKER, IMAGE_SLOTS_FILENAME
 from .publications import required_engine_for
 from .target import TargetState
 
@@ -153,6 +154,31 @@ def tex_gates(state: TargetState, tex: Path) -> list[dict[str, Any]]:
         "target_contract", message, code="RK_TARGET_MISMATCH",
         source={"file": str(tex)},
         details={"expected": expected, "observed": options},
+    )]
+
+
+def tex_image_slot_gate(root: Path, state: TargetState) -> list[dict[str, Any]]:
+    """Flag image slots in a direct-TeX project, where the build never places them."""
+    if state.source_mode != "tex":
+        return []
+    reasons: list[str] = []
+    manifest = root / IMAGE_SLOTS_FILENAME
+    if manifest.is_file():
+        reasons.append(f"declares {IMAGE_SLOTS_FILENAME}")
+    try:
+        source = (root / state.main).read_text(encoding="utf-8")
+    except (OSError, UnicodeError):
+        source = ""
+    if IMAGE_SENTINEL_MARKER in _without_tex_comments(source).upper():
+        reasons.append(f"{state.main} contains a [[REPORTKIT-IMAGE:...]] marker")
+    if not reasons:
+        return []
+    return [make_diagnostic(
+        "target_contract",
+        f"Image slots are Markdown-only, but this direct-TeX project {' and '.join(reasons)}; "
+        "the build would not place these images.",
+        code="RK_IMAGE_SLOTS_TEX_MODE",
+        source={"file": IMAGE_SLOTS_FILENAME if manifest.is_file() else state.main},
     )]
 
 

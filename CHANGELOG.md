@@ -104,6 +104,19 @@ tags on this repository, not a published package registry.
   `image-slots.yaml`. Supplied assets render with captions and provenance,
   missing draft assets render as explicit placeholders, and unresolved slots
   are recorded in the build report and blocked by final/release profiles.
+- Agents following SKILL.md now discover Markdown-only authoring forms:
+  - `reportkit context --slice primitives` lists visual markers, image slots,
+    directive fences, `links.yaml`, and `sources.yaml` under `markdown_forms`.
+  - The new `references/markdown-authoring.md` documents these forms, project
+    files, and brand overrides.
+  - SKILL.md now covers photographs and image slots, a `doctor` preflight,
+    `inspect` during review, and `diagnose` on build failure.
+- `reportkit check` reports when no composition brief exists
+  (`RK_COMPOSITION_BRIEF_MISSING`), and when a direct-TeX project uses
+  Markdown-only image slots (`RK_IMAGE_SLOTS_TEX_MODE`). In TeX mode it no
+  longer gives the misleading orphan-declaration errors.
+- `reportkit status` returns `unresolved_images` and `image_caveat` from the
+  latest build, so unfinished images are named at delivery.
 
 ### Changed
 - The editorial theme's `\RKTokFeatureCreditFont` token is now 7.6pt/9.4pt

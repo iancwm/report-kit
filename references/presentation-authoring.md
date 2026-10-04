@@ -28,6 +28,14 @@ Use a short source line for the visual on the slide and full citations on a refe
 
 `reportkit check --source-root <project> --json` runs the target's source checks. Build through ReportKit, render the relevant slides, then record the manual review with `reportkit review`. See [charts](charts.md), [visual grammar](visual-grammar.md), and [repository-boundary.md](repository-boundary.md) for topic guidance.
 
+## Photographs and illustrations
+
+In a Markdown deck, place a photograph with an image slot and a diagram or
+chart with a visual marker; both are listed under `markdown_forms` in the
+primitives slice. See [Markdown authoring](markdown-authoring.md). The
+`venture` theme also accepts organisation colours and a logo through
+[brand overrides](markdown-authoring.md#brand-overrides).
+
 ## References and contents
 
 Decks default to numeric citations with a References list that paginates at

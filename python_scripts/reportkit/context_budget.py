@@ -10,6 +10,8 @@ import json
 import math
 from typing import Any, Mapping
 
+from .markdown_forms import markdown_forms
+
 
 CONTEXT_SLICE_SCHEMA_VERSION = "1.0.0"
 CONTEXT_SLICE_NAMES = ("quickstart", "selection", "primitives", "authoring", "commands", "toolchain")
@@ -20,7 +22,7 @@ TOKEN_ACCOUNTING = "ceil(utf8_bytes / 4)"
 _SLICE_DESCRIPTIONS = {
     "quickstart": "Host-neutral selection, validation, build, and recovery loop.",
     "selection": "Publication types, compatible themes, renderers, language/script support, and the resolved target.",
-    "primitives": "Primitive signatures and examples filtered for the requested target.",
+    "primitives": "Primitive signatures and examples filtered for the requested target, plus Markdown-mode markers and project files.",
     "authoring": "Authoring templates, chart setup, and trust-boundary details.",
     "commands": "Stable CLI commands and machine-readable command options.",
     "toolchain": "Resolved toolchain and reproducibility information.",
@@ -155,6 +157,7 @@ def slice_contents(context: Mapping[str, Any]) -> dict[str, Any]:
         "primitives": {
             "filters": context["filters"],
             "primitives": _compact_primitives(capabilities["primitives"]),
+            "markdown_forms": markdown_forms(),
         },
         "authoring": {"authoring": capabilities["authoring"]},
         "commands": {

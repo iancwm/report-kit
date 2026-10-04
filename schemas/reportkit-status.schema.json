@@ -31,6 +31,21 @@
     },
     "visual_review": {"enum": ["done", "unavailable", null]},
     "delivery_caveat": {"type": ["string", "null"], "description": "Mandatory text for the delivery message when rendered pages were not viewed."},
+    "unresolved_images": {
+      "type": "array",
+      "description": "Image slots the latest build left unresolved (missing file or pending rights).",
+      "items": {
+        "type": "object",
+        "required": ["slug", "reason"],
+        "properties": {
+          "slug": {"type": "string"},
+          "replacement_path": {"type": ["string", "null"]},
+          "reason": {"type": "string"}
+        },
+        "additionalProperties": true
+      }
+    },
+    "image_caveat": {"type": ["string", "null"], "description": "Mandatory text for the delivery message when image slots are unresolved."},
     "next_step": {"$ref": "#/$defs/next_step"}
   },
   "additionalProperties": true,

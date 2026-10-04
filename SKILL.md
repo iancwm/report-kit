@@ -14,11 +14,12 @@ ReportKit is the publication engine. Keep each publication in a consumer project
 | Select | `reportkit context --slice quickstart --json` | Match the request to a structure × look. |
 | Lock | `reportkit target set --source-root <project> --publication-type <T> --theme <H> --source-mode <tex or markdown> --request "<verbatim request>"` | Saves `publication.yaml` and `.reportkit/intent.json`. |
 | Scaffold | `reportkit init <project> --publication-type <T> --theme <H> --source-mode <tex or markdown>` | Creates the project for the chosen target. |
-| Author | `reportkit context --source-root <project> --slice primitives --json` | Load the selected target’s authoring grammar. |
+| Preflight | `reportkit doctor --require full-build --json` | Confirms the toolchain can build a PDF before you promise one. |
+| Author | `reportkit context --source-root <project> --slice primitives --json` | Load the target’s primitives and, for Markdown sources, its `markdown_forms`. |
 | Check | `reportkit check --source-root <project> --json` | Runs target and composition checks. |
-| Build | `reportkit build --source-root <project> --json` | Builds Markdown or direct TeX through the target gates. |
-| Review | `reportkit render --source-root <project> --pages 1 --json`; then `reportkit review --source-root <project> --visual-review <done or unavailable>` | Render pages and record the manual review. |
-| Deliver | `reportkit status --source-root <project> --json` | Recover the saved state and quote its TARGET line. |
+| Build | `reportkit build --source-root <project> --json` | Builds Markdown or direct TeX through the target gates. On failure, `reportkit diagnose <log> --source-root <project> --json` maps the TeX log to source lines. |
+| Review | `reportkit render --source-root <project> --pages 1 --json` and `reportkit inspect <pdf> --source-root <project> --json`; then `reportkit review --source-root <project> --visual-review <done or unavailable>` | Render pages, check fonts, links, and bookmarks, and record the manual review. |
+| Deliver | `reportkit status --source-root <project> --json` | Recover the saved state, quote its TARGET line, and repeat any `delivery_caveat` or `image_caveat`. |
 
 After a reset or context compaction, start with `reportkit status --source-root <project> --json` and follow its `next_step`.
 
@@ -41,7 +42,8 @@ If more than one pair plausibly fits, ask which format the user intends. The ali
 
 - New projects and projects with `validation.require_declared_target: true` refuse an undeclared target. Legacy projects without that setting build with an implicit-target warning; persist the choice before new work.
 - If the selected theme requires LuaLaTeX and it is missing, fix the environment; keep the theme.
-- Use only primitives listed by `reportkit context --slice primitives` for your target.
+- Use only primitives and Markdown forms listed by `reportkit context --source-root <project> --slice primitives` for your target.
+- Visual markers and image slots are Markdown-only; in a direct-TeX project use the target's figure primitives.
 - If you cannot view rendered pages, say so in the delivery message.
 
 ## Write for the decision
@@ -49,7 +51,8 @@ If more than one pair plausibly fits, ask which format the user intends. The ali
 - Establish the question, scope, evidence, method, and material assumptions before stating conclusions.
 - Separate facts, interpretation, uncertainty, and recommendation. Never invent citations, data, or spurious precision.
 - Make the executive summary a short narrative: problem, strongest evidence, conclusion, and implication.
-- Choose visuals to answer a reader’s question. Cite every figure and diagram with `\source{...}`; a conceptual visual may use `Conceptual diagram.` as its source.
+- Choose visuals to answer a reader’s question. Cite every figure and diagram with `\source{...}`; a conceptual visual may use `Conceptual diagram.` as its source. An image slot takes its credit from `image-slots.yaml`, not `\source`.
+- Use a photograph only when it shows an object, place, or observed state that prose or a diagram cannot. In Markdown, declare an image slot and leave the file absent until a licensable local asset exists; never invent rights, and name unresolved slots at delivery.
 - Use callouts only when the meaning matters. Keep supporting explanation in the main prose. Put sources in the project's `.bib` file, cite them with `\citep`/`\citet` or `[@key]`, and place `\RKBibliography`; never invent a bibliography entry.
 
 ## References
@@ -63,7 +66,9 @@ If more than one pair plausibly fits, ask which format the user intends. The ali
 | Feature articles | [Feature-article authoring](references/feature-article-authoring.md) |
 | Books | [Book authoring](references/book-authoring.md) |
 | Presentations | [Presentation authoring](references/presentation-authoring.md) |
-| Callouts and image slots | [Callouts and image slots](references/callouts-and-image-slots.md) |
+| Callouts, photographs, and image slots | [Callouts and image slots](references/callouts-and-image-slots.md), [licensing](references/licensing.md) |
+| Markdown forms, project files, brand | [Markdown authoring and project files](references/markdown-authoring.md), [brand overrides](references/markdown-authoring.md#brand-overrides) |
+| Accessibility | [Accessibility tagging](references/accessibility-tagging.md) |
 | Citations, references, contents | [Bibliography and contents](references/bibliography-and-contents.md) |
 | Setup and troubleshooting | [Troubleshooting](references/troubleshooting.md), [font setup](references/font-setup.md), [container workflow](references/docker-workflow.md) |
 | Commands, schemas, and repository boundary | [Agent contract](references/agent-contract.md), [repository boundary](references/repository-boundary.md) |

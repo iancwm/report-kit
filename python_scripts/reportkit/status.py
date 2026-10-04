@@ -108,6 +108,23 @@ def collect_status(source_root: Path) -> dict[str, Any]:
             if isinstance(item, dict) and item.get("severity") in {"error", "warning"}
         )
 
+    unresolved_images: list[dict[str, Any]] = []
+    raw_unresolved = report.get("unresolved_image_slots") if report else None
+    for item in raw_unresolved if isinstance(raw_unresolved, list) else []:
+        if isinstance(item, dict) and isinstance(item.get("slug"), str) and item["slug"]:
+            unresolved_images.append({
+                "slug": item["slug"],
+                "replacement_path": item.get("replacement_path"),
+                "reason": str(item.get("reason") or ""),
+            })
+    image_caveat = None
+    if unresolved_images:
+        slugs = ", ".join(item["slug"] for item in unresolved_images)
+        image_caveat = (
+            f"{len(unresolved_images)} image slot(s) are unresolved ({slugs}); name them in the delivery "
+            "message and do not present placeholders as final images."
+        )
+
     brief_path = find_brief(root, state)
     brief_status: dict[str, Any] | None = None
     if brief_path is not None:
@@ -151,6 +168,8 @@ def collect_status(source_root: Path) -> dict[str, Any]:
         "diagnostics": diagnostics,
         "visual_review": visual_review,
         "delivery_caveat": caveat,
+        "unresolved_images": unresolved_images,
+        "image_caveat": image_caveat,
     }
     result["next_step"] = next_step("status", state, result)
     return result
