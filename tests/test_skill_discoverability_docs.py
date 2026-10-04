@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 from reportkit.markdown_forms import MARKDOWN_FORMS_DOCS
@@ -39,3 +40,38 @@ def test_format_guides_route_photographs() -> None:
         assert "## Photographs and illustrations" in text, guide
         assert "markdown-authoring.md" in text, guide
     assert "brand-overrides" in _read("references/presentation-authoring.md")
+
+
+def _skill_links() -> list[str]:
+    return [
+        link for link in re.findall(r"\]\(([^)#\s]+)(?:#[^)]*)?\)", _read("SKILL.md"))
+        if not link.startswith(("http://", "https://"))
+    ]
+
+
+def test_every_skill_link_resolves() -> None:
+    assert [link for link in _skill_links() if not (REPO / link).exists()] == []
+
+
+def test_stop_rule_admits_markdown_forms() -> None:
+    skill = _read("SKILL.md")
+    assert "Use only primitives and Markdown forms listed by" in skill
+    assert "Use only primitives listed by" not in skill
+
+
+def test_loop_includes_preflight_inspect_and_diagnose() -> None:
+    skill = _read("SKILL.md")
+    assert "| Preflight | `reportkit doctor --require full-build --json`" in skill
+    assert "reportkit inspect" in skill
+    assert "reportkit diagnose" in skill
+    assert "image_caveat" in skill
+
+
+def test_skill_routes_images_and_project_files() -> None:
+    skill = _read("SKILL.md")
+    for reference in (
+        "references/markdown-authoring.md", "references/licensing.md", "references/accessibility-tagging.md",
+    ):
+        assert f"]({reference}" in skill, reference
+    assert "image slot" in skill
+    assert "not `\\source`" in skill
