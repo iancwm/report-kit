@@ -56,6 +56,12 @@ suitable licensable image is available, put it at the declared local path,
 record its source and terms, and inspect the crop and legibility. ReportKit
 builds do not fetch remote images.
 
+Image slots are Markdown-only. In a direct-TeX project, including every
+`feature-article`, `reportkit check` fails with `RK_IMAGE_SLOTS_TEX_MODE`
+if it finds `image-slots.yaml` or an image marker. Place local images there
+with the target's figure primitives instead; see
+[Markdown authoring](markdown-authoring.md#direct-tex-projects).
+
 Declare one record per slug in the consumer project's `image-slots.yaml`:
 
 ```yaml
@@ -91,3 +97,7 @@ every supplied image. Use an explicit pending value while rights are being
 confirmed; pending rights keep the slot unresolved. Never infer a licence or
 present a placeholder as documentary evidence. The engine's generic fixtures
 use only locally created graphics.
+
+The printed credit line comes from these fields, so do not add `\source{...}`
+for an image slot. `reportkit status` lists slots the latest build left
+unresolved under `image_caveat`; repeat that text in the delivery message.

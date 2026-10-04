@@ -26,6 +26,15 @@ Use the canonical [`composition-brief.json`](../latex_templates/examples/editori
 
 The editorial theme uses Libertinus Serif for body text, Libertinus Serif Display for headlines and section openers, Libertinus Serif Initials for drop caps, and Libertinus Sans for metadata and visual text. English Latin-script typography is verified; Vietnamese is metadata-only; RTL is unsupported. Charts should use `rkv.apply_theme("editorial")`; see [charts](charts.md) for export guidance.
 
+## Photographs and illustrations
+
+A feature article is direct TeX, and Image slots are Markdown-only. Place a
+lead photograph or illustration in `openingvisual` and credit it with its
+`credit` argument; credit inline images inside `featureexhibit` with
+`\imagecredit{...}`. Keep the file under `assets/`, record its source and
+licence in the project, and never present a placeholder rule as the final
+image. See [Markdown authoring](markdown-authoring.md#direct-tex-projects).
+
 ## References and contents
 
 Features default to author-year citations with a References list in the
