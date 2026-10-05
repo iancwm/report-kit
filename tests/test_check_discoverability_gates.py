@@ -4,6 +4,8 @@ import json
 from pathlib import Path
 import subprocess
 
+import pytest
+
 
 REPO = Path(__file__).resolve().parents[1]
 MANIFEST = REPO / "publication_pipeline" / "example_publication" / "image-slots.yaml"
@@ -13,9 +15,9 @@ def _run(*arguments: str) -> subprocess.CompletedProcess[str]:
     return subprocess.run([str(REPO / "reportkit"), *arguments], capture_output=True, text=True)
 
 
-def _project(tmp_path: Path, source_mode: str) -> Path:
+def _project(tmp_path: Path, source_mode: str, theme: str = "default") -> Path:
     root = tmp_path / "publication"
-    target = ("--publication-type", "technical-report", "--theme", "default", "--source-mode", source_mode)
+    target = ("--publication-type", "technical-report", "--theme", theme, "--source-mode", source_mode)
     for command in (
         ("target", "set", "--source-root", str(root), *target, "--request", "test publication", "--json"),
         ("init", str(root), *target, "--json"),
@@ -36,6 +38,18 @@ def _codes(payload: dict) -> list[str]:
 
 def _image_validation_codes(payload: dict) -> list[str]:
     return [code for code in _codes(payload) if code.startswith("RK_VALIDATION_") and "IMAGE" in code]
+
+
+@pytest.mark.parametrize("theme", ["default", "operator"])
+def test_markdown_pipe_table_passes_check(tmp_path: Path, theme: str) -> None:
+    root = _project(tmp_path, "markdown", theme)
+    chapter = root / "manuscript" / "01-introduction.md"
+    with chapter.open("a", encoding="utf-8") as manuscript:
+        manuscript.write("\n\n| Owner | Action |\n| --- | --- |\n| Team | Review evidence |\n")
+    exit_code, payload = _check(root)
+    assert exit_code == 0, payload["diagnostics"]
+    assert payload["passed"] is True
+    assert "RK_LOCAL_STYLE" not in _codes(payload)
 
 
 def test_check_warns_when_the_composition_brief_is_missing(tmp_path: Path) -> None:

@@ -227,10 +227,13 @@ def _universal_diagnostics(source: str, tex: Path, brief: dict[str, Any], state:
             ),
         ))
     body = source.split(r"\begin{document}", 1)[-1]
-    forbidden = next((pattern for pattern in _DEFAULT_LOCAL_STYLE if re.search(pattern, body)), None)
+    # Pandoc wraps sized table cells in minipages. These longtable bodies
+    # are engine-generated table furniture, not author local styling.
+    scan_body = re.sub(r"\\begin\{longtable\}.*?\\end\{longtable\}", "", body, flags=re.S)
+    forbidden = next((pattern for pattern in _DEFAULT_LOCAL_STYLE if re.search(pattern, scan_body)), None)
     if forbidden:
         diagnostics.append(make_diagnostic(
-            "off_target", f"Local styling command {re.search(forbidden, body).group()} bypasses the target theme.",
+            "off_target", f"Local styling command {re.search(forbidden, scan_body).group()} bypasses the target theme.",
             code="RK_LOCAL_STYLE", severity="error", source={"file": str(tex), "line": None},
             remediation="Remove the local styling command and use the declared theme's primitives; rerun `reportkit check`.",
         ))
