@@ -1,6 +1,11 @@
 [tool.pytest.ini_options]
+addopts = "-m 'not agent_eval'"
 pythonpath = [".", "python_scripts", "publication_pipeline/scripts", "publication_pipeline"]
 testpaths = ["tests", "publication_pipeline/tests"]
+markers = [
+    "agent_eval: opt-in scripted agent-behaviour scenarios",
+    "real_agent_eval: opt-in scenarios that call a real model driver",
+]
 
 [tool.ruff]
 # No line-length key: E501 is ignored below and no `ruff format` step runs
