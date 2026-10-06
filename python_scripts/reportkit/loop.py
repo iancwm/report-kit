@@ -118,6 +118,8 @@ def next_step(command: str, state: TargetState | None, outcome: Mapping[str, Any
             destination, reason = "reportkit target set --publication-type <type> --theme <theme> --source-mode <tex|markdown> --request \"<verbatim user ask>\"", "Persist the target and the user's request."
         else:
             destination, reason = "reportkit context --slice primitives --json", "Load the grammar scoped to this target."
+    elif command_name == "materialize":
+        destination, reason = "reportkit check --json", "Author the source from .reportkit/references/ and .reportkit/context.json, then run check."
     elif command_name == "target":
         destination, reason = "reportkit init <project-dir> --publication-type <type> --theme <theme> --source-mode <tex|markdown>", "Scaffold a starter and composition brief for the locked target."
     elif command_name == "init":

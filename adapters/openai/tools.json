@@ -400,6 +400,30 @@
       "type": "function"
     },
     {
+      "description": "Copy the target's reference docs, context slice, and preflight checklist into the consumer project.",
+      "name": "reportkit_materialize",
+      "parameters": {
+        "additionalProperties": false,
+        "properties": {
+          "output_root": {
+            "description": "where publication build artefacts live",
+            "type": "string"
+          },
+          "profile": {
+            "description": "publication config profile (for example, release)",
+            "type": "string"
+          },
+          "source_root": {
+            "description": "consumer publication project",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "strict": true,
+      "type": "function"
+    },
+    {
       "description": "Inspect PDF geometry, metadata, fonts, links, and bookmarks.",
       "name": "reportkit_inspect",
       "parameters": {

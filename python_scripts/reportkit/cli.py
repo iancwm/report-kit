@@ -43,6 +43,7 @@ from .editorial_audit import audit_editorial_source
 from .initialization import ensure_outside_repository, initialize, install_fonts, scaffold_target
 from .languages import language_diagnostics
 from .loop import next_step, target_line, target_payload
+from .materialize import materialize
 from .publications import (
     PUBLICATION_TYPES,
     THEMES,
@@ -387,6 +388,53 @@ def _run_context(args: argparse.Namespace) -> int:
     if args.context_slice:
         payload = build_context_slice(payload, args.context_slice)
     _emit(payload, state, "context", True)
+    return EXIT_OK
+
+
+def _run_materialize(args: argparse.Namespace) -> int:
+    """Copy the target's reference docs, context slice, and checklist into the project."""
+    source_root = _source_root(args)
+    try:
+        source_root = ensure_outside_repository(source_root, REPO_ROOT)
+    except ValueError as exc:
+        diagnostic = make_diagnostic(
+            "configuration_error", str(exc), code="RK_MATERIALIZE_LOCATION", docs="#/commands/materialize",
+        )
+        _emit(diagnostic_envelope([diagnostic], passed=False), None, "materialize", True)
+        return EXIT_CONFIG
+
+    state = _state(args) or load_target(source_root)
+    publication_type = state.publication_type if state else "technical-report"
+    theme = state.theme if state else "default"
+
+    try:
+        context = build_context(
+            REPO_ROOT, source_root, args.profile, publication_type=publication_type, theme=theme,
+        )
+        context_slice = build_context_slice(context, "primitives")
+    except (ContractError, PublicationRegistryError, ValueError) as exc:
+        diagnostic = make_diagnostic(
+            "configuration_error", str(exc), code="RK_MATERIALIZE_CONTEXT", docs="#/commands/materialize",
+        )
+        _emit(diagnostic_envelope([diagnostic], passed=False), state, "materialize", True)
+        return EXIT_CONFIG
+
+    try:
+        summary = materialize(source_root, REPO_ROOT, context_slice, publication_type, theme)
+    except OSError as exc:
+        diagnostic = make_diagnostic(
+            "environment_error", str(exc), code="RK_MATERIALIZE_WRITE", docs="#/commands/materialize",
+        )
+        _emit(diagnostic_envelope([diagnostic], passed=False), state, "materialize", True)
+        return EXIT_INTERNAL
+
+    def human() -> None:
+        print(
+            f"Materialized {len(summary['references'])} reference docs, "
+            f"{summary['context']}, and {summary['checklist']} into {summary['directory']}"
+        )
+
+    _emit({"passed": True, "materialized": summary}, state, "materialize", args.json, human=human)
     return EXIT_OK
 
 
@@ -1092,6 +1140,11 @@ def build_parser() -> argparse.ArgumentParser:
     context.add_argument("--schema", nargs="?", const="context", choices=("context", "context-slice", "diagnostic"))
     context.add_argument("--json", action="store_true")
     context.set_defaults(handler=_run_context)
+
+    materialize_cmd = sub.add_parser("materialize", help=COMMAND_CONTRACT["materialize"]["summary"], description=COMMAND_CONTRACT["materialize"]["summary"])
+    _add_publication_paths(materialize_cmd)
+    materialize_cmd.add_argument("--json", action="store_true")
+    materialize_cmd.set_defaults(handler=_run_materialize)
 
     check = sub.add_parser("check", help=COMMAND_CONTRACT["check"]["summary"], description=COMMAND_CONTRACT["check"]["summary"])
     _add_publication_paths(check)
