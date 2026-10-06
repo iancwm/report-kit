@@ -16,12 +16,15 @@ ReportKit is the publication engine. Keep each publication in a consumer project
 | Scaffold | `reportkit init <project> --publication-type <T> --theme <H> --source-mode <tex or markdown>` | Creates the project for the chosen target. |
 | Preflight | `reportkit doctor --require full-build --json` | Confirms the toolchain can build a PDF before you promise one. |
 | Author | `reportkit context --source-root <project> --slice primitives --json` | Load the target’s primitives and, for Markdown sources, its `markdown_forms`. |
+| Materialize | `reportkit materialize --source-root <project> --json` | Copy the target’s reference docs, primitives slice, and a preflight checklist into `<project>/.reportkit/`. |
 | Check | `reportkit check --source-root <project> --json` | Runs target and composition checks. |
 | Build | `reportkit build --source-root <project> --json` | Builds Markdown or direct TeX through the target gates. On failure, `reportkit diagnose <log> --source-root <project> --json` maps the TeX log to source lines. |
 | Review | `reportkit render --source-root <project> --pages 1 --json` and `reportkit inspect <pdf> --source-root <project> --json`; then `reportkit review --source-root <project> --visual-review <done or unavailable>` | Render pages, check fonts, links, and bookmarks, and record the manual review. |
 | Deliver | `reportkit status --source-root <project> --json` | Recover the saved state, quote its TARGET line, and repeat any `delivery_caveat` or `image_caveat`. |
 
 After a reset or context compaction, start with `reportkit status --source-root <project> --json` and follow its `next_step`.
+
+A combined build writes exactly one PDF, `<slug>.pdf`, into `build/combined/`. That directory is rebuilt from scratch each run (stale artefacts are removed) and the TeX compiler's intermediate `publication.pdf` is renamed into the slug PDF, never left alongside it. `reportkit package` copies the single PDF and its QA manifest into `output/`.
 
 ## Select the publication
 
@@ -45,6 +48,17 @@ If more than one pair plausibly fits, ask which format the user intends. The ali
 - Use only primitives and Markdown forms listed by `reportkit context --source-root <project> --slice primitives` for your target.
 - Visual markers and image slots are Markdown-only; in a direct-TeX project use the target's figure primitives.
 - If you cannot view rendered pages, say so in the delivery message.
+- Read every diagnostic's `remediation` field and fix it directly. Do not infer the fix by exploring the engine source — the remediation string is authoritative.
+
+## Consumer preflight checklist (Markdown source)
+
+Run `reportkit materialize --source-root <project> --json` once, then work from the copied files in `<project>/.reportkit/` instead of exploring this clone. Before `build`, confirm:
+
+1. `fragments/` exists (empty is fine) — a missing directory fails `MISSING_FRAGMENT_DIRECTORY`.
+2. `composition-brief.json` — for `technical-report` the `required` array must be `[]` (that structure has no role patterns) and `visual_reference` must be non-empty.
+3. Every `fragments/fig-<slug>.tex` holds exactly one `diagram` environment with `label={fig:<slug>}`, a `caption=`, a `description=` (alt text), and a `source=`. A visual is placed only via `[[REPORTKIT-VISUAL:fig:<slug>]]`.
+4. Heading text becomes a LaTeX label, so two headings with identical text collide as "multiply defined".
+5. Run `reportkit check --source-root <project> --json` and read every diagnostic's `remediation`; fix top-down.
 
 ## Write for the decision
 
