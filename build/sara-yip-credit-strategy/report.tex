@@ -58,7 +58,7 @@ The practical implication is that credentials should now be subordinate to repet
 
 \begin{featureexhibit}[span=full]{Sara is already strong on banking adjacency; the missing evidence sits in underwriting}
 \begin{featuretable}
-\begin{tabularx}{\linewidth}{>{\bfseries}p{0.24\linewidth} X p{0.18\linewidth}}
+\begin{tabularx}{\linewidth}{>{\bfseries\raggedright\arraybackslash}p{0.24\linewidth} >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}p{0.18\linewidth}}
 Requirement & Evidence today & Position \\
 \hline
 Corporate-banking environment & UOB cash management; prior DBS banking experience & Strong \\
@@ -90,7 +90,7 @@ The title matters less than the work. The first successful move is the one that 
 
 Externally, commercial banking is likely to provide the most forgiving bridge. The work often combines lending with cash management, trade finance and relationship coverage, so her existing product and client experience has immediate relevance. Corporate-banking analyst or associate roles can also work when they mix coverage support with credit rather than demanding independent underwriting from day one.
 
-Pure experienced-underwriter vacancies should be secondary targets until she has genuine cases behind her. Applying selectively is sensible; building the entire search around them is not.
+Vacancies for fully experienced underwriters should be secondary targets until she has genuine cases behind her. Applying selectively is sensible; building the entire search around them is not.
 \end{featurecolumns}
 
 \begin{featureexhibit}{The target-role ladder should maximise credit exposure, not title prestige}
@@ -143,12 +143,12 @@ A single independent credit memorandum would be an effective capstone. Choose a 
 \begin{featureexhibit}[span=full]{A first-principles credit workflow turns finance knowledge into an underwriting decision}
 \begin{diagram}[caption={},source={},description={A six-stage credit workflow moving from business analysis through financial reconstruction, debt capacity, stress testing, risk mitigation and lending recommendation.}]
 \begin{reportflow}
-\step{biz}{Business and\\industry risk}
-\step{fs}{Financial\\statements}
-\step{cash}{Cash flow and\\debt capacity}
-\step{stress}{Downside\\stress test}
-\step{mit}{Risks and\\mitigants}
-\step{rec}{Lending\\recommendation}
+\stepat{biz}{0}{0}{Business and\\industry risk}
+\stepat{fs}{3.6}{0}{Financial\\statements}
+\stepat{cash}{7.2}{0}{Cash flow and\\debt capacity}
+\stepat{stress}{7.2}{-1.6}{Downside\\stress test}
+\stepat{mit}{3.6}{-1.6}{Risks and\\mitigants}
+\stepat{rec}{0}{-1.6}{Lending\\recommendation}
 \flowedge{biz}{fs}
 \flowedge{fs}{cash}
 \flowedge{cash}{stress}
