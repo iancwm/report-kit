@@ -899,9 +899,9 @@ def _stage_build_directory(
     output.mkdir(parents=True, exist_ok=True)
     for path in template_files():
         shutil.copy2(path, output / path.name)
-    # Stable staged/compiled filename (A5), independent of which entrypoint
-    # source template was selected -- downstream packaging/inspection reads
-    # "publication.tex"/"publication.pdf" regardless of publication_type.
+    # Stable staged filename (A5), independent of which entrypoint source
+    # template was selected -- the document is always compiled from
+    # "publication.tex" and the result is renamed to the slug PDF.
     if source_mode == "tex":
         if source_main is None or not source_main.is_file():
             print(f"publication config: direct TeX source is missing: {source_main}", file=sys.stderr)
@@ -1195,7 +1195,9 @@ def _run_log_gate(
     compiled_pdf = output / "publication.pdf"
     pdf = output / (f"{identity['slug']}.pdf" if args.mode == "combined" else "section.pdf")
     if compiled_pdf.is_file() and compiled_pdf != pdf:
-        shutil.copy2(compiled_pdf, pdf)
+        # Rename, do not copy, so exactly one PDF remains in the output
+        # directory (the intermediate "publication.pdf" is not a deliverable).
+        shutil.move(str(compiled_pdf), str(pdf))
     if gate_result.returncode or not pdf.is_file():
         return _fail(report, report["diagnostics"], 3, report_path=report_path, history_root=history_root)  # type: ignore[arg-type]
     report["pdf"] = pdf.name
@@ -1308,7 +1310,12 @@ def build(args: argparse.Namespace) -> int:
     build_id_mode = f"section-{Path(manuscripts[0]).stem}" if args.mode == "section" else args.mode
     build_id = unique_build_id(build_id_mode, stamp, history_root)
     output = output_root / ("combined" if args.mode == "combined" else f"section-{Path(manuscripts[0]).stem}-{stamp}")
-    if output.exists() and args.mode != "combined":
+    if args.mode == "combined":
+        # Combined mode reuses one directory; drop the previous run's stale
+        # artefacts so a single PDF and a single staged file set remain.
+        if output.exists():
+            shutil.rmtree(output)
+    elif output.exists():
         output = output_root / build_id
 
     staged = _stage_build_directory(

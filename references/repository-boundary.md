@@ -52,6 +52,16 @@ Bootstrap this structure with `<report-kit-clone>/reportkit init
 <publication-dir>` — it refuses to initialize if `<publication-dir>` resolves
 inside the ReportKit clone.
 
+## Output contract
+
+`build/combined/` (the combined build's working directory) is **rebuilt from
+scratch on every combined build**: stale artefacts from a previous run are
+removed first, and the directory finishes with **exactly one PDF**, named
+`<slug>.pdf` from `publication.yaml`. The TeX compiler's intermediate
+`publication.pdf` is renamed into that slug PDF, never left alongside it. Run
+`reportkit package` to copy that single PDF, its QA manifest, and the rendered
+pages into `output/`.
+
 ## Guardrails
 
 1. **Do not store full books or reports in report-kit.** A publication's

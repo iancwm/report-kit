@@ -118,11 +118,12 @@ def test_paged_build_stages_a_stable_publication_tex_and_records_selection(tmp_p
 
     combined = output / "combined"
     assert (combined / "publication.tex").is_file()
-    assert (combined / "publication.pdf").is_file()
-    # The final, packaged PDF is slug-named -- not "publication.pdf" (that
-    # name is the internal compiled artifact, independent of the source
-    # entrypoint's own filename).
+    # The intermediate "publication.pdf" is renamed into the slug-named PDF so
+    # exactly one PDF remains in the output directory.
+    assert not (combined / "publication.pdf").exists()
     assert report["pdf"] != "publication.pdf"
+    assert (combined / report["pdf"]).is_file()
+    assert len(list(combined.glob("*.pdf"))) == 1
 
     selection = report["selection"]
     assert selection["publication_type"] == "technical-report"
