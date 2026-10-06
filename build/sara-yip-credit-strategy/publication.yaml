@@ -1,0 +1,12 @@
+publication_type: feature-article
+theme: editorial
+source_mode: tex
+engine: lualatex
+main: report.tex
+request: >-
+  Create an editorial-themed career strategy brief for Sara Yip's transition
+  from cash management / corporate banking support into commercial or corporate
+  banking credit analysis in Singapore, grounded in her resume and the career
+  analysis developed in conversation.
+validation:
+  require_declared_target: true
