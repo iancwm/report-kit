@@ -267,6 +267,29 @@ def test_load_target_distinguishes_declared_from_defaulted(tmp_path: Path) -> No
     assert declared.intent_path == tmp_path / ".reportkit" / "intent.json"
 
 
+def test_target_set_preserves_config_after_empty_document_field(tmp_path: Path) -> None:
+    from reportkit.initialization import initialize_project
+    from reportkit.target import set_target
+
+    root, _ = initialize_project(tmp_path / "operator-report", REPO)
+    state, diagnostics = set_target(
+        root,
+        publication_type="technical-report",
+        theme="operator",
+        source_mode="markdown",
+        request="An operator theme acceptance report.",
+    )
+
+    assert diagnostics == []
+    assert (state.publication_type, state.theme, state.source_mode) == (
+        "technical-report", "operator", "markdown",
+    )
+    assert state.declared_by == "publication.yaml"
+    assert state.require_declared is True
+    config_text = (root / "publication.yaml").read_text(encoding="utf-8")
+    assert '  theme: "operator"\nvalidation:\n' in config_text
+
+
 def test_authoring_template_is_the_target_aware_starter() -> None:
     from reportkit.authoring_templates import document_template
 

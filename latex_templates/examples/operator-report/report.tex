@@ -1,4 +1,6 @@
 \documentclass[publication-type=technical-report,theme=operator]{reportkit}
+\usepackage{tabularx}
+\usepackage{longtable}
 % Canonical fictional fixture for the experimental Operator theme.
 % All product names, prices, observations, and code below are invented.
 % Regenerate the analytical exhibits with:
@@ -85,9 +87,9 @@ An unestablished mark is not a negative finding. It signals a question for
 the pilot owner to close with a reproducible demonstration.
 
 \begin{capabilitygrid}{Local,Remote,Plans,MCP,Agents,Worktree,Batch,Audit,Hooks}
-\capabilityrow[fictional]{Kestrel Loom}{DDDDDDDDD}
-\capabilityrow[fictional]{Morrow Dock}{UDDDDUDDU}
-\capabilityrow[fictional]{Cinder Relay}{DUDDDDDDU}
+\capabilityrow[demo]{Kestrel Loom}{DDDDDDDDD}
+\capabilityrow[demo]{Morrow Dock}{UDDDDUDDU}
+\capabilityrow[demo]{Cinder Relay}{DUDDDDDDU}
 \end{capabilitygrid}
 
 For this table, “audit” means that an operator can export a record with the

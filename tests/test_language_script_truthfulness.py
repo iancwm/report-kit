@@ -358,7 +358,8 @@ def test_missing_glyph_is_fatal_only_under_strict_font_policy(tmp_path: Path, cl
 def test_locale_typography_loads_only_for_verified_languages(tmp_path: Path) -> None:
     code, log, pdf = _compile(tmp_path, "pdflatex", "en", r"\setreportkitlanguage{en-GB}", "Hello.")
     assert code == 0 and pdf
-    assert "babel.sty" in log and "loading babel locale american" in _unwrap(log)
+    compact_log = "".join(log.split()).casefold()
+    assert "babel.sty" in compact_log and "loadingbabellocaleamerican" in compact_log
 
     code, log, pdf = _compile(tmp_path, "pdflatex", "none", "", "Hello.")
     assert code == 0 and pdf

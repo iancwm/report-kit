@@ -18,7 +18,7 @@
   },
   "manual_review": [
     "Review every page for clipping, collisions, and deliberate whitespace.",
-    "Confirm table text uses Latin Modern Sans and prose uses Latin Modern Roman.",
+    "Confirm ordinary prose, tables, captions, and callout text use Latin Modern Sans; execution surfaces use Latin Modern Mono.",
     "Confirm terminal text is light on its dark surface and diff bands remain continuous across the page break.",
     "Check that all figures identify their fictional data and remain legible without color alone.",
     "Keep operator experimental until a pinned-toolchain visual review is recorded."

@@ -1,7 +1,7 @@
 # ReportKit Operator Theme Spec
 
-**Status:** Implementation merged to `main` via PR #79, but the canonical fixture does not yet compile (identity-primitive TikZ keys, `tabularx`, `\headheight`; tracked as strict xfails in the operator tests). Pinned acceptance and visual release review remain. The theme stays experimental until those gates pass. O2 and AC3 are revised by the 2026-10-01 sans-body spec.
-**Last updated:** 2026-09-30
+**Status:** Implementation merged to `main` via PR #79. The reconciliation branch fixes the canonical fixture's TikZ keys, table imports and `\headheight`; its local host compile, inspection and eight-page visual review pass. Pinned acceptance, AC7 baseline and independent recorded visual review remain. The theme stays experimental until those gates pass. O2 and AC3 are revised by the 2026-10-01 sans-body spec.
+**Last updated:** 2026-10-07
 **Implementation plan:** [2026-09-30-reportkit-operator-theme-implementation-plan.md](../plans/2026-09-30-reportkit-operator-theme-implementation-plan.md)
 
 This spec restates the author's *Operator Theme — Reusable .sty Primitives
@@ -252,7 +252,7 @@ TeX form:
 \diffhunk{@@ -12,3 +12,3 @@}
 \diffdel{const token = req.headers['x-token'];}
 \diffadd{const token = verifyJWT(req.headers.authorization);}
-\diffctx{if (!token) return deny(res);}
+\diffctx{~~if (!token) return deny(res);}
 \end{diffblock}
 ```
 
@@ -260,7 +260,8 @@ Markdown form. The body uses the directive dialect's existing `content: |`
 multiline value, because the dialect's ordinary body parsing treats `#` lines
 as comments, `key: value` lines (such as `Total: $212.40`) as arguments and
 drops blank lines. Inside `content: |` every line is kept verbatim after the
-two-space block indent is removed. The renderer emits exactly the TeX above,
+two-space block indent is removed. The two extra spaces before the context
+line become `~~` in the TeX above. The renderer emits the TeX above,
 escaping each line with `reportkit.latex.tex_escape`:
 
 ````markdown

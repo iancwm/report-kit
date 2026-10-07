@@ -145,13 +145,6 @@ def test_operator_minimal_document_compiles_under_pdflatex(tmp_path: Path) -> No
 
 
 @requires_pdflatex
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "discrepancy (spec AC2 / plan Lane O): a minimal operator document still logs "
-        "'fancyhdr Warning: \\headheight is too small (16.0pt)' on TeX Live 2025"
-    ),
-)
 def test_operator_minimal_document_has_no_headheight_warning(tmp_path: Path) -> None:
     _, log = _compile(tmp_path, "pdflatex", "\\section{Heading}\nBody text.")
     assert "\\headheight is too small" not in log.replace("\n", " ")

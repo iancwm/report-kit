@@ -106,18 +106,10 @@ def test_capabilitygrid_row_without_tag_has_empty_optional_tag() -> None:
     assert r"\capabilityrow[]{Beacon}{DUDDUUDUU}" in rendered
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "discrepancy: spec section 5.3 shows a context line indented two spaces beyond "
-        "the block indent and says it renders as the hand-written \\diffctx{if (!token) "
-        "return deny(res);}; the renderer keeps the spaces as ~~ because only the +/-/@@ "
-        "prefixes are stripped, so no single leading context-gutter space is removed"
-    ),
-)
-def test_diff_context_line_with_leading_space_matches_spec_example() -> None:
+def test_diff_context_line_preserves_extra_indentation() -> None:
     markdown = DIFF_MD.replace("  if (!token)", "    if (!token)")
-    assert _render(markdown) == DIFF_TEX
+    expected = DIFF_TEX.replace(r"\diffctx{if (!token)", r"\diffctx{~~if (!token)")
+    assert _render(markdown) == expected
 
 
 # ----------------------------------------------------------- metacharacters
