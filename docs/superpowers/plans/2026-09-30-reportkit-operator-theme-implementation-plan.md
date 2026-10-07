@@ -1,7 +1,7 @@
 # ReportKit Operator Theme Implementation Plan (multi-agent)
 
-**Status:** Wave 0 and implementation lanes are merged to `main` via PR #79. The canonical fixture does not yet compile (see the operator spec status). The full acceptance matrix and visual review remain open; see Wave 2 and Wave 3.
-**Last updated:** 2026-09-30
+**Status:** Wave 0 and implementation lanes are merged to `main` via PR #79. The canonical fixture compiles and passes the local host inspection on the reconciliation branch; the pinned acceptance matrix, AC7 baseline, and independent recorded visual review remain open.
+**Last updated:** 2026-10-07
 
 > **For agentic workers:** this plan is built for parallel execution. One
 > agent lands **Wave 0** alone. After it merges, the **Wave 1 lanes** run
@@ -404,6 +404,9 @@ broke it.
   `reportkit init <tmp>/operator-demo --publication-type technical-report --theme operator --source-mode markdown`,
   built from a Markdown manuscript that uses all three `reportkit` line-macro
   directives. Inspect `build-report.json` selection.
+- [x] Local host fixture check on 2026-10-07: eight pages compiled and rendered;
+  `visual_qa_operator.py` inspection passed with no TeX errors, overfull boxes,
+  or `\headheight` warning. This does not replace the pinned image gate.
 - [ ] AC7 across the whole matrix: every pre-existing fixture page unchanged.
 - [x] `CHANGELOG.md` `[Unreleased]` entry; `TODOS.md` row for this spec and
   plan; this plan's **Status** block updated with what was and was not run.
@@ -414,6 +417,9 @@ broke it.
   AC4–AC6, plus: callout rhythm, table legibility, chip baseline alignment in
   cells, capability glyph contrast in greyscale, diff band continuity across
   the page break, figure proportion.
+- [x] Local host review on 2026-10-07: all eight 140 DPI pages were viewed;
+  terminal, tables, charts, capability grid and page-spanning diff were
+  legible without visible clipping. Independent review remains required.
 - [ ] File each defect against the owning lane's files; the owning lane (or
   the reviewer, for one-line token changes) fixes it. At most two review
   rounds before escalating to the user.

@@ -232,7 +232,7 @@
       {
         \tikz[baseline=-2pt]
           \node[circle,fill=\RKTokIdentityAvatarFill,draw=\RKTokIdentityAvatarDraw,
-                minimum size=\RKTokIdentityAvatarSize,inner sep=0pt,
+                minimum~size=\RKTokIdentityAvatarSize,inner~sep=0pt,
                 font=\RKTokIdentityAvatarFont] {#1};
         \hspace{3pt}{\RKTokIdentityNameFont #2}
         \tl_if_blank:nF { #3 }
@@ -245,7 +245,7 @@
     \RKAssertIdentityTokens
     \tikz[baseline=-1pt]
       \node[fill=\RKTokIdentityPillFill,draw=\RKTokIdentityPillDraw,
-            rounded corners=\RKTokIdentityPillArc,inner sep=4pt,
+            rounded~corners=\RKTokIdentityPillArc,inner~sep=4pt,
             font=\RKTokIdentityPillFont]
         {#1\space{\color{\RKTokIdentityTagColor}#2}};
   }
@@ -253,7 +253,7 @@
 \cs_new_protected:Npn \rk_identity_statusdot:n #1
   {
     \tikz[baseline=-2.2pt]
-      \node[circle,fill=#1,minimum size=\RKTokIdentityDotSize,inner sep=0pt] {};
+      \node[circle,fill=#1,minimum~size=\RKTokIdentityDotSize,inner~sep=0pt] {};
   }
 
 \cs_new_protected:Npn \rk_identity_capdocumented:
@@ -269,7 +269,7 @@
     \RKAssertIdentityTokens
     \tikz[baseline=-2.2pt]
       \draw[draw=\RKTokCapabilityUnestablishedDraw,
-            line width=\RKTokCapabilityGlyphRule]
+            line~width=\RKTokCapabilityGlyphRule]
         (0,0) circle[radius=\RKTokCapabilityGlyphRadius];
   }
 

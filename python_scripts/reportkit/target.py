@@ -414,18 +414,18 @@ def _update_document_block(text: str, values: dict[str, str]) -> str:
     indent_text = " " * child_indent
     found: set[str] = set()
     child_pattern = re.compile(
-        rf"^({re.escape(indent_text)})([A-Za-z_][A-Za-z0-9_-]*)(\s*:\s*)(.*?)(\r?\n)?$"
+        rf"^({re.escape(indent_text)})([A-Za-z_][A-Za-z0-9_-]*)([ \t]*:[ \t]*)(.*?)(\r?\n)?$"
     )
     for index in range(start + 1, end):
         line = lines[index]
         match = child_pattern.match(line)
         if not match:
             continue
-        indent, key, delimiter, tail, newline = match.groups()
+        indent, key, _delimiter, tail, newline = match.groups()
         if key not in values:
             continue
         _, comment = _split_inline_comment(tail)
-        lines[index] = f"{indent}{key}{delimiter}{_yaml_scalar(values[key])}"
+        lines[index] = f"{indent}{key}: {_yaml_scalar(values[key])}"
         if comment:
             lines[index] += " " + comment
         lines[index] += newline or ""
