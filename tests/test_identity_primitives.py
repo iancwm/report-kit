@@ -128,14 +128,6 @@ def test_twelve_column_grid_fits_linewidth_without_overfull(tmp_path: Path) -> N
 
 
 @requires_pdflatex
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "discrepancy: reportkit-identity.sty writes 'line width=' inside \\ExplSyntaxOn, "
-        "where the space is dropped, so \\capunestablished (any U cell) raises "
-        "'pgfkeys Error: I do not know the key /tikz/linewidth' under every theme"
-    ),
-)
 @pytest.mark.parametrize("theme", THEMES_WITH_TOKENS)
 def test_unestablished_capability_glyph_compiles_cleanly(tmp_path: Path, theme: str) -> None:
     proc, log = _compile(tmp_path, "\\capunestablished\\ " + _grid("\\capabilityrow{A}{UUU}"), theme=theme)
