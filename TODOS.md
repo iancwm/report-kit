@@ -1,6 +1,6 @@
 # ReportKit — Outstanding Work
 
-**Last updated:** 2026-10-02 (`main` at `3c09cb3`)
+**Last updated:** 2026-10-07 (`main` at `5a0d8dc`; reconciliation branch in progress)
 
 This is the current-work index, not an audit. The front of the document contains
 only work that is still actionable. Completed implementation records and dated
@@ -28,9 +28,9 @@ and [references/documentation-status.md](references/documentation-status.md).
 | [2026-09-28-reportkit-docker-cross-host-workflow.md](docs/superpowers/plans/2026-09-28-reportkit-docker-cross-host-workflow.md) | Launcher, in-image build, CI/release workflow, and docs are integrated in `main`; release qualification remains operational work. | P2 |
 | [2026-09-28-reportkit-agent-reasoning-loop-spec.md](docs/superpowers/specs/2026-09-28-reportkit-agent-reasoning-loop-spec.md) | Lanes A–F are merged to `main` via PR #77; Lane G and acceptance evidence remain open. | P2 |
 | [2026-09-28-reportkit-agent-reasoning-loop-implementation-plan.md](docs/superpowers/plans/2026-09-28-reportkit-agent-reasoning-loop-implementation-plan.md) | Lanes A–F are merged to `main` via PR #77; Lane G and acceptance evidence remain open. | P2 |
-| [2026-09-30-reportkit-operator-theme-spec.md](docs/superpowers/specs/2026-09-30-reportkit-operator-theme-spec.md) | Implementation is merged to `main` via PR #79, but the canonical fixture does not yet compile (identity-primitive, `tabularx` and `\headheight` defects, tracked as strict xfails); acceptance and pinned visual release gates remain. | P3 |
-| [2026-09-30-reportkit-operator-theme-implementation-plan.md](docs/superpowers/plans/2026-09-30-reportkit-operator-theme-implementation-plan.md) | Implementation is merged to `main` via PR #79; fixture compile defects, the full acceptance matrix and visual review remain (Waves 2–3). | P3 |
-| [2026-10-01-operator-sans-body-typography.md](docs/superpowers/specs/2026-10-01-operator-sans-body-typography.md) | Implemented in `main` (TeX/Python theme, docs, O2/AC3 revised). S1–S3 and S5 font-span and visual verification remain; blocked by the operator fixture compile defects. | P3 |
+| [2026-09-30-reportkit-operator-theme-spec.md](docs/superpowers/specs/2026-09-30-reportkit-operator-theme-spec.md) | Implementation is merged to `main` via PR #79; the reconciliation branch passes local fixture compile and eight-page review. Pinned acceptance, AC7 baseline and independent recorded review remain. | P3 |
+| [2026-09-30-reportkit-operator-theme-implementation-plan.md](docs/superpowers/plans/2026-09-30-reportkit-operator-theme-implementation-plan.md) | Local host fixture gates pass on the reconciliation branch; pinned matrix, AC7 baseline and independent review remain (Waves 2–3). | P3 |
+| [2026-10-01-operator-sans-body-typography.md](docs/superpowers/specs/2026-10-01-operator-sans-body-typography.md) | Implemented in `main`; S1–S3 and S5 local font-span and visual checks pass on the reconciliation branch. S6 non-operator baseline remains. | P3 |
 | [2026-09-28-reportkit-presentation-style-plan.md](docs/superpowers/plans/2026-09-28-reportkit-presentation-style-plan.md) | Proposed; not started. Adds venture explanatory patterns (before/after, funnel, connected framework) and an `analyst-briefing` slides theme. Re-scope step 3 against the merged venture polish work (`fix/venture-presentation-polish`, 2026-09-26). The spec it cites is not checked in. | P3 |
 | [2026-10-03-reportkit-bibliography-and-contents-spec.md](docs/superpowers/specs/2026-10-03-reportkit-bibliography-and-contents-spec.md) | Implemented on branch; human visual review of the six skins remains. | P2 |
 | [2026-10-03-reportkit-bibliography-and-contents.md](docs/superpowers/plans/2026-10-03-reportkit-bibliography-and-contents.md) | Implemented on branch; human visual review of the six skins remains. | P2 |
@@ -88,26 +88,18 @@ and [references/documentation-status.md](references/documentation-status.md).
 
 ### P3
 
-- **Operator theme — fix fixture compile defects (blocks every gate below).**
-  The merged theme does not yet compile its canonical fixture. Strict xfails
-  in the new operator tests document the open defects: `reportkit-identity.sty`
-  uses multi-word TikZ keys inside `\ExplSyntaxOn` (spaces dropped), so
-  `\pricepill`, `\statusdot`, `\productavatar` and `\capunestablished`
-  fail; diff context lines with leading spaces render as `~~`; a minimal
-  operator document logs `\headheight is too small` (AC2); and the fixture
-  reports `tabularx` undefined. Fix these and remove the xfail markers.
-
 - **Operator theme — sans-serif body verification.** The change
   ([2026-10-01 spec](docs/superpowers/specs/2026-10-01-operator-sans-body-typography.md))
-  is implemented in `main`. No fixture has been rebuilt or rendered with it.
-  Verify S1–S3 on actual prose spans (not just a font inventory), S5 build
-  logs and pagination, and S6 non-operator baselines unchanged.
+  is implemented in `main`. The reconciliation branch rebuilt and reviewed
+  the eight-page fixture, and its visual QA checks actual Sans prose spans
+  and build logs. S6 non-operator baselines remain open.
 
 - **Operator theme — acceptance and visual release gates.** Implementation
   merged in [PR #79](https://github.com/iancwm/report-kit/pull/79); automated
-  tests for AC5, AC6, AC9 and AC10 were added on 2026-10-01. AC1–AC4, AC7 and
-  AC11 need the pinned OCI toolchain (`scripts/visual_qa_operator.py`, no
-  `expected/` baseline exists yet); AC12 needs a human page-by-page review.
+  tests for AC5, AC6, AC9 and AC10 were added on 2026-10-01. The reconciliation
+  branch passes local host AC1–AC4 and AC11 inspection, with all eight pages
+  viewed. The pinned OCI toolchain run, AC7 baseline (`expected/` does not yet
+  exist), and independent recorded AC12 review remain open.
   Do not promote the experimental theme until these are recorded.
 
 - **Presentation style — venture patterns and analyst-briefing theme.**
@@ -188,10 +180,9 @@ verification notes are retained in `History` below.
   (listed above).
 - The operator theme implementation is merged in PR #79, including its
   experimental registration, identity/execution primitives, chart encodings,
-  canonical fixture, visual-QA tooling, and authoring guide. The fixture does
-  not yet compile (see Open work), and pinned acceptance and visual release
-  gates remain open. A sans-serif body default (2026-10-01 spec) is also in
-  `main`, unverified on rendered pages.
+  canonical fixture, visual-QA tooling, and authoring guide. The reconciliation
+  branch fixes the fixture compile defects and verifies the sans-serif body
+  default on rendered pages. Pinned acceptance and visual release gates remain.
 - The editorial composition gate (PR #66) is merged: a brief-driven editorial
   composition audit, with two-column text as the standard reading measure.
 - The digest-pinned Docker cross-host workflow is implemented: the launcher,
@@ -309,6 +300,11 @@ from a session provisioned this way.
   explicitly open; no baseline pixels were changed.
 
 ## History
+
+- 2026-10-07: reconciled the operator fixes against 31 newer `main` commits.
+  The fixture compiles and its eight rendered pages pass local inspection;
+  resolved strict xfails were removed. Pinned acceptance, AC7 baseline and
+  independent recorded review remain open.
 
 - 2026-10-02: synchronized this index against every spec and plan dated on or
   after 2026-09-22. All were already indexed except the 2026-09-28

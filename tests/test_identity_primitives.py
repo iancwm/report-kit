@@ -93,15 +93,6 @@ def test_identity_module_reads_only_identity_or_capability_tokens() -> None:
 
 
 @requires_pdflatex
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "discrepancy: reportkit-identity.sty writes multi-word TikZ keys ('rounded corners', "
-        "'inner sep', 'minimum size', 'line width') inside \\ExplSyntaxOn, where spaces are "
-        "ignored, so \\pricepill, \\statusdot and \\productavatar raise pgfkeys errors "
-        "(/tikz/roundedcorners, /tikz/innersep, /tikz/minimumsize) under every theme"
-    ),
-)
 @pytest.mark.parametrize("theme", THEMES_WITH_TOKENS)
 def test_identity_primitives_compile_under_theme(tmp_path: Path, theme: str) -> None:
     body = (
@@ -128,14 +119,6 @@ def test_twelve_column_grid_fits_linewidth_without_overfull(tmp_path: Path) -> N
 
 
 @requires_pdflatex
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "discrepancy: reportkit-identity.sty writes 'line width=' inside \\ExplSyntaxOn, "
-        "where the space is dropped, so \\capunestablished (any U cell) raises "
-        "'pgfkeys Error: I do not know the key /tikz/linewidth' under every theme"
-    ),
-)
 @pytest.mark.parametrize("theme", THEMES_WITH_TOKENS)
 def test_unestablished_capability_glyph_compiles_cleanly(tmp_path: Path, theme: str) -> None:
     proc, log = _compile(tmp_path, "\\capunestablished\\ " + _grid("\\capabilityrow{A}{UUU}"), theme=theme)

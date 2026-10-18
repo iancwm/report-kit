@@ -237,11 +237,10 @@ def test_line_chart_series_have_distinct_dash_styles() -> None:
     lines = [ln for ln in ax.get_lines() if len(ln.get_xdata()) == 7]
     assert len(lines) == 3
     styles = [ln.get_linestyle() for ln in lines]
-    # Grayscale/colour-blind safety: no two series share colour AND style.
+    # Grayscale safety: each series must have its own line pattern.
     keys = {(mpl.colors.to_hex(ln.get_color()), ln.get_linestyle()) for ln in lines}
     assert len(keys) == 3
-    assert len(set(styles)) >= 2
-    assert styles[1] != styles[2] or lines[1].get_color() != lines[2].get_color()
+    assert len(set(styles)) == 3
 
 
 def test_line_chart_dash_styles_follow_theme_tokens() -> None:

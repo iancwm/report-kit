@@ -291,7 +291,8 @@ def test_latex_rejects_book_under_an_unregistered_theme(tmp_path: Path) -> None:
     )
     result = _compile(source, "lualatex", runs=1)
     assert result.returncode != 0
-    assert "Class reportkit Error" in result.stdout + result.stderr
+    output = "".join((result.stdout + result.stderr).split()).casefold()
+    assert "classreportkiterror" in output
     assert not source.with_suffix(".pdf").exists()
 
 

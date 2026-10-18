@@ -63,7 +63,7 @@ CHARTS = ChartTokens(
     grid_style="y",
     legend_style="above",
     hatches=("////", "", "....", "xx"),
-    dashes=("-", "-", "--", ":"),
+    dashes=("-", "--", "-.", ":"),
 )
 DIAGRAMS = DiagramTokens(node_font=8.1, node_padding=(5.0, 4.0), node_radius=1.2, edge_weight=0.8, label_font=6.8)
 SCRIPT_COVERAGE = ScriptCoverageTokens(

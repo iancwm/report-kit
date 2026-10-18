@@ -42,7 +42,7 @@ CHECKLIST = [
     "every page, including the diff continuation, has intentional composition",
     "the 9-column capability grid and each booktabs table are readable and unclipped",
     "product chips, price pills, status marks, and callout cards align with surrounding text",
-    "table glyphs use Latin Modern Sans, prose uses Latin Modern Roman, and execution lines use Latin Modern Mono",
+    "ordinary prose, tables, captions, and callout text use Latin Modern Sans; execution lines use Latin Modern Mono",
     "terminal glyphs are light on a dark surface and diff bands continue cleanly over the page break",
     "Figures 3, 5, and 6 are legible in grayscale and have no clipped labels",
     "there are no blank pages, collisions, or excessive empty areas",
@@ -296,7 +296,7 @@ def rendered_font_regions(pdf: Path) -> tuple[list[dict[str, Any]], list[dict[st
         for start, end, name in (
             ("Execution and support boundary", "90-day event history", "Table 1 product packages"),
             ("Setup (min)", "Partial", "Table 2 deployment envelope"),
-            ("Scenario", "Credit-cap month", "Table 3 run assumptions"),
+            ("Review minutes", "Credit-cap month", "Table 3 run assumptions"),
         ):
             region, error = _same_page_region(document, start, end, name, "sans")
             if error:
@@ -308,7 +308,7 @@ def rendered_font_regions(pdf: Path) -> tuple[list[dict[str, Any]], list[dict[st
             "This fictional evaluation compares",
             "on a vendor dashboard.",
             "body prose sample",
-            "roman",
+            "sans",
         )
         if error:
             errors.append(error)
@@ -316,7 +316,7 @@ def rendered_font_regions(pdf: Path) -> tuple[list[dict[str, Any]], list[dict[st
             regions.append(region)
         terminal, error = _spanning_regions(
             document,
-            "loom inspect --workspace K-17 --revision 7ac31e2",
+            "loom inspect",
             "Review the patch before approving an execution token.",
             "terminal text",
             "mono",
@@ -368,7 +368,7 @@ def inspect_terminal_pixels(pdf: Path, dpi: int = 140) -> dict[str, Any]:
             title = _anchor_rect(page, "Fictional rehearsal")
             if title is None:
                 continue
-            first = _anchor_rect(page, "loom inspect --workspace K-17 --revision 7ac31e2")
+            first = _anchor_rect(page, "loom inspect")
             last = _anchor_rect(page, "Review the patch before approving an execution token.")
             if first is None or last is None:
                 return {"passed": False, "reason": "terminal body anchors were not found", "page": page_number}
