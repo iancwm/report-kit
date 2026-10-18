@@ -7,6 +7,9 @@ tags on this repository, not a published package registry.
 ## [Unreleased]
 
 ### Added
+- A consumer `review-triage` skill (`skills/review-triage/SKILL.md`) for triaging
+  external reviews of a rendered PDF against project source. `init` and
+  `materialize` copy it to `<project>/.reportkit/skills/review-triage/`.
 - An experimental `operator` theme for `technical-report` publications, with
   product identity and capability-grid primitives, breakable terminal and
   diff surfaces, Markdown line-macro rendering, accessible chart encodings,

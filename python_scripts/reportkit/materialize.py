@@ -71,11 +71,32 @@ Run these in order:
    collide as "multiply defined".
 7. `reportkit check --source-root . --json` — read EVERY diagnostic's
    `remediation` and fix top-down. Never read engine source to guess the fix.
-8. A combined build writes exactly one PDF, `<slug>.pdf`, into `build/combined/`;
+8. Given external review findings of a built PDF, read
+   `.reportkit/skills/review-triage/SKILL.md` before editing anything.
+9. A combined build writes exactly one PDF, `<slug>.pdf`, into `build/combined/`;
    the directory is rebuilt from scratch each run and the intermediate
    `publication.pdf` is renamed, never duplicated. `reportkit package` copies
    the single PDF into `output/`.
 """
+
+
+# Consumer skills shipped from ``<engine>/skills/<name>/SKILL.md``. Copied into
+# ``<project>/.reportkit/skills/<name>/SKILL.md`` on ``init`` and ``materialize``.
+CONSUMER_SKILLS: tuple[str, ...] = ("review-triage",)
+
+
+def materialize_skills(source_root: Path, repo_root: Path) -> list[str]:
+    """Copy consumer skills into ``<project>/.reportkit/skills/``; return names copied."""
+    copied: list[str] = []
+    for name in CONSUMER_SKILLS:
+        src = repo_root / "skills" / name / "SKILL.md"
+        if not src.is_file():
+            continue
+        dest = source_root / ".reportkit" / "skills" / name
+        dest.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(src, dest / "SKILL.md")
+        copied.append(name)
+    return copied
 
 
 def reference_names(publication_type: str, theme: str) -> tuple[str, ...]:
@@ -120,6 +141,7 @@ def materialize(
 
     return {
         "directory": str(dest.resolve()),
+        "skills": materialize_skills(source_root, repo_root),
         "references": copied,
         "context": str(context_path.resolve()),
         "checklist": str(checklist_path.resolve()),

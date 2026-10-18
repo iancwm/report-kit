@@ -43,7 +43,7 @@ from .editorial_audit import audit_editorial_source
 from .initialization import ensure_outside_repository, initialize, install_fonts, scaffold_target
 from .languages import language_diagnostics
 from .loop import next_step, target_line, target_payload
-from .materialize import materialize
+from .materialize import materialize, materialize_skills
 from .publications import (
     PUBLICATION_TYPES,
     THEMES,
@@ -287,6 +287,12 @@ def _run_init(args: argparse.Namespace) -> int:
             return EXIT_CONFIG
     state = load_target(result.target)
     created = [*result.created, *target_created]
+    try:
+        created.extend(f".reportkit/skills/{name}/" for name in materialize_skills(result.target, REPO_ROOT))
+    except OSError as exc:
+        target_diagnostics.append(make_diagnostic(
+            "environment_error", f"cannot copy consumer skills: {exc}", code="RK_INIT_SKILLS", severity="warning", docs="#/commands/init",
+        ))
 
     font_status = None
     if args.install_fonts:
