@@ -22,7 +22,7 @@ ReportKit is the publication engine. Keep each publication in a consumer project
 | Review | `reportkit render --source-root <project> --pages 1 --json` and `reportkit inspect <pdf> --source-root <project> --json`; then `reportkit review --source-root <project> --visual-review <done or unavailable>` | Render pages, check fonts, links, and bookmarks, and record the manual review. |
 | Deliver | `reportkit status --source-root <project> --json` | Recover the saved state, quote its TARGET line, and repeat any `delivery_caveat` or `image_caveat`. |
 
-After a reset or context compaction, start with `reportkit status --source-root <project> --json` and follow its `next_step`.
+Run one step per session — each command's `next_step` is the handoff to the next session, and `reportkit status --source-root <project> --json` recovers state after a reset or compaction. There is no need to keep the whole loop in a single conversation.
 
 A combined build writes exactly one PDF, `<slug>.pdf`, into `build/combined/`. That directory is rebuilt from scratch each run (stale artefacts are removed) and the TeX compiler's intermediate `publication.pdf` is renamed into the slug PDF, never left alongside it. `reportkit package` copies the single PDF and its QA manifest into `output/`.
 
