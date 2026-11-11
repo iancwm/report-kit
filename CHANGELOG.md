@@ -7,6 +7,11 @@ tags on this repository, not a published package registry.
 ## [Unreleased]
 
 ### Added
+- Quiz primitives (`latex_templates/reportkit-quiz.sty`): `\quiztf` true/false
+  items to circle, a `quizmc` multiple-choice environment, and an `answers`
+  option that turns the same source into an answer key. Worked example in
+  `latex_templates/examples/quiz/`; load with `\usepackage{reportkit-quiz}`
+  under `technical-report`.
 - A consumer `review-triage` skill (`skills/review-triage/SKILL.md`) for triaging
   external reviews of a rendered PDF against project source. `init` and
   `materialize` copy it to `<project>/.reportkit/skills/review-triage/`.

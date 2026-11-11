@@ -1,0 +1,124 @@
+% ReportKit quiz primitives -- true/false (circle one) and multiple choice.
+%
+% One source produces both documents:
+%   \usepackage{reportkit-quiz}           % student sheet: nothing is marked
+%   \usepackage[answers]{reportkit-quiz}  % answer key: correct choice circled
+% or, without editing the source, put
+%   \PassOptionsToPackage{answers}{reportkit-quiz}
+% before \documentclass (see examples/quiz/quiz-key.tex).
+%
+% Public primitives
+%   \quizheader                     Name / Date / Score strip (key: banner)
+%   \quizsection{Title}{Directions} Section heading with directions
+%   \quiztf{Statement}{T|F}[Why]    True/false item; student circles True or False
+%   \begin{quizmc}{A-E}{Question}   Multiple-choice item; correct letter first
+%     \quizopt{Choice text} ...     Options are lettered A, B, C, ... automatically
+%   \end{quizmc}
+%   \quizexplain{Text}              Rationale; printed only in answer mode
+%   \quizscore                      Total number of questions so far
+%
+% Structure only: fonts and colours come from the selected theme. The circle
+% that marks the correct answer is drawn in both modes (invisible on the
+% student sheet) so the two documents paginate identically.
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{reportkit-quiz}[2026/11/11 v1.0.0 ReportKit quiz primitives]
+
+\RequirePackage{xparse}
+\RequirePackage{etoolbox}
+\RequirePackage{tikz}
+\RequirePackage{tabularx}
+
+\newif\ifrk@quizanswers
+\DeclareOption{answers}{\rk@quizanswerstrue}
+\DeclareOption{student}{\rk@quizanswersfalse}
+\ProcessOptions\relax
+
+\newcounter{rkquizq}
+\newcounter{rkquizopt}
+
+% Reserve room so an item is not split from its options. reportkit-core
+% provides \RKReserveSpace under the paged renderer; fall back to a no-op.
+\newcommand{\rk@quizreserve}[1]{%
+  \ifdefined\RKReserveSpace\RKReserveSpace{#1}\fi}
+
+% \rk@quizmark{text}{true|false} -- same footprint in both modes. The ring
+% colour is resolved before TikZ sees it (pgfkeys does not expand conditionals).
+\newcommand{\rk@quizmark}[2]{%
+  \def\rk@ringcolor{none}%
+  \edef\rk@markflag{#2}%
+  \ifrk@quizanswers\ifdefstring{\rk@markflag}{true}{\def\rk@ringcolor{black}}{}\fi
+  \tikz[baseline=(rk@qn.base)]\node[
+    circle,inner sep=2.2pt,line width=0.9pt,draw=\rk@ringcolor
+  ] (rk@qn) {#1};}
+
+\newcommand{\rk@quizkeylabel}{%
+  \ifrk@quizanswers
+    {\sffamily\bfseries\small ANSWER KEY}\par\vspace{0.5\baselineskip}%
+  \fi}
+
+\newcommand{\quizheader}{%
+  \par\noindent
+  \ifrk@quizanswers
+    \rk@quizkeylabel
+  \else
+    \begin{tabularx}{\linewidth}{@{}l X l X l@{}}
+      Name: & \hrulefill & Date: & \hrulefill & Score: \underline{\hspace{2.2cm}}
+    \end{tabularx}\par\vspace{0.8\baselineskip}%
+  \fi}
+
+\newcommand{\quizsection}[2]{%
+  \rk@quizreserve{6\baselineskip}%
+  \par\vspace{0.9\baselineskip}\noindent
+  {\sffamily\bfseries\large #1}\par\nopagebreak\vspace{0.15\baselineskip}%
+  \noindent{\itshape #2}\par\nopagebreak\vspace{0.4\baselineskip}}
+
+\newcommand{\quizscore}{\the\value{rkquizq}}
+
+\newcommand{\quizexplain}[1]{%
+  \ifrk@quizanswers
+    \par\nopagebreak\noindent\hspace*{2.2em}{\small\itshape #1}\par
+  \fi}
+
+\newcommand{\rk@quiznumber}{%
+  \stepcounter{rkquizq}{\sffamily\bfseries\arabic{rkquizq}.}}
+
+% True/false: statement on the left, "True   False" to be circled on the right.
+\NewDocumentCommand{\quiztf}{m m o}{%
+  \rk@quizreserve{3\baselineskip}%
+  \par\vspace{0.5\baselineskip}\noindent
+  \rk@quiznumber\ %
+  \parbox[t]{0.68\linewidth}{#1}\hfill
+  \parbox[t]{0.24\linewidth}{\raggedleft
+    \def\rk@tfa{false}\ifstrequal{#2}{T}{\def\rk@tfa{true}}{}%
+    \def\rk@tfb{false}\ifstrequal{#2}{F}{\def\rk@tfb{true}}{}%
+    \rk@quizmark{True}{\rk@tfa}\quad\rk@quizmark{False}{\rk@tfb}}%
+  \par
+  \IfValueT{#3}{\quizexplain{#3}}}
+
+\newcommand{\rk@quizcorrect}{}
+
+\newcommand{\rk@quizoptlabel}{%
+  \edef\rk@thisopt{\Alph{rkquizopt}}%
+  \def\rk@optflag{false}%
+  \ifdefequal{\rk@thisopt}{\rk@quizcorrect}{\def\rk@optflag{true}}{}%
+  \rk@quizmark{\rk@thisopt}{\rk@optflag}}
+
+% Multiple choice: \begin{quizmc}{B}{Question}\quizopt{..}\quizopt{..}\end{quizmc}
+\NewDocumentEnvironment{quizmc}{m m}{%
+  \rk@quizreserve{7\baselineskip}%
+  \par\vspace{0.5\baselineskip}\noindent
+  \gdef\rk@quizcorrect{#1}%
+  \setcounter{rkquizopt}{0}%
+  \rk@quiznumber\ #2\par\nopagebreak
+  \begin{list}{}{%
+    \setlength{\leftmargin}{2.6em}\setlength{\labelwidth}{2em}%
+    \setlength{\labelsep}{0.4em}\setlength{\itemsep}{1pt}%
+    \setlength{\topsep}{2pt}\setlength{\parsep}{0pt}}%
+}{%
+  \end{list}}
+
+\newcommand{\quizopt}[1]{%
+  \stepcounter{rkquizopt}%
+  \item[\rk@quizoptlabel] #1}
+
+\endinput
