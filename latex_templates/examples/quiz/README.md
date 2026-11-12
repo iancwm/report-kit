@@ -11,4 +11,4 @@ Primitives: `\quizheader`, `\quizsection{title}{directions}`,
 `\quiztf{statement}{T|F}[why]`, `\begin{quizmc}{letter}{question}` with
 `\quizopt{choice}`, `\quizexplain{text}`, `\quizscore`.
 
-Load with `\usepackage{reportkit-quiz}` (or `[answers]`). All content is invented.
+The class loads the package; set `\PassOptionsToPackage{answers}{reportkit-quiz}` before `\documentclass` for the key. All content is invented.

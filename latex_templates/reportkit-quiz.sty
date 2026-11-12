@@ -3,7 +3,7 @@
 % One source produces both documents:
 %   \usepackage{reportkit-quiz}           % student sheet: nothing is marked
 %   \usepackage[answers]{reportkit-quiz}  % answer key: correct choice circled
-% or, without editing the source, put
+% (when loaded by the class, give the option before \documentclass) or put
 %   \PassOptionsToPackage{answers}{reportkit-quiz}
 % before \documentclass (see examples/quiz/quiz-key.tex).
 %
@@ -83,6 +83,9 @@
   \stepcounter{rkquizq}{\sffamily\bfseries\arabic{rkquizq}.}}
 
 % True/false: statement on the left, "True   False" to be circled on the right.
+% <reportkit-contract>
+% {"kind":"command","description":"A true/false quiz item. The student circles True or False; in answer mode the correct word is ringed and the optional rationale is shown.","arguments":[{"name":"statement","type":"text","description":"The statement to judge."},{"name":"answer","type":"string","description":"T if the statement is true, F if false."},{"name":"rationale","type":"text","description":"Optional explanation printed only in answer mode."}],"constraints":[{"code":"answer_is_t_or_f","description":"The second argument must be exactly T or F."}],"example":"\\quiztf{A commit records a snapshot of the tracked files.}{T}[A commit stores a snapshot plus metadata.]","stability":"experimental","since":"1.11.0"}
+% </reportkit-contract>
 \NewDocumentCommand{\quiztf}{m m o}{%
   \rk@quizreserve{3\baselineskip}%
   \par\vspace{0.5\baselineskip}\noindent
@@ -104,6 +107,9 @@
   \rk@quizmark{\rk@thisopt}{\rk@optflag}}
 
 % Multiple choice: \begin{quizmc}{B}{Question}\quizopt{..}\quizopt{..}\end{quizmc}
+% <reportkit-contract>
+% {"kind":"composition","description":"A multiple-choice quiz item. Options added with \\quizopt are lettered A, B, C... automatically; in answer mode the correct letter is ringed.","arguments":[{"name":"correct","type":"string","description":"Letter of the correct option, e.g. B."},{"name":"question","type":"text","description":"The question stem."}],"constraints":[{"code":"options_via_quizopt","description":"Provide each choice with \\quizopt; the correct letter must match one of them."}],"example":"\\begin{quizmc}{B}{Which command shows uncommitted changes?}\n\\quizopt{git log}\n\\quizopt{git status}\n\\end{quizmc}","stability":"experimental","since":"1.11.0"}
+% </reportkit-contract>
 \NewDocumentEnvironment{quizmc}{m m}{%
   \rk@quizreserve{7\baselineskip}%
   \par\vspace{0.5\baselineskip}\noindent

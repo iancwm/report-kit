@@ -113,5 +113,6 @@
 \RequirePackage{reportkit-grammar}
 \RequirePackage{reportkit-identity}
 \RequirePackage{reportkit-execution}
+\RequirePackage{reportkit-quiz}
 
 \endinput

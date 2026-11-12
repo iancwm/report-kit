@@ -76,6 +76,10 @@ ROLE_TABLE: dict[str, Any] = {
         members={"composition": _EXECUTION_COMPOSITIONS, "command": _EXECUTION_COMMANDS},
         native=(*_REPORT, *_BOOK), allowed=(*_RESEARCH, *_BRIEF),
     ),
+    "reportkit-quiz.sty": _family(
+        members={"composition": ("quizmc",), "command": ("quiztf",)},
+        native=_REPORT, allowed=_BOOK,
+    ),
     "operator.py": _family(
         members={"chart": _OPERATOR_CHARTS},
         native=(*_REPORT, *_BOOK), allowed=(*_RESEARCH, *_BRIEF),
