@@ -1,0 +1,57 @@
+\documentclass[publication-type=technical-report,theme=default]{reportkit}
+% Quiz fixture: true/false (circle one) and multiple choice.
+% Student sheet. quiz-key.tex builds the same source as an answer key.
+% All content below is invented for this fixture.
+\setreportkitleftheader{Unit 3 quiz}
+\setreportkitfooter{Fictional course fixture}
+\setreportkitversion{Fixture 1.0}
+\setreportkitsubject{Quiz on version control basics}
+\setreportkitkeywords{ReportKit, quiz, true false, multiple choice}
+\setreportkitlanguage{en-US}
+\title{Unit 3 Quiz: Version Control Basics}
+\author{Fictional Course Staff}
+\date{November 2026}
+
+\begin{document}
+\maketitle
+\quizheader
+
+\quizsection{Part A. True or False}{Circle \emph{True} or \emph{False} for each statement.}
+
+\quiztf{A commit records a snapshot of the tracked files.}{T}
+  [A commit stores a snapshot plus metadata such as author and message.]
+\quiztf{Deleting a branch always deletes the commits on it.}{F}
+  [Commits stay reachable from other refs, and are recoverable for a time otherwise.]
+\quiztf{A merge conflict means the repository is corrupted.}{F}
+  [It means two changes touched the same lines and need a human decision.]
+\quiztf{Every clone of a distributed repository holds the full history.}{T}
+
+\quizsection{Part B. Multiple Choice}{Circle the letter of the single best answer.}
+
+\begin{quizmc}{C}{Which command shows uncommitted changes in the working tree?}
+  \quizopt{\texttt{git log}}
+  \quizopt{\texttt{git push}}
+  \quizopt{\texttt{git status}}
+  \quizopt{\texttt{git tag}}
+\end{quizmc}
+\quizexplain{\texttt{git status} lists staged, unstaged, and untracked files.}
+
+\begin{quizmc}{B}{What is the purpose of a branch?}
+  \quizopt{To compress the repository.}
+  \quizopt{To isolate a line of work from other work.}
+  \quizopt{To encrypt commits before sharing.}
+  \quizopt{To remove files from history.}
+  \quizopt{To rename the default remote.}
+\end{quizmc}
+
+\begin{quizmc}{A}{Which statement about \texttt{git pull} is most accurate?}
+  \quizopt{It fetches remote changes and integrates them into the current branch.}
+  \quizopt{It uploads local commits to the remote.}
+  \quizopt{It creates a new branch from a tag.}
+  \quizopt{It discards all local changes.}
+\end{quizmc}
+\quizexplain{Pull is a fetch followed by a merge (or rebase).}
+
+\vspace{1.5\baselineskip}\noindent\emph{Total questions: \quizscore.}
+
+\end{document}
